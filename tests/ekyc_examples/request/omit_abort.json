@@ -1,0 +1,40 @@
+{
+    "id_token": {
+        "phone_number": {
+            "if_unavailable": "abort"
+        },
+        "email": {
+            "value": "test@example.com",
+            "if_unavailable": "omit",
+            "if_different": "abort"
+        },
+        "custom_paid_claim": {
+            "if_unavailable": "omit_set"
+        },
+        "verified_claims": {
+            "verification": {
+                "trust_framework": {
+                    "value": "de_aml",
+                    "if_different": "abort",
+                    "if_unavailable": "abort"
+                },
+                "verification_process": {
+                    "if_unavailable": "omit_verified_claims"
+                }
+            },
+            "claims": {
+                "given_name": null,
+                "family_name": null,
+                "address": {
+                    "if_unavailable": "omit_verified_claims"
+                },
+                "nationalities": {
+                    "if_unavailable": "omit_set"
+                },
+                "place_of_birth": {
+                    "if_unavailable": "omit_set"
+                }
+            }
+        }
+    }
+}

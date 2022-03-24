@@ -1,0 +1,667 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>The Relying Party Handler &#8212; oidcmsg 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="oidcrp package" href="oidcrp.html" />
+    <link rel="prev" title="Welcome to oidcrp’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="the-relying-party-handler">
+<span id="oidcrp-rp"></span><h1>The Relying Party Handler<a class="headerlink" href="#the-relying-party-handler" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Imaging that you have a web service where some of the functions that service
+provides are protected and should only be accessible to authenticated users or
+that some of the functions the service provides needs access to some user
+related resources on a resource server. That’s when you need OpenID Connect
+(OIDC) or Oauth2.</p>
+<p>The RPHandler as implemented in <code class="xref py py-class docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler</span></code> is a
+service within
+the web service that handles user authentication and access authorization on
+behalf of the web service.</p>
+</div>
+<div class="section" id="some-background">
+<h2>Some background<a class="headerlink" href="#some-background" title="Permalink to this headline">¶</a></h2>
+<p>In the following description I will talk about Relying Party (RP)
+and OpenID Connect Provider (OP) but I could have talked about Oauth2 Client
+and OAuth2 Authorization Server instead. There are some differences
+in the details between the two sets but overall the entities work much the same
+way.</p>
+<p>OAuth2 and thereby OpenID Connect (OIDC) are built on a request-response paradigm.
+The RP issues a request and the OP returns a response.</p>
+<p>The OIDC core standard defines a set of such request-responses.
+This is a basic list of request-responses and the normal sequence in which they
+occur:</p>
+<ol class="arabic simple">
+<li><p>Provider discovery (WebFinger)</p></li>
+<li><p>Provider Info Discovery</p></li>
+<li><p>Client registration</p></li>
+<li><p>Authorization/Authentication</p></li>
+<li><p>Access token</p></li>
+<li><p>User info</p></li>
+</ol>
+<p>When a user accessing the web service for some reason needs to be authenticate
+or the service needs an access token that allows it to access some resources
+at a resource service on behalf of the user a number of things will happen:</p>
+<dl class="simple">
+<dt>Find out which OP to talk to.</dt><dd><p>If the RP handler is configured to only communicate to a defined set of OPs
+then the user is probable presented a list to choose from.
+If the OP the user wants to authenticated at is unknown to the RP Handler
+it will use some discovery service to, given some information provided by
+the user, find out where to learn more about the OP.</p>
+</dd>
+<dt>Gather information about the OP</dt><dd><p>This can be done out-of-band in which case the administrator of the service
+has gathered the information by contacting the administrator of the OP.
+In most cases this is done by reading the necessary information on a web
+page provided by the organization responsible for the OP.
+One can also chose to gather the information on-the-fly by using the
+provider info discovery service provided by OIDC.</p>
+</dd>
+<dt>Register the client with the OP</dt><dd><p>Again, this can be done beforehand or it can be done on-the-fly when needed.
+If it’s done before you will have to use a registration service provided by
+the organization responsible for the OP.
+If it’s to be done on-the-fly you will have to use the dynamic client
+registration service OIDC provides</p>
+</dd>
+<dt>Authentication/Authorization</dt><dd><p>This is done by the user at the OP.</p>
+</dd>
+</dl>
+<p>What happens after this depends on which <em>response_type</em> is used. If the
+<em>response_type</em> is <strong>code</strong> then the following step is done:</p>
+<dl class="simple">
+<dt>Access token request</dt><dd><p>Base on the information received in the authorization response a request
+for an access token is made to the OP</p>
+</dd>
+</dl>
+<p>And if the web service wants user information it might also have to do:</p>
+<dl class="simple">
+<dt>Obtain user info</dt><dd><p>Using the access token received above a userinfo request will be sent to the
+OP.</p>
+</dd>
+</dl>
+<p>Which of the above listed services that your RP will use when talking to an OP
+are usually decided by the OP. Just to show you how it can differ between
+different OPs I’ll give you a couple of examples below:</p>
+<dl class="simple">
+<dt>Google</dt><dd><p>If you want to use the Google OP as authentication service you should know
+that it is a true OIDC OP <a class="reference external" href="http://openid.net/certification/">certified</a> by the OpenID Foundation. You will
+have to manually register you RP at Google but getting Provider info can be
+done dynamically using an OIDC service. With Google you will use the
+response_type <em>code</em>. This means that you will need services 2,4,5 and 6
+from the list above. More about how you will accomplish this below</p>
+</dd>
+<dt>Microsoft</dt><dd><p>Microsoft have chosen to only support response_type <em>id_token</em> and to
+return all the user information in the <strong>id_token</strong>. Microsoft’s OP
+supports dynamic Provider info discovery but client registration is
+done manual. What it comes down to is that you will only need services
+2 and 4.</p>
+</dd>
+<dt>GitHub</dt><dd><p>Now, to begin with GitHub is not running an OP they basically have an
+Oauth2 AS with some additions. It doesn’t support dynamic provider info
+discovery or client registration. If expects response_type to be <em>code</em>
+so services 4,5 and 6 are needed.</p>
+</dd>
+</dl>
+<p>After this background you should now be prepared to dive into how the RP handler
+should be used.</p>
+</div>
+<div class="section" id="rp-handler-api">
+<h2>RP handler API<a class="headerlink" href="#rp-handler-api" title="Permalink to this headline">¶</a></h2>
+<p>A session is defined as a sequence of services used to cope with
+authorization/authentication for one user starting with the authorization request.</p>
+<div class="section" id="tier-1-api">
+<h3>Tier 1 API<a class="headerlink" href="#tier-1-api" title="Permalink to this headline">¶</a></h3>
+<p>The high-level methods you have access to (in the order they are to be
+used) are:</p>
+<dl>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.begin()</span></code></dt><dd><p>This method will initiate a RP/Client instance if none exists for the
+OP/AS in question. It will then run service 1 if needed, services 2 and 3
+according to configuration and finally will construct the authorization
+request.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ from oidcrp import RPHandler
+$ rph = RPHandler()
+$ issuer_id = &quot;https://example.org/&quot;
+$ info = rph.begin(issuer_id)
+$ print(info[&#39;url&#39;])
+https://example.org/op/authorization?state=Oh3w3gKlvoM2ehFqlxI3HIK5&amp;nonce=UvudLKz287YByZdsY3AJoPAlEXQkJ0dK&amp;redirect_uri=https%3A%2F%2Fexample.com%2Frp%2Fauthz_cb&amp;response_type=code&amp;scope=openid&amp;client_id=zls2qhN1jO6A
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>What happens next is that the user is redirected to the URL shown above.
+After the user has authenticated, handled consent and access management
+the user will be redirect back to the URL provided as value to the
+redirect_uri parameter in the URL above. The query part may look something
+like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="o">=</span><span class="n">Oh3w3gKlvoM2ehFqlxI3HIK5</span><span class="o">&amp;</span><span class="n">scope</span><span class="o">=</span><span class="n">openid</span><span class="o">&amp;</span><span class="n">code</span><span class="o">=</span><span class="n">Z0FBQUFBQmFkdFFjUVpFWE81SHU5N1N4N01</span><span class="o">&amp;</span><span class="n">iss</span><span class="o">=</span><span class="n">https</span><span class="o">%</span><span class="mi">3</span><span class="n">A</span><span class="o">%</span><span class="mi">2</span><span class="n">F</span><span class="o">%</span><span class="mi">2</span><span class="n">Fexample</span><span class="o">.</span><span class="n">org</span><span class="o">%</span><span class="mi">2</span><span class="n">Fop</span><span class="o">&amp;</span><span class="n">client_id</span><span class="o">=</span><span class="n">zls2qhN1jO6A</span>
+</pre></div>
+</div>
+<p>After the RP has received this response the processing continues with:</p>
+<dl>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.get_session_information()</span></code></dt><dd><p>In the authorization response there MUST be a state parameter. The value
+of that parameter is the key into a data store that will provide you
+with information about the session so far.</p>
+<p>Usage example (kwargs are the set of claims in the authorization response):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session_info</span> <span class="o">=</span> <span class="n">rph</span><span class="o">.</span><span class="n">state_db_interface</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.finalize()</span></code></dt><dd><p>Will parse the authorization response and depending on the configuration
+run the services 5 and 6.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="n">rph</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">session_info</span><span class="p">[</span><span class="s1">&#39;iss&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</div>
+<div class="section" id="tier-2-api">
+<h3>Tier 2 API<a class="headerlink" href="#tier-2-api" title="Permalink to this headline">¶</a></h3>
+<p>The tier 1 API is good for getting you started with authenticating a user and
+getting user information but if you’re look at a long-term engagement you need
+a finer grained set of methods. These I call the tier 2 API:</p>
+<dl>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.do_provider_info()</span></code></dt><dd><p>Either get the provider info from configuration or through dynamic
+discovery. Will overwrite previously saved provider metadata.</p>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.do_client_registration()</span></code></dt><dd><p>Do dynamic client registration is configured to do so and the OP supports it.</p>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.init_authorization()</span></code></dt><dd><p>Initialize an authorization/authentication event. If the user has a
+previous session stored this will not overwrite that but will create a new
+one.</p>
+<p>Usage example (note that you can modify what would be used by default):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">init_authorization</span><span class="p">(</span><span class="n">state_key</span><span class="p">,</span>
+                                  <span class="p">{</span><span class="s1">&#39;scope&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;openid&#39;</span><span class="p">,</span> <span class="s1">&#39;email&#39;</span><span class="p">]})</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>The state_key you see mentioned here and below is the value of the state
+parameter in the authorization request.</p>
+<dl>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.get_access_token()</span></code></dt><dd><p>Will use an access code received as the response to an
+authentication/authorization to get an access token from the OP/AS.
+Access codes can only be used once.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">get_access_token</span><span class="p">(</span><span class="n">state_key</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.refresh_access_token()</span></code></dt><dd><p>If the client has received a refresh token this method can be used to get
+a new access token.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">refresh_access_token</span><span class="p">(</span><span class="n">state_key</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s1">&#39;openid email&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>You may change the set of scopes that are bound to the new access token but
+that change can only be a downgrade from what was specified in the
+authorization request and accepted by the user.</p>
+<dl>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.get_user_info()</span></code></dt><dd><p>If the client is allowed to do so, it can refresh the user info by
+requesting user information from the userinfo endpoint.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">get_user_info</span><span class="p">(</span><span class="n">state_key</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.has_active_authentication()</span></code></dt><dd><p>After a while when the user returns after having been away for a while
+you may want to know if you should let her reauthenticate or not.
+This method will tell you if the last done authentication is still
+valid or of it has timed out.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">has_active_authentication</span><span class="p">(</span><span class="n">state_key</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>response will be True or False depending in the state of the authentication.</p>
+</dd>
+<dt><code class="xref py py-meth docutils literal notranslate"><span class="pre">oidcrp.rp_handler.RPHandler.get_valid_access_token()</span></code></dt><dd><p>When you are issued a access token it normally comes with a life time.
+After that time you are expected to use the refresh token to get a new
+access token. There are 2 ways of finding out if the access token you have is
+past its life time. You can use this method or you can just try using
+the access token and see what happens.</p>
+<p>Now, if you use this method and it tells you that you have an access token
+that should still be usable, that is no guarantee it is still usable.
+Things may have happened on the OPs side that makes the access token
+invalid. So if this method only returns a hint as to the usability of the
+access token.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rph</span><span class="o">.</span><span class="n">get_valid_access_token</span><span class="p">(</span><span class="n">state_key</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Response will be a tuple containing with the access token and the
+expiration time (in epoch) if there is a valid access token otherwise an
+exception will be raised.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="rp-configuration">
+<h2>RP configuration<a class="headerlink" href="#rp-configuration" title="Permalink to this headline">¶</a></h2>
+<p>As you may have guessed by now a lot of the work you have to do to use this
+packages lies in the RP configuration.</p>
+<p>The configuration parameters fall into 2 groups, one general that is the
+same for all RP/clients and one which is specific for a specific
+OP/AS</p>
+<div class="section" id="general-rp-configuration-parameters">
+<h3>General RP configuration parameters<a class="headerlink" href="#general-rp-configuration-parameters" title="Permalink to this headline">¶</a></h3>
+<p>Among the general parameters you have to define:</p>
+<dl class="simple">
+<dt>port</dt><dd><p>Which port the RP is listening on</p>
+</dd>
+<dt>domain</dt><dd><p>The domain the RP belongs to</p>
+</dd>
+</dl>
+<p>these 2 together then defines the base_url. which is normally defined as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">base_url</span><span class="p">:</span> <span class="s2">&quot;https://</span><span class="si">{domain}</span><span class="s2">:</span><span class="si">{port}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>logging</dt><dd><p>How the process should log</p>
+</dd>
+<dt>httpc_params</dt><dd><p>Defines how the process performs HTTP requests to other entities.
+Parameters here are typically <strong>verify</strong> which controls whether the http
+client will verify the server TLS certificate or not.
+Other parameters are <strong>client_cert</strong>/<strong>client_key</strong> which are needed only
+if you expect the TLS server to ask for the clients TLS certificate.
+Something that happens if you run in an environment where mutual TLS is
+expected.</p>
+</dd>
+<dt>rp_keys</dt><dd><p>Definition of the private keys that all RPs are going to use in the OIDC
+protocol exchange.</p>
+</dd>
+</dl>
+<p>There might be other parameters that you need dependent on which web framework
+you chose to use.</p>
+</div>
+<div class="section" id="op-as-specific-configuration-parameters">
+<h3>OP/AS specific configuration parameters<a class="headerlink" href="#op-as-specific-configuration-parameters" title="Permalink to this headline">¶</a></h3>
+<p>The client configuration is keyed to an OP/AS name. This name should
+be something human readable it does not have to in anyway be linked to the
+issuer ID of the OP/AS.</p>
+<p>The key <strong>“”</strong> (the empty string) is chosen to represent all OP/ASs that
+are dynamically discovered.</p>
+<p>Disregarding if doing everything dynamically or statically you <strong>MUST</strong>
+define which services the RP/Client should be able to use.</p>
+<dl class="simple">
+<dt>services</dt><dd><p>A specification of the usable services which possible changes to the
+default configuration of those service.</p>
+</dd>
+</dl>
+<p>If you have done manual client registration you will have to fill in these:</p>
+<dl>
+<dt>client_id</dt><dd><p>The client identifier.</p>
+</dd>
+<dt>client_secret</dt><dd><p>The client secret</p>
+</dd>
+<dt>redirect_uris</dt><dd><p>A set of URLs from which the RP can chose one to be added to the
+authorization request. The expectation is that the OP/AS will redirect
+the use back to this URL after the authorization/authentication has
+completed. These URLs should be OP/AS specific.</p>
+</dd>
+<dt>behaviour</dt><dd><p>Information about how the RP should behave towards the OP/AS. This is
+a set of attributes with values. The attributes taken from the
+<a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata">client metadata</a> specification. <em>behaviour</em> is used when the client
+has been registered statically and it is know what the client wants to
+use and the OP supports.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">,</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+                                   <span class="s1">&#39;client_secret_post&#39;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+<dt>rp_keys</dt><dd><p>If the OP doesn’t support dynamic provider discovery it may still want to
+have a way of distributing keys that allows it to rotate them at anytime.
+To accomplish this some providers have chosen to publish a URL to where
+you can find their OPs key material in the form of a JWKS.</p>
+<p>Usage example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;keys&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="p">{</span><span class="o">&lt;</span><span class="n">issuer_id</span><span class="o">&gt;</span> <span class="p">:</span> <span class="o">&lt;</span><span class="n">jwks_url</span><span class="o">&gt;</span><span class="p">}}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>If the provider info discovery is done dynamically you need this</p>
+<dl class="simple">
+<dt>client_preferences</dt><dd><p>How the RP should prefer to behave against the OP/AS. The content are the
+same as for <em>behaviour</em>. The difference is that this is specified if the
+RP is expected to do dynamic client registration which means that at the
+point of writing the configuration it is only known what the RP can and
+wants to do but unknown what the OP supports.</p>
+</dd>
+<dt>issuer</dt><dd><p>The Issuer ID of the OP.</p>
+</dd>
+<dt>allow</dt><dd><p>If there is a deviation from the standard as to how the OP/AS behaves this
+gives you the possibility to say you are OK with the deviation.
+Presently there is only one thing you can allow and that is the <em>issuer</em>
+in the provider info is not the same as the URL you used to fetch the
+information.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="rp-configuration-google">
+<h2>RP configuration - Google<a class="headerlink" href="#rp-configuration-google" title="Permalink to this headline">¶</a></h2>
+<p>A working configuration where the client_id and client_secret is replaced
+with dummy values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="s2">&quot;https://accounts.google.com/&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;client_id&quot;</span><span class="p">:</span> <span class="s2">&quot;xxxxxxxxx.apps.googleusercontent.com&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;client_secret&quot;</span><span class="p">:</span> <span class="s2">&quot;2222222222&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/google&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+    <span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">,</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+                                       <span class="s1">&#39;client_secret_post&#39;</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;ProviderInfoDiscovery&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;AccessToken&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;UserInfo&#39;</span><span class="p">:</span> <span class="p">{}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Now piece by piece</p>
+<p>Information provided by Google:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="s2">&quot;https://accounts.google.com/&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>Information about the client. When you register your RP with Google you will
+in return get a client_id and client_secret:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;client_id&quot;</span><span class="p">:</span> <span class="s2">&quot;xxxxxxxxx.apps.googleusercontent.com&quot;</span><span class="p">,</span>
+<span class="s2">&quot;client_secret&quot;</span><span class="p">:</span> <span class="s2">&quot;2222222222&quot;</span><span class="p">,</span>
+<span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/google&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+</pre></div>
+</div>
+<p>Now to the behaviour of the client. Google specifies response_type <em>code</em> which
+is reflected here. The scopes are picked form the set of possible scopes that
+Google provides. And lastly the <em>token_endpoint_auth_method</em>, where Google
+right now supports 2 variants both listed here. The RP will by default pick
+the first if a list of possible values. Which in this case means the RP will
+authenticate using the <em>client_secret_basic</em> if allowed by Google:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">,</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="s2">&quot;email&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+                                   <span class="s1">&#39;client_secret_post&#39;</span><span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>And lastly, which service the RP has access to. <em>ProviderInfoDiscovery</em> since
+Google supports dynamic provider info discovery. <em>Authorization</em> always must be
+there. <em>AccessToken</em> and <em>UserInfo</em> since response_type is <em>code</em> and Google
+return the user info at the userinfo endpoint:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;ProviderInfoDiscovery&#39;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s1">&#39;AccessToken&#39;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s1">&#39;UserInfo&#39;</span><span class="p">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="rp-configuration-microsoft">
+<h2>RP configuration - Microsoft<a class="headerlink" href="#rp-configuration-microsoft" title="Permalink to this headline">¶</a></h2>
+<p>Configuration that allows you to use a Microsoft OP as identity provider:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s1">&#39;issuer&#39;</span><span class="p">:</span> <span class="s1">&#39;https://login.microsoftonline.com/&lt;tenant_id&gt;/v2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;client_id&#39;</span><span class="p">:</span> <span class="s1">&#39;242424242424&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;client_secret&#39;</span><span class="p">:</span> <span class="s1">&#39;ipipipippipipippi&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/microsoft&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+    <span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;id_token&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;client_secret_post&#39;</span><span class="p">],</span>
+        <span class="s2">&quot;response_mode&quot;</span><span class="p">:</span> <span class="s1">&#39;form_post&#39;</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;allow&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;issuer_mismatch&quot;</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;ProviderInfoDiscovery&#39;</span><span class="p">:{},</span>
+        <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>One piece at the time. Microsoft has something called a tenant. Either you
+specify your RP to only one tenant in which case the issuer returned
+as <em>iss</em> in the id_token will be the same as the <em>issuer</em>. If our RP
+is expected to work in a multi-tenant environment then the <em>iss</em> will <strong>never</strong>
+match issuer. Let’s assume our RP works in a single-tenant context:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;issuer&#39;</span><span class="p">:</span> <span class="s1">&#39;https://login.microsoftonline.com/&lt;tenant_id&gt;/v2.0&#39;</span><span class="p">,</span>
+<span class="s2">&quot;allow&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;issuer_mismatch&quot;</span><span class="p">:</span> <span class="kc">True</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>Information about the client. When you register your RP with Microsoft you will
+in return get a client_id and client_secret:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;client_id&#39;</span><span class="p">:</span> <span class="s1">&#39;242424242424&#39;</span><span class="p">,</span>
+<span class="s1">&#39;client_secret&#39;</span><span class="p">:</span> <span class="s1">&#39;ipipipippipipippi&#39;</span><span class="p">,</span>
+<span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/microsoft&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+</pre></div>
+</div>
+<p>Regarding the behaviour of the RP, Microsoft have chosen to only support the
+response_type <em>id_token</em>. Microsoft have also chosen to return the authorization
+response not in the fragment of the redirect URL which is the default but
+instead using the response_mode <em>form_post</em>. <em>client_secret_post</em> is a
+client authentication that Microsoft supports at the token enpoint:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;id_token&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;client_secret_post&#39;</span><span class="p">],</span>
+    <span class="s2">&quot;response_mode&quot;</span><span class="p">:</span> <span class="s1">&#39;form_post&#39;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>And lastly, which service the RP has access to. <em>ProviderInfoDiscovery</em> since
+Microsoft supports dynamic provider info discovery. <em>Authorization</em> always must be
+there. And in this case this is it. All the user info will be included in the
+<em>id_token</em> that is returned in the authorization response:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;ProviderInfoDiscovery&#39;</span><span class="p">:{},</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="rp-configuration-github">
+<h2>RP configuration - GitHub<a class="headerlink" href="#rp-configuration-github" title="Permalink to this headline">¶</a></h2>
+<p>As mentioned before GitHub runs an OAuth2 AS not an OP.
+Still we can talk to it using this configuration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="s2">&quot;https://github.com/login/oauth/authorize&quot;</span><span class="p">,</span>
+    <span class="s1">&#39;client_id&#39;</span><span class="p">:</span> <span class="s1">&#39;eeeeeeeee&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;client_secret&#39;</span><span class="p">:</span> <span class="s1">&#39;aaaaaaaaaaaaa&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/github&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+    <span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;public_repo&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;provider_info&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;authorization_endpoint&quot;</span><span class="p">:</span>
+            <span class="s2">&quot;https://github.com/login/oauth/authorize&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;token_endpoint&quot;</span><span class="p">:</span>
+            <span class="s2">&quot;https://github.com/login/oauth/access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;userinfo_endpoint&quot;</span><span class="p">:</span>
+            <span class="s2">&quot;https://api.github.com/user&quot;</span>
+    <span class="p">},</span>
+    <span class="s1">&#39;services&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="s1">&#39;AccessToken&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;response_body_type&#39;</span><span class="p">:</span> <span class="s1">&#39;urlencoded&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;UserInfo&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;default_authn_method&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Part by part.
+Like with Google and Microsoft, GitHub expects you to register your client in
+advance. You register the redirect_uris and in return will get <em>client_id</em> and
+<em>client_secret</em>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;client_id&#39;</span><span class="p">:</span> <span class="s1">&#39;eeeeeeeee&#39;</span><span class="p">,</span>
+<span class="s1">&#39;client_secret&#39;</span><span class="p">:</span> <span class="s1">&#39;aaaaaaaaaaaaa&#39;</span><span class="p">,</span>
+<span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/authz_cb/github&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BASEURL</span><span class="p">)],</span>
+</pre></div>
+</div>
+<p>Since GitHub doesn’t support dynamic provder info discovery you have to enter
+that information in the configuration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="s2">&quot;https://github.com/login/oauth/authorize&quot;</span><span class="p">,</span>
+<span class="s2">&quot;provider_info&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;authorization_endpoint&quot;</span><span class="p">:</span>
+        <span class="s2">&quot;https://github.com/login/oauth/authorize&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;token_endpoint&quot;</span><span class="p">:</span>
+        <span class="s2">&quot;https://github.com/login/oauth/access_token&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;userinfo_endpoint&quot;</span><span class="p">:</span>
+        <span class="s2">&quot;https://api.github.com/user&quot;</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>Regarding the client behaviour the GitHub AS expects response_type <em>code</em>.
+The number of scope values is rather large I’ve just chose 2 here.
+No client authentication at the token endpoint is expected:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;behaviour&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;scope&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;public_repo&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;token_endpoint_auth_method&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>And about services, <em>Authorization</em> as always, <em>AccessToken</em> to convert the
+received <em>code</em> in the authorization response into an access token which later
+can be used to access user info at the userinfo endpoint.
+GitHub deviates from the standard in a number of way. First the Oauth2
+standard doesn’t mention anything like an userinfo endpoint, that is OIDC.
+So GitHub has implemented something that is in between OAuth2 and OIDC.
+What’s more disturbing is that the access token response by default is not
+encoded as a JSON document which the standard say but instead it’s
+urlencoded. Lucky for us, we can deal with both these things by configuration
+rather then writing code.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;services&#39;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s1">&#39;AccessToken&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;response_body_type&#39;</span><span class="p">:</span> <span class="s1">&#39;urlencoded&#39;</span><span class="p">},</span>
+    <span class="s1">&#39;UserInfo&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;default_authn_method&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">oidcmsg</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction to oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oidcmsg/index.html">oidcmsg classes and functions documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../howto/message.html">How to use the oidcmsg Message class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../howto/msg_extend.html">How to extend oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oidcop/index.html">Welcome to Idpy OIDC-op Documentation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Welcome to oidcrp’s documentation!</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The Relying Party Handler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oidcrp.html">oidcrp package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="add_on/index.html">OIDCRP add on documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="add_on/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Welcome to oidcrp’s documentation!</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to oidcrp’s documentation!</a></li>
+      <li>Next: <a href="oidcrp.html" title="next chapter">oidcrp package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/oidcrp/rp_handler.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

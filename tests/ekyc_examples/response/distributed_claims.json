@@ -1,0 +1,15 @@
+{
+  "iss": "https://server.example.com",
+  "sub": "248289761001",
+  "email": "janedoe@example.com",
+  "email_verified": true,
+  "_claim_names": {
+    "verified_claims": "src1"
+  },
+  "_claim_sources": {
+    "src1": {
+      "endpoint": "https://server.yetanotherop.com/claim_source",
+      "access_token": "ksj3n283dkeafb76cdef"
+    }
+  }
+}

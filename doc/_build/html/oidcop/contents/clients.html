@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>The clients database &#8212; idpyoidc 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Welcome to oidcrp’s documentation!" href="../../oidcrp/index.html" />
+    <link rel="prev" title="Session Management" href="session_management.html" />
+
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <div class="section" id="the-clients-database">
+<h1>The clients database<a class="headerlink" href="#the-clients-database" title="Permalink to this headline">¶</a></h1>
+<p>Information kept about clients in the client database are to begin with the
+client metadata as defined in
+<a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0.html">https://openid.net/specs/openid-connect-registration-1_0.html</a> .</p>
+<p>To that we have the following additions specified in OIDC extensions.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><a class="reference external" href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html">https://openid.net/specs/openid-connect-rpinitiated-1_0.html</a></dt><dd><ul>
+<li><p>post_logout_redirect_uri</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://openid.net/specs/openid-connect-frontchannel-1_0.html">https://openid.net/specs/openid-connect-frontchannel-1_0.html</a></dt><dd><ul>
+<li><p>frontchannel_logout_uri</p></li>
+<li><p>frontchannel_logout_session_required</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://openid.net/specs/openid-connect-backchannel-1_0.html#Backchannel">https://openid.net/specs/openid-connect-backchannel-1_0.html#Backchannel</a></dt><dd><ul>
+<li><p>backchannel_logout_uri</p></li>
+<li><p>backchannel_logout_session_required</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference external" href="https://openid.net/specs/openid-connect-federation-1_0.html#rfc.section.3.1">https://openid.net/specs/openid-connect-federation-1_0.html#rfc.section.3.1</a></dt><dd><ul>
+<li><p>client_registration_types</p></li>
+<li><p>organization_name</p></li>
+<li><p>signed_jwks_uri</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>And finally we add a number of parameters that are OidcOP specific.
+These are described in this document.</p>
+<div class="section" id="allowed-scopes">
+<h2>allowed_scopes<a class="headerlink" href="#allowed-scopes" title="Permalink to this headline">¶</a></h2>
+<p>Which scopes that can be returned to a client. This is used to filter
+the set of scopes a user can authorize release of.</p>
+</div>
+<div class="section" id="token-usage-rules">
+<h2>token_usage_rules<a class="headerlink" href="#token-usage-rules" title="Permalink to this headline">¶</a></h2>
+<p>There are usage rules for tokens. Rules are set per token type (the basic set is
+authorization_code, refresh_token, access_token and id_token).
+The possible rules are:</p>
+<ul class="simple">
+<li><p>how many times they can be used</p></li>
+<li><p>if other tokens can be minted based on this token</p></li>
+<li><p>how fast they expire</p></li>
+</ul>
+<p>A typical example (this is the default) would be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;token_usage_rules&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;authorization_code&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;max_usage&quot;</span><span class="p">:</span> <span class="mi">1</span>
+        <span class="s2">&quot;supports_minting&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;access_token&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_token&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;expires_in&quot;</span><span class="p">:</span> <span class="mi">600</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;refresh_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;supports_minting&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;access_token&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;expires_in&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This then means that access_tokens can be used any number of times,
+can not be used to mint other tokens and will expire after 300 seconds
+which is the default for any token. An authorization_code can only used once
+and it can be used to mint access_tokens and refresh_tokens. Note that normally
+an authorization_code is used to mint an access_token and a refresh_token at
+the same time. Such a dual minting is counted as one usage.
+And lastly an refresh_token can be used to mint access_tokens any number of
+times. An <em>expires_in</em> of -1 means that the token will never expire.</p>
+<p>If token_usage_rules are defined in the client metadata then it will be used
+whenever a token is minted unless circumstances makes the OP modify the rules.</p>
+<p>Also this does not mean that what is valid for a token can not be changed
+during run time.</p>
+</div>
+</div>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">oidcmsg</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction to oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcmsg/index.html">oidcmsg classes and functions documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/message.html">How to use the oidcmsg Message class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/msg_extend.html">How to extend oidcmsg</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome to Idpy OIDC-op Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="intro.html">The OpenID Connect Provider</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conf.html">Configuration directives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conf.html#token-exchange">Token exchange</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conf.html#clients">Clients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="session_management.html">Session Management</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The clients database</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Welcome to Idpy OIDC-op Documentation</a><ul>
+      <li>Previous: <a href="session_management.html" title="previous chapter">Session Management</a></li>
+      <li>Next: <a href="../../oidcrp/index.html" title="next chapter">Welcome to oidcrp’s documentation!</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+
+      |
+      <a href="../../_sources/oidcop/contents/clients.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>

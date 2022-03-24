@@ -1,0 +1,38 @@
+{
+  "id_token": {
+    "email": null,
+    "preferred_username": null,
+    "picture": null,
+    "verified_claims": {
+      "verification": {
+        "trust_framework": null,
+        "time": null,
+        "verification_process": null,
+        "evidence": [
+          {
+            "type": {
+              "value": "id_document"
+            },
+            "method": null,
+            "time": null,
+            "document_details": {
+              "type": null,
+              "issuer": {
+                "name": null,
+                "country": null
+              },
+              "document_number": null,
+              "date_of_issuance": null,
+              "date_of_expiry": null
+            }
+          }
+        ]
+      },
+      "claims": {
+        "given_name": null,
+        "family_name": null,
+        "birthdate": null
+      }
+    }
+  }
+}

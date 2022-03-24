@@ -1,0 +1,15 @@
+{
+  "sub": "248289761001",
+  "email": "janedoe@example.com",
+  "email_verified": true,
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "de_aml"
+    },
+    "claims": {
+      "given_name": "Max",
+      "family_name": "Meier",
+      "birthdate": "1956-01-28"
+    }
+  }
+}

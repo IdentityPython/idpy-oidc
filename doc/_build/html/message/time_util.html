@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>idpyoidc time utilities &#8212; idpyoidc 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Welcome to Idpy OIDC OP Documentation" href="../server/index.html" />
+    <link rel="prev" title="How to extend message" href="howto/msg_extend.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="oidcmsg-time-util">
+<span id="idpyoidc-time-utilities"></span><h1>idpyoidc time utilities<a class="headerlink" href="#oidcmsg-time-util" title="Permalink to this headline">¶</a></h1>
+<dl class="field-list simple">
+<dt class="field-odd">Author</dt>
+<dd class="field-odd"><p>Roland Hedberg</p>
+</dd>
+</dl>
+<div class="section" id="module-idpyoidc.time_util">
+<span id="idpyoidc-time-util-package"></span><h2>idpyoidc.time_util package<a class="headerlink" href="#module-idpyoidc.time_util" title="Permalink to this headline">¶</a></h2>
+<p>Implements some useful functions when dealing with validity of
+different types of information.</p>
+<dl class="exception">
+<dt id="idpyoidc.time_util.TimeUtilError">
+<em class="property">exception </em><code class="descclassname">idpyoidc.time_util.</code><code class="descname">TimeUtilError</code><a class="headerlink" href="#idpyoidc.time_util.TimeUtilError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.a_while_ago">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">a_while_ago</code><span class="sig-paren">(</span><em>days=0</em>, <em>seconds=0</em>, <em>microseconds=0</em>, <em>milliseconds=0</em>, <em>minutes=0</em>, <em>hours=0</em>, <em>weeks=0</em>, <em>time_format='%Y-%m-%dT%H:%M:%SZ'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.a_while_ago" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>days</strong> – </p></li>
+<li><p><strong>seconds</strong> – </p></li>
+<li><p><strong>microseconds</strong> – </p></li>
+<li><p><strong>milliseconds</strong> – </p></li>
+<li><p><strong>minutes</strong> – </p></li>
+<li><p><strong>hours</strong> – </p></li>
+<li><p><strong>weeks</strong> – </p></li>
+<li><p><strong>time_format</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Formatet string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.add_duration">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">add_duration</code><span class="sig-paren">(</span><em>tid</em>, <em>duration</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.add_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.after">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">after</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.after" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if point datetime specification is equal or after now</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.before">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">before</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.before" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if point datetime specification is before now</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.epoch_in_a_while">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">epoch_in_a_while</code><span class="sig-paren">(</span><em>days=0</em>, <em>seconds=0</em>, <em>microseconds=0</em>, <em>milliseconds=0</em>, <em>minutes=0</em>, <em>hours=0</em>, <em>weeks=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.epoch_in_a_while" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of seconds since epoch a while from now.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>days</strong> – </p></li>
+<li><p><strong>seconds</strong> – </p></li>
+<li><p><strong>microseconds</strong> – </p></li>
+<li><p><strong>milliseconds</strong> – </p></li>
+<li><p><strong>minutes</strong> – </p></li>
+<li><p><strong>hours</strong> – </p></li>
+<li><p><strong>weeks</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Seconds since epoch (1970-01-01)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.f_quotient">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">f_quotient</code><span class="sig-paren">(</span><em>arg0</em>, <em>arg1</em>, <em>arg2=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.f_quotient" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.in_a_while">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">in_a_while</code><span class="sig-paren">(</span><em>days=0</em>, <em>seconds=0</em>, <em>microseconds=0</em>, <em>milliseconds=0</em>, <em>minutes=0</em>, <em>hours=0</em>, <em>weeks=0</em>, <em>time_format='%Y-%m-%dT%H:%M:%SZ'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.in_a_while" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>days</strong> – </p></li>
+<li><p><strong>seconds</strong> – </p></li>
+<li><p><strong>microseconds</strong> – </p></li>
+<li><p><strong>milliseconds</strong> – </p></li>
+<li><p><strong>minutes</strong> – </p></li>
+<li><p><strong>hours</strong> – </p></li>
+<li><p><strong>weeks</strong> – </p></li>
+<li><p><strong>time_format</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Formatet string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.instant">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">instant</code><span class="sig-paren">(</span><em>time_format='%Y-%m-%dT%H:%M:%SZ'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.instant" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.later_than">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">later_than</code><span class="sig-paren">(</span><em>after</em>, <em>before</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.later_than" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if then is later or equal to that</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.maximum_day_in_month_for">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">maximum_day_in_month_for</code><span class="sig-paren">(</span><em>year</em>, <em>month</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.maximum_day_in_month_for" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.modulo">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">modulo</code><span class="sig-paren">(</span><em>arg0</em>, <em>arg1</em>, <em>arg2=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.modulo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.not_before">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">not_before</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.not_before" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if point datetime specification is equal or after now</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.not_on_or_after">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">not_on_or_after</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.not_on_or_after" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if point datetime specification is before now</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.parse_duration">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">parse_duration</code><span class="sig-paren">(</span><em>duration</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.parse_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.shift_time">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">shift_time</code><span class="sig-paren">(</span><em>dtime</em>, <em>shift</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.shift_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds/deletes an integer amount of seconds from a datetime specification</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtime</strong> – The datatime specification</p></li>
+<li><p><strong>shift</strong> – The wanted time shift (+/-)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A shifted datatime specification</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.str_to_time">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">str_to_time</code><span class="sig-paren">(</span><em>timestr</em>, <em>time_format='%Y-%m-%dT%H:%M:%SZ'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.str_to_time" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestr</strong> – </p></li>
+<li><p><strong>time_format</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>UTC time</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.time_a_while_ago">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">time_a_while_ago</code><span class="sig-paren">(</span><em>days=0</em>, <em>seconds=0</em>, <em>microseconds=0</em>, <em>milliseconds=0</em>, <em>minutes=0</em>, <em>hours=0</em>, <em>weeks=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.time_a_while_ago" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a time specification for a time sometime in the past.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>days</strong> – </p></li>
+<li><p><strong>seconds</strong> – </p></li>
+<li><p><strong>microseconds</strong> – </p></li>
+<li><p><strong>milliseconds</strong> – </p></li>
+<li><p><strong>minutes</strong> – </p></li>
+<li><p><strong>hours</strong> – </p></li>
+<li><p><strong>weeks</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>datetime instance using UTC time</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.time_in_a_while">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">time_in_a_while</code><span class="sig-paren">(</span><em>days=0</em>, <em>seconds=0</em>, <em>microseconds=0</em>, <em>milliseconds=0</em>, <em>minutes=0</em>, <em>hours=0</em>, <em>weeks=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.time_in_a_while" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will return a time specification for a time sometime in the future.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>datetime instance using UTC time</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.time_sans_frac">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">time_sans_frac</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.time_sans_frac" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.utc_time_sans_frac">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">utc_time_sans_frac</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.utc_time_sans_frac" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.time_util.valid">
+<code class="descclassname">idpyoidc.time_util.</code><code class="descname">valid</code><span class="sig-paren">(</span><em>point</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.time_util.valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if point datetime specification is before now</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">idpyoidc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">idpyoidc classes and functions documentation!</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to message</a></li>
+<li class="toctree-l2"><a class="reference internal" href="message.html">Base protocol message</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oauth2.html">OAuth2 protocol messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oidc.html">OpenID Connect protocol messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="howto/message.html">How to use the idpyoidc Message class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="howto/msg_extend.html">How to extend message</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">idpyoidc time utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../server/index.html">Welcome to Idpy OIDC OP Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">idpyoidc classes and functions documentation!</a><ul>
+      <li>Previous: <a href="howto/msg_extend.html" title="previous chapter">How to extend message</a></li>
+      <li>Next: <a href="../server/index.html" title="next chapter">Welcome to Idpy OIDC OP Documentation</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/message/time_util.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

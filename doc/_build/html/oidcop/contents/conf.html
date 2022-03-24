@@ -1,0 +1,1063 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Configuration directives &#8212; oidcmsg 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Session Management" href="session_management.html" />
+    <link rel="prev" title="The OpenID Connect Provider" href="intro.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="configuration-directives">
+<h1>Configuration directives<a class="headerlink" href="#configuration-directives" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="issuer">
+<h2>issuer<a class="headerlink" href="#issuer" title="Permalink to this headline">¶</a></h2>
+<p>The issuer ID of the OP, a unique value in URI format.</p>
+</div>
+<div class="section" id="session-params">
+<h2>session params<a class="headerlink" href="#session-params" title="Permalink to this headline">¶</a></h2>
+<p>Configuration parameters used by session manager:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;session_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;password&quot;</span><span class="p">:</span> <span class="s2">&quot;__password_used_to_encrypt_access_token_sid_value&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;salt&quot;</span><span class="p">:</span> <span class="s2">&quot;salt involved in session sub hash &quot;</span><span class="p">,</span>
+  <span class="s2">&quot;sub_func&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;public&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.session.manager.PublicID&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;salt&quot;</span><span class="p">:</span> <span class="s2">&quot;sdfsdfdsf&quot;</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;pairwise&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.session.manager.PairWiseID&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;salt&quot;</span><span class="p">:</span> <span class="s2">&quot;sdfsdfsdf&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+ <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<div class="section" id="password">
+<h3>password<a class="headerlink" href="#password" title="Permalink to this headline">¶</a></h3>
+<p>Optional. Encryption key used to encrypt the SessionID (sid) in access_token.
+If unset it will be random.</p>
+</div>
+<div class="section" id="salt">
+<h3>salt<a class="headerlink" href="#salt" title="Permalink to this headline">¶</a></h3>
+<p>Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of <em>sub</em> claim.</p>
+</div>
+<div class="section" id="sub-funcs">
+<h3>sub_funcs<a class="headerlink" href="#sub-funcs" title="Permalink to this headline">¶</a></h3>
+<p>Optional. Functions involved in subject value creation.</p>
+</div>
+<div class="section" id="scopes-to-claims">
+<h3>scopes_to_claims<a class="headerlink" href="#scopes-to-claims" title="Permalink to this headline">¶</a></h3>
+<p>A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn’t map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;scope_a&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;claim1&quot;</span><span class="p">,</span> <span class="s2">&quot;claim2&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;scope_b&quot;</span><span class="p">:</span> <span class="p">[]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><em>Note</em>: For OIDC the <cite>openid</cite> scope must be present in this mapping.</p>
+</div>
+<div class="section" id="allowed-scopes">
+<h3>allowed_scopes<a class="headerlink" href="#allowed-scopes" title="Permalink to this headline">¶</a></h3>
+<p>A list with the scopes that are allowed to be used (defaults to the keys in scopes_to_claims).</p>
+</div>
+<div class="section" id="scopes-supported">
+<h3>scopes_supported<a class="headerlink" href="#scopes-supported" title="Permalink to this headline">¶</a></h3>
+<p>A list with the scopes that will be advertised in the well-known endpoint (defaults to allowed_scopes).</p>
+</div>
+</div>
+<div class="section" id="add-on">
+<h2>add_on<a class="headerlink" href="#add-on" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;add_on&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;pkce&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.add_on.pkce.add_pkce_support&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;essential&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+        <span class="s2">&quot;code_challenge_method&quot;</span><span class="p">:</span> <span class="s2">&quot;S256 S384 S512&quot;</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+  <span class="p">}</span>
+</pre></div>
+</div>
+<p>The provided add-ons can be seen in the following sections.</p>
+<div class="section" id="pkce">
+<h3>pkce<a class="headerlink" href="#pkce" title="Permalink to this headline">¶</a></h3>
+<p>The pkce add on is activated using the <code class="docutils literal notranslate"><span class="pre">oidcop.oidc.add_on.pkce.add_pkce_support</span></code>
+function. The possible configuration options can be found below.</p>
+<div class="section" id="essential">
+<h4>essential<a class="headerlink" href="#essential" title="Permalink to this headline">¶</a></h4>
+<p>Whether pkce is mandatory, authentication requests without a <code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>
+will fail if this is True. This option can be overridden per client by defining
+<code class="docutils literal notranslate"><span class="pre">pkce_essential</span></code> in the client metadata.</p>
+</div>
+<div class="section" id="code-challenge-method">
+<h4>code_challenge_method<a class="headerlink" href="#code-challenge-method" title="Permalink to this headline">¶</a></h4>
+<p>The allowed code_challenge methods. The supported code challenge methods are:
+<code class="docutils literal notranslate"><span class="pre">plain,</span> <span class="pre">S256,</span> <span class="pre">S384,</span> <span class="pre">S512</span></code></p>
+</div>
+</div>
+</div>
+<div class="section" id="authentication">
+<h2>authentication<a class="headerlink" href="#authentication" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;authentication&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;acr&quot;</span><span class="p">:</span> <span class="s2">&quot;urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.user_authn.user.UserPassJinja2&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;verify_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;verify/user&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;template&quot;</span><span class="p">:</span> <span class="s2">&quot;user_pass.jinja2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.util.JSONDictDB&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="s2">&quot;passwd.json&quot;</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;page_header&quot;</span><span class="p">:</span> <span class="s2">&quot;Testing log in&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;submit_btn&quot;</span><span class="p">:</span> <span class="s2">&quot;Get me in!&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;user_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Nickname&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;passwd_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Secret sauce&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="capabilities">
+<h2>capabilities<a class="headerlink" href="#capabilities" title="Permalink to this headline">¶</a></h2>
+<p>This covers most of the basic functionality of the OP. The key words are the
+same as defined in <a class="reference external" href="https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata">OIDC Discovery</a>.
+A couple of things are defined else where. Like the endpoints, issuer id,
+jwks_uri and the authentication methods at the token endpoint.</p>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">response_types_supported</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">code</span>
+    <span class="o">-</span> <span class="n">token</span>
+    <span class="o">-</span> <span class="n">id_token</span>
+    <span class="o">-</span> <span class="s2">&quot;code token&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;code id_token&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;id_token token&quot;</span>
+    <span class="o">-</span> <span class="s2">&quot;code id_token token&quot;</span>
+    <span class="o">-</span> <span class="n">none</span>
+  <span class="n">response_modes_supported</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">query</span>
+    <span class="o">-</span> <span class="n">fragment</span>
+    <span class="o">-</span> <span class="n">form_post</span>
+  <span class="n">subject_types_supported</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">public</span>
+    <span class="o">-</span> <span class="n">pairwise</span>
+  <span class="n">grant_types_supported</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">authorization_code</span>
+    <span class="o">-</span> <span class="n">implicit</span>
+    <span class="o">-</span> <span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">oauth</span><span class="p">:</span><span class="n">grant</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span><span class="n">jwt</span><span class="o">-</span><span class="n">bearer</span>
+    <span class="o">-</span> <span class="n">refresh_token</span>
+    <span class="o">-</span> <span class="n">urn</span><span class="p">:</span><span class="n">ietf</span><span class="p">:</span><span class="n">params</span><span class="p">:</span><span class="n">oauth</span><span class="p">:</span><span class="n">grant</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span><span class="n">token</span><span class="o">-</span><span class="n">exchange</span>
+  <span class="n">claim_types_supported</span><span class="p">:</span>
+    <span class="o">-</span> <span class="n">normal</span>
+    <span class="o">-</span> <span class="n">aggregated</span>
+    <span class="o">-</span> <span class="n">distributed</span>
+  <span class="n">claims_parameter_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">request_parameter_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">request_uri_parameter_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">frontchannel_logout_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">frontchannel_logout_session_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">backchannel_logout_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">backchannel_logout_session_supported</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="n">check_session_iframe</span><span class="p">:</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">5000</span><span class="o">/</span><span class="n">check_session_iframe</span>
+  <span class="n">scopes_supported</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">,</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">]</span>
+  <span class="n">claims_supported</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;sub&quot;</span><span class="p">,</span> <span class="s2">&quot;given_name&quot;</span><span class="p">,</span> <span class="s2">&quot;birthdate&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="client-db">
+<h2>client_db<a class="headerlink" href="#client-db" title="Permalink to this headline">¶</a></h2>
+<p>If you’re running an OP with static client registration you want to keep the
+registered clients in a database separate from the session database since
+it will change independent of the OP process. In this case you need <em>client_db</em>.
+If you are on the other hand only allowing dynamic client registration then
+keeping registered clients only in the session database makes total sense.</p>
+<p>The class you reference in the specification MUST be a subclass of
+oidcmsg.storage.DictType and have some of the methods a dictionary has.</p>
+<p>Note also that this class MUST support the dump and load methods as defined
+in <code class="xref py py-class docutils literal notranslate"><span class="pre">oidcmsg.impexp.ImpExp</span></code>.</p>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">client_db</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s1">&#39;oidcmsg.abfile.AbstractFileSystem&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;fdir&#39;</span><span class="p">:</span> <span class="n">full_path</span><span class="p">(</span><span class="s2">&quot;afs&quot;</span><span class="p">),</span>
+        <span class="s1">&#39;value_conv&#39;</span><span class="p">:</span> <span class="s1">&#39;oidcmsg.util.JSON&#39;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="cookie-handler">
+<h2>cookie_handler<a class="headerlink" href="#cookie-handler" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="s2">&quot;cookie_handler&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.cookie_handler.CookieHandler&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;keys&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;private_path&quot;</span><span class="p">:</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{OIDC_JWKS_PRIVATE_PATH}</span><span class="s2">/cookie_jwks.json&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;key_defs&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;OCT&quot;</span><span class="p">,</span> <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;enc&quot;</span><span class="p">],</span> <span class="s2">&quot;kid&quot;</span><span class="p">:</span> <span class="s2">&quot;enc&quot;</span><span class="p">},</span>
+          <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;OCT&quot;</span><span class="p">,</span> <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;sig&quot;</span><span class="p">],</span> <span class="s2">&quot;kid&quot;</span><span class="p">:</span> <span class="s2">&quot;sig&quot;</span><span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;read_only&quot;</span><span class="p">:</span> <span class="kc">False</span>
+      <span class="p">},</span>
+      <span class="s2">&quot;flags&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;samesite&quot;</span><span class="p">:</span> <span class="s2">&quot;None&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;httponly&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+          <span class="s2">&quot;secure&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+      <span class="p">},</span>
+      <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;session&quot;</span><span class="p">:</span> <span class="s2">&quot;oidc_op&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;register&quot;</span><span class="p">:</span> <span class="s2">&quot;oidc_op_rp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;session_management&quot;</span><span class="p">:</span> <span class="s2">&quot;sman&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="endpoint">
+<h2>endpoint<a class="headerlink" href="#endpoint" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;endpoint&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;webfinger&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;.well-known/webfinger&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.discovery.Discovery&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="n">null</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;provider_info&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;.well-known/openid-configuration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.provider_config.ProviderConfiguration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="n">null</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;registration&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;registration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.registration.Registration&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+      <span class="s2">&quot;client_secret_expiration_time&quot;</span><span class="p">:</span> <span class="mi">432000</span><span class="p">,</span>
+      <span class="s2">&quot;client_id_generator&quot;</span><span class="p">:</span> <span class="p">{</span>
+         <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s1">&#39;oidcop.oidc.registration.random_client_id&#39;</span><span class="p">,</span>
+         <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+              <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="s2">&quot;that-optional-random-value&quot;</span>
+         <span class="p">}</span>
+     <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;registration_api&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;registration_api&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.read_registration.RegistrationRead&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;bearer_header&quot;</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;introspection&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;introspection&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oauth2.introspection.Introspection&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;client_secret_post&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;client_secret_jwt&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;private_key_jwt&quot;</span>
+      <span class="p">]</span>
+      <span class="s2">&quot;release&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;username&quot;</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;authorization&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;authorization&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.authorization.Authorization&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span>
+      <span class="s2">&quot;claims_parameter_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;request_parameter_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;request_uri_parameter_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;response_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;code&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;id_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;code token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;code id_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;id_token token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;code id_token token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;none&quot;</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;response_modes_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;query&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;fragment&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;form_post&quot;</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.token.Token&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;client_authn_method&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;client_secret_post&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;client_secret_jwt&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;private_key_jwt&quot;</span><span class="p">,</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;revoke_refresh_on_issue&quot;</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;userinfo&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;userinfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.userinfo.UserInfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;claim_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;normal&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;aggregated&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;distributed&quot;</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;end_session&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;session&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.session.Session&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;logout_verify_url&quot;</span><span class="p">:</span> <span class="s2">&quot;verify_logout&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;post_logout_uri_path&quot;</span><span class="p">:</span> <span class="s2">&quot;post_logout&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;signing_alg&quot;</span><span class="p">:</span> <span class="s2">&quot;ES256&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;frontchannel_logout_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;frontchannel_logout_session_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;backchannel_logout_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;backchannel_logout_session_supported&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+      <span class="s2">&quot;check_session_iframe&quot;</span><span class="p">:</span> <span class="s2">&quot;check_session_iframe&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>You can specify which algoritms are supported, for example in userinfo_endpoint:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;userinfo_signing_alg_values_supported&quot;</span><span class="p">:</span> <span class="n">OIDC_SIGN_ALGS</span><span class="p">,</span>
+<span class="s2">&quot;userinfo_encryption_alg_values_supported&quot;</span><span class="p">:</span> <span class="n">OIDC_ENC_ALGS</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>Or in authorization endpoint:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;request_object_encryption_alg_values_supported&quot;</span><span class="p">:</span> <span class="n">OIDC_ENC_ALGS</span><span class="p">,</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="httpc-params">
+<h2>httpc_params<a class="headerlink" href="#httpc-params" title="Permalink to this headline">¶</a></h2>
+<p>Parameters submitted to the web client (python requests).
+In this case the TLS certificate will not be verified, to be intended exclusively for development purposes</p>
+<p>Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;httpc_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;verify&quot;</span><span class="p">:</span> <span class="n">false</span>
+  <span class="p">},</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="keys">
+<h2>keys<a class="headerlink" href="#keys" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;keys&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;private_path&quot;</span><span class="p">:</span> <span class="s2">&quot;private/jwks.json&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;key_defs&quot;</span><span class="p">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;RSA&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="s2">&quot;sig&quot;</span>
+        <span class="p">]</span>
+      <span class="p">},</span>
+      <span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;EC&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;crv&quot;</span><span class="p">:</span> <span class="s2">&quot;P-256&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span>
+          <span class="s2">&quot;sig&quot;</span>
+        <span class="p">]</span>
+      <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;public_path&quot;</span><span class="p">:</span> <span class="s2">&quot;static/jwks.json&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;read_only&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+    <span class="s2">&quot;uri_path&quot;</span><span class="p">:</span> <span class="s2">&quot;static/jwks.json&quot;</span>
+  <span class="p">},</span>
+</pre></div>
+</div>
+<p><em>read_only</em> means that on each restart the keys will created and overwritten with new ones.
+This can be useful during the first time the project have been executed, then to keep them as they are <em>read_only</em> would be configured to <em>True</em>.</p>
+</div>
+<div class="section" id="login-hint2acrs">
+<h2>login_hint2acrs<a class="headerlink" href="#login-hint2acrs" title="Permalink to this headline">¶</a></h2>
+<p>OIDC Login hint support, it’s optional.
+It matches the login_hint paramenter to one or more Authentication Contexts.</p>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;login_hint2acrs&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.login_hint.LoginHint2Acrs&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;scheme_map&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword&quot;</span>
+      <span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+<p>oidc-op supports the following authn contexts:</p>
+<ul class="simple">
+<li><p>UNSPECIFIED, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified">urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified</a></p></li>
+<li><p>INTERNETPROTOCOLPASSWORD, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword">urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword</a></p></li>
+<li><p>MOBILETWOFACTORCONTRACT, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract">urn:oasis:names:tc:SAML:2.0:ac:classes:MobileTwoFactorContract</a></p></li>
+<li><p>PASSWORDPROTECTEDTRANSPORT, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport">urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</a></p></li>
+<li><p>PASSWORD, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:Password">urn:oasis:names:tc:SAML:2.0:ac:classes:Password</a></p></li>
+<li><p>TLSCLIENT, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient">urn:oasis:names:tc:SAML:2.0:ac:classes:TLSClient</a></p></li>
+<li><p>TIMESYNCTOKEN, <a class="reference external" href="urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken">urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken</a></p></li>
+</ul>
+</div>
+<div class="section" id="authz">
+<h2>authz<a class="headerlink" href="#authz" title="Permalink to this headline">¶</a></h2>
+<p>This configuration section refers to the authorization/authentication endpoint behaviour.
+Scopes bound to an access token are strictly related to grant management, as part of what that endpoint does.
+Regarding grant authorization we should have something like the following example.</p>
+<p>If you omit this section from the configuration (thus using some sort of default profile)
+you’ll have an Implicit grant authorization that leads granting nothing.
+Add the below to your configuration and you’ll see things changing.</p>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;authz&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.authz.AuthzHandling&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;grant_config&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;usage_rules&quot;</span><span class="p">:</span> <span class="p">{</span>
+              <span class="s2">&quot;authorization_code&quot;</span><span class="p">:</span> <span class="p">{</span>
+                  <span class="s2">&quot;supports_minting&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;access_token&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_token&quot;</span><span class="p">,</span> <span class="s2">&quot;id_token&quot;</span><span class="p">],</span>
+                  <span class="s2">&quot;max_usage&quot;</span><span class="p">:</span> <span class="mi">1</span>
+              <span class="p">},</span>
+              <span class="s2">&quot;access_token&quot;</span><span class="p">:</span> <span class="p">{},</span>
+              <span class="s2">&quot;refresh_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+                  <span class="s2">&quot;supports_minting&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;access_token&quot;</span><span class="p">,</span> <span class="s2">&quot;refresh_token&quot;</span><span class="p">]</span>
+              <span class="p">}</span>
+          <span class="p">},</span>
+          <span class="s2">&quot;expires_in&quot;</span><span class="p">:</span> <span class="mi">43200</span><span class="p">,</span>
+          <span class="s2">&quot;audience&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;https://www.example.com&#39;</span><span class="p">]</span>
+      <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="template-dir">
+<h2>template_dir<a class="headerlink" href="#template-dir" title="Permalink to this headline">¶</a></h2>
+<dl>
+<dt>The HTML Template directory used by Jinja2, used by endpoint context</dt><dd><p>template loader, as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Environment</span><span class="p">(</span><span class="n">loader</span><span class="o">=</span><span class="n">FileSystemLoader</span><span class="p">(</span><span class="n">template_dir</span><span class="p">),</span> <span class="n">autoescape</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;template_dir&quot;</span><span class="p">:</span> <span class="s2">&quot;templates&quot;</span>
+</pre></div>
+</div>
+<p>For any further customization of template here an example of what used in django-oidc-op:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;authentication&quot;</span><span class="p">:</span> <span class="p">{</span>
+  <span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;acr&quot;</span><span class="p">:</span> <span class="s2">&quot;urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidc_provider.users.UserPassDjango&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;verify_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;verify/oidc_user_login/&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;template&quot;</span><span class="p">:</span> <span class="s2">&quot;oidc_login.html&quot;</span><span class="p">,</span>
+
+      <span class="s2">&quot;page_header&quot;</span><span class="p">:</span> <span class="s2">&quot;Testing log in&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;submit_btn&quot;</span><span class="p">:</span> <span class="s2">&quot;Get me in!&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;user_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Nickname&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;passwd_label&quot;</span><span class="p">:</span> <span class="s2">&quot;Secret sauce&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">},</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="token-handler-args">
+<h2>token_handler_args<a class="headerlink" href="#token-handler-args" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>Token handler is an intermediate interface used by and endpoint to manage</dt><dd><p>the tokens’ default behaviour, like lifetime and minting policies.
+With it we can create a token that’s linked to another, and keep relations between many tokens
+in session and grants management.</p>
+</dd>
+</dl>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;token_handler_args&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;jwks_def&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;private_path&quot;</span><span class="p">:</span> <span class="s2">&quot;private/token_jwks.json&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;read_only&quot;</span><span class="p">:</span> <span class="n">false</span><span class="p">,</span>
+      <span class="s2">&quot;key_defs&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;oct&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;bytes&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+          <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;enc&quot;</span>
+          <span class="p">],</span>
+          <span class="s2">&quot;kid&quot;</span><span class="p">:</span> <span class="s2">&quot;code&quot;</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;oct&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;bytes&quot;</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+          <span class="s2">&quot;use&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;enc&quot;</span>
+          <span class="p">],</span>
+          <span class="s2">&quot;kid&quot;</span><span class="p">:</span> <span class="s2">&quot;refresh&quot;</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;lifetime&quot;</span><span class="p">:</span> <span class="mi">600</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.token.jwt_token.JWTToken&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;lifetime&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>
+          <span class="s2">&quot;add_claims&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">&quot;email&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;email_verified&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;phone_number&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;phone_number_verified&quot;</span>
+          <span class="p">],</span>
+          <span class="s2">&quot;add_claims_by_scope&quot;</span><span class="p">:</span> <span class="n">true</span><span class="p">,</span>
+          <span class="s2">&quot;aud&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://example.org/appl&quot;</span><span class="p">]</span>
+       <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;refresh&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;lifetime&quot;</span><span class="p">:</span> <span class="mi">86400</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="s2">&quot;id_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.token.id_token.IDToken&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;base_claims&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;email_verified&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div>
+</div>
+<p>jwks_defs can be replaced eventually by <cite>jwks_file</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;jwks_file&quot;</span><span class="p">:</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{OIDC_JWKS_PRIVATE_PATH}</span><span class="s2">/token_jwks.json&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>You can even select wich algorithms to support in id_token, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;id_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.token.id_token.IDToken&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;id_token_signing_alg_values_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;RS256&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;RS512&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ES256&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ES512&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;PS256&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;PS512&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="s2">&quot;id_token_encryption_alg_values_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;RSA-OAEP&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;RSA-OAEP-256&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;A192KW&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;A256KW&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ECDH-ES&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ECDH-ES+A128KW&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ECDH-ES+A192KW&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;ECDH-ES+A256KW&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="s2">&quot;id_token_encryption_enc_values_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;A128CBC-HS256&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;A192CBC-HS384&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;A256CBC-HS512&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;A128GCM&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;A192GCM&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;A256GCM&#39;</span>
+            <span class="p">],</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="userinfo">
+<h2>userinfo<a class="headerlink" href="#userinfo" title="Permalink to this headline">¶</a></h2>
+<p>An example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;userinfo&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.user_info.UserInfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;db_file&quot;</span><span class="p">:</span> <span class="s2">&quot;users.json&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This is somethig that can be customized.
+For example in the django-oidc-op implementation is used something like
+the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;userinfo&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidc_provider.users.UserInfo&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;claims_map&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;phone_number&quot;</span><span class="p">:</span> <span class="s2">&quot;telephone&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;family_name&quot;</span><span class="p">:</span> <span class="s2">&quot;last_name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;given_name&quot;</span><span class="p">:</span> <span class="s2">&quot;first_name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;verified_email&quot;</span><span class="p">:</span> <span class="s2">&quot;email&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gender&quot;</span><span class="p">:</span> <span class="s2">&quot;gender&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;birthdate&quot;</span><span class="p">:</span> <span class="s2">&quot;get_oidc_birthdate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;updated_at&quot;</span><span class="p">:</span> <span class="s2">&quot;get_oidc_lastlogin&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="token-exchange">
+<h1>Token exchange<a class="headerlink" href="#token-exchange" title="Permalink to this headline">¶</a></h1>
+<p>There are two possible ways to configure Token Exchange in OIDC-OP, globally and per-client.
+For the first case the configuration is passed in the Token Exchange handler throught the
+<cite>urn:ietf:params:oauth:grant-type:token-exchange</cite> dictionary in token’s <cite>grant_types_supported</cite>.</p>
+<p>If present, the token exchange configuration may contain a <cite>policy</cite> dictionary
+that defines the behaviour for each subject token type. Each subject token type
+is mapped to a dictionary with the keys <cite>callable</cite> (mandatory), which must be a
+python callable or a string that represents the path to a python callable, and
+<cite>kwargs</cite> (optional), which must be a dict of key-value arguments that will be
+passed to the callable.</p>
+<p>The key <cite>“”</cite> represents a fallback policy that will be used if the subject token
+type can’t be found. If a subject token type is defined in the <cite>policy</cite> but is
+not in the <cite>subject_token_types_supported</cite> list then it is ignored:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;grant_types_supported&quot;</span><span class="p">:{</span>
+  <span class="s2">&quot;urn:ietf:params:oauth:grant-type:token-exchange&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oauth2.token.TokenExchangeHelper&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;subject_token_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:id_token&quot;</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;requested_token_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:id_token&quot;</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;policy&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;audience&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;resource&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For the per-client configuration a similar configuration scheme should be present in the client’s
+metadata under the <cite>token_exchange</cite> key.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;token_exchange&quot;</span><span class="p">:{</span>
+  <span class="s2">&quot;urn:ietf:params:oauth:grant-type:token-exchange&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;class&quot;</span><span class="p">:</span> <span class="s2">&quot;oidcop.oidc.token.TokenExchangeHelper&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;subject_token_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:id_token&quot;</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;requested_token_types_supported&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:id_token&quot;</span>
+      <span class="p">],</span>
+      <span class="s2">&quot;policy&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:access_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;audience&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;urn:ietf:params:oauth:token-type:refresh_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;resource&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;https://example.com&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;callable&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/callable&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;kwargs&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;scopes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;openid&quot;</span><span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The policy callable accepts a specific argument list and must return the altered token exchange
+request or raise an exception.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">custom_token_exchange_policy</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">subject_token</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">some_condition</span> <span class="ow">in</span> <span class="n">request</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">TokenErrorResponse</span><span class="p">(</span>
+            <span class="n">error</span><span class="o">=</span><span class="s2">&quot;invalid_request&quot;</span><span class="p">,</span> <span class="n">error_description</span><span class="o">=</span><span class="s2">&quot;Some error occured&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">request</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="clients">
+<h1>Clients<a class="headerlink" href="#clients" title="Permalink to this headline">¶</a></h1>
+<p>In this section there are some client configuration examples. That can be used
+to override the global configuration of the OP.</p>
+<p>How to configure the release of the user claims per clients:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">endpoint_context</span><span class="o">.</span><span class="n">cdb</span><span class="p">[</span><span class="s2">&quot;client_1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;client_secret&quot;</span><span class="p">:</span> <span class="s2">&quot;hemligt&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;redirect_uris&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;https://example.com/cb&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)],</span>
+    <span class="s2">&quot;response_types&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;code&quot;</span><span class="p">,</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span> <span class="s2">&quot;code id_token&quot;</span><span class="p">,</span> <span class="s2">&quot;id_token&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;add_claims&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;always&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;introspection&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;nickname&quot;</span><span class="p">,</span> <span class="s2">&quot;eduperson_scoped_affiliation&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;userinfo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;picture&quot;</span><span class="p">,</span> <span class="s2">&quot;phone_number&quot;</span><span class="p">],</span>
+        <span class="p">},</span>
+        <span class="c1"># this overload the general endpoint configuration for this client</span>
+        <span class="c1"># self.server.server_get(&quot;endpoint&quot;, &quot;id_token&quot;).kwargs = {&quot;add_claims_by_scope&quot;: True}</span>
+        <span class="s2">&quot;by_scope&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;id_token&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">},</span>
+</pre></div>
+</div>
+<p>The available configuration options are:</p>
+<div class="section" id="client-secret">
+<h2>client_secret<a class="headerlink" href="#client-secret" title="Permalink to this headline">¶</a></h2>
+<p>The client secret. This parameter is required.</p>
+</div>
+<div class="section" id="client-secret-expires-at">
+<h2>client_secret_expires_at<a class="headerlink" href="#client-secret-expires-at" title="Permalink to this headline">¶</a></h2>
+<p>When the client_secret expires.</p>
+</div>
+<div class="section" id="redirect-uris">
+<h2>redirect_uris<a class="headerlink" href="#redirect-uris" title="Permalink to this headline">¶</a></h2>
+<p>The client’s redirect uris.</p>
+</div>
+<div class="section" id="auth-method">
+<h2>auth_method<a class="headerlink" href="#auth-method" title="Permalink to this headline">¶</a></h2>
+<p>The auth_method that can be used per endpoint.
+E.g:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;AccessTokenRequest&quot;</span><span class="p">:</span> <span class="s2">&quot;client_secret_basic&quot;</span><span class="p">,</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="request-uris">
+<h2>request_uris<a class="headerlink" href="#request-uris" title="Permalink to this headline">¶</a></h2>
+<p>A list of <cite>request_uris</cite>.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a>.</p>
+</div>
+<div class="section" id="response-types">
+<h2>response_types<a class="headerlink" href="#response-types" title="Permalink to this headline">¶</a></h2>
+<p>The allowed <cite>response_types</cite> for this client.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a>.</p>
+</div>
+<div class="section" id="grant-types-supported">
+<h2>grant_types_supported<a class="headerlink" href="#grant-types-supported" title="Permalink to this headline">¶</a></h2>
+<p>Configure the allowed grant types on the token endpoint.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a>.</p>
+</div>
+<div class="section" id="id1">
+<h2>scopes_to_claims<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>A dict defining the scopes that are allowed to be used per client and the claims
+they map to (defaults to the scopes mapping described in the spec). If we want
+to define a scope that doesn’t map to claims (e.g. offline_access) then we
+simply map it to an empty list. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;scope_a&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;claim1&quot;</span><span class="p">,</span> <span class="s2">&quot;claim2&quot;</span><span class="p">],</span>
+  <span class="s2">&quot;scope_b&quot;</span><span class="p">:</span> <span class="p">[]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>allowed_scopes<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>A list with the scopes that are allowed to be used (defaults to the keys in the
+clients scopes_to_claims).</p>
+</div>
+<div class="section" id="revoke-refresh-on-issue">
+<h2>revoke_refresh_on_issue<a class="headerlink" href="#revoke-refresh-on-issue" title="Permalink to this headline">¶</a></h2>
+<p>Configure whether to revoke the refresh token that was used to issue a new refresh token.</p>
+</div>
+<div class="section" id="add-claims">
+<h2>add_claims<a class="headerlink" href="#add-claims" title="Permalink to this headline">¶</a></h2>
+<p>A dictionary with the following keys</p>
+<div class="section" id="always">
+<h3>always<a class="headerlink" href="#always" title="Permalink to this headline">¶</a></h3>
+<p>A dictionary with the following keys: <cite>userinfo</cite>, <cite>id_token</cite>, <cite>introspection</cite>, <cite>access_token</cite>.
+The keys are used to describe the claims we want to add to the corresponding interface.
+The keys can be a list of claims to be added or a dict in the format described
+in <a class="reference external" href="https://openid.net/specs/openid-connect-core-1_0.html#IndividualClaimsRequests">https://openid.net/specs/openid-connect-core-1_0.html#IndividualClaimsRequests</a>
+E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;add_claims&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;always&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;userinfo&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;email&quot;</span><span class="p">,</span> <span class="s2">&quot;phone&quot;</span><span class="p">],</span> <span class="c1"># Always add &quot;email&quot; and &quot;phone&quot; in the userinfo response if such claims exists</span>
+          <span class="s2">&quot;id_token&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">},</span> <span class="c1"># Always add &quot;email&quot; in the id_token if such a claim exists</span>
+          <span class="s2">&quot;introspection&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;email&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;a@a.com&quot;</span><span class="p">}},</span> <span class="c1"># Add &quot;email&quot; in the introspection response only if its value is &quot;a@a.com&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="by-scope">
+<h3>by_scope<a class="headerlink" href="#by-scope" title="Permalink to this headline">¶</a></h3>
+<p>A dictionary with the following keys: <cite>userinfo</cite>, <cite>id_token</cite>, <cite>introspection</cite>, <cite>access_token</cite>.
+The keys are boolean values that describe whether the scopes should be mapped
+to claims and added to the response.
+E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;add_claims&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;by_scope&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">id_token</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="c1"># Map the requested scopes to claims and add them to the id token</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="token-usage-rules">
+<h2>token_usage_rules<a class="headerlink" href="#token-usage-rules" title="Permalink to this headline">¶</a></h2>
+<p>The usage rules for each token type. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;usage_rules&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;authorization_code&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;expires_in&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>
+            <span class="s2">&quot;supports_minting&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;access_token&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;id_token&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;max_usage&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;access_token&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;expires_in&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;access_token_lifetime&quot;</span><span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pkce-essential">
+<h2>pkce_essential<a class="headerlink" href="#pkce-essential" title="Permalink to this headline">¶</a></h2>
+<p>Whether pkce is essential for this client.</p>
+</div>
+<div class="section" id="post-logout-redirect-uri">
+<h2>post_logout_redirect_uri<a class="headerlink" href="#post-logout-redirect-uri" title="Permalink to this headline">¶</a></h2>
+<p>The client’s post logout redirect uris.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout">https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout</a>.</p>
+</div>
+<div class="section" id="backchannel-logout-uri">
+<h2>backchannel_logout_uri<a class="headerlink" href="#backchannel-logout-uri" title="Permalink to this headline">¶</a></h2>
+<p>The client’s <cite>backchannel_logout_uri</cite>.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-backchannel-1_0.html#BCRegistration">https://openid.net/specs/openid-connect-backchannel-1_0.html#BCRegistration</a></p>
+</div>
+<div class="section" id="frontchannel-logout-uri">
+<h2>frontchannel_logout_uri<a class="headerlink" href="#frontchannel-logout-uri" title="Permalink to this headline">¶</a></h2>
+<p>The client’s <cite>frontchannel_logout_uri</cite>.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout">https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout</a></p>
+</div>
+<div class="section" id="request-object-signing-alg">
+<h2>request_object_signing_alg<a class="headerlink" href="#request-object-signing-alg" title="Permalink to this headline">¶</a></h2>
+<p>A list with the allowed algorithms for signing the request object.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="request-object-encryption-alg">
+<h2>request_object_encryption_alg<a class="headerlink" href="#request-object-encryption-alg" title="Permalink to this headline">¶</a></h2>
+<p>A list with the allowed alg algorithms for encrypting the request object.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="request-object-encryption-enc">
+<h2>request_object_encryption_enc<a class="headerlink" href="#request-object-encryption-enc" title="Permalink to this headline">¶</a></h2>
+<p>A list with the allowed enc algorithms for signing the request object.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="userinfo-signed-response-alg">
+<h2>userinfo_signed_response_alg<a class="headerlink" href="#userinfo-signed-response-alg" title="Permalink to this headline">¶</a></h2>
+<p>JWS alg algorithm [JWA] REQUIRED for signing UserInfo Responses.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="userinfo-encrypted-response-enc">
+<h2>userinfo_encrypted_response_enc<a class="headerlink" href="#userinfo-encrypted-response-enc" title="Permalink to this headline">¶</a></h2>
+<p>The alg algorithm [JWA] REQUIRED for encrypting UserInfo Responses.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="userinfo-encrypted-response-alg">
+<h2>userinfo_encrypted_response_alg<a class="headerlink" href="#userinfo-encrypted-response-alg" title="Permalink to this headline">¶</a></h2>
+<p>JWE enc algorithm [JWA] REQUIRED for encrypting UserInfo Responses.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="id-token-signed-response-alg">
+<h2>id_token_signed_response_alg<a class="headerlink" href="#id-token-signed-response-alg" title="Permalink to this headline">¶</a></h2>
+<p>JWS alg algorithm [JWA] REQUIRED for signing ID Token issued to this Client.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="id-token-encrypted-response-enc">
+<h2>id_token_encrypted_response_enc<a class="headerlink" href="#id-token-encrypted-response-enc" title="Permalink to this headline">¶</a></h2>
+<p>The alg algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="id-token-encrypted-response-alg">
+<h2>id_token_encrypted_response_alg<a class="headerlink" href="#id-token-encrypted-response-alg" title="Permalink to this headline">¶</a></h2>
+<p>JWE enc algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.</p>
+<p>See <a class="reference external" href="https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata">https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata</a></p>
+</div>
+<div class="section" id="dpop-jkt">
+<h2>dpop_jkt<a class="headerlink" href="#dpop-jkt" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">oidcmsg</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction to oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcmsg/index.html">oidcmsg classes and functions documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/message.html">How to use the oidcmsg Message class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/msg_extend.html">How to extend oidcmsg</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Welcome to Idpy OIDC-op Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="intro.html">The OpenID Connect Provider</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Configuration directives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#token-exchange">Token exchange</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clients">Clients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="session_management.html">Session Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="clients.html">The clients database</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Welcome to Idpy OIDC-op Documentation</a><ul>
+      <li>Previous: <a href="intro.html" title="previous chapter">The OpenID Connect Provider</a></li>
+      <li>Next: <a href="session_management.html" title="next chapter">Session Management</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/oidcop/contents/conf.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

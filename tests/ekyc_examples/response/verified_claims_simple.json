@@ -1,0 +1,11 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "trust_framework_example"
+    },
+    "claims": {
+      "given_name": "Max",
+      "family_name": "Meier"
+    }
+  }
+}

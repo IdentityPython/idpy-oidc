@@ -1,0 +1,35 @@
+{
+  "userinfo": {
+    "verified_claims": {
+      "verification": {
+        "trust_framework": {
+          "value": "de_aml"
+        },
+        "evidence": [
+          {
+            "type": {
+              "value": "document"
+            },
+            "method": {
+              "value": "pipp"
+            },
+            "document_details": {
+              "type": {
+                "values": [
+                  "idcard",
+                  "passport"
+                ]
+              }
+            },
+            "attachments": null
+          }
+        ]
+      },
+      "claims": {
+        "given_name": null,
+        "family_name": null,
+        "birthdate": null
+      }
+    }
+  }
+}

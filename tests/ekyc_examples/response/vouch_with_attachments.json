@@ -1,0 +1,61 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "uk_tfida",
+      "assurance_level": "high",
+      "assurance_process": {
+          "policy": "gpg45",
+          "procedure": "h1b"
+      },
+      "time": "2020-09-23T14:12Z",
+      "verification_process": "99476DA2-ACDC-5N13-10WC-26B415B52",
+      "evidence": [
+        {
+          "type": "vouch",
+          "validation_method": {
+            "type": "vpip",
+            "policy": "gpg45",
+            "procedure": "score_3"
+          },
+          "verification_method": {
+            "type": "pvr",
+            "policy": "gpg45",
+            "procedure": "score_3"
+          },
+          "time": "2020-02-23T07:52Z",
+          "attestation": {
+            "type": "written_attestation",
+            "reference_number": "6485-1619-3976-6671",
+            "date_of_issuance": "2020-02-13",
+            "voucher": {
+                "given_name": "Peter",
+                "family_name": "Crowe",
+                "occupation": "Executive Principal",
+                "organization": "Kristin School"
+            }
+          },
+          "attachments": [
+            {
+              "desc": "scan of vouch",
+              "content_type": "application/pdf",
+              "content": "d16d2552e35582810e5a40e523716504525b6016ae96844ddc533163059b3067=="
+            }
+          ]
+        }
+      ]
+    },
+    "claims": {
+      "given_name": "Megan",
+      "family_name": "Howard",
+      "birthdate": "2000-01-31",
+      "place_of_birth": {
+        "country": "NZL"
+      },
+      "address": {
+        "locality": "Croydon",
+        "country": "UK",
+        "street_address": "69 Kidderminster Road"
+      }
+    }
+  }
+}

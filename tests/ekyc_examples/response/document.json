@@ -1,0 +1,58 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "uk_tfida",
+      "assurance_level": "medium",
+      "assurance_process": {
+          "policy": "gpg45",
+          "procedure": "m1b"
+      },
+      "time": "2021-05-11T14:29Z",
+      "verification_process": "7675D80F-57E0-AB14-9543-26B41FC22",
+      "evidence": [
+        {
+          "type": "document",
+          "validation_method": {
+            "type": "vpiruv",
+            "policy": "gpg45",
+            "procedure": "score_3"
+          },
+          "verification_method": {
+            "type": "pvp",
+            "policy": "gpg45",
+            "procedure": "score_3" 
+          },
+          "time": "2021-04-09T14:12Z",
+          "document_details": {
+            "type": "driving_permit",
+            "personal_number": "MORGA753116SM9IJ",
+            "document_number": "MORGA753116SM9IJ35",
+            "serial_number": "ZG21000001",
+            "date_of_issuance": "2021-01-01",
+            "date_of_expiry": "2030-12-31",
+            "issuer": {
+                "name": "DVLA",
+                "country": "UK",
+                "country_code": "GBR",
+                "jurisdiction": "GB-GBN"
+            }
+          }
+        }
+      ]
+    },
+    "claims": {
+      "given_name": "Sarah",
+      "family_name": "Meredyth",
+      "birthdate": "1976-03-11",
+      "place_of_birth": {
+        "country": "UK"
+      },
+      "address": {
+        "locality": "Edinburgh",
+        "postal_code": "EH1 9GP",
+        "country": "UK",
+        "street_address": "122 Burns Crescent"
+      }
+    }
+  }
+}

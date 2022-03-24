@@ -1,0 +1,732 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenID Connect protocol messages &#8212; idpyoidc 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="How to use the idpyoidc Message class" href="howto/message.html" />
+    <link rel="prev" title="OAuth2 protocol messages" href="oauth2.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="openid-connect-protocol-messages">
+<span id="oidcmsg-oic"></span><h1>OpenID Connect protocol messages<a class="headerlink" href="#openid-connect-protocol-messages" title="Permalink to this headline">¶</a></h1>
+<dl class="field-list simple">
+<dt class="field-odd">Author</dt>
+<dd class="field-odd"><p>Roland Hedberg</p>
+</dd>
+</dl>
+<div class="section" id="module-idpyoidc.message.oidc">
+<span id="idpyoidc-message-oidc-package"></span><h2>idpyoidc.message.oidc package<a class="headerlink" href="#module-idpyoidc.message.oidc" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AccessTokenRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AccessTokenRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AccessTokenRequest" title="idpyoidc.message.oauth2.AccessTokenRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AccessTokenRequest</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AccessTokenRequest.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'client_assertion_type': ['urn:ietf:params:oauth:client-assertion-type:jwt-bearer']}</em><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenRequest.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AccessTokenRequest.c_default">
+<code class="descname">c_default</code><em class="property"> = {'grant_type': 'authorization_code'}</em><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenRequest.c_default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AccessTokenRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'client_assertion': (&lt;class 'str'&gt;, False, None, None, False), 'client_assertion_type': (&lt;class 'str'&gt;, False, None, None, False), 'client_id': (&lt;class 'str'&gt;, False, None, None, False), 'client_secret': (&lt;class 'str'&gt;, False, None, None, False), 'code': (&lt;class 'str'&gt;, True, None, None, False), 'grant_type': (&lt;class 'str'&gt;, True, None, None, False), 'redirect_uri': (&lt;class 'str'&gt;, True, None, None, False), 'state': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AccessTokenResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AccessTokenResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AccessTokenResponse" title="idpyoidc.message.oauth2.AccessTokenResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AccessTokenResponse</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AccessTokenResponse.c_param">
+<code class="descname">c_param</code><em class="property"> = {'access_token': (&lt;class 'str'&gt;, True, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'expires_in': (&lt;class 'int'&gt;, False, None, None, False), 'id_token': (&lt;class 'str'&gt;, False, None, None, False), 'refresh_token': (&lt;class 'str'&gt;, False, None, None, False), 'scope': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'state': (&lt;class 'str'&gt;, False, None, None, False), 'token_type': (&lt;class 'str'&gt;, True, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenResponse.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.AccessTokenResponse.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AccessTokenResponse.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AddressClaim">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AddressClaim</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AddressClaim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AddressClaim.c_param">
+<code class="descname">c_param</code><em class="property"> = {'country': (&lt;class 'str'&gt;, False, None, None, False), 'formatted': (&lt;class 'str'&gt;, False, None, None, False), 'locality': (&lt;class 'str'&gt;, False, None, None, False), 'postal_code': (&lt;class 'str'&gt;, False, None, None, False), 'region': (&lt;class 'str'&gt;, False, None, None, False), 'street_address': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AddressClaim.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="idpyoidc.message.oidc.AtHashError">
+<em class="property">exception </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AtHashError</code><span class="sig-paren">(</span><em>errmsg</em>, <em>content_type=''</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AtHashError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.exception.VerificationError</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AuthnToken">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AuthnToken</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthnToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#idpyoidc.message.oidc.JsonWebToken" title="idpyoidc.message.oidc.JsonWebToken"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oidc.JsonWebToken</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AuthnToken.c_param">
+<code class="descname">c_param</code><em class="property"> = {'aud': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'exp': (&lt;class 'int'&gt;, True, None, None, False), 'iat': (&lt;class 'int'&gt;, False, None, None, False), 'iss': (&lt;class 'str'&gt;, True, None, None, False), 'jti': (&lt;class 'str'&gt;, True, None, None, False), 'sub': (&lt;class 'str'&gt;, True, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AuthnToken.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AuthorizationErrorResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AuthorizationErrorResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationErrorResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AuthorizationErrorResponse" title="idpyoidc.message.oauth2.AuthorizationErrorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AuthorizationErrorResponse</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AuthorizationErrorResponse.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'error': ['invalid_request', 'unauthorized_client', 'access_denied', 'unsupported_response_type', 'invalid_scope', 'server_error', 'temporarily_unavailable', 'interaction_required', 'login_required', 'session_selection_required', 'consent_required', 'invalid_request_uri', 'invalid_request_object', 'registration_not_supported', 'request_not_supported', 'request_uri_not_supported']}</em><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationErrorResponse.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AuthorizationRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AuthorizationRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AuthorizationRequest" title="idpyoidc.message.oauth2.AuthorizationRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AuthorizationRequest</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AuthorizationRequest.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'display': ['page', 'popup', 'touch', 'wap'], 'prompt': ['none', 'login', 'consent', 'select_account']}</em><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationRequest.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AuthorizationRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'acr_values': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'claims': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function claims_request_deser&gt;, False), 'claims_locales': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'client_id': (&lt;class 'str'&gt;, True, None, None, False), 'display': (&lt;class 'str'&gt;, False, None, None, False), 'id_token_hint': (&lt;class 'str'&gt;, False, None, None, False), 'login_hint': (&lt;class 'str'&gt;, False, None, None, False), 'max_age': (&lt;class 'int'&gt;, False, None, None, False), 'nonce': (&lt;class 'str'&gt;, False, None, None, False), 'prompt': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'redirect_uri': (&lt;class 'str'&gt;, True, None, None, False), 'registration': (&lt;class 'dict'&gt;, False, &lt;function json_serializer&gt;, &lt;function json_deserializer&gt;, False), 'request': (&lt;class 'str'&gt;, False, None, None, False), 'request_uri': (&lt;class 'str'&gt;, False, None, None, False), 'response_mode': (&lt;class 'str'&gt;, False, None, None, False), 'response_type': ([&lt;class 'str'&gt;], True, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'scope': ([&lt;class 'str'&gt;], True, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'state': (&lt;class 'str'&gt;, False, None, None, False), 'ui_locales': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.AuthorizationRequest.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationRequest.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+specification MAY be included in the OpenID Request Object without also
+passing them as OAuth 2.0 Authorization Request parameters, with one
+exception: The scope parameter MUST always be present in OAuth 2.0
+Authorization Request parameters.
+All parameter values that are present both in the OAuth 2.0
+Authorization Request and in the OpenID Request Object MUST exactly
+match.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.AuthorizationResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">AuthorizationResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AuthorizationResponse" title="idpyoidc.message.oauth2.AuthorizationResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AuthorizationResponse</span></code></a>, <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.AccessTokenResponse" title="idpyoidc.message.oauth2.AccessTokenResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.AccessTokenResponse</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.AuthorizationResponse.c_param">
+<code class="descname">c_param</code><em class="property"> = {'access_token': (&lt;class 'str'&gt;, False, None, None, False), 'client_id': (&lt;class 'str'&gt;, False, None, None, False), 'code': (&lt;class 'str'&gt;, False, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'expires_in': (&lt;class 'int'&gt;, False, None, None, False), 'id_token': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, None, False), 'iss': (&lt;class 'str'&gt;, False, None, None, False), 'refresh_token': (&lt;class 'str'&gt;, False, None, None, False), 'scope': ([&lt;class 'str'&gt;], False, &lt;function sp_sep_list_serializer&gt;, &lt;function sp_sep_list_deserializer&gt;, False), 'session_state': (&lt;class 'str'&gt;, False, None, None, False), 'state': (&lt;class 'str'&gt;, False, None, None, False), 'token_type': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationResponse.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.AuthorizationResponse.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.AuthorizationResponse.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="idpyoidc.message.oidc.CHashError">
+<em class="property">exception </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">CHashError</code><span class="sig-paren">(</span><em>errmsg</em>, <em>content_type=''</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.CHashError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.exception.VerificationError</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.Claims">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">Claims</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.Claims" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.ClaimsRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">ClaimsRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.ClaimsRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.ClaimsRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'id_token': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function claims_ser&gt;, &lt;function claims_deser&gt;, False), 'userinfo': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function claims_ser&gt;, &lt;function claims_deser&gt;, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.ClaimsRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.ClientRegistrationErrorResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">ClientRegistrationErrorResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.ClientRegistrationErrorResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.ClientRegistrationErrorResponse.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'error': ['invalid_redirect_uri', 'invalid_client_metadata', 'invalid_configuration_parameter']}</em><a class="headerlink" href="#idpyoidc.message.oidc.ClientRegistrationErrorResponse.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.DiscoveryRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">DiscoveryRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.DiscoveryRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.DiscoveryRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'rel': (&lt;class 'str'&gt;, True, None, None, False), 'resource': (&lt;class 'str'&gt;, True, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.DiscoveryRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="idpyoidc.message.oidc.EXPError">
+<em class="property">exception </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">EXPError</code><span class="sig-paren">(</span><em>errmsg</em>, <em>content_type=''</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.EXPError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.exception.VerificationError</span></code></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="idpyoidc.message.oidc.IATError">
+<em class="property">exception </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">IATError</code><span class="sig-paren">(</span><em>errmsg</em>, <em>content_type=''</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IATError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.exception.VerificationError</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.IdToken">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">IdToken</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#idpyoidc.message.oidc.OpenIDSchema" title="idpyoidc.message.oidc.OpenIDSchema"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oidc.OpenIDSchema</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.IdToken.c_param">
+<code class="descname">c_param</code><em class="property"> = {'_claim_names': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function msg_deser&gt;, False), '_claim_sources': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function msg_deser&gt;, False), 'acr': (&lt;class 'str'&gt;, False, None, None, False), 'address': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function address_deser&gt;, False), 'amr': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'at_hash': (&lt;class 'str'&gt;, False, None, None, False), 'aud': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'auth_time': (&lt;class 'int'&gt;, False, None, None, False), 'azp': (&lt;class 'str'&gt;, False, None, None, False), 'birthdate': (&lt;class 'str'&gt;, False, None, None, False), 'c_hash': (&lt;class 'str'&gt;, False, None, None, False), 'email': (&lt;class 'str'&gt;, False, None, None, False), 'email_verified': (&lt;class 'bool'&gt;, False, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'exp': (&lt;class 'int'&gt;, True, None, None, False), 'family_name': (&lt;class 'str'&gt;, False, None, None, False), 'gender': (&lt;class 'str'&gt;, False, None, None, False), 'given_name': (&lt;class 'str'&gt;, False, None, None, False), 'iat': (&lt;class 'int'&gt;, True, None, None, False), 'iss': (&lt;class 'str'&gt;, True, None, None, False), 'locale': (&lt;class 'str'&gt;, False, None, None, False), 'middle_name': (&lt;class 'str'&gt;, False, None, None, False), 'name': (&lt;class 'str'&gt;, False, None, None, False), 'nickname': (&lt;class 'str'&gt;, False, None, None, False), 'nonce': (&lt;class 'str'&gt;, False, None, None, False), 'phone_number': (&lt;class 'str'&gt;, False, None, None, False), 'phone_number_verified': (&lt;class 'bool'&gt;, False, None, None, False), 'picture': (&lt;class 'str'&gt;, False, None, None, False), 'preferred_username': (&lt;class 'str'&gt;, False, None, None, False), 'profile': (&lt;class 'str'&gt;, False, None, None, False), 'sid': (&lt;class 'str'&gt;, False, None, None, False), 'sub': (&lt;class 'str'&gt;, True, None, None, False), 'sub_jwk': (&lt;class 'str'&gt;, False, None, None, False), 'updated_at': (&lt;class 'int'&gt;, False, None, None, False), 'website': (&lt;class 'str'&gt;, False, None, None, False), 'zoneinfo': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.IdToken.hashable">
+<code class="descname">hashable</code><em class="property"> = {'access_token': 'at_hash', 'code': 'c_hash'}</em><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.hashable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.IdToken.pack">
+<code class="descname">pack</code><span class="sig-paren">(</span><em>alg=''</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.pack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.IdToken.pack_init">
+<code class="descname">pack_init</code><span class="sig-paren">(</span><em>lifetime=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.pack_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.IdToken.to_jwt">
+<code class="descname">to_jwt</code><span class="sig-paren">(</span><em>key=None</em>, <em>algorithm=''</em>, <em>lev=0</em>, <em>lifetime=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.to_jwt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a signed JWT representation of the class instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – The signing key</p></li>
+<li><p><strong>algorithm</strong> – The signature algorithm to use</p></li>
+<li><p><strong>lev</strong> – </p></li>
+<li><p><strong>lifetime</strong> – The lifetime of the JWS</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A signed JWT</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.IdToken.val_hash">
+<code class="descname">val_hash</code><span class="sig-paren">(</span><em>alg</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.val_hash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.IdToken.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.IdToken.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.JRD">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">JRD</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.JRD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<p>JSON Resource Descriptor <a class="reference external" href="https://tools.ietf.org/html/rfc7033#section-4.4">https://tools.ietf.org/html/rfc7033#section-4.4</a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.JRD.c_param">
+<code class="descname">c_param</code><em class="property"> = {'aliases': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'links': ([&lt;class 'idpyoidc.message.oidc.Link'&gt;], True, &lt;function link_list_ser&gt;, &lt;function link_deser&gt;, False), 'properties': (&lt;class 'dict'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function dict_deser&gt;, False), 'subject': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.JRD.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.JsonWebToken">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">JsonWebToken</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.JsonWebToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.JsonWebToken.c_param">
+<code class="descname">c_param</code><em class="property"> = {'aud': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'exp': (&lt;class 'int'&gt;, False, None, None, False), 'iat': (&lt;class 'int'&gt;, False, None, None, False), 'iss': (&lt;class 'str'&gt;, False, None, None, False), 'jti': (&lt;class 'str'&gt;, False, None, None, False), 'nbf': (&lt;class 'int'&gt;, False, None, None, False), 'sub': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.JsonWebToken.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.JsonWebToken.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.JsonWebToken.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.Link">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">Link</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.Link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<p><a class="reference external" href="https://tools.ietf.org/html/rfc5988">https://tools.ietf.org/html/rfc5988</a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.Link.c_param">
+<code class="descname">c_param</code><em class="property"> = {'href': (&lt;class 'str'&gt;, False, None, None, False), 'properties': (&lt;class 'dict'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function dict_deser&gt;, False), 'rel': (&lt;class 'str'&gt;, True, None, None, False), 'titles': (&lt;class 'dict'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function dict_deser&gt;, False), 'type': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.Link.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.MessageWithIdToken">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">MessageWithIdToken</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.MessageWithIdToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.MessageWithIdToken.c_param">
+<code class="descname">c_param</code><em class="property"> = {'id_token': (&lt;class 'idpyoidc.message.Message'&gt;, True, &lt;function msg_ser&gt;, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.MessageWithIdToken.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.MessageWithIdToken.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.MessageWithIdToken.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.OpenIDRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">OpenIDRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.OpenIDRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#idpyoidc.message.oidc.AuthorizationRequest" title="idpyoidc.message.oidc.AuthorizationRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oidc.AuthorizationRequest</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.OpenIDSchema">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">OpenIDSchema</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.OpenIDSchema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.OpenIDSchema.c_param">
+<code class="descname">c_param</code><em class="property"> = {'_claim_names': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function msg_deser&gt;, False), '_claim_sources': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function msg_deser&gt;, False), 'address': (&lt;class 'idpyoidc.message.Message'&gt;, False, &lt;function msg_ser&gt;, &lt;function address_deser&gt;, False), 'birthdate': (&lt;class 'str'&gt;, False, None, None, False), 'email': (&lt;class 'str'&gt;, False, None, None, False), 'email_verified': (&lt;class 'bool'&gt;, False, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'family_name': (&lt;class 'str'&gt;, False, None, None, False), 'gender': (&lt;class 'str'&gt;, False, None, None, False), 'given_name': (&lt;class 'str'&gt;, False, None, None, False), 'locale': (&lt;class 'str'&gt;, False, None, None, False), 'middle_name': (&lt;class 'str'&gt;, False, None, None, False), 'name': (&lt;class 'str'&gt;, False, None, None, False), 'nickname': (&lt;class 'str'&gt;, False, None, None, False), 'phone_number': (&lt;class 'str'&gt;, False, None, None, False), 'phone_number_verified': (&lt;class 'bool'&gt;, False, None, None, False), 'picture': (&lt;class 'str'&gt;, False, None, None, False), 'preferred_username': (&lt;class 'str'&gt;, False, None, None, False), 'profile': (&lt;class 'str'&gt;, False, None, None, False), 'sub': (&lt;class 'str'&gt;, True, None, None, False), 'updated_at': (&lt;class 'int'&gt;, False, None, None, False), 'website': (&lt;class 'str'&gt;, False, None, None, False), 'zoneinfo': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.OpenIDSchema.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.OpenIDSchema.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.OpenIDSchema.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.ProviderConfigurationResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">ProviderConfigurationResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.ProviderConfigurationResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.ProviderConfigurationResponse.c_default">
+<code class="descname">c_default</code><em class="property"> = {'claims_parameter_supported': False, 'grant_types_supported': ['authorization_code', 'implicit'], 'request_parameter_supported': False, 'request_uri_parameter_supported': True, 'require_request_uri_registration': True, 'token_endpoint_auth_methods_supported': ['client_secret_basic'], 'version': '3.0'}</em><a class="headerlink" href="#idpyoidc.message.oidc.ProviderConfigurationResponse.c_default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.ProviderConfigurationResponse.c_param">
+<code class="descname">c_param</code><em class="property"> = {'acr_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'authorization_endpoint': (&lt;class 'str'&gt;, True, None, None, False), 'backchannel_logout_session_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'backchannel_logout_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'check_session_iframe': (&lt;class 'str'&gt;, False, None, None, False), 'claim_types_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'claims_locales_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'claims_parameter_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'claims_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'display_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'end_session_endpoint': (&lt;class 'str'&gt;, False, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'frontchannel_logout_session_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'frontchannel_logout_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'grant_types_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'id_token_encryption_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'id_token_encryption_enc_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'id_token_signing_alg_values_supported': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'issuer': (&lt;class 'str'&gt;, True, None, None, False), 'jwks_uri': (&lt;class 'str'&gt;, True, None, None, False), 'op_policy_uri': (&lt;class 'str'&gt;, False, None, None, False), 'op_tos_uri': (&lt;class 'str'&gt;, False, None, None, False), 'registration_endpoint': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_encryption_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'request_object_encryption_enc_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'request_object_signing_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'request_parameter_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'request_uri_parameter_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'require_request_uri_registration': (&lt;class 'bool'&gt;, False, None, None, False), 'response_modes_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'response_types_supported': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'scopes_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'service_documentation': (&lt;class 'str'&gt;, False, None, None, False), 'subject_types_supported': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'token_endpoint': (&lt;class 'str'&gt;, False, None, None, False), 'token_endpoint_auth_methods_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'token_endpoint_auth_signing_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'ui_locales_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'userinfo_encryption_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'userinfo_encryption_enc_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'userinfo_endpoint': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_signing_alg_values_supported': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.ProviderConfigurationResponse.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.ProviderConfigurationResponse.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.ProviderConfigurationResponse.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.RefreshAccessTokenRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">RefreshAccessTokenRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.RefreshAccessTokenRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.RefreshAccessTokenRequest" title="idpyoidc.message.oauth2.RefreshAccessTokenRequest"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.RefreshAccessTokenRequest</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.RegistrationRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">RegistrationRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.RegistrationRequest.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'application_type': ['native', 'web'], 'subject_type': ['public', 'pairwise']}</em><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationRequest.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.RegistrationRequest.c_default">
+<code class="descname">c_default</code><em class="property"> = {'application_type': 'web', 'response_types': ['code']}</em><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationRequest.c_default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.RegistrationRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'application_type': (&lt;class 'str'&gt;, False, None, None, False), 'backchannel_logout_session_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'backchannel_logout_uri': (&lt;class 'str'&gt;, False, None, None, False), 'client_name': (&lt;class 'str'&gt;, False, None, None, False), 'client_uri': (&lt;class 'str'&gt;, False, None, None, False), 'contacts': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'default_acr_values': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'default_max_age': (&lt;class 'int'&gt;, False, None, None, False), 'federation_type': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'frontchannel_logout_session_required': (&lt;class 'bool'&gt;, False, None, None, False), 'frontchannel_logout_uri': (&lt;class 'str'&gt;, False, None, None, False), 'grant_types': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'id_token_encrypted_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'id_token_encrypted_response_enc': (&lt;class 'str'&gt;, False, None, None, False), 'id_token_signed_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'initiate_login_uri': (&lt;class 'str'&gt;, False, None, None, False), 'jwks': (&lt;class 'dict'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function dict_deser&gt;, False), 'jwks_uri': (&lt;class 'str'&gt;, False, None, None, False), 'logo_uri': (&lt;class 'str'&gt;, False, None, None, False), 'organization_name': (&lt;class 'str'&gt;, False, None, None, False), 'policy_uri': (&lt;class 'str'&gt;, False, None, None, False), 'post_logout_redirect_uri': (&lt;class 'str'&gt;, False, None, None, False), 'redirect_uris': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'request_object_encryption_alg': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_encryption_enc': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_signing_alg': (&lt;class 'str'&gt;, False, None, None, False), 'request_uris': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'require_auth_time': (&lt;class 'bool'&gt;, False, None, None, False), 'response_types': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'sector_identifier_uri': (&lt;class 'str'&gt;, False, None, None, False), 'subject_type': (&lt;class 'str'&gt;, False, None, None, False), 'token_endpoint_auth_method': (&lt;class 'str'&gt;, False, None, None, False), 'token_endpoint_auth_signing_alg': (&lt;class 'str'&gt;, False, None, None, False), 'tos_uri': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_encrypted_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_encrypted_response_enc': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_signed_response_alg': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.RegistrationRequest.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationRequest.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all the required values are there and that the values are
+of the correct type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.RegistrationResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">RegistrationResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<p>Response to client_register registration requests</p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.RegistrationResponse.c_param">
+<code class="descname">c_param</code><em class="property"> = {'application_type': (&lt;class 'str'&gt;, False, None, None, False), 'backchannel_logout_session_supported': (&lt;class 'bool'&gt;, False, None, None, False), 'backchannel_logout_uri': (&lt;class 'str'&gt;, False, None, None, False), 'client_id': (&lt;class 'str'&gt;, True, None, None, False), 'client_id_issued_at': (&lt;class 'int'&gt;, False, None, None, False), 'client_name': (&lt;class 'str'&gt;, False, None, None, False), 'client_secret': (&lt;class 'str'&gt;, False, None, None, False), 'client_secret_expires_at': (&lt;class 'int'&gt;, False, None, None, False), 'client_uri': (&lt;class 'str'&gt;, False, None, None, False), 'contacts': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'default_acr_values': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'default_max_age': (&lt;class 'int'&gt;, False, None, None, False), 'error': (&lt;class 'str'&gt;, False, None, None, False), 'error_description': (&lt;class 'str'&gt;, False, None, None, False), 'error_uri': (&lt;class 'str'&gt;, False, None, None, False), 'federation_type': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'frontchannel_logout_session_required': (&lt;class 'bool'&gt;, False, None, None, False), 'frontchannel_logout_uri': (&lt;class 'str'&gt;, False, None, None, False), 'grant_types': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'id_token_encrypted_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'id_token_encrypted_response_enc': (&lt;class 'str'&gt;, False, None, None, False), 'id_token_signed_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'initiate_login_uri': (&lt;class 'str'&gt;, False, None, None, False), 'jwks': (&lt;class 'dict'&gt;, False, &lt;function msg_ser_json&gt;, &lt;function dict_deser&gt;, False), 'jwks_uri': (&lt;class 'str'&gt;, False, None, None, False), 'logo_uri': (&lt;class 'str'&gt;, False, None, None, False), 'organization_name': (&lt;class 'str'&gt;, False, None, None, False), 'policy_uri': (&lt;class 'str'&gt;, False, None, None, False), 'post_logout_redirect_uri': (&lt;class 'str'&gt;, False, None, None, False), 'redirect_uris': ([&lt;class 'str'&gt;], True, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'registration_access_token': (&lt;class 'str'&gt;, False, None, None, False), 'registration_client_uri': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_encryption_alg': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_encryption_enc': (&lt;class 'str'&gt;, False, None, None, False), 'request_object_signing_alg': (&lt;class 'str'&gt;, False, None, None, False), 'request_uris': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'require_auth_time': (&lt;class 'bool'&gt;, False, None, None, False), 'response_types': ([&lt;class 'str'&gt;], False, &lt;function list_serializer&gt;, &lt;function list_deserializer&gt;, False), 'sector_identifier_uri': (&lt;class 'str'&gt;, False, None, None, False), 'subject_type': (&lt;class 'str'&gt;, False, None, None, False), 'token_endpoint_auth_method': (&lt;class 'str'&gt;, False, None, None, False), 'token_endpoint_auth_signing_alg': (&lt;class 'str'&gt;, False, None, None, False), 'tos_uri': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_encrypted_response_alg': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_encrypted_response_enc': (&lt;class 'str'&gt;, False, None, None, False), 'userinfo_signed_response_alg': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationResponse.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="idpyoidc.message.oidc.RegistrationResponse.verify">
+<code class="descname">verify</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.RegistrationResponse.verify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implementations MUST either return both a Client Configuration Endpoint
+and a Registration Access Token or neither of them.
+:param kwargs:
+:return: True if the message is OK otherwise False</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.ResourceRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">ResourceRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.ResourceRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.ResourceRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'access_token': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.ResourceRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.TokenErrorResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">TokenErrorResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.TokenErrorResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.TokenErrorResponse" title="idpyoidc.message.oauth2.TokenErrorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.TokenErrorResponse</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.UserInfoErrorResponse">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">UserInfoErrorResponse</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.UserInfoErrorResponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="oauth2.html#idpyoidc.message.oauth2.ResponseMessage" title="idpyoidc.message.oauth2.ResponseMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.oauth2.ResponseMessage</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.UserInfoErrorResponse.c_allowed_values">
+<code class="descname">c_allowed_values</code><em class="property"> = {'error': ['invalid_schema', 'invalid_request', 'invalid_token', 'insufficient_scope']}</em><a class="headerlink" href="#idpyoidc.message.oidc.UserInfoErrorResponse.c_allowed_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.UserInfoRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">UserInfoRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.UserInfoRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.UserInfoRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'access_token': (&lt;class 'str'&gt;, False, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.UserInfoRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="idpyoidc.message.oidc.WebFingerRequest">
+<em class="property">class </em><code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">WebFingerRequest</code><span class="sig-paren">(</span><em>set_defaults=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.WebFingerRequest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a></p>
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.WebFingerRequest.c_default">
+<code class="descname">c_default</code><em class="property"> = {'rel': 'http://openid.net/specs/connect/1.0/issuer'}</em><a class="headerlink" href="#idpyoidc.message.oidc.WebFingerRequest.c_default" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="idpyoidc.message.oidc.WebFingerRequest.c_param">
+<code class="descname">c_param</code><em class="property"> = {'rel': (&lt;class 'str'&gt;, True, None, None, False), 'resource': (&lt;class 'str'&gt;, True, None, None, False)}</em><a class="headerlink" href="#idpyoidc.message.oidc.WebFingerRequest.c_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.address_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">address_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.address_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.check_char_set">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">check_char_set</code><span class="sig-paren">(</span><em>string</em>, <em>allowed</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.check_char_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.claims_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">claims_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.claims_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.claims_match">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">claims_match</code><span class="sig-paren">(</span><em>value</em>, <em>claimspec</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.claims_match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements matching according to section 5.5.1 of
+<a class="reference external" href="http://openid.net/specs/openid-connect-core-1_0.html">http://openid.net/specs/openid-connect-core-1_0.html</a>
+The lack of value is not checked here.
+Also the text doesn’t prohibit claims specification having both ‘value’
+and ‘values’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – single value</p></li>
+<li><p><strong>claimspec</strong> – None or a dictionary with ‘essential’, ‘value’ or ‘values’
+as keys</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.claims_request_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">claims_request_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='json'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.claims_request_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.claims_ser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">claims_ser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.claims_ser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.clear_verified_claims">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">clear_verified_claims</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.clear_verified_claims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.deserialize_from_one_of">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">deserialize_from_one_of</code><span class="sig-paren">(</span><em>val</em>, <em>msgtype</em>, <em>sformat</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.deserialize_from_one_of" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.dict_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">dict_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='json'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.dict_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.factory">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">factory</code><span class="sig-paren">(</span><em>msgtype</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.factory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.idtoken_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">idtoken_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.idtoken_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.json_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">json_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat=None</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.json_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.json_ser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">json_ser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat=None</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.json_ser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.jwt_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">jwt_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='json'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.jwt_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.link_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">link_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.link_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.link_list_ser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">link_list_ser</code><span class="sig-paren">(</span><em>inst</em>, <em>sformat</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.link_list_ser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.link_ser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">link_ser</code><span class="sig-paren">(</span><em>inst</em>, <em>sformat</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.link_ser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.make_openid_request">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">make_openid_request</code><span class="sig-paren">(</span><em>arq</em>, <em>keys</em>, <em>issuer</em>, <em>request_object_signing_alg</em>, <em>recv</em>, <em>with_jti=False</em>, <em>lifetime=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.make_openid_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the JWT to be passed by value (the request parameter) or by
+reference (request_uri).
+The request will be signed</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arq</strong> – The Authorization request</p></li>
+<li><p><strong>keys</strong> – Keys to use for signing/encrypting. A KeyJar instance</p></li>
+<li><p><strong>issuer</strong> – Who is signing this JSON Web Token</p></li>
+<li><p><strong>request_object_signing_alg</strong> – Which signing algorithm to use</p></li>
+<li><p><strong>recv</strong> – The intended receiver of the request</p></li>
+<li><p><strong>with_jti</strong> – Whether a JTI should be included in the JWT.</p></li>
+<li><p><strong>lifetime</strong> – How long the JWT is expect to be live.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>JWT encoded OpenID request</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.msg_list_ser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">msg_list_ser</code><span class="sig-paren">(</span><em>insts</em>, <em>sformat</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.msg_list_ser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.msg_ser_json">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">msg_ser_json</code><span class="sig-paren">(</span><em>inst</em>, <em>sformat='json'</em>, <em>lev=0</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.msg_ser_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.registration_request_deser">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">registration_request_deser</code><span class="sig-paren">(</span><em>val</em>, <em>sformat='urlencoded'</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.registration_request_deser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="idpyoidc.message.oidc.verify_id_token">
+<code class="descclassname">idpyoidc.message.oidc.</code><code class="descname">verify_id_token</code><span class="sig-paren">(</span><em>msg</em>, <em>check_hash=False</em>, <em>claim='id_token'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#idpyoidc.message.oidc.verify_id_token" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">idpyoidc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction to IdPy-OIDC</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">idpyoidc classes and functions documentation!</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="intro.html">Introduction to message</a></li>
+<li class="toctree-l2"><a class="reference internal" href="message.html">Base protocol message</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oauth2.html">OAuth2 protocol messages</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">OpenID Connect protocol messages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="howto/message.html">How to use the idpyoidc Message class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="howto/msg_extend.html">How to extend message</a></li>
+<li class="toctree-l2"><a class="reference internal" href="time_util.html">idpyoidc time utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../server/index.html">Welcome to Idpy OIDC OP Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">idpyoidc classes and functions documentation!</a><ul>
+      <li>Previous: <a href="oauth2.html" title="previous chapter">OAuth2 protocol messages</a></li>
+      <li>Next: <a href="howto/message.html" title="next chapter">How to use the idpyoidc Message class</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/message/oidc.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

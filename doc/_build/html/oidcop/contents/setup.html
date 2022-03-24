@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Setup &#8212; idpyoidc 0.0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+          <div class="body" role="main">
+
+  <div class="section" id="setup">
+<h1>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h1>
+<p>Create an environment</p>
+<blockquote>
+<div><p>virtualenv -ppython3 env
+source env/bin/activate</p>
+</div></blockquote>
+<p>Install</p>
+<blockquote>
+<div><p>pip install oidcop</p>
+</div></blockquote>
+<p>Get the usage examples</p>
+<blockquote>
+<div><p>git clone <a class="reference external" href="https://github.com/identitypython/oidc-op.git">https://github.com/identitypython/oidc-op.git</a>
+cd oidc-op/example/flask_op/
+bash run.sh</p>
+</div></blockquote>
+<p>To configure a standard OIDC Provider you have to edit the oidcop configuration file.
+See <cite>example/flask_op/config.json</cite> to get in.</p>
+<blockquote>
+<div><p>~/DEV/IdentityPython/OIDC/oidc-op/example/flask_op$ bash run.sh
+2021-05-02 14:57:44,727 root DEBUG Configured logging using dictionary
+2021-05-02 14:57:44,728 oidcop.configure DEBUG Set server password to {‘kty’: ‘oct’, ‘use’: ‘sig’, ‘k’: ‘n4G9OjOixYMOotXvP15grwq0peN2zq9I’}</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Serving Flask app “oidc_op” (lazy loading)</p></li>
+<li><p>Environment: production
+WARNING: This is a development server. Do not use it in a production deployment.
+Use a production WSGI server instead.</p></li>
+<li><p>Debug mode: on</p></li>
+</ul>
+</div></blockquote>
+<p>2021-05-02 14:57:44,764 werkzeug INFO  * Running on <a class="reference external" href="https://127.0.0.1:5000/">https://127.0.0.1:5000/</a> (Press CTRL+C to quit)
+2021-05-02 14:57:44,765 werkzeug INFO  * Restarting with stat
+2021-05-02 14:57:45,011 root DEBUG Configured logging using dictionary
+2021-05-02 14:57:45,011 oidcop.configure DEBUG Set server password to {‘kty’: ‘oct’, ‘use’: ‘sig’, ‘k’: ‘bceYal7bK9zvlBAA7-23lsi5crcv_8Cd’}
+2021-05-02 14:57:45,037 werkzeug WARNING  * Debugger is active!
+2021-05-02 14:57:45,092 werkzeug INFO  * Debugger PIN: 560-973-597</p>
+</div></blockquote>
+<p>Then open your browser to <cite>https://127.0.0.1:5000/.well-known/openid-configuration</cite> to get the OpenID Provider Configuration resource.</p>
+<div class="section" id="jwk-set-jwks-files">
+<h2>JWK Set (JWKS) files<a class="headerlink" href="#jwk-set-jwks-files" title="Permalink to this headline">¶</a></h2>
+<p>see: [cryptojwt documentation](<a class="reference external" href="https://cryptojwt.readthedocs.io/en/latest/keyhandling">https://cryptojwt.readthedocs.io/en/latest/keyhandling</a>.html&lt;<a class="reference external" href="https://cryptojwt.readthedocs.io/en/latest/keyhandling.html">https://cryptojwt.readthedocs.io/en/latest/keyhandling.html</a>)</p>
+<p>You can use <cite>cryptojwt.key_jar.init_key_jar</cite> to create JWKS file.
+An easy way can be to configure the auto creation of JWKS files directly in your conf.yaml file.
+Using <cite>read_only: False</cite> in <cite>OIDC_KEYS</cite> it will create the path within the JWKS files.
+Change it to <cite>True</cite> if you don’t want to overwrite them on each execution.</p>
+<p>In general configuration:</p>
+<blockquote>
+<div><dl>
+<dt>OIDC_KEY_DEFS = [</dt><dd><dl>
+<dt>{</dt><dd><p>“type”: “RSA”,
+“use”: [</p>
+<blockquote>
+<div><p>“sig”</p>
+</div></blockquote>
+<p>]</p>
+</dd>
+</dl>
+<p>},
+{</p>
+<blockquote>
+<div><p>“type”: “EC”,
+“crv”: “P-256”,
+“use”: [</p>
+<blockquote>
+<div><p>“sig”</p>
+</div></blockquote>
+<p>]</p>
+</div></blockquote>
+<p>}</p>
+</dd>
+</dl>
+<p>]</p>
+<dl>
+<dt>OIDCOP_CONF = {</dt><dd><p>“port”: PORT,
+“domain”: DOMAIN,
+“server_name”: SERVER_NAME,
+“base_url”: f”<a class="reference external" href="https:/">https:/</a>/{SERVER_NAME}”,
+“keys”: {</p>
+<blockquote>
+<div><p>“private_path”: “data/oidc_op/private/jwks.json”,
+“key_defs”: OIDC_KEY_DEFS,
+“public_path”: “data/static/jwks.json”,
+“read_only”: False,
+“uri_path”: “static/jwks.json”</p>
+</div></blockquote>
+<p>},</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>In the JWTConnect-Python-CryptoJWT distribution there is also a script you can use to construct a JWK. You can for instance do:</p>
+<blockquote>
+<div><p>$ jwkgen –kty=RSA
+{</p>
+<blockquote>
+<div><p>“d”: “b9ucfay9vxDvz_nRZMVSUR9eRvHNMo0tc8Bl7tWkwxTis7LBXxmbMH1yzLs8omUil_u2a-Z_6VlKENxacuejYYcOhs6bfaU3iOqJbGi2p4t2i1oxjuF-cX6BZ5aHB5Wfb1uTXXobHokjcjVVDmBr_fNYBEPtZsVYqyN9sR9KE_ZLHEPks3IER09aX9G3wiB_PgcxQDRAl72qucsBz9_W9KS-TVWs-qCEqtXLmx9AAN6P8SjUcHAzEb0ZCJAYCkVu34wgNjxVaGyYN1qMA-1iOOVz–wtMyBwc5atSDBDgUApxFyj_DHSeBl81IHedcPjS9azxqFhumP7oJJyfecfSQ”,
+“e”: “AQAB”,
+“kid”: “cHZQbWRrMzRZak53U1pfSUNjY0dKd2xXaXRKenktdUduUjVBVTl3VE5ndw”,
+“kty”: “RSA”,
+“n”: “73XCXV2iiubSCEaFe26OpVnsBFlXwXh_yDCDyBqFgAFi5WdZTpRMJZoK0nn_vv2MvrXqFnw6IfXkwdsRGlMsNldVy36003gKa584CNksxfenwJZcF-huASUrSJEFr-3c0fMT_pLyAc7yf3rNCdRegzbBXSvIGKQpaeIjIFYftAPd9tjGA_SuYWVQDsSh3MeGbB4wt0lArAyFZ4f5o7SSxSDRCUF3ng3CB_QKUAaDHHgXrcNG_gPpgqQZjsDJ0VwMXjFKxQmskbH-dfsQ05znQsYn3pjcd_TEZ-Yu765_L5uxUrkEy_KnQXe1iqaQHcnfBWKXt18NAuBfgmKsv8gnxQ”,
+“p”: “_RPgbiQcFu8Ekp-tC-Kschpag9iaLc9aDqrxE6GWuThEdExGngP_p1I7Qd7gXHHTMXLp1c4gH2cKx4AkfQyKny2RJGtV2onQButUU5r0gwnlqqycIA2Dc9JiH85PX2Z889TKJUlVETfYbezHbKhdsazjjsXCQ6p9JfkmgfBQOXM”,
+“q”: “8jmgnadtwjMt96iOaoL51irPRXONO82tLM2AAZAK5Obsj23bZ9LFiw2Joh5oCSFdoUcRhbbIhCIv2aT4T_XKnDGnddrkxpF5Xgu0-hPNYnJx5m4kuzerot4j79Tx6qO-bshaaGz50MHs1vHSeFaDVN4fvh_hDWpV1BCNI0PKK-c”</p>
+</div></blockquote>
+<p>}
+SHA-256: pvPmdk34YjNwSZ_ICccGJwlWitJzy-uGnR5AU9wTNgw</p>
+</div></blockquote>
+<p>Example: create a JWK for cookie signing</p>
+<blockquote>
+<div><p>jwkgen –kty=SYM –kid cookie &gt; private/cookie_sign_jwk.json</p>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">oidcmsg</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Introduction to oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcmsg/index.html">oidcmsg classes and functions documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/message.html">How to use the oidcmsg Message class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../howto/msg_extend.html">How to extend oidcmsg</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Welcome to Idpy OIDC-op Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oidcrp/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+
+      |
+      <a href="../../_sources/oidcop/contents/setup.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "userinfo": {
+    "verified_claims": {
+      "verification": {
+        "trust_framework": null,
+        "time": null,
+        "evidence": [
+          {
+            "type": {
+              "value": "electronic_signature"
+            },
+            "issuer": null,
+            "serial_number": null,
+            "created_at": null
+          }
+        ]
+      },
+      "claims": {
+        "given_name": null,
+        "family_name": null,
+        "birthdate": null
+      }
+    }
+  }
+}

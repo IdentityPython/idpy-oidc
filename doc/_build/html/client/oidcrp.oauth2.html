@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>oidcrp.oauth2 package &#8212; idpyoidc 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="idpyoidc.client.oidc package" href="oidcrp.oidc.html" />
+    <link rel="prev" title="oidcrp package" href="oidcrp.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="oidcrp-oauth2-package">
+<h1>oidcrp.oauth2 package<a class="headerlink" href="#oidcrp-oauth2-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-oidcrp.oauth2">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-oidcrp.oauth2" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="oidcrp.oauth2.Client">
+<em class="property">class </em><code class="descclassname">oidcrp.oauth2.</code><code class="descname">Client</code><span class="sig-paren">(</span><em>client_authn_factory=None</em>, <em>keyjar=None</em>, <em>verify_ssl=True</em>, <em>config=None</em>, <em>httplib=None</em>, <em>services=None</em>, <em>jwks_uri=''</em>, <em>httpc_params=None</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">oidcrp.entity.Entity</span></code></p>
+<dl class="method">
+<dt id="oidcrp.oauth2.Client.do_request">
+<code class="descname">do_request</code><span class="sig-paren">(</span><em>request_type: str</em>, <em>response_body_type: Optional[str] = ''</em>, <em>request_args: Optional[dict] = None</em>, <em>behaviour_args: Optional[dict] = None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.Client.do_request" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="oidcrp.oauth2.Client.get_response">
+<code class="descname">get_response</code><span class="sig-paren">(</span><em>service: oidcmsg.client.service.Service</em>, <em>url: str</em>, <em>method: Optional[str] = 'GET'</em>, <em>body: Optional[dict] = None</em>, <em>response_body_type: Optional[str] = ''</em>, <em>headers: Optional[dict] = None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.Client.get_response" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – </p></li>
+<li><p><strong>method</strong> – </p></li>
+<li><p><strong>body</strong> – </p></li>
+<li><p><strong>response_body_type</strong> – </p></li>
+<li><p><strong>headers</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="oidcrp.oauth2.Client.parse_request_response">
+<code class="descname">parse_request_response</code><span class="sig-paren">(</span><em>service</em>, <em>reqresp</em>, <em>response_body_type=''</em>, <em>state=''</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.Client.parse_request_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deal with a self.http response. The response are expected to
+follow a special pattern, having the attributes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>headers (list of tuples with headers attributes and their values)</p></li>
+<li><p>status_code (integer)</p></li>
+<li><p>text (The text version of the response)</p></li>
+<li><p>url (The calling URL)</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>service</strong> – A <code class="xref py py-class docutils literal notranslate"><span class="pre">oidcrp.service.Service</span></code> instance</p></li>
+<li><p><strong>reqresp</strong> – The HTTP request response</p></li>
+<li><p><strong>response_body_type</strong> – If response in body one of ‘json’, ‘jwt’ or
+‘urlencoded’</p></li>
+<li><p><strong>state</strong> – Session identifier</p></li>
+<li><p><strong>kwargs</strong> – Extra keyword arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="oidcrp.oauth2.Client.service_request">
+<code class="descname">service_request</code><span class="sig-paren">(</span><em>service: oidcmsg.client.service.Service</em>, <em>url: str</em>, <em>method: Optional[str] = 'GET'</em>, <em>body: Optional[dict] = None</em>, <em>response_body_type: Optional[str] = ''</em>, <em>headers: Optional[dict] = None</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; oidcmsg.message.Message<a class="headerlink" href="#oidcrp.oauth2.Client.service_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that sends the request and handles the response returned.
+This assumes that the response arrives in the HTTP response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>service</strong> – The Service instance</p></li>
+<li><p><strong>url</strong> – The URL to which the request should be sent</p></li>
+<li><p><strong>method</strong> – Which HTTP method to use</p></li>
+<li><p><strong>body</strong> – A message body if any</p></li>
+<li><p><strong>response_body_type</strong> – The expected format of the body of the
+return message</p></li>
+<li><p><strong>httpc_params</strong> – Arguments for the HTTP client</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A cls or ResponseMessage instance or the HTTP response
+instance if no response body was expected.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="oidcrp.oauth2.Client.set_client_id">
+<code class="descname">set_client_id</code><span class="sig-paren">(</span><em>client_id</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.Client.set_client_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="oidcrp.oauth2.ExpiredToken">
+<em class="property">exception </em><code class="descclassname">oidcrp.oauth2.</code><code class="descname">ExpiredToken</code><a class="headerlink" href="#oidcrp.oauth2.ExpiredToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="oidcrp.oauth2.dynamic_provider_info_discovery">
+<code class="descclassname">oidcrp.oauth2.</code><code class="descname">dynamic_provider_info_discovery</code><span class="sig-paren">(</span><em>client: oidcrp.oauth2.Client</em>, <em>behaviour_args: Optional[dict] = None</em><span class="sig-paren">)</span><a class="headerlink" href="#oidcrp.oauth2.dynamic_provider_info_discovery" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is about performing dynamic Provider Info discovery</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>behaviour_args</strong> – </p></li>
+<li><p><strong>client</strong> – A <code class="xref py py-class docutils literal notranslate"><span class="pre">oidcrp.oidc.Client</span></code> instance</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">idpyoidc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction to idpyoidc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../message/index.html">idpyoidc classes and functions documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../howto/message.html">How to use the idpyoidc Message class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../howto/msg_extend.html">How to extend idpyoidc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../server/index.html">Welcome to Idpy OIDC OP Documentation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Welcome to oidcrp’s documentation!</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rp_handler.html">The Relying Party Handler</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="oidcrp.html">oidcrp package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="add_on/index.html">OIDCRP add on documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="add_on/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Welcome to oidcrp’s documentation!</a><ul>
+  <li><a href="oidcrp.html">oidcrp package</a><ul>
+      <li>Previous: <a href="oidcrp.html" title="previous chapter">oidcrp package</a></li>
+      <li>Next: <a href="oidcrp.oidc.html" title="next chapter">idpyoidc.client.oidc package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/client/oidcrp.oauth2.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

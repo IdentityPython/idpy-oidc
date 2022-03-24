@@ -1,0 +1,45 @@
+{
+  "userinfo": {
+    "verified_claims": [
+      {
+        "verification": {
+          "trust_framework": {
+            "value": "gold"
+          },
+          "evidence": [
+            {
+              "type": {
+                "value": "document"
+              }
+            }
+          ]
+        },
+        "claims": {
+          "given_name": null,
+          "family_name": null
+        }
+      },
+      {
+        "verification": {
+          "trust_framework": {
+            "values": [
+              "silver",
+              "bronze"
+            ]
+          },
+          "evidence": [
+            {
+              "type": {
+                "value": "electronic_record"
+              }
+            }
+          ]
+        },
+        "claims": {
+          "given_name": null,
+          "family_name": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework":"eidas",
+      "assurance_level": "substantial",
+      "evidence": [
+        {
+          "type": "document",
+          "method": "pipp",
+          "time": "2012-04-22T11:30Z",
+          "document_details": {
+            "type": "idcard",
+            "issuer": {
+              "name": "Stadt Augsburg",
+              "country": "DE"
+            },
+            "document_number": "53554554",
+            "date_of_issuance": "2010-03-23",
+            "date_of_expiry": "2020-03-22"
+          },
+          "attachments": [
+            {
+              "desc": "Front of id document",
+              "digest": {
+                "alg": "SHA-256",
+                "value": "nVW19w6EVNWNQ8fmRCxrxqw4xLUs+T8eI0tpjZo820Bc"
+              },
+              "url": "https://example.com/attachments/pGL9yz4hZQ",
+              "access_token": "ksj3n283dke",
+              "expires_in": 30
+            },
+            {
+              "desc": "Back of id document",
+              "digest": {
+                "alg": "SHA-256",
+                "value": "2QcDeLJ/qeXJn4nP+v3nijMgxOBCT9WJaV0LjRS4aT8"
+              },
+              "url": "https://example.com/attachments/4Ag8IpOf95"
+            },
+            {
+              "desc": "Signed document",
+              "digest": {
+                "alg": "SHA-256",
+                "value": "i3O7U79LiyKmmesIgULKT2Q8LAxNO0CpwJVcbepaYf8"
+              },
+              "url": "https://example.com/attachments/4Ag8IpOf95",
+              "access_token": null,
+              "expires_in": 30
+            }
+          ]
+        }
+      ]
+    },
+    "claims": {
+      "given_name": "Max",
+      "family_name": "Mustermann",
+      "birthdate": "1956-01-28"
+    }
+  }
+}

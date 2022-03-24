@@ -1,0 +1,53 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "de_aml",
+      "time": "2012-04-23T18:25Z",
+      "verification_process": "513645-e44b-4951-942c-7091cf7d891d",
+      "evidence": [
+        {
+          "type": "document",
+          "validation_method": {
+            "type": "vpip"
+          },
+          "time": "2021-04-09T14:12Z",
+          "document_details": {
+            "type": "utility_statement",
+            "date_of_issuance": "2013-01-31",
+            "issuer": {
+                "name": "Stadtwerke Musterstadt",
+                "country": "DE",
+                "region": "Niedersachsen",
+                "street_address": "Energiestrasse 33"
+            }
+          },
+          "attachments": [
+            {
+              "desc": "scan of bill",
+              "content_type": "application/pdf",
+              "content": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAADSFsjdkhjwhAABJRU5ErkJggg=="
+            }
+          ]
+        }
+      ]
+    },
+    "claims": {
+      "given_name": "Max",
+      "family_name": "Meier",
+      "birthdate": "1956-01-28",
+      "place_of_birth": {
+        "country": "DE",
+        "locality": "Musterstadt"
+      },
+      "nationalities": [
+        "DE"
+      ],
+      "address": {
+        "locality": "Maxstadt",
+        "postal_code": "12344",
+        "country": "DE",
+        "street_address": "An der Weide 22"
+      }
+    }
+  }
+}

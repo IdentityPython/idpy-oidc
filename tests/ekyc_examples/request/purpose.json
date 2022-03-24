@@ -1,0 +1,21 @@
+{
+  "userinfo": {
+    "verified_claims": {
+      "verification": {
+        "trust_framework": null
+      },
+      "claims": {
+        "given_name": {
+          "essential": true,
+          "purpose": "To make communication look more personal"
+        },
+        "family_name": {
+          "essential": true
+        },
+        "birthdate": {
+          "purpose": "To send you best wishes on your birthday"
+        }
+      }
+    }
+  }
+}

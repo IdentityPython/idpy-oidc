@@ -1,0 +1,18 @@
+{
+  "userinfo": {
+    "verified_claims": {
+      "verification": {
+        "trust_framework": null
+      },
+      "claims": {
+        "given_name": {
+          "essential": true
+        },
+        "family_name": {
+          "essential": true
+        },
+        "birthdate": null
+      }
+    }
+  }
+}

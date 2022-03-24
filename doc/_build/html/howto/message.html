@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>How to use the idpyoidc Message class &#8212; idpyoidc 1.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="How to extend idpyoidc" href="msg_extend.html" />
+    <link rel="prev" title="idpyoidc time utilities" href="../message/time_util.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-use-the-idpyoidc-message-class">
+<span id="oidcmsg-howto"></span><h1>How to use the idpyoidc Message class<a class="headerlink" href="#how-to-use-the-idpyoidc-message-class" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>An idpyoidc <a class="reference internal" href="../message/message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a> instance have some
+functionality common with Python dictionaries.
+So you can do things like assign values to a key:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;value&#39;</span>
+</pre></div>
+</div>
+<p>And you can read a value assigned to a key:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;value&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">val</span> <span class="o">=</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="go">value</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="../message/message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a> also supports other dictionary
+methods:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;value&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="go">[&#39;key&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+<span class="go">[(&#39;key&#39;, &#39;value&#39;)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s1">&#39;key&#39;</span> <span class="ow">in</span> <span class="n">msg</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<span class="go">{&#39;key&#39;: &#39;value&#39;}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;another&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<span class="go">dict_keys([&#39;another&#39;, &#39;key&#39;])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<span class="go">dict_values([2, &#39;value&#39;])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<span class="go">{&#39;another&#39;: 2}</span>
+</pre></div>
+</div>
+<p>Like a dictionary one can also do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<span class="go">{&#39;other&#39;: 6, &#39;key&#39;: &#39;value&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="serialization-deserialization">
+<h2>Serialization/deserialization<a class="headerlink" href="#serialization-deserialization" title="Permalink to this headline">¶</a></h2>
+<p>Since instances of <a class="reference internal" href="../message/message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a> will be used
+in an environment where information are to be sent over a wire it must be
+possible to serialize the information in such an instance to a format that
+can be transmitted over-the-wire.</p>
+<p>Because of this a number of method has been added to support serialization to
+and deserialization from a number of representations that are used in the
+OAuth2 and OIDC protocol exchange.</p>
+<p>The format supported are:</p>
+<ul class="simple">
+<li><p>JSON</p></li>
+<li><p>urlencoded</p></li>
+<li><p>Jason Web Token (JWT) signed and/or encrypted.</p></li>
+</ul>
+<p>An example using url encoding:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;value&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="p">[</span><span class="s1">&#39;another&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="o">.</span><span class="n">to_urlencoded</span><span class="p">()</span>
+<span class="go">&#39;another=2&amp;key=value&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urlenc</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">to_urlencoded</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">recmsg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span><span class="o">.</span><span class="n">from_urlencoded</span><span class="p">(</span><span class="n">urlenc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">recmsg</span><span class="p">)</span>
+<span class="go">{&#39;key&#39;: &#39;value&#39;, &#39;another&#39;: &#39;2&#39;}</span>
+</pre></div>
+</div>
+<p>Same thing using JSON:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">another</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span><span class="o">.</span><span class="n">to_urlencoded</span><span class="p">()</span>
+<span class="go">&#39;another=2&amp;key=value&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json_msg</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">to_json</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">recmsg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">json_msg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">recmsg</span><span class="p">)</span>
+<span class="go">{&#39;another&#39;: 2, &#39;key&#39;: &#39;value&#39;}</span>
+</pre></div>
+</div>
+<p>Regarding signed Jason Web Tokens we need a key so I create a
+simple symmetric one:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.message</span> <span class="k">import</span> <span class="n">Message</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cryptojwt.jwk.hmac</span> <span class="k">import</span> <span class="n">SYMKey</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">msg</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">another</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">SYMKey</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;A1B2C3D4E5F6G7H8&quot;</span><span class="p">)]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">jws</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">to_jwt</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="s2">&quot;HS256&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">jws</span><span class="p">)</span>
+<span class="go">eyJhbGciOiJIUzI1NiJ9.eyJrZXkiOiAidmFsdWUiLCAiYW5vdGhlciI6IDJ9.-yoKjzgRxQu0KqyH-6wRNB8g6W7PSu2cbHRguCjc18k</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">recv</span> <span class="o">=</span> <span class="n">Message</span><span class="p">()</span><span class="o">.</span><span class="n">from_jwt</span><span class="p">(</span><span class="n">jws</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">keys</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">recv</span><span class="p">)</span>
+<span class="go">{&#39;another&#39;: 2, &#39;key&#39;: &#39;value&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="verifying-the-message-content">
+<h2>Verifying the message content<a class="headerlink" href="#verifying-the-message-content" title="Permalink to this headline">¶</a></h2>
+<p>A protocol specification would not be anything if it didn’t specify
+what a message is supposed to look like. Which attributes that can occur in
+a message and what type of values the attributes could have. And in
+some extreme case the specification can also specify the exact values that
+a specific attribute can have.</p>
+<p>The OAuth2 and OpenID Connect specifications does all that.
+But both of them also states that extra attributes can always occur and
+should be allowed.</p>
+<p>A <a class="reference internal" href="../message/message.html#idpyoidc.message.Message" title="idpyoidc.message.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">idpyoidc.message.Message</span></code></a> class ínstance can deal with this.</p>
+<p>Let’s take the basic error response as an example. This message
+is defined thus in idpyoidc:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">ErrorResponse</span><span class="p">(</span><span class="n">Message</span><span class="p">):</span>
+<span class="n">c_param</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">SINGLE_REQUIRED_STRING</span><span class="p">,</span>
+           <span class="s2">&quot;error_description&quot;</span><span class="p">:</span> <span class="n">SINGLE_OPTIONAL_STRING</span><span class="p">,</span>
+           <span class="s2">&quot;error_uri&quot;</span><span class="p">:</span> <span class="n">SINGLE_OPTIONAL_STRING</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>What this means is that <em>error</em> must have a string value and that
+<em>error_description</em> and <em>error_uri</em> may have values and if so single
+string values.</p>
+<p>What does this look like then:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.oauth2</span> <span class="k">import</span> <span class="n">ErrorResponse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">ErrorResponse</span><span class="p">(</span><span class="n">error</span><span class="o">=</span><span class="s1">&#39;invalid_request&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">verify</span><span class="p">()</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>So with error defined the verify method will evaluate to True.
+If we forget to provide the <em>error</em> attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">ErrorResponse</span><span class="p">(</span><span class="n">error_description</span><span class="o">=</span><span class="s1">&#39;Some strange error&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">verify</span><span class="p">()</span>
+<span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/idpyoidc-0.1.0-py3.6.egg/idpyoidc/message.py&quot;</span>, line <span class="m">617</span>, in <span class="n">verify</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dict</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span>
+<span class="gr">KeyError</span>: <span class="n">&#39;error&#39;</span>
+
+<span class="go">During handling of the above exception, another exception occurred:</span>
+
+<span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+  File <span class="nb">&quot;/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/idpyoidc-0.1.0-py3.6.egg/idpyoidc/message.py&quot;</span>, line <span class="m">620</span>, in <span class="n">verify</span>
+    <span class="k">raise</span> <span class="n">MissingRequiredAttribute</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">attribute</span><span class="p">)</span>
+<span class="gr">idpyoidc.exception.MissingRequiredAttribute</span>: <span class="n">Missing required attribute &#39;error&#39;</span>
+</pre></div>
+</div>
+<p>an exception will be raised.</p>
+<p>If you provide extra attributes, that is OK but those attributes can not be
+verified.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">idpyoidc.oauth2</span> <span class="k">import</span> <span class="n">ErrorResponse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">ErrorResponse</span><span class="p">(</span><span class="n">error</span><span class="o">=</span><span class="s1">&#39;invalid_request&#39;</span><span class="p">,</span> <span class="n">error_code</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">verify</span><span class="p">()</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+<span class="go">{&#39;error&#39;: &#39;invalid_request&#39;, &#39;error_code&#39;: 500}</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">idpyoidc</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Introduction to idpyoidc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../message/index.html">idpyoidc classes and functions documentation!</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to use the idpyoidc Message class</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#serialization-deserialization">Serialization/deserialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verifying-the-message-content">Verifying the message content</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="msg_extend.html">How to extend idpyoidc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../server/index.html">Welcome to Idpy OIDC OP Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html">Welcome to oidcrp’s documentation!</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../client/index.html#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="../message/time_util.html" title="previous chapter">idpyoidc time utilities</a></li>
+      <li>Next: <a href="msg_extend.html" title="next chapter">How to extend idpyoidc</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Roland Hedberg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 2.0.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/howto/message.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

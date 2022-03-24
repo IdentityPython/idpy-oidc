@@ -1,0 +1,42 @@
+{
+  "verified_claims": {
+    "verification": {
+      "trust_framework": "uk_tfida",
+      "assurance_level": "very_high",
+      "time": "2020-03-19T13:05Z",
+      "verification_process": "76755DA2-81E1-5N14-9543-26B415B77",
+      "evidence": [
+        {
+          "type": "vouch",
+          "validation_method": {
+            "type": "vcrypt"
+          },
+          "verification_method": {
+            "type": "bvr"
+          },
+          "time": "2020-03-19T12:42Z",
+          "attestation": {
+            "type": "digital_attestation",
+            "reference_number": "6485-1619-3976-6671",
+            "date_of_issuance": "2021-06-04",
+            "voucher": {
+                "organization": "HMP Dartmoor"
+            }
+          }
+        }
+      ]
+    },
+    "claims": {
+      "given_name": "Sam",
+      "family_name": "Lawler",
+      "birthdate": "1981-04-13",
+      "place_of_birth": {
+        "country": "GBR"
+      },
+      "address": {
+        "postal_code": "98015",
+        "country": "Monaco"
+      }
+    }
+  }
+}

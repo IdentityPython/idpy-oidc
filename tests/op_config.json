@@ -1,0 +1,184 @@
+{
+  "authz": {
+    "class": "idpyoidc.server.authz.AuthzHandling",
+    "kwargs": {
+      "grant_config": {
+        "usage_rules": {
+          "authorization_code": {
+            "supports_minting": [
+              "access_token",
+              "refresh_token",
+              "id_token"
+            ],
+            "max_usage": 1
+          },
+          "access_token": {},
+          "refresh_token": {
+            "supports_minting": [
+              "access_token",
+              "refresh_token"
+            ]
+          }
+        },
+        "expires_in": 43200
+      }
+    }
+  },
+  "authentication": {
+    "user": {
+      "acr": "idpyoidc.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD",
+      "class": "idpyoidc.server.user_authn.user.UserPassJinja2",
+      "kwargs": {
+        "verify_endpoint": "verify/user",
+        "template": "user_pass.jinja2",
+        "db": {
+          "class": "idpyoidc.server.util.JSONDictDB",
+          "kwargs": {
+            "filename": "passwd.json"
+          }
+        },
+        "page_header": "Testing log in",
+        "submit_btn": "Get me in!",
+        "user_label": "Nickname",
+        "passwd_label": "Secret sauce"
+      }
+    }
+  },
+  "capabilities": {
+    "subject_types_supported": [
+      "public",
+      "pairwise"
+    ],
+    "grant_types_supported": [
+      "authorization_code",
+      "implicit",
+      "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      "refresh_token"
+    ]
+  },
+  "httpc_params": {
+    "verify": false
+  },
+  "id_token": {
+    "class": "idpyoidc.server.token.id_token.IDToken",
+    "kwargs": {
+      "base_claims": {
+        "email": {
+          "essential": true
+        },
+        "email_verified": {
+          "essential": true
+        }
+      }
+    }
+  },
+  "issuer": "https://{domain}:{port}",
+  "keys": {
+    "private_path": "private/jwks.json",
+    "key_defs": [
+      {
+        "type": "RSA",
+        "use": [
+          "sig"
+        ]
+      },
+      {
+        "type": "EC",
+        "crv": "P-256",
+        "use": [
+          "sig"
+        ]
+      }
+    ],
+    "public_path": "static/jwks.json",
+    "read_only": false,
+    "uri_path": "static/jwks.json"
+  },
+  "login_hint_lookup": {
+    "class": "idpyoidc.server.login_hint.LoginHintLookup",
+    "kwargs": {}
+  },
+  "login_hint2acrs": {
+    "class": "idpyoidc.server.login_hint.LoginHint2Acrs",
+    "kwargs": {
+      "scheme_map": {
+        "email": ["idpyoidc.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]
+      }
+    }
+  },
+  "session_params": {
+      "password": "ses_key",
+      "salt": "ses_salt",
+      "sub_func": {
+        "public": {
+          "class": "idpyoidc.server.session.manager.PublicID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        },
+        "pairwise": {
+          "class": "idpyoidc.server.session.manager.PairWiseID",
+          "kwargs": {
+            "salt": "mysalt"
+          }
+        }
+     }
+  },
+  "template_dir": "templates",
+  "token_handler_args": {
+    "jwks_def": {
+      "private_path": "private/token_jwks.json",
+      "read_only": false,
+      "key_defs": [
+        {
+          "type": "oct",
+          "bytes": 24,
+          "use": [
+            "enc"
+          ],
+          "kid": "code"
+        },
+        {
+          "type": "oct",
+          "bytes": 24,
+          "use": [
+            "enc"
+          ],
+          "kid": "refresh"
+        }
+      ]
+    },
+    "code": {
+      "kwargs": {
+        "lifetime": 600
+      }
+    },
+    "token": {
+      "class": "idpyoidc.server.token.jwt_token.JWTToken",
+      "kwargs": {
+        "lifetime": 3600,
+        "add_claims": [
+          "email",
+          "email_verified",
+          "phone_number",
+          "phone_number_verified"
+        ],
+        "add_claims_by_scope": true,
+        "aud": [
+          "https://example.org/appl"
+        ]
+      }
+    },
+    "refresh": {
+      "kwargs": {
+        "lifetime": 86400
+      }
+    }
+  },
+  "userinfo": {
+    "class": "idpyoidc.server.user_info.UserInfo",
+    "kwargs": {
+      "db_file": "users.json"
+    }
+  }
+}

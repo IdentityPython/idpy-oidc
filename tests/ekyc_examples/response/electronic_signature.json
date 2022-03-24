@@ -1,0 +1,36 @@
+{
+   "verified_claims":{
+      "verification":{
+         "trust_framework":"de_aml",
+         "time":"2012-04-23T18:25Z",
+         "verification_process":"f24c6f-6d3f-4ec5-973e-b0d8506f3bc7",
+         "evidence":[
+            {
+               "type":"electronic_signature",
+               "signature_type": "qes_eidas",
+                "issuer": "Example QTSP",
+                "serial_number": "10978342379280287615",
+                "created_at": "2012-04-23T18:25Z"
+            }
+         ]
+      },
+      "claims":{
+         "given_name":"Max",
+         "family_name":"Meier",
+         "birthdate":"1956-01-28",
+         "place_of_birth":{
+            "country":"DE",
+            "locality":"Musterstadt"
+         },
+         "nationalities":[
+            "DE"
+         ],
+         "address":{
+            "locality":"Maxstadt",
+            "postal_code":"12344",
+            "country":"DE",
+            "street_address":"An der Sanddüne 22"
+         }
+      }
+   }
+}

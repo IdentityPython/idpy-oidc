@@ -1,0 +1,36 @@
+{
+  "userinfo": {
+    "verified_claims": [
+      {
+        "verification": {
+          "trust_framework": {
+            "value": "eidas"
+          },
+          "assurance_level": {
+            "value": "high"
+          }
+        },
+        "claims": {
+          "given_name": null,
+          "family_name": null
+        }
+      },
+      {
+        "verification": {
+          "trust_framework": {
+            "value": "eidas"
+          },
+          "assurance_level":{
+            "values":[
+              "high",
+              "substantial"
+            ]
+          }
+        },
+        "claims": {
+          "birthdate": null
+        }
+      }
+    ]
+  }
+}
