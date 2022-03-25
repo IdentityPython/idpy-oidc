@@ -8,12 +8,12 @@ Create an environment::
 
 Install::
 
-    pip install oidcop
+    pip install idpyoidc
 
 Get the usage examples::
 
-    git clone https://github.com/identitypython/oidc-op.git
-    cd oidc-op/example/flask_op/
+    git clone https://github.com/identitypython/idpy-oidc.git
+    cd idpyoidc/example/flask_op/
     bash run.sh
 
 
@@ -22,23 +22,23 @@ See `example/flask_op/config.json` to get in.
 
 ::
 
-    ~/DEV/IdentityPython/OIDC/oidc-op/example/flask_op$ bash run.sh
-    2021-05-02 14:57:44,727 root DEBUG Configured logging using dictionary
-    2021-05-02 14:57:44,728 oidcop.configure DEBUG Set server password to {'kty': 'oct', 'use': 'sig', 'k': 'n4G9OjOixYMOotXvP15grwq0peN2zq9I'}
+    flask_op % bash run.sh
+    2022-03-25 08:49:22,801 root DEBUG Configured logging using dictionary
      * Serving Flask app "oidc_op" (lazy loading)
      * Environment: production
        WARNING: This is a development server. Do not use it in a production deployment.
        Use a production WSGI server instead.
      * Debug mode: on
-    2021-05-02 14:57:44,764 werkzeug INFO  * Running on https://127.0.0.1:5000/ (Press CTRL+C to quit)
-    2021-05-02 14:57:44,765 werkzeug INFO  * Restarting with stat
-    2021-05-02 14:57:45,011 root DEBUG Configured logging using dictionary
-    2021-05-02 14:57:45,011 oidcop.configure DEBUG Set server password to {'kty': 'oct', 'use': 'sig', 'k': 'bceYal7bK9zvlBAA7-23lsi5crcv_8Cd'}
-    2021-05-02 14:57:45,037 werkzeug WARNING  * Debugger is active!
-    2021-05-02 14:57:45,092 werkzeug INFO  * Debugger PIN: 560-973-597
+    2022-03-25 08:49:22,841 werkzeug INFO  * Running on https://127.0.0.1:5000/ (Press CTRL+C to quit)
+    2022-03-25 08:49:22,842 werkzeug INFO  * Restarting with stat
+    2022-03-25 08:49:23,202 root DEBUG Configured logging using dictionary
+    2022-03-25 08:49:23,240 werkzeug WARNING  * Debugger is active!
+    2022-03-25 08:49:23,245 werkzeug INFO  * Debugger PIN: 162-062-616
 
 
-Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration` to get the OpenID Provider Configuration resource.
+
+Then open your browser to `https://127.0.0.1:5000/.well-known/openid-configuration`
+to get the OpenID Provider Configuration resource.
 
 
 --------------------
@@ -54,34 +54,34 @@ Change it to `True` if you don't want to overwrite them on each execution.
 
 In general configuration::
 
-    OIDC_KEY_DEFS = [
-        {
-          "type": "RSA",
-          "use": [
-            "sig"
-          ]
-        },
-        {
-          "type": "EC",
-          "crv": "P-256",
-          "use": [
-            "sig"
-          ]
-        }
-    ]
-
-    OIDCOP_CONF = {
-      "port": PORT,
-      "domain": DOMAIN,
-      "server_name": SERVER_NAME,
-      "base_url": f"https://{SERVER_NAME}",
+  "port": 5000,
+  "domain": "127.0.0.1",
+  "server_name": "{domain}:{port}",
+  "base_url": "https://{domain}:{port}",
+  "op": {
+    "server_info": {
       "keys": {
-        "private_path": "data/oidc_op/private/jwks.json",
-        "key_defs": OIDC_KEY_DEFS,
-        "public_path": "data/static/jwks.json",
-        "read_only": False,
+        "private_path": "private/jwks.json",
+        "key_defs": [
+          {
+            "type": "RSA",
+            "use": [
+              "sig"
+            ]
+          },
+          {
+            "type": "EC",
+            "crv": "P-256",
+            "use": [
+              "sig"
+            ]
+          }
+        ],
+        "public_path": "static/jwks.json",
+        "read_only": false,
         "uri_path": "static/jwks.json"
       },
+
 
 In the JWTConnect-Python-CryptoJWT distribution there is also a script you can use to construct a JWK.
 You can for instance do::

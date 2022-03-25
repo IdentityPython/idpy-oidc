@@ -1,19 +1,20 @@
 Usage
 -----
 
-Some examples, how to run [flask_op](https://github.com/IdentityPython/oidc-op/tree/master/example/flask_op) and [django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.
+Some examples, how to run [flask_op](https://github.com/IdentityPython/idpy-oidc/tree/master/example/flask_op) and
+[django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.
 
 Configure flask-rp
 ------------------
 
-_JWTConnect-Python-OidcRP_ is Relaying Party for tests, see [related page](https://github.com/openid/JWTConnect-Python-OidcRP).
-You can run a working instance of `JWTConnect-Python-OidcRP.flask_rp` with:
+The client part of _idpy-oidc_ is Relaying Party for tests.
+You can run a working instance of `idpy-oidc.flask_rp` with:
 
-    pip install git+https://github.com/openid/JWTConnect-Python-OidcRP.git
+    pip install git+https://github.com/IdentityPython/idpy-oidc.git
 
 get entire project to have examples files
-git clone https://github.com/openid/JWTConnect-Python-OidcRP.git
-cd JWTConnect-Python-OidcRP/example/flask_rp
+git clone https://github.com/IdentityPython/idpy-oidc.git
+cd idpyoidc/example/flask_rp
 
 run it as it comes
 
@@ -26,7 +27,7 @@ Authentication examples
 
 ![RP](../_images/1.png)
 
-Get to the RP landing page to choose your authentication endpoint. The first option aims to use _Provider Discovery_.
+Get to the RP landing page to choose your authentication endpoint. The first option aims to use Provider Discovery.
 
 ![OP Auth](../_images/2.png)
 

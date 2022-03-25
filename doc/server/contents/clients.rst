@@ -21,7 +21,7 @@ To that we have the following additions specified in OIDC extensions.
     + organization_name
     + signed_jwks_uri
 
-And finally we add a number of parameters that are OidcOP specific.
+And finally we add a number of parameters that are IdpyOidc specific.
 These are described in this document.
 
 --------------
@@ -35,11 +35,11 @@ the set of scopes a user can authorize release of.
 token_usage_rules
 -----------------
 
-There are usage rules for tokens. Rules are set per token type (the basic set is
-authorization_code, refresh_token, access_token and id_token).
+There are usage rules for tokens. Rules are set per token type (the basic set
+of tokens are authorization_code, refresh_token, access_token and id_token).
 The possible rules are:
 
-+ how many times they can be used
++ how many times a token can be used
 + if other tokens can be minted based on this token
 + how fast they expire
 
@@ -58,11 +58,11 @@ A typical example (this is the default) would be::
     }
 
 This then means that access_tokens can be used any number of times,
-can not be used to mint other tokens and will expire after 300 seconds
-which is the default for any token. An authorization_code can only used once
+can not be used to mint other tokens and will expire after 300 seconds.
+These are the default for any token. An authorization_code can only be used once
 and it can be used to mint access_tokens and refresh_tokens. Note that normally
-an authorization_code is used to mint an access_token and a refresh_token at
-the same time. Such a dual minting is counted as one usage.
+an authorization_code is used to mint several different types of tokens
+at the same time. Such a multiple minting is counted as one usage.
 And lastly an refresh_token can be used to mint access_tokens any number of
 times. An *expires_in* of -1 means that the token will never expire.
 

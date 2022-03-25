@@ -17,7 +17,7 @@ Configuration parameters used by session manager::
 
     "session_params": {
       "password": "__password_used_to_encrypt_access_token_sid_value",
-      "salt": "salt involved in session sub hash ",
+      "salt": "salt involved in session sub hash",
       "sub_func": {
         "public": {
           "class": "oidcop.session.manager.PublicID",
@@ -31,7 +31,11 @@ Configuration parameters used by session manager::
             "salt": "sdfsdfsdf"
           }
         }
-     }
+      },
+      "remove_inactive_token": True,
+      "remember_token": {
+         "function": remember_token,
+      }
     },
 
 
@@ -39,14 +43,27 @@ password
 ########
 
 Optional. Encryption key used to encrypt the SessionID (sid) in access_token.
-If unset it will be random.
+If unset it will be assigned a random string.
 
+remove_inactive_token
+#####################
+
+If set to true a token that has been revoked or just passed its expiration date
+will be removed from the token database. This is to stop the database from
+growing out of bands.
+
+remember_token
+##############
+
+If `remove_inactive` is True then the function specified here will be used to
+store the token in a secondary storage (could just be a line in the log file).
+This can be important when someone at a later date wants to do an audit.
 
 salt
 ####
 
-Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for creating the opaque hash of *sub* claim.
-
+Optional. Salt, value or filename, used in sub_funcs (pairwise, public) for
+creating the opaque hash of *sub* claim.
 
 sub_funcs
 #########
@@ -54,8 +71,9 @@ sub_funcs
 Optional. Functions involved in subject value creation.
 
 
+----------------
 scopes_to_claims
-################
+----------------
 
 A dict defining the scopes that are allowed to be used per client and the claims
 they map to (defaults to the scopes mapping described in the spec). If we want
@@ -70,14 +88,15 @@ simply map it to an empty list. E.g.::
 *Note*: For OIDC the `openid` scope must be present in this mapping.
 
 
+--------------
 allowed_scopes
-##############
+--------------
 
 A list with the scopes that are allowed to be used (defaults to the keys in scopes_to_claims).
 
-
+----------------
 scopes_supported
-################
+----------------
 
 A list with the scopes that will be advertised in the well-known endpoint (defaults to allowed_scopes).
 
@@ -122,6 +141,8 @@ The allowed code_challenge methods. The supported code challenge methods are:
 --------------
 authentication
 --------------
+
+The set of allow authentication methods.
 
 An example::
 
