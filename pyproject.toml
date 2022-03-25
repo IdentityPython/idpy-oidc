@@ -10,10 +10,10 @@ name = "idpyoidc"
 version = "1.0.0"
 author = "Roland Hedberg"
 author_email = "roland@catalogix.se"
-description = "Python implementation of everything OAuth2 and OIDC"
+description = "Everything OAuth2 and OIDC"
 long_description = "file: README.md"
 long_description_content_type = "text/markdown"
-url = "https://github.com/IdentityPython/idpy-oidc"
+url = "https://github.com/IdentityPython/oidc-op"
 license = "Apache-2.0"
 classifiers =[
     "Programming Language :: Python :: 3",
@@ -24,14 +24,14 @@ classifiers =[
 [options]
 package_dir = "src"
 packages = "find:"
-python= "^3.7"
+python= "^3.6"
 
 [tool.black]
 line-length = 100
 
 [tool.isort]
 force_single_line = true
-known_first_party = "oidcmsg"
+known_first_party = "oidcop"
 include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
@@ -45,38 +45,3 @@ exclude_lines = [
     "pragma: no cover",
     "raise NotImplementedError",
 ]
-
-[tool.poetry]
-name = "oidcmsg"
-version = "1.4.1"
-description = "Python implementation of everything OAuth2 and OpenID Connect"
-authors = ["roland <roland@catalogix.se>"]
-license = "Apache 2.0"
-repository = "https://github.com/IdentityPython/idpy-oidc"
-readme = "README.md"
-packages = [
-    { include = "idpyoidc", from = "src" }
-]
-
-[tool.poetry.dependencies]
-python = "^3.7"
-filelock = "^3.0.12"
-cryptojwt = "^1.6.1"
-
-[tool.poetry.dev-dependencies]
-alabaster = "^0.7.12"
-black = "^20.8b1"
-isort = "^5.6.4"
-pytest = "^6.1.2"
-pytest-black = "^0.3.12"
-pytest-isort = "^1.2.0"
-responses = "^0.13.0"
-sphinx = "^3.5.2"
-sphinx-autobuild = "^2021.3.14"
-pytest-cov = "^2.11.1"
-codecov = "^2.1.11"
-coverage = "^5.5"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
