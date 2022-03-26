@@ -492,17 +492,16 @@ class Service(ImpExp):
             resp = None
             if sformat == 'json':
                 # Could be JWS or JWE but wrongly tagged
-                # Adding issuer is just a fail-safe. If one things was wrong
-                # then two can be.
+                # Adding issuer is just a fail-safe. If one thing was wrong then two can be.
                 try:
-                    resp = self.response_cls().deserialize(
-                        info, 'jwt', iss=_context.issuer, **kwargs)
+                    resp = self.response_cls().deserialize(info, 'jwt', iss=_context.issuer,
+                                                           **kwargs)
                 except Exception as err:
-                    pass
+                    LOGGER.error('Error while deserializing: %s', err)
+                    raise
 
             if resp is None:
-                LOGGER.error('Error while deserializing: %s', err)
-                raise
+                raise TypeError(f'Incorrect message type: {sformat}')
         return resp
 
     def parse_response(self, info,
