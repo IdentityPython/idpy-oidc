@@ -1,5 +1,5 @@
-Usage
------
+Examples
+********
 
 Some examples, how to run [flask_op](https://github.com/IdentityPython/idpy-oidc/tree/master/example/flask_op) and
 [django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.

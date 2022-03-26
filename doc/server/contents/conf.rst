@@ -20,13 +20,13 @@ Configuration parameters used by session manager::
       "salt": "salt involved in session sub hash",
       "sub_func": {
         "public": {
-          "class": "oidcop.session.manager.PublicID",
+          "class": "idpyoidc.server.session.manager.PublicID",
           "kwargs": {
             "salt": "sdfsdfdsf"
           }
         },
         "pairwise": {
-          "class": "oidcop.session.manager.PairWiseID",
+          "class": "idpyoidc.server.session.manager.PairWiseID",
           "kwargs": {
             "salt": "sdfsdfsdf"
           }
@@ -109,7 +109,7 @@ An example::
 
     "add_on": {
         "pkce": {
-          "function": "oidcop.oidc.add_on.pkce.add_pkce_support",
+          "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
           "kwargs": {
             "essential": false,
             "code_challenge_method": "S256 S384 S512"
@@ -122,7 +122,7 @@ The provided add-ons can be seen in the following sections.
 pkce
 ####
 
-The pkce add on is activated using the ``oidcop.oidc.add_on.pkce.add_pkce_support``
+The pkce add on is activated using the ``idpyoidc.server.oidc.add_on.pkce.add_pkce_support``
 function. The possible configuration options can be found below.
 
 essential
@@ -149,12 +149,12 @@ An example::
     "authentication": {
         "user": {
           "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
-          "class": "oidcop.user_authn.user.UserPassJinja2",
+          "class": "idpyoidc.server.user_authn.user.UserPassJinja2",
           "kwargs": {
             "verify_endpoint": "verify/user",
             "template": "user_pass.jinja2",
             "db": {
-              "class": "oidcop.util.JSONDictDB",
+              "class": "idpyoidc.server.util.JSONDictDB",
               "kwargs": {
                 "filename": "passwd.json"
               }
@@ -248,7 +248,7 @@ cookie_handler
 An example::
 
       "cookie_handler": {
-        "class": "oidcop.cookie_handler.CookieHandler",
+        "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
           "keys": {
             "private_path": f"{OIDC_JWKS_PRIVATE_PATH}/cookie_jwks.json",
@@ -280,26 +280,26 @@ An example::
       "endpoint": {
         "webfinger": {
           "path": ".well-known/webfinger",
-          "class": "oidcop.oidc.discovery.Discovery",
+          "class": "idpyoidc.server.oidc.discovery.Discovery",
           "kwargs": {
             "client_authn_method": null
           }
         },
         "provider_info": {
           "path": ".well-known/openid-configuration",
-          "class": "oidcop.oidc.provider_config.ProviderConfiguration",
+          "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
           "kwargs": {
             "client_authn_method": null
           }
         },
         "registration": {
           "path": "registration",
-          "class": "oidcop.oidc.registration.Registration",
+          "class": "idpyoidc.server.oidc.registration.Registration",
           "kwargs": {
             "client_authn_method": None,
             "client_secret_expiration_time": 432000,
             "client_id_generator": {
-               "class": 'oidcop.oidc.registration.random_client_id',
+               "class": 'idpyoidc.server.oidc.registration.random_client_id',
                "kwargs": {
                     "seed": "that-optional-random-value"
                }
@@ -308,7 +308,7 @@ An example::
         },
         "registration_api": {
           "path": "registration_api",
-          "class": "oidcop.oidc.read_registration.RegistrationRead",
+          "class": "idpyoidc.server.oidc.read_registration.RegistrationRead",
           "kwargs": {
             "client_authn_method": [
               "bearer_header"
@@ -317,7 +317,7 @@ An example::
         },
         "introspection": {
           "path": "introspection",
-          "class": "oidcop.oauth2.introspection.Introspection",
+          "class": "idpyoidc.server.oauth2.introspection.Introspection",
           "kwargs": {
             "client_authn_method": [
               "client_secret_post",
@@ -332,7 +332,7 @@ An example::
         },
         "authorization": {
           "path": "authorization",
-          "class": "oidcop.oidc.authorization.Authorization",
+          "class": "idpyoidc.server.oidc.authorization.Authorization",
           "kwargs": {
             "client_authn_method": null,
             "claims_parameter_supported": true,
@@ -357,7 +357,7 @@ An example::
         },
         "token": {
           "path": "token",
-          "class": "oidcop.oidc.token.Token",
+          "class": "idpyoidc.server.oidc.token.Token",
           "kwargs": {
             "client_authn_method": [
               "client_secret_post",
@@ -370,7 +370,7 @@ An example::
         },
         "userinfo": {
           "path": "userinfo",
-          "class": "oidcop.oidc.userinfo.UserInfo",
+          "class": "idpyoidc.server.oidc.userinfo.UserInfo",
           "kwargs": {
             "claim_types_supported": [
               "normal",
@@ -381,7 +381,7 @@ An example::
         },
         "end_session": {
           "path": "session",
-          "class": "oidcop.oidc.session.Session",
+          "class": "idpyoidc.server.oidc.session.Session",
           "kwargs": {
             "logout_verify_url": "verify_logout",
             "post_logout_uri_path": "post_logout",
@@ -421,7 +421,36 @@ Example ::
 keys
 ----
 
-An example::
+JWK Set (JWKS) files
+--------------------
+see: [cryptojwt documentation](https://cryptojwt.readthedocs.io/en/latest/keyhandling.html<https://cryptojwt.readthedocs.io/en/latest/keyhandling.html)
+
+
+You can use `cryptojwt.key_jar.init_key_jar` to create JWKS file.
+An easy way can be to configure the auto creation of JWKS files directly in your conf.yaml file.
+Using `read_only: False` in `OIDC_KEYS` it will create the path within the JWKS files.
+Change it to `True` if you don't want to overwrite them on each execution.
+
+In the JWTConnect-Python-CryptoJWT distribution there is also a script you can use to construct a JWK.
+You can for instance do::
+
+    $ jwkgen --kty=RSA
+    {
+        "d": "b9ucfay9vxDvz_nRZMVSUR9eRvHNMo0tc8Bl7tWkwxTis7LBXxmbMH1yzLs8omUil_u2a-Z_6VlKENxacuejYYcOhs6bfaU3iOqJbGi2p4t2i1oxjuF-cX6BZ5aHB5Wfb1uTXXobHokjcjVVDmBr_fNYBEPtZsVYqyN9sR9KE_ZLHEPks3IER09aX9G3wiB_PgcxQDRAl72qucsBz9_W9KS-TVWs-qCEqtXLmx9AAN6P8SjUcHAzEb0ZCJAYCkVu34wgNjxVaGyYN1qMA-1iOOVz--wtMyBwc5atSDBDgUApxFyj_DHSeBl81IHedcPjS9azxqFhumP7oJJyfecfSQ",
+        "e": "AQAB",
+        "kid": "cHZQbWRrMzRZak53U1pfSUNjY0dKd2xXaXRKenktdUduUjVBVTl3VE5ndw",
+        "kty": "RSA",
+        "n": "73XCXV2iiubSCEaFe26OpVnsBFlXwXh_yDCDyBqFgAFi5WdZTpRMJZoK0nn_vv2MvrXqFnw6IfXkwdsRGlMsNldVy36003gKa584CNksxfenwJZcF-huASUrSJEFr-3c0fMT_pLyAc7yf3rNCdRegzbBXSvIGKQpaeIjIFYftAPd9tjGA_SuYWVQDsSh3MeGbB4wt0lArAyFZ4f5o7SSxSDRCUF3ng3CB_QKUAaDHHgXrcNG_gPpgqQZjsDJ0VwMXjFKxQmskbH-dfsQ05znQsYn3pjcd_TEZ-Yu765_L5uxUrkEy_KnQXe1iqaQHcnfBWKXt18NAuBfgmKsv8gnxQ",
+        "p": "_RPgbiQcFu8Ekp-tC-Kschpag9iaLc9aDqrxE6GWuThEdExGngP_p1I7Qd7gXHHTMXLp1c4gH2cKx4AkfQyKny2RJGtV2onQButUU5r0gwnlqqycIA2Dc9JiH85PX2Z889TKJUlVETfYbezHbKhdsazjjsXCQ6p9JfkmgfBQOXM",
+        "q": "8jmgnadtwjMt96iOaoL51irPRXONO82tLM2AAZAK5Obsj23bZ9LFiw2Joh5oCSFdoUcRhbbIhCIv2aT4T_XKnDGnddrkxpF5Xgu0-hPNYnJx5m4kuzerot4j79Tx6qO-bshaaGz50MHs1vHSeFaDVN4fvh_hDWpV1BCNI0PKK-c"
+    }
+    SHA-256: pvPmdk34YjNwSZ_ICccGJwlWitJzy-uGnR5AU9wTNgw
+
+Example: create a JWK for cookie signing
+
+    jwkgen --kty=SYM --kid cookie > private/cookie_sign_jwk.json
+
+A configuration example::
 
     "keys": {
         "private_path": "private/jwks.json",
@@ -446,19 +475,20 @@ An example::
       },
 
 *read_only* means that on each restart the keys will created and overwritten with new ones.
-This can be useful during the first time the project have been executed, then to keep them as they are *read_only* would be configured to *True*.
+This can be useful during the first time the project have been executed, then to keep them
+as they are *read_only* would be configured to *True*.
 
 ---------------
 login_hint2acrs
 ---------------
 
 OIDC Login hint support, it's optional.
-It matches the login_hint paramenter to one or more Authentication Contexts.
+It matches the login_hint parameter to one or more Authentication Contexts.
 
 An example::
 
       "login_hint2acrs": {
-        "class": "oidcop.login_hint.LoginHint2Acrs",
+        "class": "idpyoidc.server.login_hint.LoginHint2Acrs",
         "kwargs": {
           "scheme_map": {
             "email": [
@@ -495,7 +525,7 @@ Add the below to your configuration and you'll see things changing.
 An example::
 
       "authz": {
-        "class": "oidcop.authz.AuthzHandling",
+        "class": "idpyoidc.server.authz.AuthzHandling",
         "kwargs": {
             "grant_config": {
                 "usage_rules": {
@@ -585,7 +615,7 @@ An example::
           }
         },
         "token": {
-          "class": "oidcop.token.jwt_token.JWTToken",
+          "class": "idpyoidc.server.token.jwt_token.JWTToken",
           "kwargs": {
               "lifetime": 3600,
               "add_claims": [
@@ -604,7 +634,7 @@ An example::
             }
         }
         "id_token": {
-            "class": "oidcop.token.id_token.IDToken",
+            "class": "idpyoidc.server.token.id_token.IDToken",
             "kwargs": {
                 "base_claims": {
                     "email": None,
@@ -617,10 +647,10 @@ jwks_defs can be replaced eventually by `jwks_file`::
 
     "jwks_file": f"{OIDC_JWKS_PRIVATE_PATH}/token_jwks.json",
 
-You can even select wich algorithms to support in id_token, eg::
+You can even select which algorithms to support in id_token, eg::
 
     "id_token": {
-        "class": "oidcop.token.id_token.IDToken",
+        "class": "idpyoidc.server.token.id_token.IDToken",
         "kwargs": {
             "id_token_signing_alg_values_supported": [
                     "RS256",
@@ -658,14 +688,14 @@ userinfo
 An example::
 
     "userinfo": {
-        "class": "oidcop.user_info.UserInfo",
+        "class": "idpyoidc.server.user_info.UserInfo",
         "kwargs": {
           "db_file": "users.json"
         }
     }
 
-This is somethig that can be customized.
-For example in the django-oidc-op implementation is used something like
+This is something that can be customized.
+For example in the django-oidc-op implementation it uses something like
 the following::
 
     "userinfo": {
@@ -704,7 +734,7 @@ not in the `subject_token_types_supported` list then it is ignored::
 
     "grant_types_supported":{
       "urn:ietf:params:oauth:grant-type:token-exchange": {
-        "class": "oidcop.oauth2.token.TokenExchangeHelper",
+        "class": "idpyoidc.server.oauth2.token.TokenExchangeHelper",
         "kwargs": {
           "subject_token_types_supported": [
             "urn:ietf:params:oauth:token-type:access_token",
@@ -749,7 +779,7 @@ For example::
 
     "token_exchange":{
       "urn:ietf:params:oauth:grant-type:token-exchange": {
-        "class": "oidcop.oidc.token.TokenExchangeHelper",
+        "class": "idpyoidc.server.oidc.token.TokenExchangeHelper",
         "kwargs": {
           "subject_token_types_supported": [
             "urn:ietf:params:oauth:token-type:access_token",
@@ -800,277 +830,3 @@ For example::
 
         return request
 
-=======
-Clients
-=======
-
-In this section there are some client configuration examples. That can be used
-to override the global configuration of the OP.
-
-How to configure the release of the user claims per clients::
-
-    endpoint_context.cdb["client_1"] = {
-        "client_secret": "hemligt",
-        "redirect_uris": [("https://example.com/cb", None)],
-        "response_types": ["code", "token", "code id_token", "id_token"],
-        "add_claims": {
-            "always": {
-                "introspection": ["nickname", "eduperson_scoped_affiliation"],
-                "userinfo": ["picture", "phone_number"],
-            },
-            # this overload the general endpoint configuration for this client
-            # self.server.server_get("endpoint", "id_token").kwargs = {"add_claims_by_scope": True}
-            "by_scope": {
-                "id_token": False,
-            },
-        },
-
-The available configuration options are:
-
--------------
-client_secret
--------------
-
-The client secret. This parameter is required.
-
-------------------------
-client_secret_expires_at
-------------------------
-
-When the client_secret expires.
-
--------------
-redirect_uris
--------------
-
-The client's redirect uris.
-
------------
-auth_method
------------
-
-The auth_method that can be used per endpoint.
-E.g::
-
-    {
-        "AccessTokenRequest": "client_secret_basic",
-        ...
-    }
-
-------------
-request_uris
-------------
-
-A list of `request_uris`.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
-
---------------
-response_types
---------------
-
-The allowed `response_types` for this client.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
-
----------------------
-grant_types_supported
----------------------
-
-Configure the allowed grant types on the token endpoint.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata.
-
-----------------
-scopes_to_claims
-----------------
-
-A dict defining the scopes that are allowed to be used per client and the claims
-they map to (defaults to the scopes mapping described in the spec). If we want
-to define a scope that doesn't map to claims (e.g. offline_access) then we
-simply map it to an empty list. E.g.::
-
-  {
-    "scope_a": ["claim1", "claim2"],
-    "scope_b": []
-  }
-
---------------
-allowed_scopes
---------------
-
-A list with the scopes that are allowed to be used (defaults to the keys in the
-clients scopes_to_claims).
-
------------------------
-revoke_refresh_on_issue
------------------------
-
-Configure whether to revoke the refresh token that was used to issue a new refresh token.
-
-----------
-add_claims
-----------
-
-A dictionary with the following keys
-
-always
-######
-
-A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
-The keys are used to describe the claims we want to add to the corresponding interface.
-The keys can be a list of claims to be added or a dict in the format described
-in https://openid.net/specs/openid-connect-core-1_0.html#IndividualClaimsRequests
-E.g.::
-
-    {
-        "add_claims": {
-            "always": {
-              "userinfo": ["email", "phone"], # Always add "email" and "phone" in the userinfo response if such claims exists
-              "id_token": {"email": null}, # Always add "email" in the id_token if such a claim exists
-              "introspection": {"email": {"value": "a@a.com"}}, # Add "email" in the introspection response only if its value is "a@a.com"
-            }
-        }
-    }
-
-by_scope
-########
-
-A dictionary with the following keys: `userinfo`, `id_token`, `introspection`, `access_token`.
-The keys are boolean values that describe whether the scopes should be mapped
-to claims and added to the response.
-E.g.::
-
-    {
-        "add_claims": {
-            "by_scope": {
-                id_token: True, # Map the requested scopes to claims and add them to the id token
-    }
-
------------------
-token_usage_rules
------------------
-
-The usage rules for each token type. E.g.::
-
-    {
-        "usage_rules": {
-            "authorization_code": {
-                "expires_in": 3600,
-                "supports_minting": [
-                    "access_token",
-                    "id_token",
-                ],
-                "max_usage": 1,
-            },
-            "access_token": {
-                "expires_in": self.params["access_token_lifetime"],
-            },
-        }
-    }
-
---------------
-pkce_essential
---------------
-
-Whether pkce is essential for this client.
-
-------------------------
-post_logout_redirect_uri
-------------------------
-
-The client's post logout redirect uris.
-
-See https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout.
-
-----------------------
-backchannel_logout_uri
-----------------------
-
-The client's `backchannel_logout_uri`.
-
-See https://openid.net/specs/openid-connect-backchannel-1_0.html#BCRegistration
-
------------------------
-frontchannel_logout_uri
------------------------
-
-The client's `frontchannel_logout_uri`.
-
-See https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout
-
---------------------------
-request_object_signing_alg
---------------------------
-
-A list with the allowed algorithms for signing the request object.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
------------------------------
-request_object_encryption_alg
------------------------------
-
-A list with the allowed alg algorithms for encrypting the request object.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
------------------------------
-request_object_encryption_enc
------------------------------
-
-A list with the allowed enc algorithms for signing the request object.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
-----------------------------
-userinfo_signed_response_alg
-----------------------------
-
-JWS alg algorithm [JWA] REQUIRED for signing UserInfo Responses.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
--------------------------------
-userinfo_encrypted_response_enc
--------------------------------
-
-The alg algorithm [JWA] REQUIRED for encrypting UserInfo Responses.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
--------------------------------
-userinfo_encrypted_response_alg
--------------------------------
-
-JWE enc algorithm [JWA] REQUIRED for encrypting UserInfo Responses.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
-----------------------------
-id_token_signed_response_alg
-----------------------------
-
-JWS alg algorithm [JWA] REQUIRED for signing ID Token issued to this Client.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
--------------------------------
-id_token_encrypted_response_enc
--------------------------------
-
-The alg algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
--------------------------------
-id_token_encrypted_response_alg
--------------------------------
-
-JWE enc algorithm [JWA] REQUIRED for encrypting ID Token issued to this Client.
-
-See https://openid.net/specs/openid-connect-registration-1_0-29.html#ClientMetadata
-
---------
-dpop_jkt
---------
