@@ -1,8 +1,8 @@
 """Utilities"""
-import logging
 from http.cookiejar import Cookie
 from http.cookiejar import http2time
-import random
+import logging
+import secrets
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -69,7 +69,7 @@ def unreserved(size=64):
     :return: string
     """
 
-    return "".join([random.choice(BASECHR) for _ in range(size)])
+    return "".join([secrets.choice(BASECHR) for _ in range(size)])
 
 
 def sanitize(str):
