@@ -1,11 +1,11 @@
-Welcome to Idpy OIDC OP Documentation
-=====================================
+IdPyOIDC server documentation
+=============================
 
 .. image:: _images/oid-l-certification-mark-l-rgb-150dpi-90mm-300x157.png
   :width: 300
   :alt: OIDC Certified
 
-This project is a Python implementation of an **OIDC Provider** or an **OAuth2 Server**
+This project is a Python implementation of an **OIDC Provider** and an **OAuth2 Server**
 This will show you how to 'build' an OP using the classes and functions provided by idpyoidc.
 
 If you are just going to build a standard OP you only have to write the configuration file. If you want to add or replace functionality this documentation
@@ -13,6 +13,8 @@ should be able to tell you how.
 
 Idpy OIDC-op implements the following standards:
 
+* `The OAuth 2.0 Authorization Framework <https://tools.ietf.org/html/rfc6749>`_
+* `The OAuth 2.0 Authorization Framework: Bearer Token Usage <https://tools.ietf.org/html/rfc6750>`_
 * `OpenID Connect Core 1.0 incorporating errata set 1 <https://openid.net/specs/openid-connect-core-1_0.html>`_
 * `Web Finger <https://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery>`_
 * `OpenID Connect Discovery 1.0 incorporating errata set 1 <https://openid.net/specs/openid-connect-discovery-1_0.html>`_
@@ -22,7 +24,7 @@ Idpy OIDC-op implements the following standards:
 * `OpenID Connect Front-Channel Logout 1.0 <https://openid.net/specs/openid-connect-frontchannel-1_0.html>`_
 * `OAuth2 Token introspection <https://tools.ietf.org/html/rfc7662>`_
 * `OAuth2 Token exchange <https://datatracker.ietf.org/doc/html/rfc8693>`_
-
+* `The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR) <https://datatracker.ietf.org/doc/html/rfc9101>`_
 
 It also comes with the following `add_on` modules.
 

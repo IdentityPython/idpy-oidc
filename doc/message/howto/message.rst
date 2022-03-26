@@ -1,6 +1,6 @@
 .. _oidcmsg_howto:
 
-How to use the idpyoidc Message class
+How to use the IdPyOIDC Message class
 *************************************
 
 Basic usage
@@ -146,7 +146,7 @@ string values.
 
 What does this look like then::
 
-    >>> from idpyoidc.oauth2 import ErrorResponse
+    >>> from idpyoidc.message.oauth2 import ErrorResponse
     >>> err = ErrorResponse(error='invalid_request')
     >>> err.verify()
     True
@@ -174,7 +174,7 @@ an exception will be raised.
 If you provide extra attributes, that is OK but those attributes can not be
 verified.
 
-    >>> from idpyoidc.oauth2 import ErrorResponse
+    >>> from idpyoidc.message.oauth2 import ErrorResponse
     >>> err = ErrorResponse(error='invalid_request', error_code=500)
     >>> err.verify()
     True

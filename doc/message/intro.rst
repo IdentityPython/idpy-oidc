@@ -40,7 +40,7 @@ Entity sending a message
 Going from a set of attributes with values how would you go about creating an
 authorization request ? You would do something like this::
 
-    from idpyoidc.oauth2 import AuthorizationRequest
+    from idpyoidc.message.oauth2 import AuthorizationRequest
 
     request_parameters = {
         "response_type": "code",
@@ -63,7 +63,7 @@ The resulting request will look like this ::
 If we continue with the client sending an access token request there is a
 pattern emerging::
 
-    from idpyoidc.oauth2 import AccessTokenRequest
+    from idpyoidc.message.oauth2 import AccessTokenRequest
 
     request = {
         'grant_type':'authorization_code',
@@ -108,7 +108,7 @@ has redirect the user-agent back to the client by sending the HTTP response::
 
 On the client it would get hold of the query part and then go from there::
 
-    from idpyoidc.oauth2 import AuthorizationResponse
+    from idpyoidc.message.oauth2 import AuthorizationResponse
 
     query_conponent = 'code=SplxlOBeZQQYbYS6WxSbIA&state=xyz'
 
@@ -124,7 +124,7 @@ The result of this will be::
 
 Similar when it comes to the response from the token endpoint::
 
-    from idpyoidc.oauth2 import AccessTokenResponse
+    from idpyoidc.message.oauth2 import AccessTokenResponse
 
     http_response_body = '{"access_token":"2YotnFZFEjr1zCsicMWpAA",' \
                      '"token_type":"example","expires_in":3600,' \
@@ -156,7 +156,7 @@ All the response subclasses are subclasses of
 :py:class:`idpyoidc.oauth2.ResponseMessage` and that class provides you with one
 method that is useful in this case::
 
-    >>> from idpyoidc.oauth2 import AccessTokenResponse
+    >>> from idpyoidc.message.oauth2 import AccessTokenResponse
     >>> response = {'error':'invalid_client'}
     >>> message = AccessTokenResponse(**response)
     >>> message.is_error_message()
@@ -187,7 +187,7 @@ To use either of these there are a number of direct methods you can use:
 
 An example::
 
-    >>> from idpyoidc.oic import AccessTokenRequest
+    >>> from idpyoidc.message.oic import AccessTokenRequest
     >>> params = {
     ...     'grant_type':'authorization_code',
     ...     'code':'SplxlOBeZQQYbYS6WxSbIA',
@@ -213,7 +213,7 @@ Deserializing
 
 Deserializing is as easy as serializing::
 
-    >>> from idpyoidc.oic import AccessTokenRequest
+    >>> from idpyoidc.message.oic import AccessTokenRequest
     >>> params = {
     ...     'grant_type':'authorization_code',
     ...     'code':'SplxlOBeZQQYbYS6WxSbIA',
@@ -273,18 +273,18 @@ Nothing beats an example::
     {'alg': 'HS256'}
 
 To walk through what's happening about. We first need a
-:py:class:`idpyoidc.key_jar.KeyJar` instance with the needed keys.
-We only have one in this example a symmetric key.
-This keyjar is what alice uses when she wants to sign the JWT.
-When she initiates the :py:class:`idpyoidc.jwt.JWT` she sets a set of default
+:py:class:`cryptojwt.key_jar.KeyJar` instance with the needed keys.
+We only have one key in this example, a symmetric key.
+This *keyjar* is what alice uses when she wants to sign the JWT.
+When she initiates the :py:class:`cryptojwt.jwt.JWT` class she sets a set of default
 values, like signing algorithm and her own issuer ID.
 When constructing the signed JWT she uses the *pack* method that as
 arguments takes payload and receiver.
 
-Now we turn to Bob. He has his own keyjar containing the symmetric key marked
+Now we turn to Bob. He has his own *keyjar* containing the symmetric key marked
 to belong to alice. This is important since that binding will be used when
 unpacking the signed JWT. The method will look inside the payload to find the
-issuer and from there find usable keys in the keyjar.
+issuer and from there find usable keys in the *keyjar*.
 
 To set the issuer to BOB when initiating the JWT is necessary because the
 value on that will be matched against the audience of the signed JWT.
