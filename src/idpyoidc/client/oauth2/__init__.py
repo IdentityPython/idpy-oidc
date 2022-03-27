@@ -229,12 +229,12 @@ class Client(Entity):
 
             try:
                 err_resp = service.parse_response(reqresp.text, _deser_method)
-            except FormatError:
+            except (FormatError, ValueError):
                 if _deser_method != response_body_type:
                     try:
                         err_resp = service.parse_response(reqresp.text,
                                                           response_body_type)
-                    except (OidcServiceError, FormatError):
+                    except (OidcServiceError, FormatError, ValueError):
                         raise OidcServiceError("HTTP ERROR: %s [%s] on %s" % (
                             reqresp.text, reqresp.status_code, reqresp.url))
                 else:

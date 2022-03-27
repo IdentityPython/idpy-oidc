@@ -1,19 +1,20 @@
-Usage
------
+Examples
+********
 
-Some examples, how to run [flask_op](https://github.com/IdentityPython/oidc-op/tree/master/example/flask_op) and [django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.
+Some examples, how to run [flask_op](https://github.com/IdentityPython/tree/master/example/flask_op) and
+[django_op](https://github.com/peppelinux/django-oidc-op) but also some typical configuration in relation to common use cases.
 
 Configure flask-rp
 ------------------
 
-_JWTConnect-Python-OidcRP_ is Relaying Party for tests, see [related page](https://github.com/openid/JWTConnect-Python-OidcRP).
-You can run a working instance of `JWTConnect-Python-OidcRP.flask_rp` with:
+The client part of _idpyoidc_ is Relaying Party for tests.
+You can run a working instance of `idpy-oidc.flask_rp` with:
 
-    pip install git+https://github.com/openid/JWTConnect-Python-OidcRP.git
+    pip install git+https://github.com/IdentityPython/idpy-oidc.git
 
 get entire project to have examples files
-git clone https://github.com/openid/JWTConnect-Python-OidcRP.git
-cd JWTConnect-Python-OidcRP/example/flask_rp
+git clone https://github.com/IdentityPython/idpy-oidc.git
+cd idpy-oidc/example/flask_rp
 
 run it as it comes
 
@@ -26,7 +27,7 @@ Authentication examples
 
 ![RP](../_images/1.png)
 
-Get to the RP landing page to choose your authentication endpoint. The first option aims to use _Provider Discovery_.
+Get to the RP landing page to choose your authentication endpoint. The first option aims to use Provider Discovery.
 
 ![OP Auth](../_images/2.png)
 
@@ -65,7 +66,7 @@ It is important to consider that only scope=offline_access will get a usable ref
         'https://127.0.0.1:8000/oidcop/token', verify=False, data=data, headers=headers
     )
 
-oidc-op will return a json response like this::
+The idpyoidc OP will return a json response like this::
 
     {
      'access_token': 'eyJhbGc ... CIOH_09tT_YVa_gyTqg',
@@ -79,7 +80,7 @@ oidc-op will return a json response like this::
 Introspection endpoint
 ----------------------
 
-Here an example about how to consume oidc-op introspection endpoint.
+Here an example about how to use a idpyoidc OP introspection endpoint.
 This example uses a client with an HTTP Basic Authentication::
 
     import base64
@@ -102,7 +103,7 @@ This example uses a client with an HTTP Basic Authentication::
     requests.post('https://127.0.0.1:8000/introspection', verify=False, data=data, headers=headers)
 
 
-oidc-op will return a json response like this::
+The idpyoidc OP will return a json response like this::
 
     {
       "active": true,
@@ -142,7 +143,7 @@ Here an example about how to exchange an access token for a new access token.::
         'https://example.com/OIDC/token', verify=False, data=data, headers=headers
     )
 
-oidc-op will return a json response like this::
+The idpyoidc OP will return a json response like this::
 
     {
         "access_token": "eyJhbGciOiJFUzI1NiIsI...Bo6aQcOKEN-1U88jjKxLb-9Q",

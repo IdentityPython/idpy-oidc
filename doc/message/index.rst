@@ -1,7 +1,7 @@
-idpyoidc classes and functions documentation!
-=============================================
+IdPyOIDC messages documentation!
+================================
 
-Description of idpyoidc classes and functions.
+Description of IdPyOIDC messages.
 
 Contents:
 

@@ -1,9 +1,6 @@
-.. idpyoidc documentation master file, created by
-   sphinx-quickstart on Mon Oct 16 06:28:07 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. idpyoidc documentation master file.
 
-Welcome to idpyoidc's documentation!
+Welcome to IdPyOIDC's documentation!
 ====================================
 
 This is a python implementation of everything OAuth2 and OpenID Connect.

@@ -8,16 +8,15 @@ The Relying Party Handler
 Introduction
 ------------
 
-Imaging that you have a web service where some of the functions that service
+Imaging that you have a web service where some of the functions that the service
 provides are protected and should only be accessible to authenticated users or
-that some of the functions the service provides needs access to some user
+that some of the functions the service provides, needs access to some user
 related resources on a resource server. That's when you need OpenID Connect
 (OIDC) or Oauth2.
 
-The RPHandler as implemented in :py:class:`oidcrp.rp_handler.RPHandler` is a
-service within
-the web service that handles user authentication and access authorization on
-behalf of the web service.
+The RPHandler is implemented in :py:class:`idpyoidc.client.rp_handler.RPHandler`
+It is a service within the web service that handles user authentication and access
+authorization on behalf of the web service.
 
 ---------------
 Some background
@@ -32,9 +31,9 @@ way.
 OAuth2 and thereby OpenID Connect (OIDC) are built on a request-response paradigm.
 The RP issues a request and the OP returns a response.
 
-The OIDC core standard defines a set of such request-responses.
-This is a basic list of request-responses and the normal sequence in which they
-occur:
+The OIDC and OAuth2 core standards defines a set of such request-responses.
+This is a basic list of the OIDC request-responses and the normal sequence in
+which they occur:
 
 1. Provider discovery (WebFinger)
 2. Provider Info Discovery
@@ -119,8 +118,9 @@ should be used.
 RP handler API
 --------------
 
-A session is defined as a sequence of services used to cope with
-authorization/authentication for one user starting with the authorization request.
+A session is defined as a sequence of request/responses used to cope with
+authorization/authentication for one user at one OP,
+starting with the authorization request.
 
 Tier 1 API
 ----------
@@ -128,7 +128,7 @@ Tier 1 API
 The high-level methods you have access to (in the order they are to be
 used) are:
 
-:py:meth:`oidcrp.rp_handler.RPHandler.begin`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.begin`
     This method will initiate a RP/Client instance if none exists for the
     OP/AS in question. It will then run service 1 if needed, services 2 and 3
     according to configuration and finally will construct the authorization
@@ -136,7 +136,7 @@ used) are:
 
     Usage example::
 
-        $ from oidcrp import RPHandler
+        $ from idpyoidc.client import RPHandler
         $ rph = RPHandler()
         $ issuer_id = "https://example.org/"
         $ info = rph.begin(issuer_id)
@@ -153,7 +153,7 @@ like this::
 
 After the RP has received this response the processing continues with:
 
-:py:meth:`oidcrp.rp_handler.RPHandler.get_session_information`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.get_session_information`
     In the authorization response there MUST be a state parameter. The value
     of that parameter is the key into a data store that will provide you
     with information about the session so far.
@@ -162,7 +162,7 @@ After the RP has received this response the processing continues with:
 
         session_info = rph.state_db_interface.get_state(kwargs['state'])
 
-:py:meth:`oidcrp.rp_handler.RPHandler.finalize`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.finalize`
     Will parse the authorization response and depending on the configuration
     run the services 5 and 6.
 
@@ -178,14 +178,14 @@ The tier 1 API is good for getting you started with authenticating a user and
 getting user information but if you're look at a long-term engagement you need
 a finer grained set of methods. These I call the tier 2 API:
 
-:py:meth:`oidcrp.rp_handler.RPHandler.do_provider_info`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.do_provider_info`
     Either get the provider info from configuration or through dynamic
     discovery. Will overwrite previously saved provider metadata.
 
-:py:meth:`oidcrp.rp_handler.RPHandler.do_client_registration`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.do_client_registration`
     Do dynamic client registration is configured to do so and the OP supports it.
 
-:py:meth:`oidcrp.rp_handler.RPHandler.init_authorization`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.init_authorization`
     Initialize an authorization/authentication event. If the user has a
     previous session stored this will not overwrite that but will create a new
     one.
@@ -198,7 +198,7 @@ a finer grained set of methods. These I call the tier 2 API:
 The state_key you see mentioned here and below is the value of the state
 parameter in the authorization request.
 
-:py:meth:`oidcrp.rp_handler.RPHandler.get_access_token`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.get_access_token`
     Will use an access code received as the response to an
     authentication/authorization to get an access token from the OP/AS.
     Access codes can only be used once.
@@ -207,7 +207,7 @@ parameter in the authorization request.
 
         res = self.rph.get_access_token(state_key)
 
-:py:meth:`oidcrp.rp_handler.RPHandler.refresh_access_token`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.refresh_access_token`
     If the client has received a refresh token this method can be used to get
     a new access token.
 
@@ -219,7 +219,7 @@ You may change the set of scopes that are bound to the new access token but
 that change can only be a downgrade from what was specified in the
 authorization request and accepted by the user.
 
-:py:meth:`oidcrp.rp_handler.RPHandler.get_user_info`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.get_user_info`
     If the client is allowed to do so, it can refresh the user info by
     requesting user information from the userinfo endpoint.
 
@@ -227,7 +227,7 @@ authorization request and accepted by the user.
 
         resp = self.rph.get_user_info(state_key)
 
-:py:meth:`oidcrp.rp_handler.RPHandler.has_active_authentication`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.has_active_authentication`
     After a while when the user returns after having been away for a while
     you may want to know if you should let her reauthenticate or not.
     This method will tell you if the last done authentication is still
@@ -239,7 +239,7 @@ authorization request and accepted by the user.
 
     response will be True or False depending in the state of the authentication.
 
-:py:meth:`oidcrp.rp_handler.RPHandler.get_valid_access_token`
+:py:meth:`idpyoidc.client.rp_handler.RPHandler.get_valid_access_token`
     When you are issued a access token it normally comes with a life time.
     After that time you are expected to use the refresh token to get a new
     access token. There are 2 ways of finding out if the access token you have is
@@ -316,8 +316,9 @@ issuer ID of the OP/AS.
 The key **""** (the empty string) is chosen to represent all OP/ASs that
 are dynamically discovered.
 
-Disregarding if doing everything dynamically or statically you **MUST**
+Disregarding if doing everything dynamically or statically you **MAY**
 define which services the RP/Client should be able to use.
+If you don't the default set it used.
 
 services
     A specification of the usable services which possible changes to the

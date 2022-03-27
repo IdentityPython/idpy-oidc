@@ -79,10 +79,12 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "cryptojwt==1.6.1",
+        "cryptojwt==1.7.1",
         "pyOpenSSL",
         "filelock>=3.0.12",
-        'pyyaml>=5.1.2'
+        'pyyaml>=5.1.2',
+        "jinja2>=2.11.3",
+        "responses>=0.13.0"
     ],
     zip_safe=False,
     cmdclass={'test': PyTest},

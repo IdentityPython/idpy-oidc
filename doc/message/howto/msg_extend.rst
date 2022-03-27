@@ -35,7 +35,7 @@ StatusErrorResponse is a sub class of ErrorResponse::
             c_param = ErrorResponse.c_param.copy()
 
 All the claims that are connected to an ErrorResponse are here inherited
-by the StatusErrorResponse class.
+by the StatusErrorResponse class::
 
             c_param.update({"status": SINGLE_REQUIRED_INT})
 
@@ -79,4 +79,4 @@ Here running the super classes verify method first makes sense because
 it means all claims will be checked to comply with the value specification
 before we continue with the specific checks belonging to this class.
 For instance in this case we can be sure the self['status'] has a value
-and that the value is an integere. So we don't have to check for that.
+and that the value is an integer. So we don't have to check for that.

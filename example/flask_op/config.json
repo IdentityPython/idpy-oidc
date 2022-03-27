@@ -44,21 +44,6 @@
             "essential": false,
             "code_challenge_method": "S256 S384 S512"
           }
-        },
-        "claims": {
-          "function": "idpyoidc.server.oidc.add_on.custom_scopes.add_custom_scopes",
-          "kwargs": {
-            "research_and_scholarship": [
-              "name",
-              "given_name",
-              "family_name",
-              "email",
-              "email_verified",
-              "sub",
-              "iss",
-              "eduperson_scoped_affiliation"
-            ]
-          }
         }
       },
       "authz": {
@@ -131,6 +116,10 @@
           "PS384",
           "PS512"
         ]
+      },
+      "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
       },
       "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",

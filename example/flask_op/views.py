@@ -23,7 +23,7 @@ from idpyoidc.server.oidc.token import Token
 
 # logger = logging.getLogger(__name__)
 
-oidc_op_views = Blueprint('oidc_rp', __name__, url_prefix='')
+oidc_op_views = Blueprint('oidc_op', __name__, url_prefix='')
 
 
 def _add_cookie(resp, cookie_spec):

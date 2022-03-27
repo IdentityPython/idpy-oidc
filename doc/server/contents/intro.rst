@@ -1,13 +1,13 @@
-***************************
-The OpenID Connect Provider
-***************************
+**********************************
+A IdPyOIDC OpenID Connect Provider
+**********************************
 
 ============
 Introduction
 ============
 
 This documentation are here to show you how to 'build' an OP using the
-classes and functions provided by oidcop.
+classes and functions provided by IdPyOIDC.
 
 OAuth2 and thereby OpenID Connect (OIDC) are built on a request-response paradigm.
 The RP issues a request and the OP returns a response.
@@ -57,12 +57,13 @@ When an endpoint receives a request it has to do a number of things:
 - Verify that the request is correct and that it contains the necessary information.
 - Process the request, which includes applying server policies and gathering information.
 - Construct the response
+- Return the response
 
 I should note at this point that this package is expected to work within the
 confines of a web server framework such that the actual receiving and sending
 of the HTTP messages are dealt with by the framework.
 
-Based on the actions an endpoint has to perform a method call structure
+Based on the actions an endpoint has to perform, a method call structure
 has been constructed. It looks like this:
 
 1. parse_request
@@ -84,8 +85,7 @@ has been constructed. It looks like this:
 Steps marked with '*' are places where extensions can be applied.
 
 *parse_request* expects as input the request itself in a number of formats and
-also, if available, information about client authentication. The later is
-normally the authorization element of the HTTP header.
+also, if available, information about the HTTP request.
 
 *do_response* returns a dictionary that can look like this::
 
@@ -106,9 +106,9 @@ cookie
 http_headers
     MAY be present
 http_response
-    Already clear and formatted HTTP response
+    MAY be present. A formatted HTTP response
 response
-    MUST be present
+    MUST be present. An instance of a ResponseMessage class.
 response_placement
     If absent defaults to the endpoints response_placement parameter value or
     if that is also missing 'url'
