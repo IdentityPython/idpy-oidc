@@ -501,7 +501,7 @@ class Service(ImpExp):
                     raise
 
             if resp is None:
-                raise TypeError(f'Incorrect message type: {sformat}')
+                raise ValueError(f'Incorrect message type: {sformat}')
         return resp
 
     def parse_response(self, info,

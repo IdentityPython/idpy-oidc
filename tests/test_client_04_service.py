@@ -112,7 +112,7 @@ class TestService:
         _sign_key = self.service_context.keyjar.get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(key=_sign_key,
                                                                                algorithm="RS256")
-        with pytest.raises(FormatError):
+        with pytest.raises(ValueError):
             arg = self.service.parse_response(resp1)
 
 
