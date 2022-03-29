@@ -50,7 +50,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as readme:
 setup(
     name="idpyoidc",
     version=version,
-    description="Python implementation of OAuth2 and OpenID Connect messages",
+    description="Python implementation of everything OAuth2 and OpenID Connect",
     long_description=README,
     long_description_content_type='text/markdown',
     author="Roland Hedberg",

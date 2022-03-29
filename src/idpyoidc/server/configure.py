@@ -189,7 +189,7 @@ class EntityConfiguration(Base):
                     continue
 
             if key not in DEFAULT_EXTENDED_CONF:
-                logger.warning(f"{key} not seems to be a valid configuration parameter")
+                logger.warning(f"{key} does not seems to be a valid configuration parameter")
             elif not _val:
                 logger.warning(f"{key} not configured, using default configuration values")
 
@@ -333,6 +333,10 @@ DEFAULT_EXTENDED_CONF = {
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
         ],
+    },
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
     },
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
