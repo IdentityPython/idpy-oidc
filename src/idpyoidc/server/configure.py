@@ -149,7 +149,7 @@ class EntityConfiguration(Base):
         "endpoint": {},
         "httpc_params": {},
         "issuer": "",
-        "keys": None,
+        "key_conf": None,
         "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
@@ -168,17 +168,17 @@ class EntityConfiguration(Base):
     ):
 
         conf = copy.deepcopy(conf)
-        Base.__init__(self, conf, base_path, file_attributes, dir_attributes=dir_attributes)
+        Base.__init__(self, conf, base_path, file_attributes=file_attributes,
+                      dir_attributes=dir_attributes, domain=domain, port=port)
 
-        self.key_conf = conf.get('key_conf')
+        self.key_conf = conf.get('key_conf', conf.get('keys'))
 
         for key in self.parameter.keys():
             _val = conf.get(key)
             if not _val:
                 if key in self.default_config:
-                    _val = copy.deepcopy(self.default_config[key])
-                    self.format(
-                        _val,
+                    _val = self.format(
+                        copy.deepcopy(self.default_config[key]),
                         base_path=base_path,
                         file_attributes=file_attributes,
                         domain=domain,
@@ -189,7 +189,7 @@ class EntityConfiguration(Base):
                     continue
 
             if key not in DEFAULT_EXTENDED_CONF:
-                logger.warning(f"{key} not seems to be a valid configuration parameter")
+                logger.warning(f"{key} does not seems to be a valid configuration parameter")
             elif not _val:
                 logger.warning(f"{key} not configured, using default configuration values")
 
@@ -334,6 +334,10 @@ DEFAULT_EXTENDED_CONF = {
             "refresh_token",
         ],
     },
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
+    },
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
@@ -462,7 +466,9 @@ DEFAULT_EXTENDED_CONF = {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
             "read_only": False,
-            "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+            "key_defs": [
+                {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+            ],
         },
         "code": {"kwargs": {"lifetime": 600}},
         "token": {

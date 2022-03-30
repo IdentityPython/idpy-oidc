@@ -8,7 +8,6 @@
 
 Implementation of everything OIDC and OAuth2.
 
-idpyoidc is the 2nd layer in the
-JwtConnect stack (cryptojwt, idpyoidc)
+idpyoidc is the 2nd layer in the JwtConnect stack (cryptojwt, idpyoidc)
 
 Please read the [Official Documentation](https://idpyoidc.readthedocs.io/) for getting usage examples and further informations.
