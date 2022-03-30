@@ -225,16 +225,20 @@ class Configuration(Base):
         self.web_conf = lower_or_upper(self.conf, "webserver")
 
         if entity_conf:
-            skip = [ec["path"] for ec in entity_conf]
+            skip = [ec["path"] for ec in entity_conf if 'path' in ec]
+            check = [l[0] for l in skip]
 
             self.extend(conf=self.conf, base_path=base_path,
                         domain=self.domain, port=self.port, entity_conf=entity_conf,
                         file_attributes=self._file_attributes,
                         dir_attributes=self._dir_attributes)
             for key, val in conf.items():
-                for path in skip:
-                    if key == path[0]:
-                        continue
+                if key in ["logging", "webserver", "domain", "port"]:
+                    continue
+
+                if key in check:
+                    continue
+
                 setattr(self, key, val)
         else:
             for key, val in conf.items():

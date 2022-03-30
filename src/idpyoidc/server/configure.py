@@ -149,7 +149,7 @@ class EntityConfiguration(Base):
         "endpoint": {},
         "httpc_params": {},
         "issuer": "",
-        "keys": None,
+        "key_conf": None,
         "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
@@ -171,7 +171,7 @@ class EntityConfiguration(Base):
         Base.__init__(self, conf, base_path, file_attributes=file_attributes,
                       dir_attributes=dir_attributes, domain=domain, port=port)
 
-        self.key_conf = conf.get('key_conf')
+        self.key_conf = conf.get('key_conf', conf.get('keys'))
 
         for key in self.parameter.keys():
             _val = conf.get(key)

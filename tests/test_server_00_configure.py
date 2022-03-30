@@ -1,12 +1,11 @@
 import json
 import os
 
-import pytest
-
 from idpyoidc.configure import Configuration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.logging import configure_logging
 from idpyoidc.server.configure import OPConfiguration
+import pytest
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -99,7 +98,13 @@ def test_op_configure_default_from_file():
 def test_server_configure():
     configuration = create_from_config_file(
         Configuration,
-        entity_conf=[{"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}],
+        entity_conf=[
+            {
+                "class": OPConfiguration,
+                "attr": "op",
+                "path": ["op", "server_info"]
+            }
+        ],
         filename=full_path("srv_config.json"),
         base_path=BASEDIR,
     )
