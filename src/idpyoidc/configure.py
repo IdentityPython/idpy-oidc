@@ -3,6 +3,7 @@ import os
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from idpyoidc.logging import configure_logging
 from idpyoidc.util import load_config_file
@@ -38,6 +39,9 @@ def add_path_to_directory_name(directory_name, base_path):
 
 def add_base_path(conf: dict, base_path: str, attributes: List[str], attribute_type: str = "file"):
     for key, val in conf.items():
+        if not val:
+            continue
+
         if key in attributes:
             if attribute_type == "file":
                 conf[key] = add_path_to_filename(val, base_path)
@@ -168,7 +172,7 @@ class Base(dict):
 
     def format(self, conf, base_path: str, domain: str, port: int,
                file_attributes: Optional[List[str]] = None,
-               dir_attributes: Optional[List[str]] = None) -> None:
+               dir_attributes: Optional[List[str]] = None) -> Union[Dict, str]:
         """
         Formats parts of the configuration. That includes replacing the strings {domain} and {port}
         with the used domain and port and making references to files and directories absolute
@@ -183,11 +187,17 @@ class Base(dict):
         """
         if isinstance(conf, dict):
             if file_attributes:
-                add_base_path(conf, base_path, file_attributes, attribute_type="file")
+                conf = add_base_path(conf, base_path, file_attributes, attribute_type="file")
             if dir_attributes:
-                add_base_path(conf, base_path, dir_attributes, attribute_type="dir")
+                conf = add_base_path(conf, base_path, dir_attributes, attribute_type="dir")
             if isinstance(conf, dict):
-                set_domain_and_port(conf, domain=domain, port=port)
+                conf = set_domain_and_port(conf, domain=domain, port=port)
+        elif isinstance(conf, list):
+            conf = [_conv(v, domain=domain, port=port) for v in conf]
+        elif isinstance(conf, str):
+            conf = _conv(conf, domain, port)
+
+        return conf
 
 
 class Configuration(Base):
@@ -215,10 +225,20 @@ class Configuration(Base):
         self.web_conf = lower_or_upper(self.conf, "webserver")
 
         if entity_conf:
+            skip = [ec["path"] for ec in entity_conf]
+
             self.extend(conf=self.conf, base_path=base_path,
                         domain=self.domain, port=self.port, entity_conf=entity_conf,
                         file_attributes=self._file_attributes,
                         dir_attributes=self._dir_attributes)
+            for key, val in conf.items():
+                for path in skip:
+                    if key == path[0]:
+                        continue
+                setattr(self, key, val)
+        else:
+            for key, val in conf.items():
+                setattr(self, key, val)
 
 
 def create_from_config_file(cls,

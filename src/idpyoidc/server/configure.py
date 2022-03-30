@@ -168,7 +168,8 @@ class EntityConfiguration(Base):
     ):
 
         conf = copy.deepcopy(conf)
-        Base.__init__(self, conf, base_path, file_attributes, dir_attributes=dir_attributes)
+        Base.__init__(self, conf, base_path, file_attributes=file_attributes,
+                      dir_attributes=dir_attributes, domain=domain, port=port)
 
         self.key_conf = conf.get('key_conf')
 
@@ -176,9 +177,8 @@ class EntityConfiguration(Base):
             _val = conf.get(key)
             if not _val:
                 if key in self.default_config:
-                    _val = copy.deepcopy(self.default_config[key])
-                    self.format(
-                        _val,
+                    _val = self.format(
+                        copy.deepcopy(self.default_config[key]),
                         base_path=base_path,
                         file_attributes=file_attributes,
                         domain=domain,
@@ -466,7 +466,9 @@ DEFAULT_EXTENDED_CONF = {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
             "read_only": False,
-            "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+            "key_defs": [
+                {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
+            ],
         },
         "code": {"kwargs": {"lifetime": 600}},
         "token": {
