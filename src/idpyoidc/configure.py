@@ -148,8 +148,11 @@ class Base(dict):
             _path = econf.get("path")
             _cnf = conf
             if _path:
-                for step in _path:
-                    _cnf = _cnf[step]
+                try:
+                    for step in _path:
+                        _cnf = _cnf[step]
+                except KeyError:
+                    continue
             _attr = econf["attr"]
             _cls = econf["class"]
             setattr(self, _attr,
