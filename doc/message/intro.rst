@@ -5,8 +5,8 @@ Introduction to message
 ***********************
 
 The OpenID Connect and OAuth2 standards both defines lots of messages.
-Requests that are sent from clients to servers and responses from servers
-to clients.
+Requests that are sent from clients to servers and responses returned from
+servers to clients.
 
 For each of these messages a number of parameters (claims) are listed, some
 of them required and some optional. Each parameter are also assigned a data type.
@@ -23,6 +23,7 @@ Using this class you should be able to:
     - verify that a message's parameters are correct, that all that are marked as required are present and all (required and optional) are of the right type
     - serialize the message into the correct on-the-wire representation
     - deserialize a received message from the on-the-wire representation into a :py:class:`idpyoidc.message.Message` instance.
+    - gracefully handle extra claims.
 
 I will try to walk you through these steps below using example from RFC6749 (section
 4.1 and 4.2).
@@ -38,7 +39,7 @@ Entity sending a message
 ------------------------
 
 Going from a set of attributes with values how would you go about creating an
-authorization request ? You would do something like this::
+authorization request ? You could do something like this::
 
     from idpyoidc.message.oauth2 import AuthorizationRequest
 
@@ -90,8 +91,8 @@ The pattern is:
 
 Now, I have given examples on how a client would construct a request but of course
 there is not difference between this and a server constructing a response.
-The set of parameters is different and the message sub class to be used is
-different but the process is the same.
+The set of parameters might differ and the message sub class to be used is
+definitely different but the process is the same.
 
 Entity receiving a message
 --------------------------
@@ -110,7 +111,7 @@ On the client it would get hold of the query part and then go from there::
 
     from idpyoidc.message.oauth2 import AuthorizationResponse
 
-    query_conponent = 'code=SplxlOBeZQQYbYS6WxSbIA&state=xyz'
+    query_component = 'code=SplxlOBeZQQYbYS6WxSbIA&state=xyz'
 
     response = AuthorizationResponse().from_urlencoded(query_conponent)
 
@@ -127,9 +128,9 @@ Similar when it comes to the response from the token endpoint::
     from idpyoidc.message.oauth2 import AccessTokenResponse
 
     http_response_body = '{"access_token":"2YotnFZFEjr1zCsicMWpAA",' \
-                     '"token_type":"example","expires_in":3600,' \
-                     '"refresh_token":"tGzv3JOkF0XG5Qx2TlKWIA",' \
-                     '"example_parameter":"example_value"}'
+                         '"token_type":"example","expires_in":3600,' \
+                         '"refresh_token":"tGzv3JOkF0XG5Qx2TlKWIA",' \
+                         '"example_parameter":"example_value"}'
 
     response = AccessTokenResponse().from_json(http_response_body)
 
@@ -145,7 +146,7 @@ The processing pattern on the receiving end is:
 
     1. Pick out the protocol message part of the response
     2. Initiate the correct message subclass and run the appropriate
-        deserializer method.
+       deserializer method.
     3. Verify the correctness of the response
 
 
@@ -153,7 +154,7 @@ What if the response received was an error message ?
 ----------------------------------------------------
 
 All the response subclasses are subclasses of
-:py:class:`idpyoidc.oauth2.ResponseMessage` and that class provides you with one
+:py:class:`idpyoidc.message.oauth2.ResponseMessage` and that class provides you with one
 method that is useful in this case::
 
     >>> from idpyoidc.message.oauth2 import AccessTokenResponse
@@ -174,7 +175,7 @@ Serialization methods
         JavaScript Object Notation is a lightweight data-interchange format
         (https://www.json.org/)
     jwt
-        Json Web Token specified in RFC 7519
+        Json Web Token specified in `RFC7519`__
 
 There is a forth but that is just for internal use and that is to/from
 a python dictionary.
@@ -304,3 +305,5 @@ Let's assume that Eve wanted to listen in and had access to the key::
     idpyoidc.exception.NotForMe: Not among intended audience
 
 Now Eve probably wouldn't care but there you are.
+
+__ https://www.rfc-editor.org/rfc/rfc7519.txt
