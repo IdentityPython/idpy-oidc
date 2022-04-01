@@ -95,7 +95,7 @@ class Base(dict):
                  ):
         dict.__init__(self)
         if file_attributes is None:
-            self.file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
+            self._file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
         if dir_attributes is None:
             self._dir_attributes = DEFAULT_DIR_ATTRIBUTE_NAMES
 
