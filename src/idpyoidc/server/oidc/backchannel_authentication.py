@@ -17,9 +17,11 @@ from idpyoidc.server import Endpoint
 from idpyoidc.server import EndpointContext
 from idpyoidc.server.client_authn import ClientAuthnMethod
 from idpyoidc.server.client_authn import ClientSecretBasic
+from idpyoidc.server.exception import BearerTokenAuthenticationError
 from idpyoidc.server.oidc.token_helper import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
+from oidcop.exception import ToOld
 
 logger = logging.getLogger(__name__)
 
