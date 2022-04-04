@@ -1,6 +1,7 @@
 import copy
 import os
 
+from idpyoidc.server.oidc.token import Token
 import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
@@ -16,7 +17,6 @@ from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
 from idpyoidc.server.oidc.backchannel_authentication import ClientNotification
-from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import MOBILETWOFACTORCONTRACT
 from idpyoidc.util import rndstr
 

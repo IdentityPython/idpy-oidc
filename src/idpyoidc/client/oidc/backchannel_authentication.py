@@ -37,7 +37,7 @@ class ClientNotification(Service):
     http_method = 'POST'
 
     def __init__(self, client_get, client_authn_factory=None, conf=None, **kwargs):
-        super().__init__(client_get=client_get, client_authn_factory=client_authn_factory,
+        Service.__init__(self, client_get=client_get, client_authn_factory=client_authn_factory,
                          conf=conf, **kwargs)
         self.pre_construct = []
         self.post_construct = []
