@@ -14,6 +14,9 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationResponse
 from idpyoidc.server import Endpoint
+from idpyoidc.server import EndpointContext
+from idpyoidc.server.client_authn import ClientAuthnMethod
+from idpyoidc.server.client_authn import ClientSecretBasic
 from idpyoidc.server.oidc.token_helper import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
@@ -285,3 +288,32 @@ class ClientNotification(Endpoint):
 
     def __init__(self, server_get: Callable, **kwargs):
         Endpoint.__init__(self, server_get, **kwargs)
+
+
+class ClientNotificationAuthn(ClientSecretBasic):
+    """The authentication method used at the notification endpoint."""
+
+    tag = "client_notification_authn"
+
+    def is_usable(self, request=None, authorization_token=None):
+        if authorization_token is not None and authorization_token.startswith("Bearer "):
+            return True
+        return False
+
+    def _verify(
+            self,
+            endpoint_context: EndpointContext,
+            request: Optional[Union[dict, Message]] = None,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            **kwargs
+    ):
+        token = authorization_token.split(" ", 1)[1]
+        try:
+            client_id = get_client_id_from_token(endpoint_context, token, request)
+        except ToOld:
+            raise BearerTokenAuthenticationError("Expired token")
+        except KeyError:
+            raise BearerTokenAuthenticationError("Unknown token")
+        return {"token": token, "client_id": client_id}

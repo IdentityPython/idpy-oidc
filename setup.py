@@ -67,7 +67,7 @@ setup(
               "idpyoidc/client/oidc", "idpyoidc/client/oidc/add_on",
               "idpyoidc/client/provider",
               "idpyoidc/client/oauth2", "idpyoidc/client/oauth2/add_on",
-              "idpyoidc/client/oauth2/client_credentials"
+              "idpyoidc/client/oauth2/client_credentials", "idpyoidc/actor"
               ],
     package_dir={"": "src"},
     classifiers=[
