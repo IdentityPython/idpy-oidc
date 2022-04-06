@@ -17,7 +17,8 @@ class BackChannelAuthentication(Service):
     response_body_type = 'json'
 
     def __init__(self, client_get, client_authn_factory=None, conf=None, **kwargs):
-        super().__init__(client_get, client_authn_factory, conf=conf, **kwargs)
+        super().__init__(client_get=client_get, conf=conf,
+                         client_authn_factory=client_authn_factory, **kwargs)
         self.default_request_args = {'scope': ['openid']}
         self.pre_construct = []
         self.post_construct = []

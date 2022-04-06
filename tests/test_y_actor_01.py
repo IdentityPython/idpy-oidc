@@ -344,4 +344,4 @@ class TestPushActor:
 
         _ninfo = self.actor_1.do_client_notification(_not_req["body"],
                                                      http_info={"headers": _not_req["headers"]})
-        assert _ninfo
+        assert _ninfo is None
