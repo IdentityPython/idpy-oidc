@@ -15,6 +15,7 @@ from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
+# from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
 from ..message import VREQUIRED
 from .util import sanitize
@@ -589,6 +590,7 @@ CLIENT_AUTHN_METHOD = {
     "bearer_body": BearerBody,
     "client_secret_jwt": ClientSecretJWT,
     "private_key_jwt": PrivateKeyJWT,
+#    "client_notification_authn": ClientNotificationAuthn
 }
 
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]

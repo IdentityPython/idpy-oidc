@@ -50,9 +50,9 @@ class Server(ImpExp):
             cookie_handler=cookie_handler,
             httpc=httpc,
         )
-        self.endpoint_context.authz = self.do_authz()
+        self.endpoint_context.authz = self.setup_authz()
 
-        self.do_authentication(self.endpoint_context)
+        self.setup_authentication(self.endpoint_context)
 
         self.endpoint = do_endpoints(conf, self.server_get)
         _cap = get_provider_capabilities(conf, self.endpoint)
@@ -68,10 +68,10 @@ class Server(ImpExp):
         )
         self.endpoint_context.do_userinfo()
         # Must be done after userinfo
-        self.do_login_hint_lookup()
+        self.setup_login_hint_lookup()
         self.endpoint_context.set_remember_token()
 
-        self.do_client_authn_methods()
+        self.setup_client_authn_methods()
         for endpoint_name, _ in self.endpoint.items():
             self.endpoint[endpoint_name].server_get = self.server_get
 
@@ -107,14 +107,14 @@ class Server(ImpExp):
     def get_endpoint_context(self, *arg):
         return self.endpoint_context
 
-    def do_authz(self):
+    def setup_authz(self):
         authz_spec = self.conf.get("authz")
         if authz_spec:
             return init_service(authz_spec, self.server_get)
         else:
             return authz.Implicit(self.server_get)
 
-    def do_authentication(self, target):
+    def setup_authentication(self, target):
         _conf = self.conf.get("authentication")
         if _conf:
             target.authn_broker = populate_authn_broker(
@@ -130,7 +130,7 @@ class Server(ImpExp):
             except AttributeError:
                 pass
 
-    def do_login_hint_lookup(self):
+    def setup_login_hint_lookup(self):
         _conf = self.conf.get("login_hint_lookup")
         if _conf:
             _userinfo = None
@@ -146,7 +146,7 @@ class Server(ImpExp):
             self.endpoint_context.login_hint_lookup = init_service(_conf)
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
 
-    def do_client_authn_methods(self):
+    def setup_client_authn_methods(self):
         self.endpoint_context.client_authn_method = client_auth_setup(self.server_get,
                                                                       self.conf.get(
-                                                                          "client_authn_method"))
+                                                                          "client_authn_methods"))

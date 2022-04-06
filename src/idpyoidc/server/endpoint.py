@@ -235,11 +235,14 @@ class Endpoint(object):
         if "endpoint" not in kwargs:
             kwargs["endpoint"] = self
 
+        get_client_id_from_token = kwargs.get("get_client_id_from_token")
+        if not get_client_id_from_token:
+            kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
+
         authn_info = verify_client(
             endpoint_context=self.server_get("endpoint_context"),
             request=request,
             http_info=http_info,
-            get_client_id_from_token=getattr(self, "get_client_id_from_token", None),
             **kwargs
         )
 

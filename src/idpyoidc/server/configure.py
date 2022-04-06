@@ -145,6 +145,7 @@ class EntityConfiguration(Base):
         "capabilities": None,
         "claims_interface": None,
         "client_db": None,
+        "client_authn_methods": {},
         "cookie_handler": None,
         "endpoint": {},
         "httpc_params": {},

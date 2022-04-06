@@ -14,6 +14,9 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationResponse
 from idpyoidc.server import Endpoint
+from idpyoidc.server import EndpointContext
+from idpyoidc.server.client_authn import ClientSecretBasic
+from idpyoidc.server.exception import NoSuchAuthentication
 from idpyoidc.server.oidc.token_helper import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
@@ -272,16 +275,49 @@ class ClientNotification(Endpoint):
     request_cls = AuthenticationRequest
     response_cls = AuthenticationResponse
     error_cls = ResponseMessage
-    request_format = "urlencoded"
-    response_format = "urlencoded"
-    response_placement = "url"
-    endpoint_name = "backchannel_authentication_endpoint"
-    name = "backchannel_authentication"
+    request_format = "json"
+    endpoint_name = "client_notification_endpoint"
+    name = "client_notification"
     provider_info_attributes = {
-        "backchannel_token_delivery_modes_supported": ['poll', 'ping', 'push'],
-        "backchannel_authentication_request_signing_alg_values_supported": None,
-        "backchannel_user_code_parameter_supported": True,
+        "backchannel_client_notification_endpoint": None,
     }
 
     def __init__(self, server_get: Callable, **kwargs):
         Endpoint.__init__(self, server_get, **kwargs)
+
+    def process_request(
+                self,
+                request: Optional[Union[Message, dict]] = None,
+                http_info: Optional[dict] = None,
+                **kwargs
+        ) -> Union[Message, dict]:
+        return {}
+
+
+class ClientNotificationAuthn(ClientSecretBasic):
+    """The authentication method used at the notification endpoint."""
+
+    tag = "client_notification_authn"
+
+    def is_usable(self, request=None, authorization_token=None):
+        if authorization_token is not None and authorization_token.startswith("Bearer "):
+            return True
+        return False
+
+    def _verify(
+            self,
+            endpoint_context: EndpointContext,
+            request: Optional[Union[dict, Message]] = None,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            **kwargs
+    ):
+        ttype, token = authorization_token.split(" ", 1)
+        if ttype != "Bearer":
+            raise NoSuchAuthentication(f"No support for {ttype}")
+        if get_client_id_from_token:
+            client_id = get_client_id_from_token(token)
+        else:
+            client_id = ""
+        return {"token": token, "client_id": client_id}
