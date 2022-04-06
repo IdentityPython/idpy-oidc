@@ -12,18 +12,17 @@ from cryptojwt.utils import qualified_name
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
-
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
 from .client_auth import factory as ca_factory
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 
 __author__ = 'Roland Hedberg'
 
@@ -254,7 +253,7 @@ class Service(ImpExp):
             LOGGER.debug('Client authn method: %s', authn_method)
             try:
                 _func = self.client_authn_factory(authn_method)
-            except ValueError: # not one of the common
+            except (KeyError, ValueError):  # not one of the common
                 _func = importer(authn_method)()
 
             return _func.construct(request, self, http_args=http_args, **kwargs)

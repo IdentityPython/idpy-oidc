@@ -711,7 +711,7 @@ def test_client_auth_setup():
 
     mock = Mock()
     conf = dict(CONF)
-    conf["client_authn_method"] = {"custom": MagicMock(return_value=mock)}
+    conf["client_authn_methods"] = {"custom": MagicMock(return_value=mock)}
     conf["endpoint"]["registration"]["kwargs"]["client_authn_method"] = ["custom"]
     server = Server(conf=conf, keyjar=KEYJAR)
     server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}

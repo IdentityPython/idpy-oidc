@@ -470,6 +470,8 @@ def verify_client(
 
     if http_info and "headers" in http_info:
         authorization_token = http_info["headers"].get("authorization")
+        if not authorization_token:
+            authorization_token = http_info["headers"].get("Authorization")
     else:
         authorization_token = None
 
@@ -479,6 +481,7 @@ def verify_client(
     if not allowed_methods:
         allowed_methods = list(methods.keys())
 
+    _method = None
     for _method in (methods[meth] for meth in allowed_methods):
         if not _method.is_usable(request=request, authorization_token=authorization_token):
             continue
@@ -518,7 +521,7 @@ def verify_client(
     # Validate that the used method is allowed for this client/endpoint
     client_allowed_methods = _cinfo.get(f"{endpoint.endpoint_name}_client_authn_method",
                                         _cinfo.get("client_authn_method"))
-    if client_allowed_methods is not None and _method.tag not in client_allowed_methods:
+    if client_allowed_methods is not None and _method and _method.tag not in client_allowed_methods:
         logger.info(
             f"Allowed methods for client: {client_id} at endpoint: {endpoint.name} are: "
             f"`{', '.join(client_allowed_methods)}`"
@@ -542,8 +545,9 @@ def verify_client(
 
 def client_auth_setup(server_get, auth_set=None):
     if auth_set is None:
-        auth_set = {}
-    auth_set = {**CLIENT_AUTHN_METHOD, **auth_set}
+        auth_set = CLIENT_AUTHN_METHOD
+    else:
+        auth_set.update(CLIENT_AUTHN_METHOD)
     res = {}
 
     for name, cls in auth_set.items():

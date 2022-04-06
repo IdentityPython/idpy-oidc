@@ -65,7 +65,7 @@ setup(
               "idpyoidc/server/oauth2", "idpyoidc/server/oauth2/add_on",
               "idpyoidc/server/oidc", "idpyoidc/server/oidc/add_on",
               "idpyoidc/client/oidc", "idpyoidc/client/oidc/add_on",
-              "idpyoidc/client/provider",
+              "idpyoidc/client/provider", "idpyoidc/actor",
               "idpyoidc/client/oauth2", "idpyoidc/client/oauth2/add_on",
               "idpyoidc/client/oauth2/client_credentials"
               ],
