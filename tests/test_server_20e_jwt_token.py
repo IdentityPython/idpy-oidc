@@ -1,9 +1,7 @@
 import os
 
-import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
@@ -20,6 +18,7 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.time_util import utc_time_sans_frac
+import pytest
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -434,7 +433,7 @@ class TestEndpointWebID(object):
         assert set(_info["aud"]) == {"client_1"}
         assert "webid" in _info
 
-    def test_aud(self):
+    def test_mint_with_aud(self):
         _auth_req = AuthorizationRequest(
             client_id="client_1",
             redirect_uri="https://example.com/cb",
@@ -449,7 +448,8 @@ class TestEndpointWebID(object):
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
-            "access_token", grant, session_id, code, resources=[_auth_req["client_id"]],
+            "access_token", grant, session_id, code,
+            resources=[_auth_req["client_id"]],
             aud=["https://audience.example.com"]
         )
 
@@ -458,5 +458,57 @@ class TestEndpointWebID(object):
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {"client_1"}
+        assert set(_info["aud"]) == {'client_1', 'https://audience.example.com'}
         assert "webid" in _info
+
+    def test_mint_with_scope(self):
+        _auth_req = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            scope=["openid", "webid"],
+            state="STATE",
+            response_type="code",
+        )
+
+        session_id = self._create_session(_auth_req)
+        # apply consent
+        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        # grant = self.session_manager[session_id]
+        code = self._mint_token("authorization_code", grant, session_id)
+        access_token = self._mint_token(
+            "access_token", grant, session_id, code,
+            scope=["openid"],
+            aud=["https://audience.example.com"]
+        )
+
+        _verifier = JWT(self.endpoint_context.keyjar)
+        _info = _verifier.unpack(access_token.value)
+
+        assert _info["token_class"] == "access_token"
+        # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
+        assert set(_info["aud"]) == {'https://audience.example.com'}
+        assert _info["scope"] == ['openid']
+
+    def test_mint_with_extra(self):
+        _auth_req = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            scope=["openid", "webid"],
+            state="STATE",
+            response_type="code",
+        )
+
+        session_id = self._create_session(_auth_req)
+        # apply consent
+        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        # grant = self.session_manager[session_id]
+        code = self._mint_token("authorization_code", grant, session_id)
+        access_token = self._mint_token(
+            "access_token", grant, session_id, code,
+            claims=["name", "family_name"],
+        )
+
+        _verifier = JWT(self.endpoint_context.keyjar)
+        _info = _verifier.unpack(access_token.value)
+        assert "name" in _info
+        assert "family_name" in _info
