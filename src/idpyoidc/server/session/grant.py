@@ -306,6 +306,16 @@ class Grant(Item):
             class_args = kwargs
             handler_args = {}
 
+        _aud = set(class_args.get("resources", []))
+        for param in ["audience", "aud"]:
+            _val = class_args.get(param)
+            if _val:
+                _aud = _aud.union(set(_val))
+                del class_args[param]
+
+        if _aud != set():
+            class_args["resources"] = list(_aud)
+
         if token_class == "access_token" and token_type:
             class_args["token_type"] = token_type
 

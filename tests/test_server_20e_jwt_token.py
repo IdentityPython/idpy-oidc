@@ -433,3 +433,30 @@ class TestEndpointWebID(object):
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
         assert set(_info["aud"]) == {"client_1"}
         assert "webid" in _info
+
+    def test_aud(self):
+        _auth_req = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            scope=["openid", "webid"],
+            state="STATE",
+            response_type="code",
+        )
+
+        session_id = self._create_session(_auth_req)
+        # apply consent
+        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        # grant = self.session_manager[session_id]
+        code = self._mint_token("authorization_code", grant, session_id)
+        access_token = self._mint_token(
+            "access_token", grant, session_id, code, resources=[_auth_req["client_id"]],
+            aud=["https://audience.example.com"]
+        )
+
+        _verifier = JWT(self.endpoint_context.keyjar)
+        _info = _verifier.unpack(access_token.value)
+
+        assert _info["token_class"] == "access_token"
+        # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
+        assert set(_info["aud"]) == {"client_1"}
+        assert "webid" in _info

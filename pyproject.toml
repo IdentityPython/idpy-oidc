@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [metadata]
 name = "idpyoidc"
-version = "1.0.4"
+version = "1.0.5"
 author = "Roland Hedberg"
 author_email = "roland@catalogix.se"
 description = "Everything OAuth2 and OIDC"
