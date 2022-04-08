@@ -361,7 +361,7 @@ class Session(Endpoint):
 
         # Verify that the client is allowed to do this
         auth_info = self.client_authentication(request, http_info, **kwargs)
-        if not auth_info:
+        if not auth_info or auth_info["method"] == "none":
             pass
         elif isinstance(auth_info, ResponseMessage):
             return auth_info

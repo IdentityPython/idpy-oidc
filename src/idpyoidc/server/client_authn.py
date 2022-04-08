@@ -486,6 +486,7 @@ def verify_client(
         if not _method.is_usable(request=request, authorization_token=authorization_token):
             continue
         try:
+            logger.info(f"Verifying client authentication using {_method.tag}")
             auth_info = _method.verify(
                 request=request,
                 authorization_token=authorization_token,

@@ -233,7 +233,6 @@ def session_change():
 # post_logout_redirect_uri
 @oidc_rp_views.route('/session_logout/<op_identifier>')
 def session_logout(op_identifier):
-    op_identifier = get_op_identifier_by_cb_uri(request.url)
     _rp = get_rp(op_identifier)
     logger.debug('post_logout')
     return "Post logout from {}".format(_rp.client_get("service_context").issuer)

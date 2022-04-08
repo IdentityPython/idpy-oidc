@@ -301,6 +301,32 @@
       "post_logout_redirect_uri": "https://{domain}:{port}/session_logout/bobcat",
       "frontchannel_logout_uri": "https://{domain}:{port}/fc_logout/bobcat",
       "frontchannel_logout_session_required": true
+    },
+    "local": {
+      "issuer": "https://127.0.0.1:5000/",
+      "client_preferences": {
+        "application_name": "rphandler",
+        "application_type": "web",
+        "contacts": [
+          "ops@example.com"
+        ],
+        "response_types": [
+          "code"
+        ],
+        "scope": [
+          "openid",
+          "profile",
+          "email",
+          "address",
+          "phone"
+        ]
+      },
+      "redirect_uris": [
+        "https://{domain}:{port}/authz_cb/local"
+      ],
+      "post_logout_redirect_uri": "https://{domain}:{port}/session_logout/local",
+      "frontchannel_logout_uri": "https://{domain}:{port}/fc_logout/local",
+      "frontchannel_logout_session_required": true
     }
   },
   "webserver": {

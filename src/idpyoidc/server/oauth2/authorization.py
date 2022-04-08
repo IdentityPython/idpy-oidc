@@ -129,7 +129,10 @@ def verify_uri(
     if client_info is None:
         raise KeyError("No such client")
 
-    redirect_uris = client_info.get(f"{uri_type}s")
+    if uri_type == "redirect_uri":
+        redirect_uris = client_info.get(f"{uri_type}s")
+    else:
+        redirect_uris = client_info.get(f"{uri_type}")
 
     if redirect_uris is None:
         raise RedirectURIError(f"No registered {uri_type} for {_cid}")
