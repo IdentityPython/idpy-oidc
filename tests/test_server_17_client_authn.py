@@ -710,6 +710,7 @@ def test_client_auth_setup():
         verify = MagicMock(return_value={"method": "custom", "client_id": client_id})
 
     mock = Mock()
+    mock.tag = "mock"
     conf = dict(CONF)
     conf["client_authn_methods"] = {"custom": MagicMock(return_value=mock)}
     conf["endpoint"]["registration"]["kwargs"]["client_authn_method"] = ["custom"]

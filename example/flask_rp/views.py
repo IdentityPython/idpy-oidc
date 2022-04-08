@@ -10,10 +10,9 @@ from flask import request
 from flask import session
 from flask.helpers import make_response
 from flask.helpers import send_from_directory
-import werkzeug
-
 from idpyoidc.client import rp_handler
 from idpyoidc.client.exception import OidcServiceError
+import werkzeug
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +52,12 @@ def rp():
         uid = ''
 
     if iss or uid:
-        args = {
-            'req_args': {
-                "claims": {"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
-            }
-        }
-
+        # args = {
+        #     'req_args': {
+        #         "claims": {"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+        #     }
+        # }
+        args = {}
         if uid:
             args['user_id'] = uid
 
@@ -234,7 +233,6 @@ def session_change():
 # post_logout_redirect_uri
 @oidc_rp_views.route('/session_logout/<op_identifier>')
 def session_logout(op_identifier):
-    op_identifier = get_op_identifier_by_cb_uri(request.url)
     _rp = get_rp(op_identifier)
     logger.debug('post_logout')
     return "Post logout from {}".format(_rp.client_get("service_context").issuer)

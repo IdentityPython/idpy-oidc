@@ -73,10 +73,9 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
     response_cls = oidc.ProviderConfigurationResponse
     error_msg = ResponseMessage
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
+    def __init__(self, client_get, conf=None):
         provider_info_discovery.ProviderInfoDiscovery.__init__(
-            self, client_get, client_authn_factory=client_authn_factory,
-            conf=conf)
+            self, client_get, conf=conf)
 
     def update_service_context(self, resp, **kwargs):
         _context = self.client_get("service_context")

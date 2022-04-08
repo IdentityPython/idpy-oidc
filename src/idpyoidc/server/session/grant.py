@@ -12,7 +12,6 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.token import Token as TokenHandler
 from idpyoidc.util import importer
 
-from ...message.oauth2 import TokenExchangeRequest
 from . import MintingNotAllowed
 from .claims import claims_match
 from .token import AccessToken
@@ -21,6 +20,7 @@ from .token import IDToken
 from .token import Item
 from .token import RefreshToken
 from .token import SessionToken
+from ...message.oauth2 import TokenExchangeRequest
 
 logger = logging.getLogger(__name__)
 
@@ -206,8 +206,8 @@ class Grant(Item):
             self,
             session_id: str,
             endpoint_context,
+            item: SessionToken,
             claims_release_point: str,
-            scope: Optional[dict] = None,
             extra_payload: Optional[dict] = None,
             secondary_identifier: str = "",
     ) -> dict:
@@ -220,12 +220,21 @@ class Grant(Item):
         :param extra_payload:
         :param secondary_identifier: Used if the claims returned are also based on rules for
             another release_point
+        :param item: A SessionToken instance
+        :type item: SessionToken
         :return: dictionary containing information to place in a token value
         """
-        if scope is None:
-            scope = self.scope
+        payload = {}
+        for _in, _out in [("scope", "scope"), ("resources", "aud")]:
+            _val = getattr(item, _in)
+            if _val:
+                payload[_out] = _val
+            else:
+                _val = getattr(self, _in)
+                if _val:
+                    payload[_out] = _val
 
-        payload = {"scope": scope, "aud": self.resources, "jti": uuid1().hex}
+        payload["jti"] = uuid1().hex
 
         if extra_payload:
             payload.update(extra_payload)
@@ -239,12 +248,16 @@ class Grant(Item):
             if client_id:
                 payload.update({"client_id": client_id, "sub": self.sub})
 
-        _claims_restriction = endpoint_context.claims_interface.get_claims(
-            session_id,
-            scopes=scope,
-            claims_release_point=claims_release_point,
-            secondary_identifier=secondary_identifier,
-        )
+        if item.claims:
+            _claims_restriction = item.claims
+        else:
+            _claims_restriction = endpoint_context.claims_interface.get_claims(
+                session_id,
+                scopes=payload["scope"],
+                claims_release_point=claims_release_point,
+                secondary_identifier=secondary_identifier,
+            )
+
         user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
         user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
         payload.update(user_info)
@@ -267,6 +280,9 @@ class Grant(Item):
             usage_rules: Optional[dict] = None,
             scope: Optional[list] = None,
             token_type: Optional[str] = "",
+            expires_in: Optional[int] = 0,
+            not_before: Optional[int] = 0,
+            claims: Optional[List[str]] = None,
             **kwargs,
     ) -> Optional[SessionToken]:
         """
@@ -296,6 +312,9 @@ class Grant(Item):
         if usage_rules is None and token_class in self.usage_rules:
             usage_rules = self.usage_rules[token_class]
 
+        if claims:  # convert list to claims specification dict
+            claims = {x: None for x in claims}
+
         _class = self.token_map.get(token_class)
         if token_class == "id_token":
             class_args = {
@@ -305,6 +324,16 @@ class Grant(Item):
         else:
             class_args = kwargs
             handler_args = {}
+
+        _aud = set(class_args.get("resources", []))
+        for param in ["audience", "aud"]:
+            _val = class_args.get(param)
+            if _val:
+                _aud = _aud.union(set(_val))
+                del class_args[param]
+
+        if _aud != set():
+            class_args["resources"] = list(_aud)
 
         if token_class == "access_token" and token_type:
             class_args["token_type"] = token_type
@@ -326,6 +355,9 @@ class Grant(Item):
                 based_on=_base_on_ref,
                 usage_rules=usage_rules,
                 scope=scope,
+                expires_in=expires_in,
+                not_before=not_before,
+                claims=claims,
                 **class_args,
             )
             if token_handler is None:
@@ -348,8 +380,8 @@ class Grant(Item):
             token_payload = self.payload_arguments(
                 session_id,
                 endpoint_context,
+                item=item,
                 claims_release_point=claims_release_point,
-                scope=scope,
                 extra_payload=handler_args,
                 secondary_identifier=_secondary_identifier,
             )

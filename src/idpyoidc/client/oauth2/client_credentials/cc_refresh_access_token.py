@@ -14,9 +14,8 @@ class CCRefreshAccessToken(Service):
     default_authn_method = 'bearer_header'
     http_method = 'POST'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory, conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
         self.pre_construct.append(self.cc_pre_construct)
         self.post_construct.append(self.cc_post_construct)
 

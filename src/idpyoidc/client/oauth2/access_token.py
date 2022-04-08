@@ -23,9 +23,8 @@ class AccessToken(Service):
     request_body_type = 'urlencoded'
     response_body_type = 'json'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory, conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)
 
     def update_service_context(self, resp, key='', **kwargs):

@@ -28,9 +28,8 @@ class Authorization(Service):
     #     "endpoint": ""
     # })
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory, conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])
         self.post_construct.append(self.store_auth_request)
 

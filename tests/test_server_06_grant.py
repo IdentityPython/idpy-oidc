@@ -414,13 +414,13 @@ class TestGrant:
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
             scope=["openid", "email", "eduperson"],
-            claims={"userinfo": {"given_name": None, "eduperson_affiliation": None}},
+            claims=["given_name", "eduperson_affiliation"]
         )
 
         spec = grant.get_spec(access_token)
         assert set(spec.keys()) == {"scope", "claims", "resources"}
         assert spec["scope"] == ["openid", "email", "eduperson"]
-        assert spec["claims"] == {"userinfo": {"given_name": None, "eduperson_affiliation": None}}
+        assert spec["claims"] == {'eduperson_affiliation': None, 'given_name': None}
         assert spec["resources"] == ["https://api.example.com"]
 
     def test_get_usage_rules(self):

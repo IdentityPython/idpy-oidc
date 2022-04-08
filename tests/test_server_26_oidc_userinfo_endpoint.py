@@ -113,7 +113,7 @@ class TestEndpoint(object):
                     "path": "token",
                     "class": Token,
                     "kwargs": {
-                        "client_authn_methods": [
+                        "client_authn_method": [
                             "client_secret_post",
                             "client_secret_basic",
                             "client_secret_jwt",

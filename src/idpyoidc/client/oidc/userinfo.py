@@ -38,10 +38,8 @@ class UserInfo(Service):
     default_authn_method = 'bearer_header'
     http_method = 'GET'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory,
-                         conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):

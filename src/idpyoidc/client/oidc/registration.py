@@ -226,10 +226,8 @@ class Registration(Service):
     request_body_type = 'json'
     http_method = 'POST'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory,
-                         conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.add_client_behaviour_preference,
                               # add_redirect_uris,
                               add_callback_uris,

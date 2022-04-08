@@ -1,12 +1,10 @@
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.defaults import JWT_BEARER
@@ -23,6 +21,7 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+import pytest
 
 from . import full_path
 
@@ -530,10 +529,14 @@ class TestBCAEndpointService(object):
                     "kwargs": {
                         "conf": {
                             "default_authn_method":
-                                "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+                                "client_notification_authn"
                         }
                     }
                 },
+            },
+            "client_authn_methods": {
+                "client_notification_authn":
+                    "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
             }
         }
 
@@ -589,8 +592,8 @@ class TestBCAEndpointService(object):
         session_id_2 = self._create_session(_user_id, req)
 
         # Now it's time to send a client notification
-        req_args={"auth_req_id": _info["response_args"]["auth_req_id"],
-                  "client_notification_token": request["client_notification_token"]}
+        req_args = {"auth_req_id": _info["response_args"]["auth_req_id"],
+                    "client_notification_token": request["client_notification_token"]}
 
         _service = self.ciba["client"].client_get("service", 'client_notification')
         _req_param = _service.get_request_parameters(request_args=req_args)
