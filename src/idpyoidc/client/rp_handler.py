@@ -40,9 +40,8 @@ logger = logging.getLogger(__name__)
 
 class RPHandler(object):
     def __init__(self, base_url, client_configs=None, services=None, keyjar=None,
-                 hash_seed="", verify_ssl=True, client_authn_factory=None,
-                 client_cls=None, state_db=None, http_lib=None, httpc_params=None,
-                 **kwargs):
+                 hash_seed="", verify_ssl=True, client_cls=None, state_db=None,
+                 http_lib=None, httpc_params=None, **kwargs):
 
         self.base_url = base_url
         if hash_seed:
@@ -80,8 +79,6 @@ class RPHandler(object):
             self.services = DEFAULT_OIDC_SERVICES
         else:
             self.services = services
-
-        self.client_authn_factory = client_authn_factory
 
         if client_configs is None:
             self.client_configs = DEFAULT_CLIENT_CONFIGS
@@ -168,7 +165,6 @@ class RPHandler(object):
 
         try:
             client = self.client_cls(
-                client_authn_factory=self.client_authn_factory,
                 services=_services, config=_cnf, httplib=self.httplib,
                 httpc_params=self.httpc_params)
         except Exception as err:

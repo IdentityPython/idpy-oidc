@@ -21,9 +21,8 @@ class ProviderInfoDiscovery(Service):
     service_name = 'provider_info'
     http_method = 'GET'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory, conf=conf)
+    def __init__(self, client_get, conf=None):
+        Service.__init__(self, client_get, conf=conf)
 
     def get_endpoint(self):
         """

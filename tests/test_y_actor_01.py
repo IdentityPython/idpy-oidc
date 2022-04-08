@@ -107,7 +107,11 @@ def _create_client(issuer, client_id, service):
         'client_id': client_id,
         'client_secret': rndstr(24),
         'redirect_uris': [f'https://example.com/{client_id}/authz_cb'],
-        'behaviour': {'response_types': ['code']}
+        'behaviour': {'response_types': ['code']},
+        "client_authn_methods": {
+            "client_notification_authn":
+                "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+        }
     }
     _services = {
         'discovery': {
@@ -336,7 +340,7 @@ class TestPushActor:
         _notification_service = self.actor_2.client.client_get("service", "client_notification")
         _not_req = _notification_service.get_request_parameters(
             request_args=_tinfo["response_args"],
-            authn_method="idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn")
+            authn_method="client_notification_authn")
 
         assert _not_req
 

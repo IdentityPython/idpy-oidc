@@ -135,7 +135,6 @@ def pick_auth(endpoint_context, areq, pick_all=False):
         if not isinstance(areq["acr_values"], list):
             areq["acr_values"] = [areq["acr_values"]]
         acrs = areq["acr_values"]
-
     else:
         acrs = _acr_claim(areq)
         if not acrs:

@@ -3,8 +3,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
-
-from idpyoidc.client.client_auth import factory
+from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.service import init_services
@@ -13,7 +12,6 @@ from idpyoidc.client.service_context import ServiceContext
 
 class Entity(object):
     def __init__(self,
-                 client_authn_factory: Optional[Callable] = None,
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
                  services: Optional[dict] = None,
@@ -28,8 +26,6 @@ class Entity(object):
         self._service_context = ServiceContext(keyjar=keyjar, config=config,
                                                jwks_uri=jwks_uri, httpc_params=self.httpc_params)
 
-        _cam = client_authn_factory or factory
-
         if config:
             _srvs = config.get("services")
         else:
@@ -39,8 +35,10 @@ class Entity(object):
             _srvs = services or DEFAULT_OAUTH2_SERVICES
 
         self._service = init_services(service_definitions=_srvs,
-                                      client_get=self.client_get,
-                                      client_authn_factory=_cam)
+                                      client_get=self.client_get)
+
+        self.setup_client_authn_methods(config)
+
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
@@ -72,3 +70,7 @@ class Entity(object):
 
     def get_client_id(self):
         return self._service_context.client_id
+
+    def setup_client_authn_methods(self, config):
+        self._service_context.client_authn_method = client_auth_setup(
+            config.get("client_authn_methods"))

@@ -22,10 +22,8 @@ class AccessToken(access_token.AccessToken):
 
     def __init__(self,
                  client_get,
-                 client_authn_factory=None,
                  conf: Optional[dict] = None):
-        access_token.AccessToken.__init__(self, client_get,
-                                          client_authn_factory=client_authn_factory, conf=conf)
+        access_token.AccessToken.__init__(self, client_get, conf=conf)
 
     def gather_verify_arguments(self,
                                 response: Optional[Union[dict, Message]] = None,

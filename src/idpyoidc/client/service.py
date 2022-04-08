@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from cryptojwt.jwt import JWT
 from cryptojwt.utils import qualified_name
+from idpyoidc.client.exception import Unsupported
 
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
@@ -15,7 +16,6 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
-from .client_auth import factory as ca_factory
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
@@ -65,13 +65,8 @@ class Service(ImpExp):
     def __init__(self,
                  client_get: Callable,
                  conf: Optional[Union[dict, Configuration]] = None,
-                 client_authn_factory: Optional[Callable] = None,
                  **kwargs):
         ImpExp.__init__(self)
-        if client_authn_factory is None:
-            self.client_authn_factory = ca_factory
-        else:
-            self.client_authn_factory = client_authn_factory
 
         self.client_get = client_get
         self.default_request_args = {}
@@ -251,10 +246,12 @@ class Service(ImpExp):
 
         if authn_method:
             LOGGER.debug('Client authn method: %s', authn_method)
+            _context = self.client_get("service_context")
             try:
-                _func = self.client_authn_factory(authn_method)
-            except (KeyError, ValueError):  # not one of the common
-                _func = importer(authn_method)()
+                _func = _context.client_authn_method[authn_method]
+            except KeyError:  # not one of the common
+                LOGGER.error(f"Unknown client authentication method: {authn_method}")
+                raise Unsupported(f"Unknown client authentication method: {authn_method}")
 
             return _func.construct(request, self, http_args=http_args, **kwargs)
 
@@ -610,14 +607,12 @@ class Service(ImpExp):
 #                 construct.append(importer(func))
 
 
-def init_services(service_definitions, client_get, client_authn_factory=None):
+def init_services(service_definitions, client_get):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
     :param client_get: A function that returns different things from the base entity.
-    :param client_authn_factory: A list of methods the services can use to
-        authenticate the client to a service.
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
@@ -628,10 +623,7 @@ def init_services(service_definitions, client_get, client_authn_factory=None):
         except KeyError:
             kwargs = {}
 
-        kwargs.update({
-            'client_get': client_get,
-            'client_authn_factory': client_authn_factory
-        })
+        kwargs.update({'client_get': client_get})
 
         if isinstance(service_configuration['class'], str):
             _value_cls = service_configuration['class']

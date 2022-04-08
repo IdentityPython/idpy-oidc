@@ -31,12 +31,10 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
-    def __init__(self, client_authn_factory=None, keyjar=None, verify_ssl=True, config=None,
+    def __init__(self, keyjar=None, verify_ssl=True, config=None,
                  httplib=None, services=None, jwks_uri='', httpc_params=None):
         """
 
-        :param client_authn_factory: Factory that this client can use to
-            initiate a client authentication class.
         :param keyjar: A py:class:`idpyoidc.key_jar.KeyJar` instance
         :param config: Configuration information passed on to the
             :py:class:`idpyoidc.client.service_context.ServiceContext`
@@ -48,7 +46,7 @@ class Client(Entity):
         :return: Client instance
         """
 
-        Entity.__init__(self, client_authn_factory=client_authn_factory, keyjar=keyjar,
+        Entity.__init__(self, keyjar=keyjar,
                         config=config, services=services, jwks_uri=jwks_uri,
                         httpc_params=httpc_params)
 

@@ -10,10 +10,9 @@ from flask import request
 from flask import session
 from flask.helpers import make_response
 from flask.helpers import send_from_directory
-import werkzeug
-
 from idpyoidc.client import rp_handler
 from idpyoidc.client.exception import OidcServiceError
+import werkzeug
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +52,12 @@ def rp():
         uid = ''
 
     if iss or uid:
-        args = {
-            'req_args': {
-                "claims": {"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
-            }
-        }
-
+        # args = {
+        #     'req_args': {
+        #         "claims": {"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+        #     }
+        # }
+        args = {}
         if uid:
             args['user_id'] = uid
 

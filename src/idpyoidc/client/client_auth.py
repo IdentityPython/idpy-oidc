@@ -7,6 +7,7 @@ from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.jws.utils import alg2keytype
+from cryptojwt.utils import importer
 
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
@@ -612,13 +613,15 @@ def valid_service_context(service_context, when=0):
     return True
 
 
-def factory(auth_method):
-    """Return an instance of a client authentication class.
+def client_auth_setup(auth_set=None):
+    if auth_set is None:
+        auth_set = CLIENT_AUTHN_METHOD
+    else:
+        auth_set.update(CLIENT_AUTHN_METHOD)
+    res = {}
 
-    :param auth_method: The name of the client authentication method
-    """
-    try:
-        return CLIENT_AUTHN_METHOD[auth_method]()
-    except KeyError:
-        LOGGER.error('Unknown client authentication method: %s', auth_method)
-        raise ValueError(auth_method)
+    for name, cls in auth_set.items():
+        if isinstance(cls, str):
+            cls = importer(cls)
+        res[name] = cls()
+    return res

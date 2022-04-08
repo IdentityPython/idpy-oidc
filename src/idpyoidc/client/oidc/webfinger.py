@@ -34,11 +34,8 @@ class WebFinger(Service):
     http_method = 'GET'
     response_body_type = 'json'
 
-    def __init__(self, client_get, client_authn_factory=None,
-                 conf=None, rel='', **kwargs):
-        Service.__init__(self, client_get,
-                         client_authn_factory=client_authn_factory,
-                         conf=conf, **kwargs)
+    def __init__(self, client_get, conf=None, rel='', **kwargs):
+        Service.__init__(self, client_get, conf=conf, **kwargs)
 
         self.rel = rel or OIC_ISSUER
 

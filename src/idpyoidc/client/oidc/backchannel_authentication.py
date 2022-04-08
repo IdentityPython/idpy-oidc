@@ -16,9 +16,8 @@ class BackChannelAuthentication(Service):
     service_name = 'backchannel_authentication'
     response_body_type = 'json'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None, **kwargs):
-        Service.__init__(self, client_get=client_get, client_authn_factory=client_authn_factory,
-                         conf=conf, **kwargs)
+    def __init__(self, client_get, conf=None, **kwargs):
+        Service.__init__(self, client_get=client_get, conf=conf, **kwargs)
         self.default_request_args = {'scope': ['openid']}
         self.pre_construct = []
         self.post_construct = []
@@ -36,9 +35,8 @@ class ClientNotification(Service):
     response_body_type = ''
     http_method = 'POST'
 
-    def __init__(self, client_get, client_authn_factory=None, conf=None, **kwargs):
-        Service.__init__(self, client_get=client_get, client_authn_factory=client_authn_factory,
-                         conf=conf, **kwargs)
+    def __init__(self, client_get, conf=None, **kwargs):
+        Service.__init__(self, client_get=client_get, conf=conf, **kwargs)
         self.pre_construct = []
         self.post_construct = []
 

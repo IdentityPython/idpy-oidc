@@ -512,3 +512,12 @@ class TestEndpointWebID(object):
         _info = _verifier.unpack(access_token.value)
         assert "name" in _info
         assert "family_name" in _info
+
+    def test_token_handler(self):
+        master_handler = self.session_manager.token_handler
+        _handler = master_handler["access_token"]
+        assert _handler
+        _jwt = _handler(aud="https://example.org")
+        _verifier = JWT(self.endpoint_context.keyjar)
+        _info = _verifier.unpack(_jwt)
+        assert _info
