@@ -4,13 +4,16 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import pytest
-
+from cryptojwt.jwe.fernet import FernetEncrypter
 from idpyoidc.configure import Base
 from idpyoidc.configure import Configuration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.configure import lower_or_upper
+from idpyoidc.encrypter import DEFAULT_CRYPTO
+from idpyoidc.encrypter import init_crypto
 from idpyoidc.util import rndstr
+import pytest
+
 
 _dirname = os.path.dirname(os.path.abspath(__file__))
 
@@ -67,3 +70,97 @@ def test_entity_config(filename):
     assert len(ni) == 9
     assert set(ni.keys()) == {'base_url', '_dir_attributes', '_file_attributes', 'hash_seed',
                               'httpc_params', 'keys', 'conf', 'port', 'domain'}
+
+
+def test_init_crypto_None():
+    _res = init_crypto()
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert isinstance(_res["encrypter"], FernetEncrypter)
+
+
+def test_init_crypto_old():
+    _res = init_crypto({"password": "long sentence WITH number 64", "salt": "potassium_chloride"})
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert _res["conf"]["kwargs"]["password"] == "long sentence WITH number 64"
+    assert _res["conf"]["kwargs"]["salt"] == "potassium_chloride"
+
+    assert isinstance(_res["encrypter"], FernetEncrypter)
+
+
+def test_init_crypto_default_alg():
+    _conf = {
+        "kwargs": {
+            "keys": {
+                "key_defs": [
+                    {"type": "OCT", "use": ["enc"], "kid": "password"},
+                    {"type": "OCT", "use": ["enc"], "kid": "salt"},
+                ]
+            }
+        }
+    }
+    _res = init_crypto(_conf)
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert "password" in _res["conf"]["kwargs"]
+    assert "salt" in _res["conf"]["kwargs"]
+
+    assert isinstance(_res["encrypter"], FernetEncrypter)
+
+
+def test_init_crypto():
+    _conf = {
+        "kwargs": {
+            "keys": {
+                "key_defs": [
+                    {"type": "OCT", "use": ["enc"], "kid": "password"},
+                    {"type": "OCT", "use": ["enc"], "kid": "salt"},
+                ]
+            },
+            "hash_alg": "SHA512",
+            "iterations": 10,
+        }
+    }
+
+    _res = init_crypto(_conf)
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert "password" in _res["conf"]["kwargs"]
+    assert "salt" in _res["conf"]["kwargs"]
+
+    assert isinstance(_res["encrypter"], FernetEncrypter)
+
+
+def test_init_crypto_password():
+    _conf = {
+        "kwargs": {
+            "password": "long sentence WITH number 64"
+        }
+    }
+
+    _res = init_crypto(_conf)
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert _res["conf"]["kwargs"]["password"] == "long sentence WITH number 64"
+    assert len(_res["conf"]["kwargs"]["salt"]) == 16
+
+    assert isinstance(_res["encrypter"], FernetEncrypter)
+
+
+def test_init_crypto_keys():
+    _conf = {
+        "keys": {
+            "private_path": "private/cookie_jwks.json",
+            "key_defs": [
+                {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                {"type": "OCT", "use": ["sig"], "kid": "sig"},
+            ],
+            "read_only": False,
+        }
+    }
+    _res = init_crypto(_conf)
+    assert _res["conf"]["class"] == DEFAULT_CRYPTO
+    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert "password" in _res["conf"]["kwargs"]
+    assert "salt" in _res["conf"]["kwargs"]

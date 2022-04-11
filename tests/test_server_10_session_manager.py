@@ -132,11 +132,6 @@ class TestSessionManager:
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
 
-    def test_session_manager_salt_key(self):
-        sman = self.session_manager
-        assert sman.key == "ses_key"
-        assert sman.salt == "ses_salt"
-
     @pytest.mark.parametrize(
         "sub_type, sector_identifier",
         [("pairwise", "https://all.example.com"), ("public", ""), ("ephemeral", "")],

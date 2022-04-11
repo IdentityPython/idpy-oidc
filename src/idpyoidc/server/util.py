@@ -2,15 +2,10 @@ import base64
 import hashlib
 import json
 import logging
-import uuid
-from urllib.parse import urlparse
-from urllib.parse import urlunsplit
 
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
-
-from idpyoidc.server.session.info import SessionInfo
 from idpyoidc.util import importer
 
 from .exception import OidcEndpointError
@@ -114,24 +109,6 @@ def lv_unpack(txt):
     return res
 
 
-class Crypt(object):
-    def __init__(self, password, mode=None):
-        self.key = base64.urlsafe_b64encode(hashlib.sha256(password.encode("utf-8")).digest())
-        self.core = Fernet(self.key)
-
-    def encrypt(self, text):
-        # Padding to block size of AES
-        text = as_bytes(text)
-        if len(text) % 16:
-            text += b" " * (16 - len(text) % 16)
-        return self.core.encrypt(as_bytes(text))
-
-    def decrypt(self, ciphertext):
-        dec_text = self.core.decrypt(ciphertext)
-        dec_text = dec_text.rstrip(b" ")
-        return as_unicode(dec_text)
-
-
 def get_http_params(config):
     _verify_ssl = config.get("verify")
     if _verify_ssl is None:
@@ -202,7 +179,6 @@ def execute(spec, **kwargs):
             return _func(**kwargs)
         else:
             return kwargs
-
 
 # def sector_id_from_redirect_uris(uris):
 #     if not uris:

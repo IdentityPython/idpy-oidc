@@ -23,14 +23,11 @@ from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
 
+from tests import CRYPT_CONFIG
+
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -92,7 +89,7 @@ class TestEndpoint(object):
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {
-                    "keys": {"key_defs": COOKIE_KEYDEFS},
+                    "encrypter": CRYPT_CONFIG,
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
@@ -161,6 +158,19 @@ class TestEndpoint(object):
                     "eduperson_scoped_affiliation",
                 ],
             },
+            "session_params": {
+                "encrypter": {
+                    "kwargs": {
+                        "keys": {
+                            "key_defs": [
+                                {"type": "OCT", "use": ["enc"], "kid": "password"},
+                                {"type": "OCT", "use": ["enc"], "kid": "salt"},
+                            ]
+                        },
+                        "iterations": 10
+                    }
+                }
+            }
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 

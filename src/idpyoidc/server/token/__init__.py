@@ -2,7 +2,9 @@ import base64
 import logging
 from typing import Optional
 
-from idpyoidc.server.util import Crypt
+from cryptojwt import as_unicode
+from cryptojwt.jwe.fernet import FernetEncrypter
+from idpyoidc.encrypter import init_crypto
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.time_util import utc_time_sans_frac
@@ -76,13 +78,19 @@ class Token(object):
 
 
 class DefaultToken(Token):
-    def __init__(self, password, token_class="", token_type="Bearer", **kwargs):
+    def __init__(self,
+                 token_class: Optional[str] = "",
+                 token_type: Optional[str] = "Bearer",
+                 crypt_conf: Optional[dict] = None,
+                 **kwargs):
         Token.__init__(self, token_class, **kwargs)
-        self.crypt = Crypt(password)
+        _res = init_crypto(crypt_conf)
+        self.crypt = _res["encrypter"]
+        self.crypt_config = _res["conf"]
         self.token_type = token_type
 
     def __call__(
-        self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
+            self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
     ) -> str:
         """
         Return a token.
@@ -115,7 +123,7 @@ class DefaultToken(Token):
         except Exception as err:
             raise UnknownToken(err)
         # order: rnd, type, sid
-        return lv_unpack(plain)
+        return lv_unpack(as_unicode(plain))
 
     def info(self, token: str) -> dict:
         """

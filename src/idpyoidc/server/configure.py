@@ -24,13 +24,17 @@ OP_DEFAULT_CONFIG = {
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
+            "encrypter": {
+                "kwargs": {
+                    "keys": {
+                        "private_path": "private/cookie_jwks.json",
+                        "key_defs": [
+                            {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                            {"type": "OCT", "use": ["sig"], "kid": "sig"},
+                        ],
+                        "read_only": False,
+                    }
+                }
             },
             "name": {
                 "session": "oidc_op",
@@ -342,13 +346,17 @@ DEFAULT_EXTENDED_CONF = {
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
+            "encrypter": {
+                "kwargs": {
+                    "keys": {
+                        "private_path": "private/cookie_jwks.json",
+                        "key_defs": [
+                            {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                            {"type": "OCT", "use": ["sig"], "kid": "sig"},
+                        ],
+                        "read_only": False,
+                    }
+                }
             },
             "name": {
                 "session": "oidc_op",
@@ -503,8 +511,16 @@ DEFAULT_EXTENDED_CONF = {
     },
     "scopes_to_claims": SCOPE2CLAIMS,
     "session_params": {
-        "password": "ses_key",
-        "salt": "ses_salt",
+        "encrypter": {
+            "kwargs": {
+                "keys": {
+                    "key_defs": [
+                        {"type": "OCT", "use": ["enc"], "kid": "password"},
+                        {"type": "OCT", "use": ["enc"], "kid": "salt"},
+                    ]
+                }
+            }
+        },
         "sub_func": {
             "public": {"class": "idpyoidc.server.session.manager.PublicID",
                        "kwargs": {"salt": "mysalt"}},

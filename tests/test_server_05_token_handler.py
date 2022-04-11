@@ -4,18 +4,18 @@ import hmac
 import os
 import secrets
 
-import pytest
-
+from cryptojwt.jwe.fernet import FernetEncrypter
+from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.token import Crypt
 from idpyoidc.server.token import is_expired
 from idpyoidc.server.token.handler import DefaultToken
 from idpyoidc.server.token.handler import TokenHandler
 from idpyoidc.server.token.id_token import IDToken
 from idpyoidc.server.token.jwt_token import JWTToken
 from idpyoidc.time_util import utc_time_sans_frac
+import pytest
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,51 +35,17 @@ def test_is_expired():
     assert is_expired(now + 1) is False
 
 
-def test_crypt():
-    crypt = Crypt("Ditt nya bankkort")
-    txt = "Arsenal's great season gifts"
-    enc_text = crypt.encrypt(txt)
-    dec_text = crypt.decrypt(enc_text)
-    assert dec_text == txt
-
-
-class TestCrypt(object):
-    @pytest.fixture(autouse=True)
-    def create_crypt(self):
-        self.crypt = Crypt("4-amino-1H-pyrimidine-2-one")
-
-    def test_encrypt_decrypt(self):
-        ctext = self.crypt.encrypt("Cytosine")
-        plain = self.crypt.decrypt(ctext)
-        assert plain == "Cytosine"
-
-        ctext = self.crypt.encrypt("cytidinetriphosp")
-        plain = self.crypt.decrypt(ctext)
-
-        assert plain == "cytidinetriphosp"
-
-    def test_crypt_with_b64(self):
-        db = {}
-        msg = "secret{}{}".format(utc_time_sans_frac(), secrets.token_urlsafe(16))
-        csum = hmac.new(msg.encode("utf-8"), digestmod=hashlib.sha224)
-        txt = csum.digest()  # 28 bytes long, 224 bits
-        db[txt] = "foobar"
-        txt = txt + b"aces"  # another 4 bytes
-
-        ctext = self.crypt.encrypt(txt)
-        onthewire = base64.b64encode(ctext)
-        plain = self.crypt.decrypt(base64.b64decode(onthewire))
-        assert plain.endswith(b"aces")
-        assert db[plain[:-4]] == "foobar"
-
-
 class TestDefaultToken(object):
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
         password = "The longer the better. Is this close to enough ?"
         grant_expires_in = 600
-        self.th = DefaultToken(password, token_class="authorization_code",
-                               lifetime=grant_expires_in)
+        crypt_config = default_crypt_config()
+        crypt_config["kwargs"]["iterations"] = 10
+        self.th = DefaultToken(
+            crypt_conf=crypt_config,
+            token_class="authorization_code",
+            lifetime=grant_expires_in)
 
     def test_default_token_split_token(self):
         _token = self.th("session_id")
@@ -112,15 +78,21 @@ class TestDefaultToken(object):
 class TestTokenHandler(object):
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
-        password = "The longer the better. Is this close to enough ?"
         grant_expires_in = 600
         token_expires_in = 900
         refresh_token_expires_in = 86400
 
-        authorization_code = DefaultToken(password, token_class="authorization_code",
+        crypt_config = default_crypt_config()
+        crypt_config["kwargs"]["iterations"] = 10
+
+        authorization_code = DefaultToken(crypt_conf=crypt_config,
+                                          token_class="authorization_code",
                                           lifetime=grant_expires_in)
-        access_token = DefaultToken(password, token_class="access_token", lifetime=token_expires_in)
-        refresh_token = DefaultToken(password, token_class="refresh_token",
+        access_token = DefaultToken(crypt_conf=crypt_config,
+                                    token_class="access_token",
+                                    lifetime=token_expires_in)
+        refresh_token = DefaultToken(crypt_conf=crypt_config,
+                                     token_class="refresh_token",
                                      lifetime=refresh_token_expires_in)
 
         self.handler = TokenHandler(

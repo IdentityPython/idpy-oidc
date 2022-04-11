@@ -458,32 +458,25 @@ class TestEndpoint(object):
 
         # check that a sman db schema is consistent after a flush
         tdump = sman.dump()
-        for i in 'db', 'key', 'salt':
+        for i in ['db', 'crypt_config']:
             if i not in tdump:
                 raise ValueError(
                     f"{i} not found in session dump after a flush!"
                 )
 
-        # test that key and salt have not be touched after the flush
+        # test that key and salt have not been touched after the flush
         # they wouldn't change runtime (even if they are randomic).
-        for i in 'key', 'salt':
-            if session_dump[i] != tdump[i]:
-                raise ValueError(
-                    f"Inconsistent Session schema dump after a flush. "
-                    f"{i} has changed compared to which was configured."
-                )
-
-        # tests readonlyness of private attributes _key and _salt
-        for i in '_key', '_salt':
-            with pytest.raises(AttributeError):
-                setattr(sman, i, 'that thing')
+        if session_dump['crypt_config'] != tdump['crypt_config']:
+            raise ValueError(
+                f"Inconsistent Session schema dump after a flush. "
+                f"'crypt_config' has changed compared to which was configured."
+            )
 
         # ok, load the session and assert that everything is in the right place
         # some mess before doing that
-        sman.key = 'ingoalla'
-        sman.salt = 'fantozzi'
+        sman.crypt_config = {"password":'ingoalla', "salt": 'fantozzi'}
 
         # ok, end of the games, session have been loaded and all the things be finally there!
         sman.load(session_dump)
-        for i in 'db', 'key', 'salt':
+        for i in 'db', 'crypt_config':
             assert session_dump[i] == sman.dump()[i]

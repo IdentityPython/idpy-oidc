@@ -10,8 +10,8 @@ from urllib.parse import unquote_plus
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-import yaml
 from cryptojwt.utils import importer
+import yaml
 
 
 def rndstr(size=16):
@@ -134,4 +134,3 @@ def add_path(url, path):
             return '{}{}'.format(url, path)
         else:
             return '{}/{}'.format(url, path)
-

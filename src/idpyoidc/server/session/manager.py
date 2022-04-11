@@ -1,29 +1,31 @@
 import hashlib
 import logging
 import os
-import uuid
 from typing import Callable
 from typing import List
 from typing import Optional
+import uuid
 
+from idpyoidc.encrypter import default_crypt_config
+from idpyoidc.encrypter import get_crypt_config
+from idpyoidc.encrypter import init_crypto
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
 from idpyoidc.server.session.database import NoSuchClientSession
-from idpyoidc.server.util import Crypt
 from idpyoidc.util import rndstr
 
-from ..token import UnknownToken
-from ..token import WrongTokenClass
-from ..token import handler
-from ..token.handler import TokenHandler
 from .database import Database
 from .grant import ExchangeGrant
 from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
+from ..token import UnknownToken
+from ..token import WrongTokenClass
+from ..token import handler
+from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ def ephemeral_id(*args, **kwargs):
 
 class SessionManager(Database):
     parameter = Database.parameter.copy()
-    parameter.update({"salt": ""})
+    # parameter.update({"salt": ""})
     init_args = ["handler"]
 
     def __init__(
@@ -92,18 +94,12 @@ class SessionManager(Database):
             remember_token: Optional[Callable] = None,
             remove_inactive_token: Optional[bool] = False
     ):
-        super(SessionManager, self).__init__()
-        self.conf = conf or {}
+        self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
-        # these won't change runtime
         session_params = self.conf.get("session_params") or {}
-        self._key = session_params.get("password") or rndstr(24)
-        self._salt = session_params.get("salt") or rndstr(32)
+        _crypt_config = get_crypt_config(session_params)
+        super(SessionManager, self).__init__(_crypt_config)
 
-        self.key = self.load_key()
-        self.salt = self.load_key()
-
-        self._init_db()
         self.token_handler = handler
         self.remember_token = remember_token
         self.remove_inactive_token = remove_inactive_token
@@ -127,13 +123,13 @@ class SessionManager(Database):
 
         self.auth_req_id_map = {}
 
-    def load_key(self):
-        """returns the original key assigned in init"""
-        return self._key
-
-    def load_salt(self):
+    # def load_key(self):
+    #     """returns the original key assigned in init"""
+    #     return self.crypt_config["password"]
+    #
+    def get_salt(self):
         """returns the original salt assigned in init"""
-        return self._salt
+        return self.crypt_config["kwargs"]["salt"]
 
     def __setattr__(self, key, value):
         if key in ("_key", "_salt"):
@@ -141,9 +137,6 @@ class SessionManager(Database):
                 # not first time we configure it!
                 raise AttributeError(f"{key} is a ReadOnly attribute that can't be overwritten!")
         super().__setattr__(key, value)
-
-    def _init_db(self):
-        Database.__init__(self, key=self.load_key(), salt=self.load_salt())
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
@@ -201,7 +194,7 @@ class SessionManager(Database):
             authorization_request=auth_req,
             authentication_event=authn_event,
             sub=self.sub_func[sub_type](
-                user_id, salt=self.salt, sector_identifier=sector_identifier
+                user_id, salt=self.get_salt(), sector_identifier=sector_identifier
             ),
             usage_rules=token_usage_rules,
             scope=scopes,
@@ -238,7 +231,7 @@ class SessionManager(Database):
             scope=scopes, original_session_id=original_session_id,
             exchange_request=exchange_request,
             sub=self.sub_func[sub_type](
-                user_id, salt=self.salt, sector_identifier=""
+                user_id, salt=self.get_salt(), sector_identifier=""
             ),
             usage_rules=token_usage_rules,
         )
@@ -622,12 +615,8 @@ class SessionManager(Database):
         _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
         self.delete([_user_id, _client_id, _grant_id])
 
-    def local_load_adjustments(self, **kwargs):
-        self.crypt = Crypt(self.key)
-
     def flush(self):
         super().flush()
-        self._init_db()
 
 
 def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
