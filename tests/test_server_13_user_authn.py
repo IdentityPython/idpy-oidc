@@ -12,6 +12,8 @@ from idpyoidc.server.user_authn.user import NoAuthn
 from idpyoidc.server.user_authn.user import SymKeyAuthn
 from idpyoidc.server.user_authn.user import UserPassJinja2
 from idpyoidc.server.util import JSONDictDB
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -51,7 +53,11 @@ class TestUserAuthn(object):
                         "passwd_label": "Secret sauce",
                     },
                 },
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
+                "anon": {
+                    "acr": UNSPECIFIED,
+                    "class": NoAuthn,
+                    "kwargs": {"user": "diana"},
+                },
             },
             "template_dir": "templates",
             "cookie_handler": {
@@ -64,6 +70,12 @@ class TestUserAuthn(object):
                         "session_management": "oidc_op_sman",
                     },
                 },
+            },
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             },
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -93,11 +105,19 @@ class TestUserAuthn(object):
 
         # Parsed once before authenticated_as
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"])
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"]
+        )
 
         _info, _time_stamp = method.authenticated_as("client 12345", kakor)
-        assert set(_info.keys()) == {'sub', 'uid', 'state', 'grant_id', 'timestamp', 'sid',
-                                     'client_id'}
+        assert set(_info.keys()) == {
+            "sub",
+            "uid",
+            "state",
+            "grant_id",
+            "timestamp",
+            "sid",
+            "client_id",
+        }
         assert _info["sub"] == "diana"
 
     def test_userpassjinja2(self):
@@ -106,8 +126,7 @@ class TestUserAuthn(object):
             "kwargs": {"filename": full_path("passwd.json")},
         }
         template_handler = self.endpoint_context.template_handler
-        res = UserPassJinja2(db, template_handler,
-                             server_get=self.server.server_get)
+        res = UserPassJinja2(db, template_handler, server_get=self.server.server_get)
         res()
         assert "page_header" in res.kwargs
 

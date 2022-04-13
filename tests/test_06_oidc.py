@@ -661,7 +661,7 @@ class TestRegistrationResponse(object):
             "client_secret_expires_at": 1577858400,
             "registration_access_token": "this.is.an.access.token.value.ffx83",
             "registration_client_uri": "https://server.example.com/connect/register?client_id"
-                                       "=s6BhdRkqt3",
+            "=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
             "application_type": "web",
             "redirect_uris": [
@@ -1604,21 +1604,30 @@ def test_correct_sign_alg():
 
 
 def test_ID_Token_space_in_id():
-    idt = IdToken(**{
-        "at_hash": "buCCujNN632UIV8-VbKhgw",
-        "sub": "user-subject-1234531",
-        "aud": "client_ifCttPphtLxtPWd20602 ^.+/",
-        "iss": "https://www.certification.openid.net/test/a/idpy/",
-        "exp": 1632495959,
-        "nonce": "B88En9UpdHkQZMQXK9U3KHzV",
-        "iat": 1632495659
-    })
+    idt = IdToken(
+        **{
+            "at_hash": "buCCujNN632UIV8-VbKhgw",
+            "sub": "user-subject-1234531",
+            "aud": "client_ifCttPphtLxtPWd20602 ^.+/",
+            "iss": "https://www.certification.openid.net/test/a/idpy/",
+            "exp": 1632495959,
+            "nonce": "B88En9UpdHkQZMQXK9U3KHzV",
+            "iat": 1632495659,
+        }
+    )
 
     assert idt["aud"] == ["client_ifCttPphtLxtPWd20602 ^.+/"]
 
-    idt = IdToken(**{'at_hash': 'rgMbiR-Dj11dQjxhCyLkOw', 'sub': 'user-subject-1234531',
-                     'aud': 'client_dVCwIQuSKklinFP70742;#__$',
-                     'iss': 'https://www.certification.openid.net/test/a/idpy/', 'exp': 1632639462,
-                     'nonce': 'hUT3RhSooxC9CilrD8al6bGx', 'iat': 1632639162})
+    idt = IdToken(
+        **{
+            "at_hash": "rgMbiR-Dj11dQjxhCyLkOw",
+            "sub": "user-subject-1234531",
+            "aud": "client_dVCwIQuSKklinFP70742;#__$",
+            "iss": "https://www.certification.openid.net/test/a/idpy/",
+            "exp": 1632639462,
+            "nonce": "hUT3RhSooxC9CilrD8al6bGx",
+            "iat": 1632639162,
+        }
+    )
 
     assert idt["aud"] == ["client_dVCwIQuSKklinFP70742;#__$"]

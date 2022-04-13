@@ -8,73 +8,80 @@ from urllib.parse import urlparse
 
 from cryptojwt.jwt import JWT
 from cryptojwt.utils import qualified_name
-from idpyoidc.client.exception import Unsupported
 
+from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
+
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 LOGGER = logging.getLogger(__name__)
 
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
-SPECIAL_ARGS = ['authn_endpoint', 'algs']
+SPECIAL_ARGS = ["authn_endpoint", "algs"]
 
-REQUEST_INFO = 'Doing request with: URL:{}, method:{}, data:{}, https_args:{}'
+REQUEST_INFO = "Doing request with: URL:{}, method:{}, data:{}, https_args:{}"
 
 
 class Service(ImpExp):
     """The basic Service class."""
+
     msg_type = Message
     response_cls = Message
     error_msg = ResponseMessage
-    endpoint_name = ''
-    endpoint = ''
-    service_name = ''
+    endpoint_name = ""
+    endpoint = ""
+    service_name = ""
     synchronous = True
-    default_authn_method = ''
-    http_method = 'GET'
-    request_body_type = 'urlencoded'
-    response_body_type = 'json'
+    default_authn_method = ""
+    http_method = "GET"
+    request_body_type = "urlencoded"
+    response_body_type = "json"
 
     parameter = {
-        'default_authn_method': None,
-        'endpoint': "",
-        'error_msg': object,
-        'http_method': None,
-        'msg_type': object,
-        'request_body_type': None,
-        'response_body_type': None,
-        'response_cls': object
+        "default_authn_method": None,
+        "endpoint": "",
+        "error_msg": object,
+        "http_method": None,
+        "msg_type": object,
+        "request_body_type": None,
+        "response_body_type": None,
+        "response_cls": object,
     }
 
     init_args = ["client_get"]
 
-    def __init__(self,
-                 client_get: Callable,
-                 conf: Optional[Union[dict, Configuration]] = None,
-                 **kwargs):
+    def __init__(
+        self, client_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
+    ):
         ImpExp.__init__(self)
 
         self.client_get = client_get
         self.default_request_args = {}
         if conf:
             self.conf = conf
-            for param in ['msg_type', 'response_cls', 'error_msg',
-                          'default_authn_method', 'http_method',
-                          'request_body_type', 'response_body_type']:
+            for param in [
+                "msg_type",
+                "response_cls",
+                "error_msg",
+                "default_authn_method",
+                "http_method",
+                "request_body_type",
+                "response_body_type",
+            ]:
                 if param in conf:
                     setattr(self, param, conf[param])
         else:
@@ -115,7 +122,7 @@ class Service(ImpExp):
 
             if not val:
                 if "request_args" in self.conf:
-                    val = self.conf['request_args'].get(prop)
+                    val = self.conf["request_args"].get(prop)
                 if not val:
                     val = _context.register_args.get(prop)
                     if not val:
@@ -154,11 +161,12 @@ class Service(ImpExp):
             used by the post_construct methods.
         """
 
-        _args = self.method_args('pre_construct', **kwargs)
+        _args = self.method_args("pre_construct", **kwargs)
         post_args = {}
         for meth in self.pre_construct:
-            request_args, _post_args = meth(request_args, service=self, post_args=post_args,
-                                            **_args)
+            request_args, _post_args = meth(
+                request_args, service=self, post_args=post_args, **_args
+            )
             # Not necessarily independent
             # post_args.update(_post_args)
 
@@ -172,14 +180,14 @@ class Service(ImpExp):
         :param kwargs: Arguments used by the post_construct method
         :return: Possible modified set of request arguments.
         """
-        _args = self.method_args('post_construct', **kwargs)
+        _args = self.method_args("post_construct", **kwargs)
 
         for meth in self.post_construct:
             request_args = meth(request_args, service=self, **_args)
 
         return request_args
 
-    def update_service_context(self, resp, key='', **kwargs):
+    def update_service_context(self, resp, key="", **kwargs):
         """
         A method run after the response has been parsed and verified.
 
@@ -209,10 +217,10 @@ class Service(ImpExp):
 
         # If 'state' appears among the keyword argument and is not
         # expected to appear in the request, remove it.
-        if 'state' in self.msg_type.c_param and 'state' in kwargs:
+        if "state" in self.msg_type.c_param and "state" in kwargs:
             # Don't overwrite something put there by the constructor
-            if 'state' not in request_args:
-                request_args['state'] = kwargs['state']
+            if "state" not in request_args:
+                request_args["state"] = kwargs["state"]
 
         # logger.debug("request_args: %s" % sanitize(request_args))
         _args = self.gather_request_args(**request_args)
@@ -228,8 +236,7 @@ class Service(ImpExp):
 
         return self.do_post_construct(request, **post_args)
 
-    def init_authentication_method(self, request, authn_method,
-                                   http_args=None, **kwargs):
+    def init_authentication_method(self, request, authn_method, http_args=None, **kwargs):
         """
         Will run the proper client authentication method.
         Each such method will place the necessary information in the necessary
@@ -245,7 +252,7 @@ class Service(ImpExp):
             http_args = {}
 
         if authn_method:
-            LOGGER.debug('Client authn method: %s', authn_method)
+            LOGGER.debug("Client authn method: %s", authn_method)
             _context = self.client_get("service_context")
             try:
                 _func = _context.client_authn_method[authn_method]
@@ -284,10 +291,9 @@ class Service(ImpExp):
 
         return self.client_get("service_context").provider_info[self.endpoint_name]
 
-    def get_authn_header(self,
-                         request: Union[dict, Message],
-                         authn_method: Optional[str] = '',
-                         **kwargs) -> dict:
+    def get_authn_header(
+        self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
+    ) -> dict:
         """
         Construct an authorization specification to be sent in the
         HTTP header.
@@ -302,7 +308,7 @@ class Service(ImpExp):
         if authn_method:
             h_arg = self.init_authentication_method(request, authn_method, **kwargs)
             try:
-                headers = h_arg['headers']
+                headers = h_arg["headers"]
             except KeyError:
                 pass
 
@@ -317,11 +323,13 @@ class Service(ImpExp):
         """
         return self.default_authn_method
 
-    def get_headers(self,
-                    request: Union[dict, Message],
-                    http_method: str,
-                    authn_method: Optional[str] = '',
-                    **kwargs) -> dict:
+    def get_headers(
+        self,
+        request: Union[dict, Message],
+        http_method: str,
+        authn_method: Optional[str] = "",
+        **kwargs,
+    ) -> dict:
         """
 
         :param request:
@@ -332,24 +340,26 @@ class Service(ImpExp):
         if not authn_method:
             authn_method = self.get_authn_method()
 
-        _headers = self.get_authn_header(request,
-                                         authn_method=authn_method,
-                                         authn_endpoint=self.endpoint_name,
-                                         **kwargs)
+        _headers = self.get_authn_header(
+            request, authn_method=authn_method, authn_endpoint=self.endpoint_name, **kwargs
+        )
 
         for meth in self.construct_extra_headers:
-            _headers = meth(self.client_get("service_context"),
-                            headers=_headers,
-                            request=request,
-                            authn_method=authn_method,
-                            service_endpoint=self.endpoint_name,
-                            http_method=http_method,
-                            **kwargs)
+            _headers = meth(
+                self.client_get("service_context"),
+                headers=_headers,
+                request=request,
+                authn_method=authn_method,
+                service_endpoint=self.endpoint_name,
+                http_method=http_method,
+                **kwargs,
+            )
 
         return _headers
 
-    def get_request_parameters(self, request_args=None, method="",
-                               request_body_type="", authn_method='', **kwargs) -> dict:
+    def get_request_parameters(
+        self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
+    ) -> dict:
         """
         Builds the request message and constructs the HTTP headers.
 
@@ -380,41 +390,40 @@ class Service(ImpExp):
         request = self.construct_request(request_args=request_args, **kwargs)
 
         LOGGER.debug("Request: %s", request)
-        _info = {'method': method, "request": request}
+        _info = {"method": method, "request": request}
 
         _args = kwargs.copy()
         _context = self.client_get("service_context")
         if _context.issuer:
-            _args['iss'] = _context.issuer
+            _args["iss"] = _context.issuer
 
         # Client authentication by usage of the Authorization HTTP header
         # or by modifying the request object
-        _headers = self.get_headers(request, http_method=method,
-                                    authn_method=authn_method, **_args)
+        _headers = self.get_headers(request, http_method=method, authn_method=authn_method, **_args)
 
         # Find out where to send this request
         try:
-            endpoint_url = kwargs['endpoint']
+            endpoint_url = kwargs["endpoint"]
         except KeyError:
             endpoint_url = self.get_endpoint()
 
-        _info['url'] = get_http_url(endpoint_url, request, method=method)
+        _info["url"] = get_http_url(endpoint_url, request, method=method)
 
         # If there is to be a body part
-        if method == 'POST':
+        if method == "POST":
             # How should it be serialized
-            if request_body_type == 'urlencoded':
+            if request_body_type == "urlencoded":
                 content_type = URL_ENCODED
-            elif request_body_type in ['jws', 'jwe', 'jose']:
+            elif request_body_type in ["jws", "jwe", "jose"]:
                 content_type = JOSE_ENCODED
             else:  # request_body_type == 'json'
                 content_type = JSON_ENCODED
 
-            _info['body'] = get_http_body(request, content_type)
-            _headers.update({'Content-Type': content_type})
+            _info["body"] = get_http_body(request, content_type)
+            _headers.update({"Content-Type": content_type})
 
         if _headers:
-            _info['headers'] = _headers
+            _info["headers"] = _headers
 
         return _info
 
@@ -429,7 +438,7 @@ class Service(ImpExp):
         :return: the query/fragment part
         """
         # If info is a whole URL pick out the query or fragment part
-        if '?' in info or '#' in info:
+        if "?" in info or "#" in info:
             parts = urlparse(info)
             # either query of fragment
             if parts.query:
@@ -449,9 +458,9 @@ class Service(ImpExp):
         """
         return response
 
-    def gather_verify_arguments(self,
-                                response: Optional[Union[dict, Message]] = None,
-                                behaviour_args: Optional[dict] = None):
+    def gather_verify_arguments(
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+    ):
         """
         Need to add some information before running verify()
 
@@ -459,8 +468,12 @@ class Service(ImpExp):
         """
 
         _context = self.client_get("service_context")
-        kwargs = {'iss': _context.issuer, 'keyjar': _context.keyjar, 'verify': True,
-                  'client_id': _context.client_id}
+        kwargs = {
+            "iss": _context.issuer,
+            "keyjar": _context.keyjar,
+            "verify": True,
+            "client_id": _context.client_id,
+        }
 
         if self.service_name == "provider_info":
             if _context.issuer.startswith("http://"):
@@ -470,10 +483,10 @@ class Service(ImpExp):
 
     def _do_jwt(self, info):
         _context = self.client_get("service_context")
-        args = {'allowed_sign_algs': _context.get_sign_alg(self.service_name)}
+        args = {"allowed_sign_algs": _context.get_sign_alg(self.service_name)}
         enc_algs = _context.get_enc_alg_enc(self.service_name)
-        args['allowed_enc_algs'] = enc_algs['alg']
-        args['allowed_enc_encs'] = enc_algs['enc']
+        args["allowed_enc_algs"] = enc_algs["alg"]
+        args["allowed_enc_encs"] = enc_algs["enc"]
         _jwt = JWT(key_jar=_context.keyjar, **args)
         _jwt.iss = _context.client_id
         return _jwt.unpack(info)
@@ -482,29 +495,32 @@ class Service(ImpExp):
         _context = self.client_get("service_context")
 
         try:
-            resp = self.response_cls().deserialize(
-                info, sformat, iss=_context.issuer, **kwargs)
+            resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
         except Exception as err:
             resp = None
-            if sformat == 'json':
+            if sformat == "json":
                 # Could be JWS or JWE but wrongly tagged
                 # Adding issuer is just a fail-safe. If one thing was wrong then two can be.
                 try:
-                    resp = self.response_cls().deserialize(info, 'jwt', iss=_context.issuer,
-                                                           **kwargs)
+                    resp = self.response_cls().deserialize(
+                        info, "jwt", iss=_context.issuer, **kwargs
+                    )
                 except Exception as err:
-                    LOGGER.error('Error while deserializing: %s', err)
+                    LOGGER.error("Error while deserializing: %s", err)
                     raise
 
             if resp is None:
-                raise ValueError(f'Incorrect message type: {sformat}')
+                raise ValueError(f"Incorrect message type: {sformat}")
         return resp
 
-    def parse_response(self, info,
-                       sformat: Optional[str] = "",
-                       state: Optional[str] = "",
-                       behaviour_args: Optional[dict] = None,
-                       **kwargs):
+    def parse_response(
+        self,
+        info,
+        sformat: Optional[str] = "",
+        state: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
+        **kwargs,
+    ):
         """
         This the start of a pipeline that will:
 
@@ -527,13 +543,13 @@ class Service(ImpExp):
         if not sformat:
             sformat = self.response_body_type
 
-        LOGGER.debug('response format: %s', sformat)
+        LOGGER.debug("response format: %s", sformat)
 
-        if sformat in ['jose', 'jws', 'jwe']:
+        if sformat in ["jose", "jws", "jwe"]:
             resp = self.post_parse_response(info, state=state)
 
             if not resp:
-                LOGGER.error('Missing or faulty response')
+                LOGGER.error("Missing or faulty response")
                 raise ResponseError("Missing or faulty response")
 
             return resp
@@ -541,14 +557,14 @@ class Service(ImpExp):
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":
             info = self.get_urlinfo(info)
-        elif sformat == 'jwt':
+        elif sformat == "jwt":
             info = self._do_jwt(info)
             sformat = "dict"
-        elif sformat == 'json':
+        elif sformat == "json":
             info = json.loads(info)
             sformat = "dict"
 
-        LOGGER.debug('response_cls: %s', self.response_cls.__name__)
+        LOGGER.debug("response_cls: %s", self.response_cls.__name__)
 
         resp = self._do_response(info, sformat, **kwargs)
 
@@ -556,7 +572,7 @@ class Service(ImpExp):
 
         # is this an error message
         if is_error_message(resp):
-            LOGGER.debug('Error response: %s', resp)
+            LOGGER.debug("Error response: %s", resp)
         else:
             vargs = self.gather_verify_arguments(response=resp, behaviour_args=behaviour_args)
             LOGGER.debug("Verify response with %s", vargs)
@@ -564,13 +580,13 @@ class Service(ImpExp):
                 # verify the message. If something is wrong an exception is thrown
                 resp.verify(**vargs)
             except Exception as err:
-                LOGGER.error('Got exception while verifying response: %s', err)
+                LOGGER.error("Got exception while verifying response: %s", err)
                 raise
 
             resp = self.post_parse_response(resp, state=state)
 
         if not resp:
-            LOGGER.error('Missing or faulty response')
+            LOGGER.error("Missing or faulty response")
             raise ResponseError("Missing or faulty response")
 
         return resp
@@ -619,19 +635,19 @@ def init_services(service_definitions, client_get):
     service = DLDict()
     for service_name, service_configuration in service_definitions.items():
         try:
-            kwargs = service_configuration['kwargs']
+            kwargs = service_configuration["kwargs"]
         except KeyError:
             kwargs = {}
 
-        kwargs.update({'client_get': client_get})
+        kwargs.update({"client_get": client_get})
 
-        if isinstance(service_configuration['class'], str):
-            _value_cls = service_configuration['class']
-            _cls = importer(service_configuration['class'])
+        if isinstance(service_configuration["class"], str):
+            _value_cls = service_configuration["class"]
+            _cls = importer(service_configuration["class"])
             _srv = _cls(**kwargs)
         else:
-            _value_cls = qualified_name(service_configuration['class'])
-            _srv = service_configuration['class'](**kwargs)
+            _value_cls = qualified_name(service_configuration["class"])
+            _srv = service_configuration["class"](**kwargs)
 
         # if 'post_functions' in service_configuration:
         #     gather_constructors(service_configuration['post_functions'], _srv.post_construct)

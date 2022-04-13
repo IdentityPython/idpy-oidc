@@ -5,35 +5,28 @@ from idpyoidc.client.oauth2 import provider_info_discovery
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 logger = logging.getLogger(__name__)
 
 PREFERENCE2PROVIDER = {
     # "require_signed_request_object": "request_object_algs_supported",
     "request_object_signing_alg": "request_object_signing_alg_values_supported",
-    "request_object_encryption_alg":
-        "request_object_encryption_alg_values_supported",
-    "request_object_encryption_enc":
-        "request_object_encryption_enc_values_supported",
+    "request_object_encryption_alg": "request_object_encryption_alg_values_supported",
+    "request_object_encryption_enc": "request_object_encryption_enc_values_supported",
     "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
-    "userinfo_encrypted_response_alg":
-        "userinfo_encryption_alg_values_supported",
-    "userinfo_encrypted_response_enc":
-        "userinfo_encryption_enc_values_supported",
+    "userinfo_encrypted_response_alg": "userinfo_encryption_alg_values_supported",
+    "userinfo_encrypted_response_enc": "userinfo_encryption_enc_values_supported",
     "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
-    "id_token_encrypted_response_alg":
-        "id_token_encryption_alg_values_supported",
-    "id_token_encrypted_response_enc":
-        "id_token_encryption_enc_values_supported",
+    "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
+    "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
     "default_acr_values": "acr_values_supported",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
-    "token_endpoint_auth_signing_alg":
-        "token_endpoint_auth_signing_alg_values_supported",
+    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
-    'grant_types': 'grant_types_supported',
-    'scope': 'scopes_supported'
+    "grant_types": "grant_types_supported",
+    "scope": "scopes_supported",
 }
 
 PROVIDER2PREFERENCE = dict([(v, k) for k, v in PREFERENCE2PROVIDER.items()])
@@ -60,10 +53,10 @@ def add_redirect_uris(request_args, service=None, **kwargs):
         _cbs = _context.callback
         if _cbs:
             # Filter out local additions.
-            _uris = [v for k, v in _cbs.items() if not k.startswith('__')]
-            request_args['redirect_uris'] = _uris
+            _uris = [v for k, v in _cbs.items() if not k.startswith("__")]
+            request_args["redirect_uris"] = _uris
         else:
-            request_args['redirect_uris'] = _context.redirect_uris
+            request_args["redirect_uris"] = _context.redirect_uris
 
     return request_args, {}
 
@@ -74,18 +67,15 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
     error_msg = ResponseMessage
 
     def __init__(self, client_get, conf=None):
-        provider_info_discovery.ProviderInfoDiscovery.__init__(
-            self, client_get, conf=conf)
+        provider_info_discovery.ProviderInfoDiscovery.__init__(self, client_get, conf=conf)
 
     def update_service_context(self, resp, **kwargs):
         _context = self.client_get("service_context")
         self._update_service_context(resp)
         self.match_preferences(resp, _context.issuer)
-        if 'pre_load_keys' in self.conf and self.conf['pre_load_keys']:
-            _jwks = _context.keyjar.export_jwks_as_json(
-                issuer=resp['issuer'])
-            logger.info(
-                'Preloaded keys for {}: {}'.format(resp['issuer'], _jwks))
+        if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
+            _jwks = _context.keyjar.export_jwks_as_json(issuer=resp["issuer"])
+            logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))
 
     def match_preferences(self, pcr=None, issuer=None):
         """
@@ -122,9 +112,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
                     # standard says is mandatory if at all.
                     _pvals = PROVIDER_DEFAULT[_pref]
                 except KeyError:
-                    logger.info(
-                        'No info from provider on {} and no default'.format(
-                            _pref))
+                    logger.info("No info from provider on {} and no default".format(_pref))
                     _pvals = vals
 
             if isinstance(vals, str):
@@ -144,8 +132,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
                         _behaviour[_pref] = []
                         for val in vals:
                             if val in _pvals:
-                                _behaviour[_pref].append(
-                                    val)
+                                _behaviour[_pref].append(val)
                     else:
                         for val in vals:
                             if val in _pvals:
@@ -171,4 +158,4 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
                 _behaviour[key] = val
 
         _context.behaviour = _behaviour
-        logger.debug('service_context behaviour: {}'.format(_behaviour))
+        logger.debug("service_context behaviour: {}".format(_behaviour))

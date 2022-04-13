@@ -15,6 +15,8 @@ from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.session.claims import ClaimsInterface
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 CLAIMS = {
     "userinfo": {
@@ -112,12 +114,18 @@ class TestCollectUserInfo:
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
                     "kwargs": {
-                        "base_claims": {"email": None, "email_verified": None, },
+                        "base_claims": {
+                            "email": None,
+                            "email_verified": None,
+                        },
                         "enable_claims_per_client": True,
                     },
                 },
@@ -128,13 +136,21 @@ class TestCollectUserInfo:
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
                         "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-                        "response_modes_supported": ["query", "fragment", "form_post", ],
+                        "response_modes_supported": [
+                            "query",
+                            "fragment",
+                            "form_post",
+                        ],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
                         "request_uri_parameter_supported": True,
@@ -144,9 +160,16 @@ class TestCollectUserInfo:
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
                         "client_authn_method": ["bearer_header"],
-                        "base_claims": {"eduperson_scoped_affiliation": None, "email": None, },
+                        "base_claims": {
+                            "eduperson_scoped_affiliation": None,
+                            "email": None,
+                        },
                         "add_claims_by_scope": True,
                         "enable_claims_per_client": True,
                     },
@@ -165,6 +188,7 @@ class TestCollectUserInfo:
                 }
             },
             "template_dir": "template",
+            "session_params": {"encrypter": SESSION_PARAMS},
         }
 
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -292,7 +316,8 @@ class TestCollectUserInfo:
         del _userinfo_endpoint.kwargs["base_claims"]
 
         self.endpoint_context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {
-            "phone_number": None}
+            "phone_number": None
+        }
 
         _userinfo_restriction = self.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
@@ -310,8 +335,10 @@ class TestCollectUserInfoCustomScopes:
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_DB}},
             "password": "we didn't start the fire",
             "issuer": "https://example.com/op",
-            "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface",
-                                 "kwargs": {}},
+            "claims_interface": {
+                "class": "idpyoidc.server.session.claims.ClaimsInterface",
+                "kwargs": {},
+            },
             "endpoint": {
                 "provider_config": {
                     "path": "{}/.well-known/openid-configuration",
@@ -383,6 +410,12 @@ class TestCollectUserInfoCustomScopes:
                 }
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
         }
 
     @pytest.fixture(autouse=True)

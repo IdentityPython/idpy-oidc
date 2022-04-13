@@ -7,6 +7,8 @@ from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oidc.discovery import Discovery
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -41,6 +43,12 @@ class TestEndpoint(object):
                 }
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint = server.server_get("endpoint", "discovery")

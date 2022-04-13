@@ -14,12 +14,13 @@ LOGGER = logging.getLogger(__name__)
 
 class ProviderInfoDiscovery(Service):
     """The service that talks to the OAuth2 provider info discovery endpoint."""
+
     msg_type = oauth2.Message
     response_cls = oauth2.ASConfigurationResponse
     error_msg = ResponseMessage
     synchronous = True
-    service_name = 'provider_info'
-    http_method = 'GET'
+    service_name = "provider_info"
+    http_method = "GET"
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
@@ -35,7 +36,7 @@ class ProviderInfoDiscovery(Service):
         except AttributeError:
             _iss = self.endpoint
 
-        if _iss.endswith('/'):
+        if _iss.endswith("/"):
             return OIDCONF_PATTERN.format(_iss[:-1])
 
         return OIDCONF_PATTERN.format(_iss)
@@ -48,7 +49,7 @@ class ProviderInfoDiscovery(Service):
         :param kwargs:
         :return:
         """
-        return {'url': self.get_endpoint(), 'method': method}
+        return {"url": self.get_endpoint(), "method": method}
 
     def _verify_issuer(self, resp, issuer):
         _pcr_issuer = resp["issuer"]
@@ -66,12 +67,12 @@ class ProviderInfoDiscovery(Service):
         # In some cases we can live with the two URLs not being
         # the same. But this is an excepted that has to be explicit
         try:
-            self.client_get("service_context").allow['issuer_mismatch']
+            self.client_get("service_context").allow["issuer_mismatch"]
         except KeyError:
             if _issuer != _pcr_issuer:
                 raise OidcServiceError(
-                    "provider info issuer mismatch '%s' != '%s'" % (
-                        _issuer, _pcr_issuer))
+                    "provider info issuer mismatch '%s' != '%s'" % (_issuer, _pcr_issuer)
+                )
         return _issuer
 
     def _set_endpoints(self, resp):
@@ -118,10 +119,10 @@ class ProviderInfoDiscovery(Service):
 
         # Load the keys. Note that this only means that the key specification
         # is loaded not necessarily that any keys are fetched.
-        if 'jwks_uri' in resp:
-            _keyjar.load_keys(_pcr_issuer, jwks_uri=resp['jwks_uri'])
-        elif 'jwks' in resp:
-            _keyjar.load_keys(_pcr_issuer, jwks=resp['jwks'])
+        if "jwks_uri" in resp:
+            _keyjar.load_keys(_pcr_issuer, jwks_uri=resp["jwks_uri"])
+        elif "jwks" in resp:
+            _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
 
         _context.keyjar = _keyjar
 

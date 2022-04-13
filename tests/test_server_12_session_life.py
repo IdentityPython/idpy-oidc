@@ -16,7 +16,9 @@ from idpyoidc.server.session.info import ClientSessionInfo
 from idpyoidc.server.session.info import UserSessionInfo
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.time_util import utc_time_sans_frac
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
 
@@ -33,15 +35,16 @@ class TestSession:
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "jwks_uri": "https://example.com/jwks.json",
             "token_handler_args": {
-                "code": {"kwargs": {"lifetime": 600, "password": password}},
-                "token": {"kwargs": {"lifetime": 900, "password": password}},
-                "refresh": {"kwargs": {"lifetime": 86400, "password": password}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
             },
             "template_dir": "template",
             "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -64,7 +67,9 @@ class TestSession:
 
         # User info is stored in the Session DB
         authn_event = create_authn_event(
-            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=utc_time_sans_frac(),
+            user_id,
+            authn_info=INTERNETPROTOCOLPASSWORD,
+            authn_time=utc_time_sans_frac(),
         )
 
         user_info = UserSessionInfo(user_id=user_id)
@@ -99,7 +104,9 @@ class TestSession:
         )
 
         # get user info
-        user_info = self.session_manager.get_user_info(uid=user_id, )
+        user_info = self.session_manager.get_user_info(
+            uid=user_id,
+        )
         return grant.id, code
 
     def test_code_flow(self):
@@ -298,7 +305,9 @@ class TestSessionJWTToken:
 
         # Now for client session information
         authn_event = create_authn_event(
-            user_id, authn_info=INTERNETPROTOCOLPASSWORD, authn_time=utc_time_sans_frac(),
+            user_id,
+            authn_info=INTERNETPROTOCOLPASSWORD,
+            authn_time=utc_time_sans_frac(),
         )
 
         client_id = AUTH_REQ["client_id"]

@@ -58,7 +58,7 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-        endpoint_context, client_info, payload_type, sign=False, encrypt=False
+    endpoint_context, client_info, payload_type, sign=False, encrypt=False
 ):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
@@ -117,11 +117,11 @@ class IDToken(Token):
     }
 
     def __init__(
-            self,
-            token_class: Optional[str] = "id_token",
-            lifetime: Optional[int] = 300,
-            server_get: Callable = None,
-            **kwargs,
+        self,
+        token_class: Optional[str] = "id_token",
+        lifetime: Optional[int] = 300,
+        server_get: Callable = None,
+        **kwargs,
     ):
         Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
@@ -131,13 +131,13 @@ class IDToken(Token):
         self.provider_info = construct_provider_info(self.default_capabilities, **kwargs)
 
     def payload(
-            self,
-            session_id,
-            alg="RS256",
-            code=None,
-            access_token=None,
-            extra_claims=None,
-            user_info=None,
+        self,
+        session_id,
+        alg="RS256",
+        code=None,
+        access_token=None,
+        extra_claims=None,
+        user_info=None,
     ):
         """
         Collect payload for the ID Token.
@@ -211,16 +211,16 @@ class IDToken(Token):
         return _args
 
     def sign_encrypt(
-            self,
-            session_id,
-            client_id,
-            code=None,
-            access_token=None,
-            sign=True,
-            encrypt=False,
-            lifetime=None,
-            extra_claims=None,
-            user_info=None,
+        self,
+        session_id,
+        client_id,
+        code=None,
+        access_token=None,
+        sign=True,
+        encrypt=False,
+        lifetime=None,
+        extra_claims=None,
+        user_info=None,
     ) -> str:
         """
         Signed and or encrypt a IDToken
@@ -260,14 +260,14 @@ class IDToken(Token):
         return _jwt.pack(_payload, recv=client_id)
 
     def __call__(
-            self,
-            session_id: Optional[str] = "",
-            ttype: Optional[str] = "",
-            encrypt=False,
-            code=None,
-            access_token=None,
-            usage_rules: Optional[dict] = None,
-            **kwargs,
+        self,
+        session_id: Optional[str] = "",
+        ttype: Optional[str] = "",
+        encrypt=False,
+        code=None,
+        access_token=None,
+        usage_rules: Optional[dict] = None,
+        **kwargs,
     ) -> str:
         _context = self.server_get("endpoint_context")
 
@@ -275,7 +275,7 @@ class IDToken(Token):
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
-                _context, client_id, "front"
+            _context, client_id, "front"
         ):
 
             xargs = {"sid": session_id}

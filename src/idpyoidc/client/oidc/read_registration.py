@@ -13,16 +13,17 @@ class RegistrationRead(Service):
     response_cls = oidc.RegistrationResponse
     error_msg = ResponseMessage
     synchronous = True
-    service_name = 'registration_read'
-    http_method = 'GET'
-    default_authn_method = 'client_secret_basic'
+    service_name = "registration_read"
+    http_method = "GET"
+    default_authn_method = "client_secret_basic"
 
     def get_endpoint(self):
         try:
             return self.client_get("service_context").registration_response[
-                "registration_client_uri"]
+                "registration_client_uri"
+            ]
         except KeyError:
-            return ''
+            return ""
 
     def get_authn_header(self, request, authn_method, **kwargs):
         """
@@ -40,7 +41,8 @@ class RegistrationRead(Service):
             LOGGER.debug("Client authn method: %s", authn_method)
             headers["Authorization"] = "Bearer {}".format(
                 self.client_get("service_context").registration_response[
-                    "registration_access_token"]
+                    "registration_access_token"
+                ]
             )
 
         return headers

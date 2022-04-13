@@ -24,13 +24,17 @@ OP_DEFAULT_CONFIG = {
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
+            "encrypter": {
+                "kwargs": {
+                    "keys": {
+                        "private_path": "private/cookie_jwks.json",
+                        "key_defs": [
+                            {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                            {"type": "OCT", "use": ["sig"], "kid": "sig"},
+                        ],
+                        "read_only": False,
+                    }
+                }
             },
             "name": {
                 "session": "oidc_op",
@@ -158,21 +162,28 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
 
         conf = copy.deepcopy(conf)
-        Base.__init__(self, conf, base_path, file_attributes=file_attributes,
-                      dir_attributes=dir_attributes, domain=domain, port=port)
+        Base.__init__(
+            self,
+            conf,
+            base_path,
+            file_attributes=file_attributes,
+            dir_attributes=dir_attributes,
+            domain=domain,
+            port=port,
+        )
 
-        self.key_conf = conf.get('key_conf', conf.get('keys'))
+        self.key_conf = conf.get("key_conf", conf.get("keys"))
 
         for key in self.parameter.keys():
             _val = conf.get(key)
@@ -184,7 +195,7 @@ class EntityConfiguration(Base):
                         file_attributes=file_attributes,
                         domain=domain,
                         port=port,
-                        dir_attributes=dir_attributes
+                        dir_attributes=dir_attributes,
                     )
                 else:
                     continue
@@ -218,14 +229,14 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         super().__init__(
             conf=conf,
@@ -234,7 +245,7 @@ class OPConfiguration(EntityConfiguration):
             domain=domain,
             port=port,
             file_attributes=file_attributes,
-            dir_attributes=dir_attributes
+            dir_attributes=dir_attributes,
         )
 
 
@@ -242,14 +253,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,
@@ -259,7 +270,7 @@ class ASConfiguration(EntityConfiguration):
             domain=domain,
             port=port,
             file_attributes=file_attributes,
-            dir_attributes=dir_attributes
+            dir_attributes=dir_attributes,
         )
 
 
@@ -335,20 +346,21 @@ DEFAULT_EXTENDED_CONF = {
             "refresh_token",
         ],
     },
-    "claims_interface": {
-        "class": "idpyoidc.server.session.claims.ClaimsInterface",
-        "kwargs": {}
-    },
+    "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
-            "keys": {
-                "private_path": "private/cookie_jwks.json",
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                    {"type": "OCT", "use": ["sig"], "kid": "sig"},
-                ],
-                "read_only": False,
+            "encrypter": {
+                "kwargs": {
+                    "keys": {
+                        "private_path": "private/cookie_jwks.json",
+                        "key_defs": [
+                            {"type": "OCT", "use": ["enc"], "kid": "enc"},
+                            {"type": "OCT", "use": ["sig"], "kid": "sig"},
+                        ],
+                        "read_only": False,
+                    }
+                }
             },
             "name": {
                 "session": "oidc_op",
@@ -467,9 +479,7 @@ DEFAULT_EXTENDED_CONF = {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
             "read_only": False,
-            "key_defs": [
-                {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}
-            ],
+            "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
         "code": {"kwargs": {"lifetime": 600}},
         "token": {
@@ -503,11 +513,21 @@ DEFAULT_EXTENDED_CONF = {
     },
     "scopes_to_claims": SCOPE2CLAIMS,
     "session_params": {
-        "password": "ses_key",
-        "salt": "ses_salt",
+        "encrypter": {
+            "kwargs": {
+                "keys": {
+                    "key_defs": [
+                        {"type": "OCT", "use": ["enc"], "kid": "password"},
+                        {"type": "OCT", "use": ["enc"], "kid": "salt"},
+                    ]
+                }
+            }
+        },
         "sub_func": {
-            "public": {"class": "idpyoidc.server.session.manager.PublicID",
-                       "kwargs": {"salt": "mysalt"}},
+            "public": {
+                "class": "idpyoidc.server.session.manager.PublicID",
+                "kwargs": {"salt": "mysalt"},
+            },
             "pairwise": {
                 "class": "idpyoidc.server.session.manager.PairWiseID",
                 "kwargs": {"salt": "mysalt"},

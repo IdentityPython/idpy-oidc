@@ -17,7 +17,7 @@ _keydir = os.path.join(_dirname, "data", "keys")
 
 @pytest.fixture
 def cookie_dealer():
-    class DummyServer():
+    class DummyServer:
         def __init__(self):
             self.symkey = b"0123456789012345"
 
@@ -37,17 +37,16 @@ def test_cookie(cookie_dealer):
     cookie_typ = "sso"
     cookie_name = "Foobar"
 
-    kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
-                                       cookie_name)
+    kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ, cookie_name)
     _h = HTTPLib()
     set_cookie(_h.cookiejar, SimpleCookie(kaka[1]))
 
     res = _h._cookies()
-    assert set(res.keys()) == {'Foobar'}
+    assert set(res.keys()) == {"Foobar"}
 
     kwargs = _h.add_cookies({})
-    assert 'cookies' in kwargs
-    assert set(kwargs['cookies'].keys()) == {'Foobar'}
+    assert "cookies" in kwargs
+    assert set(kwargs["cookies"].keys()) == {"Foobar"}
 
 
 class DummyResponse(object):
@@ -62,12 +61,11 @@ def test_set_cookie(cookie_dealer):
     cookie_typ = "sso"
     cookie_name = "Foobar"
 
-    kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ,
-                                       cookie_name)
+    kaka = cookie_dealer.create_cookie(cookie_value, cookie_typ, cookie_name)
 
     _h = HTTPLib()
-    response = DummyResponse(200, 'OK', {"set-cookie": kaka[1]})
+    response = DummyResponse(200, "OK", {"set-cookie": kaka[1]})
     _h.set_cookie(response)
 
     res = _h._cookies()
-    assert set(res.keys()) == {'Foobar'}
+    assert set(res.keys()) == {"Foobar"}

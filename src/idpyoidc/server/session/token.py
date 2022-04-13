@@ -155,7 +155,7 @@ class SessionToken(Item):
             "scope": self.scope,
             "claims": self.claims,
             "resources": self.resources,
-            "name": self.name
+            "name": self.name,
         }
         return json.dumps(_info)
 

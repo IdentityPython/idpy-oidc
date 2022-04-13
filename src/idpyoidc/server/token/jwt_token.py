@@ -4,14 +4,13 @@ from typing import Optional
 from cryptojwt import JWT
 from cryptojwt.jws.exception import JWSException
 
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
-
-from ..constant import DEFAULT_TOKEN_LIFETIME
-from ..util import Crypt
-from . import Token
 from . import is_expired
+from . import Token
 from .exception import UnknownToken
 from .exception import WrongTokenClass
+from ..constant import DEFAULT_TOKEN_LIFETIME
 
 
 class JWTToken(Token):
@@ -25,13 +24,11 @@ class JWTToken(Token):
             lifetime: int = DEFAULT_TOKEN_LIFETIME,
             server_get: Callable = None,
             token_type: str = "Bearer",
-            password: str = "",
             **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
         self.lifetime = lifetime
-        self.crypt = Crypt(password)
 
         self.kwargs = kwargs
         _context = server_get("endpoint_context")

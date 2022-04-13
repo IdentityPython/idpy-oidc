@@ -4,6 +4,8 @@ from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.session.grant import Grant
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -29,7 +31,11 @@ conf = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
                         "max_usage": 1,
                     },
                     "access_token": {},
@@ -67,7 +73,12 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {"kwargs": {"lifetime": 600}},
+        "code": {
+            "lifetime": 600,
+            "kwargs": {
+                "crypt_conf": CRYPT_CONFIG
+            }
+        },
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -78,11 +89,15 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": SESSION_PARAMS,
 }
 
 USER_ID = "diana"

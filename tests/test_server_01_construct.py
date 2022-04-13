@@ -19,7 +19,7 @@ def test_construct():
     _info = construct_provider_info(
         default_capabilities,
         request_object_signing_alg_values_supported=["RS256", "RS384", "RS512"],
-        grant_types_supported=["authorization_code"]
+        grant_types_supported=["authorization_code"],
     )
     assert _info["request_object_signing_alg_values_supported"] == ["RS256", "RS384", "RS512"]
     assert _info["grant_types_supported"] == ["authorization_code"]
@@ -28,5 +28,5 @@ def test_construct():
     with pytest.raises(ValueError):
         _info = construct_provider_info(
             default_capabilities,
-            request_object_encryption_alg_values_supported=['X'],
+            request_object_encryption_alg_values_supported=["X"],
         )

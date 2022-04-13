@@ -72,21 +72,8 @@ def get_token_handler_args(conf: dict) -> dict:
     """
     th_args = conf.get("token_handler_args", None)
     if not th_args:
-        # create 3 keys
-        keydef = [
-            {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"},
-            {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "token"},
-            {"type": "oct", "bytes": "24", "use": ["enc"], "kid": "refresh"},
-        ]
-
-        jwks_def = {
-            "private_path": "private/token_jwks.json",
-            "key_defs": keydef,
-            "read_only": False,
-        }
-        th_args = {"jwks_def": jwks_def}
-        for typ, tid in [("code", 600), ("token", 3600), ("refresh", 86400)]:
-            th_args[typ] = {"lifetime": tid}
+        th_args = {typ: {"lifetime": tid} for typ, tid in [("code", 600), ("token", 3600),
+                                                           ("refresh", 86400)]}
 
     return th_args
 
@@ -123,13 +110,13 @@ class EndpointContext(OidcContext):
     }
 
     def __init__(
-            self,
-            conf: Union[dict, OPConfiguration],
-            server_get: Callable,
-            keyjar: Optional[KeyJar] = None,
-            cwd: Optional[str] = "",
-            cookie_handler: Optional[Any] = None,
-            httpc: Optional[Any] = None,
+        self,
+        conf: Union[dict, OPConfiguration],
+        server_get: Callable,
+        keyjar: Optional[KeyJar] = None,
+        cwd: Optional[str] = "",
+        cookie_handler: Optional[Any] = None,
+        httpc: Optional[Any] = None,
     ):
         OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
         self.conf = conf
@@ -245,9 +232,7 @@ class EndpointContext(OidcContext):
 
         self.set_scopes_handler()
         self.dev_auth_db = None
-        self.claims_interface = init_service(
-            conf["claims_interface"], self.server_get
-        )
+        self.claims_interface = init_service(conf["claims_interface"], self.server_get)
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(

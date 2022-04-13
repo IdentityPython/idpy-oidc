@@ -7,6 +7,8 @@ from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.token import Token
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -54,9 +56,7 @@ class TestEndpoint(object):
     def conf(self):
         return {
             "issuer": "https://example.com/",
-            "httpc_params": {
-                "verify": False
-            },
+            "httpc_params": {"verify": False},
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
@@ -68,6 +68,12 @@ class TestEndpoint(object):
                 "token": {"path": "token", "class": Token, "kwargs": {}},
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
         }
 
     @pytest.fixture(autouse=True)

@@ -9,7 +9,7 @@ from idpyoidc.client.exception import NonFatalException
 from idpyoidc.client.util import sanitize
 from idpyoidc.client.util import set_cookie
 
-__author__ = 'roland'
+__author__ = "roland"
 
 logger = logging.getLogger(__name__)
 
@@ -97,12 +97,13 @@ class HTTPLib(object):
             r = requests.request(method, url, **_kwargs)
         except Exception as err:
             logger.error(
-                "http_request failed: %s, url: %s, htargs: %s, method: %s" % (
-                    err, url, sanitize(_kwargs), method))
+                "http_request failed: %s, url: %s, htargs: %s, method: %s"
+                % (err, url, sanitize(_kwargs), method)
+            )
             raise
 
         if self.events is not None:
-            self.events.store('HTTP response', r, ref=url)
+            self.events.store("HTTP response", r, ref=url)
 
         self.set_cookie(r)
 

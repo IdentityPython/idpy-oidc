@@ -1,10 +1,12 @@
 import os
 
+import pytest
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.defaults import JWT_BEARER
@@ -21,31 +23,34 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-import pytest
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
-QUERY_2 = ("request=eyJraWQiOiJsdGFjZXNidyIsImFsZyI6IkVTMjU2In0.eyJpc3MiOiJz"
-           "NkJoZFJrcXQzIiwiYXVkIjoiaHR0cHM6Ly9zZXJ2ZXIuZXhhbXBsZS5jb20iLCJl"
-           "eHAiOjE1Mzc4MjAwODYsImlhdCI6MTUzNzgxOTQ4NiwibmJmIjoxNTM3ODE4ODg2"
-           "LCJqdGkiOiI0TFRDcUFDQzJFU0M1QldDbk4zajU4RW5BIiwic2NvcGUiOiJvcGVu"
-           "aWQgZW1haWwgZXhhbXBsZS1zY29wZSIsImNsaWVudF9ub3RpZmljYXRpb25fdG9r"
-           "ZW4iOiI4ZDY3ZGM3OC03ZmFhLTRkNDEtYWFiZC02NzcwN2IzNzQyNTUiLCJiaW5k"
-           "aW5nX21lc3NhZ2UiOiJXNFNDVCIsImxvZ2luX2hpbnRfdG9rZW4iOiJleUpyYVdR"
-           "aU9pSnNkR0ZqWlhOaWR5SXNJbUZzWnlJNklrVlRNalUySW4wLmV5SnpkV0pmYVdR"
-           "aU9uc2labTl5YldGMElqb2ljR2h2Ym1VaUxDSndhRzl1WlNJNklpc3hNek13TWpn"
-           "eE9EQXdOQ0o5ZlEuR1NxeEpzRmJJeW9qZGZNQkR2M01PeUFwbENWaVZrd1FXenRo"
-           "Q1d1dTlfZ25LSXFFQ1ppbHdBTnQxSGZJaDN4M0pGamFFcS01TVpfQjNxZWIxMU5B"
-           "dmcifQ.ELJvZ2RfBl05bq7nx7pXhagzL9R75mUwO-yZScB1aT3mp480fCQ5KjRVD"
-           "womMMjiMKUI4sx8VrPgAZuTfsNSvA&"
-           "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3A"
-           "client-assertion-type%3Ajwt-bearer&"
-           "client_assertion=eyJraWQiOiJsdGFjZXNidyIsImFsZyI6IkVTMjU2In0.eyJ"
-           "pc3MiOiJzNkJoZFJrcXQzIiwic3ViIjoiczZCaGRSa3F0MyIsImF1ZCI6Imh0dHB"
-           "zOi8vc2VydmVyLmV4YW1wbGUuY29tIiwianRpIjoiY2NfMVhzc3NmLTJpOG8yZ1B"
-           "6SUprMSIsImlhdCI6MTUzNzgxOTQ4NiwiZXhwIjoxNTM3ODE5Nzc3fQ.PWb_VMzU"
-           "IbD_aaO5xYpygnAlhRIjzoc6kxg4NixDuD1DVpkKVSBbBweqgbDLV-awkDtuWnyF"
-           "yUpHqg83AUV5TA")
+QUERY_2 = (
+    "request=eyJraWQiOiJsdGFjZXNidyIsImFsZyI6IkVTMjU2In0.eyJpc3MiOiJz"
+    "NkJoZFJrcXQzIiwiYXVkIjoiaHR0cHM6Ly9zZXJ2ZXIuZXhhbXBsZS5jb20iLCJl"
+    "eHAiOjE1Mzc4MjAwODYsImlhdCI6MTUzNzgxOTQ4NiwibmJmIjoxNTM3ODE4ODg2"
+    "LCJqdGkiOiI0TFRDcUFDQzJFU0M1QldDbk4zajU4RW5BIiwic2NvcGUiOiJvcGVu"
+    "aWQgZW1haWwgZXhhbXBsZS1zY29wZSIsImNsaWVudF9ub3RpZmljYXRpb25fdG9r"
+    "ZW4iOiI4ZDY3ZGM3OC03ZmFhLTRkNDEtYWFiZC02NzcwN2IzNzQyNTUiLCJiaW5k"
+    "aW5nX21lc3NhZ2UiOiJXNFNDVCIsImxvZ2luX2hpbnRfdG9rZW4iOiJleUpyYVdR"
+    "aU9pSnNkR0ZqWlhOaWR5SXNJbUZzWnlJNklrVlRNalUySW4wLmV5SnpkV0pmYVdR"
+    "aU9uc2labTl5YldGMElqb2ljR2h2Ym1VaUxDSndhRzl1WlNJNklpc3hNek13TWpn"
+    "eE9EQXdOQ0o5ZlEuR1NxeEpzRmJJeW9qZGZNQkR2M01PeUFwbENWaVZrd1FXenRo"
+    "Q1d1dTlfZ25LSXFFQ1ppbHdBTnQxSGZJaDN4M0pGamFFcS01TVpfQjNxZWIxMU5B"
+    "dmcifQ.ELJvZ2RfBl05bq7nx7pXhagzL9R75mUwO-yZScB1aT3mp480fCQ5KjRVD"
+    "womMMjiMKUI4sx8VrPgAZuTfsNSvA&"
+    "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3A"
+    "client-assertion-type%3Ajwt-bearer&"
+    "client_assertion=eyJraWQiOiJsdGFjZXNidyIsImFsZyI6IkVTMjU2In0.eyJ"
+    "pc3MiOiJzNkJoZFJrcXQzIiwic3ViIjoiczZCaGRSa3F0MyIsImF1ZCI6Imh0dHB"
+    "zOi8vc2VydmVyLmV4YW1wbGUuY29tIiwianRpIjoiY2NfMVhzc3NmLTJpOG8yZ1B"
+    "6SUprMSIsImlhdCI6MTUzNzgxOTQ4NiwiZXhwIjoxNTM3ODE5Nzc3fQ.PWb_VMzU"
+    "IbD_aaO5xYpygnAlhRIjzoc6kxg4NixDuD1DVpkKVSBbBweqgbDLV-awkDtuWnyF"
+    "yUpHqg83AUV5TA"
+)
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -122,7 +127,7 @@ SERVER_CONF = {
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
-        "code": {"lifetime": 600},
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -134,7 +139,10 @@ SERVER_CONF = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {
             "class": "idpyoidc.server.token.id_token.IDToken",
@@ -151,17 +159,16 @@ SERVER_CONF = {
             "path": "backchannel_authn",
             "class": BackChannelAuthentication,
             "kwargs": {
-                "client_authn_method": ["client_secret_basic", "client_secret_post",
-                                        "client_secret_jwt", "private_key_jwt"],
-                "parse_login_hint_token": {
-                    "func": parse_login_hint_token
-                }
+                "client_authn_method": [
+                    "client_secret_basic",
+                    "client_secret_post",
+                    "client_secret_jwt",
+                    "private_key_jwt",
+                ],
+                "parse_login_hint_token": {"func": parse_login_hint_token},
             },
         },
-        "token": {
-            "path": "token",
-            "class": Token,
-            "kwargs": {}},
+        "token": {"path": "token", "class": Token, "kwargs": {}},
     },
     "client_authn": verify_client,
     "authentication": {
@@ -176,6 +183,7 @@ SERVER_CONF = {
         "class": user_info.UserInfo,
         "kwargs": {"db_file": "users.json"},
     },
+    "session_params": SESSION_PARAMS,
 }
 
 
@@ -210,8 +218,10 @@ class TestBCAEndpoint(object):
         )
         # userinfo
         _userinfo = init_user_info(
-            {"class": "idpyoidc.server.user_info.UserInfo",
-             "kwargs": {"db_file": full_path("users.json")}, },
+            {
+                "class": "idpyoidc.server.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
             "",
         )
         server.endpoint_context.login_hint_lookup.userinfo = _userinfo
@@ -223,12 +233,7 @@ class TestBCAEndpoint(object):
         _assertion = _jwt.pack({"aud": [ISSUER]})
 
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="ES256")
-        _payload = {
-            "sub_id": {
-                "format": "phone",
-                "phone": "+46907865000"
-            }
-        }
+        _payload = {"sub_id": {"format": "phone", "phone": "+46907865000"}}
         _login_hint_token = _jwt.pack(_payload, aud=[ISSUER])
 
         request = {
@@ -237,14 +242,14 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint_token": _login_hint_token
+            "login_hint_token": _login_hint_token,
         }
 
         req = AuthenticationRequest(**request)
         req = self.endpoint.parse_request(req.to_urlencoded(), verify_args={"mode": "ping"})
         assert req
         req_user = self.endpoint.do_request_user(req)
-        assert req_user == 'diana'
+        assert req_user == "diana"
 
     def test_login_hint_token_jwt(self):
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="HS256")
@@ -252,12 +257,7 @@ class TestBCAEndpoint(object):
         _assertion = _jwt.pack({"aud": [ISSUER]})
 
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="ES256")
-        _payload = {
-            "sub_id": {
-                "format": "phone",
-                "phone": "+46907865000"
-            }
-        }
+        _payload = {"sub_id": {"format": "phone", "phone": "+46907865000"}}
         _login_hint_token = _jwt.pack(_payload, aud=[ISSUER])
 
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="ES256")
@@ -266,21 +266,21 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint_token": _login_hint_token
+            "login_hint_token": _login_hint_token,
         }
         _request_object = _jwt.pack(_request_payload, aud=[ISSUER])
 
         request = {
             "client_assertion": _assertion,
             "client_assertion_type": JWT_BEARER,
-            "request": _request_object
+            "request": _request_object,
         }
 
         req = AuthenticationRequest(**request)
         req = self.endpoint.parse_request(req.to_urlencoded())
         assert req
         req_user = self.endpoint.do_request_user(req)
-        assert req_user == 'diana'
+        assert req_user == "diana"
 
     def test_id_token_hint(self):
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="HS256")
@@ -288,8 +288,12 @@ class TestBCAEndpoint(object):
         _assertion = _jwt.pack({"aud": [ISSUER]})
 
         # The old ID token
-        _idt_payload = {"sub": "Anna", "iss": ISSUER, "aud": [CLIENT_ID],
-                        "exp": utc_time_sans_frac() + 3600}
+        _idt_payload = {
+            "sub": "Anna",
+            "iss": ISSUER,
+            "aud": [CLIENT_ID],
+            "exp": utc_time_sans_frac() + 3600,
+        }
 
         _id_token_hint = _jwt.pack(_idt_payload)
 
@@ -299,7 +303,7 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "id_token_hint": _id_token_hint
+            "id_token_hint": _id_token_hint,
         }
 
         req = AuthenticationRequest(**request)
@@ -308,7 +312,7 @@ class TestBCAEndpoint(object):
         # If ping mode
         assert "client_notification_token" in req
         req_user = self.endpoint.do_request_user(req)
-        assert req_user == 'Anna'
+        assert req_user == "Anna"
 
     def test_login_hint(self):
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="HS256")
@@ -321,7 +325,7 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint": "mail:diana@example.org"
+            "login_hint": "mail:diana@example.org",
         }
 
         req = AuthenticationRequest(**request)
@@ -338,8 +342,12 @@ class TestBCAEndpoint(object):
         _assertion = _jwt.pack({"aud": [ISSUER]})
 
         # The old ID token
-        _idt_payload = {"sub": "Anna", "iss": ISSUER, "aud": [CLIENT_ID],
-                        "exp": utc_time_sans_frac() + 3600}
+        _idt_payload = {
+            "sub": "Anna",
+            "iss": ISSUER,
+            "aud": [CLIENT_ID],
+            "exp": utc_time_sans_frac() + 3600,
+        }
 
         _id_token_hint = _jwt.pack(_idt_payload)
 
@@ -350,7 +358,7 @@ class TestBCAEndpoint(object):
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
             "login_hint": "mail:diana@example.org",
-            "id_token_hint": _id_token_hint
+            "id_token_hint": _id_token_hint,
         }
 
         req = AuthenticationRequest(**request)
@@ -367,7 +375,7 @@ class TestBCAEndpoint(object):
             "client_assertion_type": JWT_BEARER,
             "scope": "openid email example-scope",
             "binding_message": "W4SCT",
-            "login_hint": "mail:diana@example.org"
+            "login_hint": "mail:diana@example.org",
         }
 
         req = AuthenticationRequest(**request)
@@ -380,12 +388,7 @@ class TestBCAEndpoint(object):
         _assertion = _jwt.pack({"aud": [ISSUER]})
 
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="ES256")
-        _payload = {
-            "sub_id": {
-                "format": "phone",
-                "phone": "+13302818004"
-            }
-        }
+        _payload = {"sub_id": {"format": "phone", "phone": "+13302818004"}}
         _login_hint_token = _jwt.pack(_payload, aud=[ISSUER])
 
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="ES256")
@@ -394,7 +397,7 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint_token": _login_hint_token
+            "login_hint_token": _login_hint_token,
         }
         _request_object = _jwt.pack(_request_payload, aud=[ISSUER])
 
@@ -402,7 +405,7 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_assertion": _assertion,
             "client_assertion_type": JWT_BEARER,
-            "request": _request_object
+            "request": _request_object,
         }
 
         req = AuthenticationRequest(**request)
@@ -432,7 +435,7 @@ class TestBCAEndpoint(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint": "mail:diana@example.org"
+            "login_hint": "mail:diana@example.org",
         }
 
         req = AuthenticationRequest(**request)
@@ -453,15 +456,20 @@ class TestBCAEndpoint(object):
             "client_assertion": _assertion,
             "client_assertion_type": JWT_BEARER,
             "auth_req_id": _info["response_args"]["auth_req_id"],
-            "grant_type": "urn:openid:params:grant-type:ciba"
+            "grant_type": "urn:openid:params:grant-type:ciba",
         }
         _treq = TokenRequest(**token_request)
         _req = self.token_endpoint.parse_request(_treq.to_urlencoded())
         assert _req
         _info = self.token_endpoint.process_request(_req)
         assert _info
-        assert set(_info["response_args"].keys()) == {'token_type', "scope", "access_token",
-                                                      "expires_in", "id_token"}
+        assert set(_info["response_args"].keys()) == {
+            "token_type",
+            "scope",
+            "access_token",
+            "expires_in",
+            "id_token",
+        }
 
 
 _dirname = os.path.dirname(os.path.abspath(__file__))
@@ -471,18 +479,18 @@ KEYSPEC = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-CLI_KEY = init_key_jar(public_path='{}/pub_client.jwks'.format(_dirname),
-                       private_path='{}/priv_client.jwks'.format(_dirname),
-                       key_defs=KEYSPEC, issuer_id='client_id')
+CLI_KEY = init_key_jar(
+    public_path="{}/pub_client.jwks".format(_dirname),
+    private_path="{}/priv_client.jwks".format(_dirname),
+    key_defs=KEYSPEC,
+    issuer_id="client_id",
+)
 
 
 class TestBCAEndpointService(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
-        self.ciba = {
-            "server": self._create_server(),
-            "client": self._create_ciba_client()
-        }
+        self.ciba = {"server": self._create_server(), "client": self._create_ciba_client()}
 
     def _create_server(self):
         server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
@@ -511,8 +519,10 @@ class TestBCAEndpointService(object):
         )
         # userinfo
         _userinfo = init_user_info(
-            {"class": "idpyoidc.server.user_info.UserInfo",
-             "kwargs": {"db_file": full_path("users.json")}, },
+            {
+                "class": "idpyoidc.server.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
             "",
         )
         server.endpoint_context.login_hint_lookup.userinfo = _userinfo
@@ -520,24 +530,18 @@ class TestBCAEndpointService(object):
 
     def _create_ciba_client(self):
         config = {
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'redirect_uris': ['https://example.com/cb'],
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "redirect_uris": ["https://example.com/cb"],
             "services": {
                 "client_notification": {
                     "class": "idpyoidc.client.oidc.backchannel_authentication.ClientNotification",
-                    "kwargs": {
-                        "conf": {
-                            "default_authn_method":
-                                "client_notification_authn"
-                        }
-                    }
+                    "kwargs": {"conf": {"default_authn_method": "client_notification_authn"}},
                 },
             },
             "client_authn_methods": {
-                "client_notification_authn":
-                    "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
-            }
+                "client_notification_authn": "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+            },
         }
 
         client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
@@ -573,7 +577,7 @@ class TestBCAEndpointService(object):
             "scope": "openid email example-scope",
             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
             "binding_message": "W4SCT",
-            "login_hint": "mail:diana@example.org"
+            "login_hint": "mail:diana@example.org",
         }
 
         _authn_endpoint = self.ciba["server"].server_get("endpoint", "backchannel_authentication")
@@ -592,16 +596,22 @@ class TestBCAEndpointService(object):
         session_id_2 = self._create_session(_user_id, req)
 
         # Now it's time to send a client notification
-        req_args = {"auth_req_id": _info["response_args"]["auth_req_id"],
-                    "client_notification_token": request["client_notification_token"]}
+        req_args = {
+            "auth_req_id": _info["response_args"]["auth_req_id"],
+            "client_notification_token": request["client_notification_token"],
+        }
 
-        _service = self.ciba["client"].client_get("service", 'client_notification')
+        _service = self.ciba["client"].client_get("service", "client_notification")
         _req_param = _service.get_request_parameters(request_args=req_args)
         assert _req_param
         assert isinstance(_req_param["request"], NotificationRequest)
-        assert set(_req_param.keys()) == {'method', 'request', 'url', 'body', 'headers'}
+        assert set(_req_param.keys()) == {"method", "request", "url", "body", "headers"}
         assert _req_param["method"] == "POST"
         # This is the client's notification endpoint
-        assert _req_param["url"] == self.ciba[
-            "client"].client_get("service_context").provider_info["client_notification_endpoint"]
+        assert (
+            _req_param["url"]
+            == self.ciba["client"]
+            .client_get("service_context")
+            .provider_info["client_notification_endpoint"]
+        )
         assert set(_req_param["request"].keys()) == {"auth_req_id"}

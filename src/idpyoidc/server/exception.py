@@ -22,6 +22,18 @@ class NoSuchAuthentication(OidcEndpointError):
     pass
 
 
+class NoSuchClientSession(KeyError):
+    pass
+
+
+class NoSuchGrant(KeyError):
+    pass
+
+
+class InconsistentDatabase(TypeError):
+    pass
+
+
 class TamperAllert(OidcEndpointError):
     pass
 

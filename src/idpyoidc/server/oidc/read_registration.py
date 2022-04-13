@@ -17,8 +17,8 @@ class RegistrationRead(Endpoint):
     def get_client_id_from_token(self, endpoint_context, token, request=None):
         if "client_id" in request:
             if (
-                    request["client_id"]
-                    == self.server_get("endpoint_context").registration_access_token[token]
+                request["client_id"]
+                == self.server_get("endpoint_context").registration_access_token[token]
             ):
                 return request["client_id"]
         return ""

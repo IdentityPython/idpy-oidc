@@ -5,11 +5,16 @@ from typing import Optional
 from typing import Union
 
 import cryptography
+from cryptojwt import as_unicode
 
+from idpyoidc.encrypter import default_crypt_config
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.server.constant import DIVIDER
-from idpyoidc.server.util import Crypt
+from idpyoidc.server.exception import InconsistentDatabase
+from idpyoidc.server.exception import NoSuchClientSession
+from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.util import rndstr
@@ -22,30 +27,22 @@ from .info import UserSessionInfo
 logger = logging.getLogger(__name__)
 
 
-class NoSuchClientSession(KeyError):
-    pass
-
-
-class NoSuchGrant(KeyError):
-    pass
-
-
-class InconsistentDatabase(TypeError):
-    pass
-
-
 class Database(ImpExp):
-    parameter = {"db": DLDict, "key": ""}
+    parameter = {"db": DLDict, "crypt_config": {}}
 
-    def __init__(self, key: Optional[str] = "", **kwargs):
+    def __init__(self, crypt_config: Optional[dict] = None, **kwargs):
         ImpExp.__init__(self)
         self.db = DLDict()
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        self.key = key or rndstr(24)
-        self.crypt = Crypt(key)
+        if crypt_config is None:
+            crypt_config = default_crypt_config()
+
+        _crypt = init_encrypter(crypt_config)
+        self.crypt = _crypt["encrypter"]
+        self.crypt_config = _crypt["conf"]
 
     @staticmethod
     def _eval_path(path: List[str]):
@@ -192,4 +189,11 @@ class Database(ImpExp):
         except Exception as err:
             raise ValueError(err)
         # order: rnd, type, sid
-        return self.unpack_session_key(lv_unpack(plain)[1])
+        return self.unpack_session_key(lv_unpack(as_unicode(plain))[1])
+
+    def flush(self):
+        self.db = DLDict()
+
+    def local_load_adjustments(self, **kwargs):
+        _crypt = init_encrypter(self.crypt_config)
+        self.crypt = _crypt["encrypter"]

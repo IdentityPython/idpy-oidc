@@ -17,14 +17,14 @@ from idpyoidc import time_util
 from idpyoidc.client.exception import ImproperlyConfigured
 from idpyoidc.util import rndstr
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 logger = logging.getLogger(__name__)
 
 CORS_HEADERS = [
     ("Access-Control-Allow-Origin", "*"),
     ("Access-Control-Allow-Methods", "GET"),
-    ("Access-Control-Allow-Headers", "Authorization")
+    ("Access-Control-Allow-Headers", "Authorization"),
 ]
 
 
@@ -61,11 +61,11 @@ def _expiration(timeout, time_format=None):
 def cookie_signature(key, *parts):
     """Generates a cookie signature.
 
-       :param key: The HMAC key to use.
-       :type key: bytes
-       :param parts: List of parts to include in the MAC
-       :type parts: list of bytes or strings
-       :returns: hexdigest of the HMAC
+    :param key: The HMAC key to use.
+    :type key: bytes
+    :param parts: List of parts to include in the MAC
+    :type parts: list of bytes or strings
+    :returns: hexdigest of the HMAC
     """
 
     sha1 = hmac.new(as_bytes(key), digestmod=hashlib.sha1)
@@ -78,18 +78,18 @@ def cookie_signature(key, *parts):
 def verify_cookie_signature(sig, key, *parts):
     """Constant time verifier for signatures
 
-       :param sig: The signature hexdigest to check
-       :type sig: str
-       :param key: The HMAC key to use.
-       :type key: bytes
-       :param parts: List of parts to include in the MAC
-       :type parts: list of bytes or strings
-       :raises: `InvalidCookieSign` when the signature is wrong
+    :param sig: The signature hexdigest to check
+    :type sig: str
+    :param key: The HMAC key to use.
+    :type key: bytes
+    :param parts: List of parts to include in the MAC
+    :type parts: list of bytes or strings
+    :raises: `InvalidCookieSign` when the signature is wrong
     """
     return safe_str_cmp(as_unicode(sig), cookie_signature(key, *parts))
 
 
-def _make_hashed_key(parts, hashfunc='sha256'):
+def _make_hashed_key(parts, hashfunc="sha256"):
     """
     Construct a key via hashing the parts
 
@@ -105,8 +105,19 @@ def _make_hashed_key(parts, hashfunc='sha256'):
     return h.digest()
 
 
-def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
-                enc_key=None, secure=True, http_only=True, same_site=""):
+def make_cookie(
+    name,
+    load,
+    seed,
+    expire=0,
+    domain="",
+    path="",
+    timestamp="",
+    enc_key=None,
+    secure=True,
+    http_only=True,
+    same_site="",
+):
     """
     Create and return a cookie
 
@@ -168,16 +179,20 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
         ct = split_ctx_and_tag(aesgcm.encrypt(iv, bytes_load, bytes_timestamp))
 
         ciphertext, tag = ct
-        cookie_payload = [bytes_timestamp,
-                          base64.b64encode(iv),
-                          base64.b64encode(ciphertext),
-                          base64.b64encode(tag)]
+        cookie_payload = [
+            bytes_timestamp,
+            base64.b64encode(iv),
+            base64.b64encode(ciphertext),
+            base64.b64encode(tag),
+        ]
     else:
         cookie_payload = [
-            bytes_load, bytes_timestamp,
-            cookie_signature(seed, load, timestamp).encode('utf-8')]
+            bytes_load,
+            bytes_timestamp,
+            cookie_signature(seed, load, timestamp).encode("utf-8"),
+        ]
 
-    cookie[name] = (b"|".join(cookie_payload)).decode('utf-8')
+    cookie[name] = (b"|".join(cookie_payload)).decode("utf-8")
 
     # Necessary if Python version < 3.8
     if sys.version_info[:2] <= (3, 8):
@@ -188,8 +203,7 @@ def make_cookie(name, load, seed, expire=0, domain="", path="", timestamp="",
     if domain:
         cookie[name]["domain"] = domain
     if expire:
-        cookie[name]["expires"] = _expiration(expire,
-                                              "%a, %d-%b-%Y %H:%M:%S GMT")
+        cookie[name]["expires"] = _expiration(expire, "%a, %d-%b-%Y %H:%M:%S GMT")
     if secure:
         cookie[name]["Secure"] = secure
     if http_only:
@@ -246,12 +260,12 @@ def parse_cookie(name, seed, kaka, enc_key=None):
 
         # timestamp does not need to be encrypted, just MAC'ed,
         # so we add it to 'Associated Data' only.
-        aad = timestamp.encode('utf-8')
+        aad = timestamp.encode("utf-8")
         try:
             cleartext = aesgcm.decrypt(iv, ct, aad)
         except JWEException:
             raise InvalidCookieSign()
-        return cleartext.decode('utf-8'), timestamp
+        return cleartext.decode("utf-8"), timestamp
     return None
 
 
@@ -303,14 +317,14 @@ class CookieDealer(object):
         self.srv = srv
 
         # verify that the server instance has a cymkey attribute
-        symkey = getattr(self.srv, 'symkey', None)
+        symkey = getattr(self.srv, "symkey", None)
         if symkey is not None and symkey == "":
             msg = "CookieDealer.srv.symkey can not be an empty value"
             raise ImproperlyConfigured(msg)
 
         # if there is no 'sed' attribute defined create one
-        if not getattr(srv, 'seed', None):
-            setattr(srv, 'seed', rndstr().encode("utf-8"))
+        if not getattr(srv, "seed", None):
+            setattr(srv, "seed", rndstr().encode("utf-8"))
 
     def delete_cookie(self, cookie_name=None):
         """
@@ -320,8 +334,7 @@ class CookieDealer(object):
         :param cookie_name: Name of the cookie
         :return: A tuple to be added to headers
         """
-        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1,
-                                  kill=True)
+        return self.create_cookie("", "", cookie_name=cookie_name, ttl=-1, kill=True)
 
     def create_cookie(self, value, typ, cookie_name=None, ttl=-1, kill=False):
         """
@@ -362,10 +375,16 @@ class CookieDealer(object):
         except TypeError:
             cookie_payload = "::".join([value[0], timestamp, typ])
 
-        cookie = make_cookie(cookie_name, cookie_payload, self.srv.seed,
-                             expire=ttl, domain=cookie_domain, path=cookie_path,
-                             timestamp=timestamp,
-                             enc_key=self.srv.symkey)
+        cookie = make_cookie(
+            cookie_name,
+            cookie_payload,
+            self.srv.seed,
+            expire=ttl,
+            domain=cookie_domain,
+            path=cookie_path,
+            timestamp=timestamp,
+            enc_key=self.srv.symkey,
+        )
         return cookie
 
     def get_cookie_value(self, cookie=None, cookie_name=None):
@@ -380,9 +399,7 @@ class CookieDealer(object):
             return None
         else:
             try:
-                info, timestamp = parse_cookie(cookie_name,
-                                               self.srv.seed, cookie,
-                                               self.srv.symkey)
+                info, timestamp = parse_cookie(cookie_name, self.srv.seed, cookie, self.srv.symkey)
             except (TypeError, AssertionError):
                 return None
             else:

@@ -32,6 +32,7 @@ TIME_FORMAT_WITH_FRAGMENT = re.compile("^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2
 
 logger = logging.getLogger(__name__)
 
+
 class TimeUtilError(Exception):
     pass
 
@@ -306,7 +307,7 @@ def instant(time_format=TIME_FORMAT):
 
 
 def before(point):
-    """ True if point datetime specification is before now """
+    """True if point datetime specification is before now"""
     if not point:
         return True
 
@@ -319,7 +320,7 @@ def before(point):
 
 
 def after(point):
-    """ True if point datetime specification is equal or after now """
+    """True if point datetime specification is equal or after now"""
     if not point:
         return True
     else:
@@ -337,7 +338,7 @@ valid = before
 
 
 def later_than(after, before):
-    """ True if then is later or equal to that """
+    """True if then is later or equal to that"""
     if isinstance(after, str):
         after = str_to_time(after)
     elif isinstance(after, int):

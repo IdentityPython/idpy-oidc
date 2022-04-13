@@ -21,49 +21,47 @@ CLI_REG_MAP = {
     "userinfo": {
         "sign": "userinfo_signed_response_alg",
         "alg": "userinfo_encrypted_response_alg",
-        "enc": "userinfo_encrypted_response_enc"
+        "enc": "userinfo_encrypted_response_enc",
     },
     "id_token": {
         "sign": "id_token_signed_response_alg",
         "alg": "id_token_encrypted_response_alg",
-        "enc": "id_token_encrypted_response_enc"
+        "enc": "id_token_encrypted_response_enc",
     },
     "request_object": {
         "sign": "request_object_signing_alg",
         "alg": "request_object_encryption_alg",
-        "enc": "request_object_encryption_enc"
-    }
+        "enc": "request_object_encryption_enc",
+    },
 }
 
 PROVIDER_INFO_MAP = {
     "id_token": {
         "sign": "id_token_signing_alg_values_supported",
         "alg": "id_token_encryption_alg_values_supported",
-        "enc": "id_token_encryption_enc_values_supported"
+        "enc": "id_token_encryption_enc_values_supported",
     },
     "userinfo": {
         "sign": "userinfo_signing_alg_values_supported",
         "alg": "userinfo_encryption_alg_values_supported",
-        "enc": "userinfo_encryption_enc_values_supported"
+        "enc": "userinfo_encryption_enc_values_supported",
     },
     "request_object": {
         "sign": "request_object_signing_alg_values_supported",
         "alg": "request_object_encryption_alg_values_supported",
-        "enc": "request_object_encryption_enc_values_supported"
+        "enc": "request_object_encryption_enc_values_supported",
     },
-    "token_enpoint_auth": {
-        "sign": "token_endpoint_auth_signing_alg_values_supported"
-    }
+    "token_enpoint_auth": {"sign": "token_endpoint_auth_signing_alg_values_supported"},
 }
 
 DEFAULT_VALUE = {
-    'client_secret': '',
-    'client_id': '',
-    'redirect_uris': [],
-    'provider_info': {},
-    'behaviour': {},
-    'callback': {},
-    'issuer': ''
+    "client_secret": "",
+    "client_id": "",
+    "redirect_uris": [],
+    "provider_info": {},
+    "behaviour": {},
+    "callback": {},
+    "issuer": "",
 }
 
 
@@ -74,41 +72,44 @@ class ServiceContext(OidcContext):
     from dynamic provider info discovery or client registration.
     But information is also picked up during the conversation with a server.
     """
+
     parameter = OidcContext.parameter.copy()
-    parameter.update({
-        "add_on": None,
-        "allow": None,
-        "args": None,
-        "base_url": None,
-        'behaviour': None,
-        'callback': None,
-        'client_id': None,
-        "client_preferences": None,
-        'client_secret': None,
-        "client_secret_expires_at": 0,
-        'clock_skew': None,
-        "config": None,
-        "hash_seed": b'',
-        "hash2issuer": None,
-        "httpc_params": None,
-        'issuer': None,
-        "kid": None,
-        "post_logout_redirect_uris": None,
-        'provider_info': None,
-        'redirect_uris': None,
-        "requests_dir": None,
-        "register_args": None,
-        'registration_response': None,
-        'state': StateInterface,
-        'verify_args': None
-    })
+    parameter.update(
+        {
+            "add_on": None,
+            "allow": None,
+            "args": None,
+            "base_url": None,
+            "behaviour": None,
+            "callback": None,
+            "client_id": None,
+            "client_preferences": None,
+            "client_secret": None,
+            "client_secret_expires_at": 0,
+            "clock_skew": None,
+            "config": None,
+            "hash_seed": b"",
+            "hash2issuer": None,
+            "httpc_params": None,
+            "issuer": None,
+            "kid": None,
+            "post_logout_redirect_uris": None,
+            "provider_info": None,
+            "redirect_uris": None,
+            "requests_dir": None,
+            "register_args": None,
+            "registration_response": None,
+            "state": StateInterface,
+            "verify_args": None,
+        }
+    )
 
     def __init__(self, base_url="", keyjar=None, config=None, state=None, **kwargs):
         if config is None:
             config = {}
         self.config = config
 
-        OidcContext.__init__(self, config, keyjar, entity_id=config.get('client_id', ''))
+        OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
         self.state = state or StateInterface()
 
         self.kid = {"sig": {}, "enc": {}}
@@ -131,22 +132,29 @@ class ServiceContext(OidcContext):
         self.redirect_uris = []
         self.register_args = {}
         self.registration_response = {}
-        self.requests_dir = ''
+        self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
         # Dynamic information
-        for param in ['client_secret', 'client_id', 'redirect_uris', 'provider_info',
-                      'behaviour', 'callback', 'issuer']:
+        for param in [
+            "client_secret",
+            "client_id",
+            "redirect_uris",
+            "provider_info",
+            "behaviour",
+            "callback",
+            "issuer",
+        ]:
             _val = config.get(param, _def_value[param])
             self.set(param, _val)
-            if param == 'client_secret' and _val:
-                self.keyjar.add_symmetric('', _val)
+            if param == "client_secret" and _val:
+                self.keyjar.add_symmetric("", _val)
 
         if not self.issuer:
             self.issuer = self.provider_info.get("issuer", "")
 
         try:
-            self.clock_skew = config['clock_skew']
+            self.clock_skew = config["clock_skew"]
         except KeyError:
             self.clock_skew = 15
 
@@ -159,7 +167,7 @@ class ServiceContext(OidcContext):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        for attr in ['base_url', 'requests_dir', 'allow', 'client_preferences', 'verify_args']:
+        for attr in ["base_url", "requests_dir", "allow", "client_preferences", "verify_args"]:
             try:
                 setattr(self, attr, config[attr])
             except KeyError:
@@ -177,7 +185,7 @@ class ServiceContext(OidcContext):
                 os.makedirs(self.requests_dir)
 
         # The name of the attribute used to be keys. Is now key_conf
-        _key_conf = config.get('keys', config.get('key_conf'))
+        _key_conf = config.get("keys", config.get("key_conf"))
         if _key_conf:
             self.import_keys(_key_conf)
 
@@ -200,8 +208,8 @@ class ServiceContext(OidcContext):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url):]
-        if _name.startswith('/'):
+        _name = webname[len(self.base_url) :]
+        if _name.startswith("/"):
             return _name[1:]
 
         return _name
@@ -216,17 +224,17 @@ class ServiceContext(OidcContext):
         """
         _hash = hashlib.sha256()
         try:
-            _hash.update(as_bytes(self.provider_info['issuer']))
+            _hash.update(as_bytes(self.provider_info["issuer"]))
         except KeyError:
             _hash.update(as_bytes(self.issuer))
         _hash.update(as_bytes(self.base_url))
 
-        if not path.startswith('/'):
-            redirs = ['{}/{}/{}'.format(self.base_url, path, _hash.hexdigest())]
+        if not path.startswith("/"):
+            redirs = ["{}/{}/{}".format(self.base_url, path, _hash.hexdigest())]
         else:
-            redirs = ['{}{}/{}'.format(self.base_url, path, _hash.hexdigest())]
+            redirs = ["{}{}/{}".format(self.base_url, path, _hash.hexdigest())]
 
-        self.set('redirect_uris', redirs)
+        self.set("redirect_uris", redirs)
         return redirs
 
     def import_keys(self, keyspec):
@@ -239,17 +247,15 @@ class ServiceContext(OidcContext):
         :param keyspec:
         """
         for where, spec in keyspec.items():
-            if where == 'file':
+            if where == "file":
                 for typ, files in spec.items():
-                    if typ == 'rsa':
+                    if typ == "rsa":
                         for fil in files:
-                            _key = RSAKey(
-                                priv_key=import_private_rsa_key_from_file(fil),
-                                use='sig')
+                            _key = RSAKey(priv_key=import_private_rsa_key_from_file(fil), use="sig")
                             _bundle = KeyBundle()
                             _bundle.append(_key)
-                            self.keyjar.add_kb('', _bundle)
-            elif where == 'url':
+                            self.keyjar.add_kb("", _bundle)
+            elif where == "url":
                 for iss, url in spec.items():
                     _bundle = KeyBundle(source=url)
                     self.keyjar.add_kb(iss, _bundle)
@@ -262,10 +268,10 @@ class ServiceContext(OidcContext):
         """
 
         try:
-            return self.behaviour[CLI_REG_MAP[typ]['sign']]
+            return self.behaviour[CLI_REG_MAP[typ]["sign"]]
         except KeyError:
             try:
-                return self.provider_info[PROVIDER_INFO_MAP[typ]['sign']]
+                return self.provider_info[PROVIDER_INFO_MAP[typ]["sign"]]
             except (KeyError, TypeError):
                 pass
 
@@ -279,7 +285,7 @@ class ServiceContext(OidcContext):
         """
 
         res = {}
-        for attr in ['enc', 'alg']:
+        for attr in ["enc", "alg"]:
             try:
                 _alg = self.behaviour[CLI_REG_MAP[typ][attr]]
             except KeyError:

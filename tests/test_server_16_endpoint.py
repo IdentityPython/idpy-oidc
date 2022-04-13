@@ -10,6 +10,8 @@ from idpyoidc.server import do_endpoints
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -48,7 +50,9 @@ class TestEndpoint(object):
             "token_expires_in": 600,
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
-            "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}}, },
+            "endpoint": {
+                "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
+            },
             "keys": {
                 "public_path": "jwks.json",
                 "key_defs": KEYDEFS,
@@ -63,6 +67,12 @@ class TestEndpoint(object):
                 }
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -189,7 +199,9 @@ class TestEndpoint(object):
         assert ("Content-type", "application/json") in info["http_headers"]
 
         info = self.endpoint.do_response(
-            EXAMPLE_MSG, response_msg="header.payload.sign", content_type="application/jose",
+            EXAMPLE_MSG,
+            response_msg="header.payload.sign",
+            content_type="application/jose",
         )
         assert info["response"] == "header.payload.sign"
         assert ("Content-type", "application/jose") in info["http_headers"]
@@ -199,9 +211,8 @@ class TestEndpoint(object):
         info = self.endpoint.do_response(EXAMPLE_MSG)
         assert ("Content-type", "application/json; charset=utf-8") in info["http_headers"]
         assert (
-                info[
-                    "response"] == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": '
-                                   '"Doe"}'
+            info["response"] == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": '
+            '"Doe"}'
         )
 
     def test_do_response_placement_url(self):
@@ -209,17 +220,17 @@ class TestEndpoint(object):
         info = self.endpoint.do_response(EXAMPLE_MSG, return_uri="https://example.org/cb")
         assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
         assert (
-                info["response"]
-                == "https://example.org/cb?name=Doe%2C+Jane&given_name=Jane&family_name=Doe"
+            info["response"]
+            == "https://example.org/cb?name=Doe%2C+Jane&given_name=Jane&family_name=Doe"
         )
 
         info = self.endpoint.do_response(
             EXAMPLE_MSG, return_uri="https://example.org/cb", fragment_enc=True
         )
         assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
-        assert info["response"] == ("https://example.org/cb#name=Doe%2C+Jane&given_name=Jane"
-                                    "&family_name=Doe")
-
+        assert info["response"] == (
+            "https://example.org/cb#name=Doe%2C+Jane&given_name=Jane" "&family_name=Doe"
+        )
 
     def test_do_response_error(self):
         info = self.endpoint.do_response(
@@ -227,6 +238,6 @@ class TestEndpoint(object):
         )
 
         assert (
-                info["response"]
-                == '{"error": "invalid_request", "error_description": "Missing required attribute"}'
+            info["response"]
+            == '{"error": "invalid_request", "error_description": "Missing required attribute"}'
         )

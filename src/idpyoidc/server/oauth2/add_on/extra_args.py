@@ -21,13 +21,13 @@ def pre_construct(response_args, request, endpoint_context, **kwargs):
         if isinstance(response_args, AuthorizationResponse):
             _args = _extra.get("authorization", {})
         elif isinstance(response_args, AccessTokenResponse):
-            _args = _extra.get('accesstoken', {})
+            _args = _extra.get("accesstoken", {})
         elif isinstance(response_args, TokenExchangeResponse):
-            _args = _extra.get('token_exchange', {})
+            _args = _extra.get("token_exchange", {})
         elif isinstance(response_args, TokenIntrospectionResponse):
-            _args = _extra.get('token_introspection', {})
+            _args = _extra.get("token_introspection", {})
         elif isinstance(response_args, OpenIDSchema):
-            _args = _extra.get('userinfo', {})
+            _args = _extra.get("userinfo", {})
         else:
             _args = {}
 

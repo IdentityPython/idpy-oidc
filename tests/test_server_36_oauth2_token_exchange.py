@@ -17,6 +17,8 @@ from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -98,7 +100,7 @@ class TestEndpoint(object):
             "endpoint": {
                 "authorization": {
                     "path": "authorization",
-                    "class": 'idpyoidc.server.oauth2.authorization.Authorization',
+                    "class": "idpyoidc.server.oauth2.authorization.Authorization",
                     "kwargs": {},
                 },
                 "token": {
@@ -154,7 +156,7 @@ class TestEndpoint(object):
             },
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -165,9 +167,13 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = server.endpoint_context
@@ -414,8 +420,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+            _resp["error_description"]
+            == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
     def test_wrong_resource(self):

@@ -28,7 +28,7 @@ def dict_subset(a, b):
 
 
 class UserInfo(object):
-    """ Read only interface to a user info store """
+    """Read only interface to a user info store"""
 
     def __init__(self, db=None, db_file=""):
         if db is not None:

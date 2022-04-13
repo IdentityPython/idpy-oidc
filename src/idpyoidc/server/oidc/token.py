@@ -24,9 +24,13 @@ class Token(token.Token):
     name = "token"
     default_capabilities = None
     provider_info_attributes = {
-        "token_endpoint_auth_methods_supported": ['client_secret_post', 'client_secret_basic',
-                                                  'client_secret_jwt', 'private_key_jwt'],
-        "token_endpoint_auth_signing_alg_values_supported": None
+        "token_endpoint_auth_methods_supported": [
+            "client_secret_post",
+            "client_secret_basic",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ],
+        "token_endpoint_auth_signing_alg_values_supported": None,
     }
     auth_method_attribute = "token_endpoint_auth_methods_supported"
     helper_by_grant_type = {

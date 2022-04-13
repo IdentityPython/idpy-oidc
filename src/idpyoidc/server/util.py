@@ -2,15 +2,11 @@ import base64
 import hashlib
 import json
 import logging
-import uuid
-from urllib.parse import urlparse
-from urllib.parse import urlunsplit
 
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
 
-from idpyoidc.server.session.info import SessionInfo
 from idpyoidc.util import importer
 
 from .exception import OidcEndpointError
@@ -110,26 +106,8 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l):]
+        txt = v[int(l) :]
     return res
-
-
-class Crypt(object):
-    def __init__(self, password, mode=None):
-        self.key = base64.urlsafe_b64encode(hashlib.sha256(password.encode("utf-8")).digest())
-        self.core = Fernet(self.key)
-
-    def encrypt(self, text):
-        # Padding to block size of AES
-        text = as_bytes(text)
-        if len(text) % 16:
-            text += b" " * (16 - len(text) % 16)
-        return self.core.encrypt(as_bytes(text))
-
-    def decrypt(self, ciphertext):
-        dec_text = self.core.decrypt(ciphertext)
-        dec_text = dec_text.rstrip(b" ")
-        return as_unicode(dec_text)
 
 
 def get_http_params(config):
@@ -158,7 +136,8 @@ def get_http_params(config):
 def allow_refresh_token(endpoint_context):
     # Are there a refresh_token handler
     refresh_token_handler = endpoint_context.session_manager.token_handler.handler.get(
-        "refresh_token")
+        "refresh_token"
+    )
 
     # Is refresh_token grant type supported
     _token_supported = False

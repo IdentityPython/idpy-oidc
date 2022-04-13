@@ -12,25 +12,26 @@ LOGGER = logging.getLogger(__name__)
 
 class AccessToken(Service):
     """The access token service."""
+
     msg_type = oauth2.AccessTokenRequest
     response_cls = oauth2.AccessTokenResponse
     error_msg = ResponseMessage
-    endpoint_name = 'token_endpoint'
+    endpoint_name = "token_endpoint"
     synchronous = True
-    service_name = 'accesstoken'
-    default_authn_method = 'client_secret_basic'
-    http_method = 'POST'
-    request_body_type = 'urlencoded'
-    response_body_type = 'json'
+    service_name = "accesstoken"
+    default_authn_method = "client_secret_basic"
+    http_method = "POST"
+    request_body_type = "urlencoded"
+    response_body_type = "json"
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)
 
-    def update_service_context(self, resp, key='', **kwargs):
-        if 'expires_in' in resp:
-            resp['__expires_at'] = time_sans_frac() + int(resp['expires_in'])
-        self.client_get("service_context").state.store_item(resp, 'token_response', key)
+    def update_service_context(self, resp, key="", **kwargs):
+        if "expires_in" in resp:
+            resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
+        self.client_get("service_context").state.store_item(resp, "token_response", key)
 
     def oauth_pre_construct(self, request_args=None, post_args=None, **kwargs):
         """
@@ -43,11 +44,13 @@ class AccessToken(Service):
         parameters = list(self.msg_type.c_param.keys())
 
         _context = self.client_get("service_context")
-        _args = _context.state.extend_request_args({}, oauth2.AuthorizationRequest,
-                                                   'auth_request', _state, parameters)
+        _args = _context.state.extend_request_args(
+            {}, oauth2.AuthorizationRequest, "auth_request", _state, parameters
+        )
 
-        _args = _context.state.extend_request_args(_args, oauth2.AuthorizationResponse,
-                                                   'auth_response', _state, parameters)
+        _args = _context.state.extend_request_args(
+            _args, oauth2.AuthorizationResponse, "auth_response", _state, parameters
+        )
 
         if "grant_type" not in _args:
             _args["grant_type"] = "authorization_code"

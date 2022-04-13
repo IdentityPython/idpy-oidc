@@ -37,7 +37,7 @@ def sanitize(str):
 
 def load_yaml_config(filename):
     """Load a YAML configuration file."""
-    with open(filename, "rt", encoding='utf-8') as file:
+    with open(filename, "rt", encoding="utf-8") as file:
         config_dict = yaml.safe_load(file)
     return config_dict
 
@@ -62,7 +62,7 @@ def load_config_file(filename):
 
 
 def split_uri(uri: str) -> [str, Union[dict, None]]:
-    """ Removes fragment and separates the query part from the rest."""
+    """Removes fragment and separates the query part from the rest."""
     p = urlsplit(uri)
 
     if p.fragment:
@@ -78,6 +78,7 @@ def split_uri(uri: str) -> [str, Union[dict, None]]:
 
 
 # Converters
+
 
 class QPKey:
     def serialize(self, str):
@@ -107,31 +108,30 @@ def get_http_params(config):
     params = config.get("httpc_params", {})
 
     if "verify" not in params:
-        _ver = config.get('verify')
+        _ver = config.get("verify")
         if _ver is None:
-            _ver = config.get('verify_ssl', True)
+            _ver = config.get("verify_ssl", True)
         params["verify"] = _ver
 
-    _cert = config.get('client_cert')
-    _key = config.get('client_key')
+    _cert = config.get("client_cert")
+    _key = config.get("client_key")
     if _cert:
         if _key:
-            params['cert'] = (_cert, _key)
+            params["cert"] = (_cert, _key)
         else:
-            params['cert'] = _cert
+            params["cert"] = _cert
 
     return params
 
 
 def add_path(url, path):
-    if url.endswith('/'):
-        if path.startswith('/'):
-            return '{}{}'.format(url, path[1:])
+    if url.endswith("/"):
+        if path.startswith("/"):
+            return "{}{}".format(url, path[1:])
         else:
-            return '{}{}'.format(url, path)
+            return "{}{}".format(url, path)
     else:
-        if path.startswith('/'):
-            return '{}{}'.format(url, path)
+        if path.startswith("/"):
+            return "{}{}".format(url, path)
         else:
-            return '{}/{}'.format(url, path)
-
+            return "{}/{}".format(url, path)

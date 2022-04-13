@@ -5,17 +5,20 @@ import os
 import secrets
 
 import pytest
+from cryptojwt.jwe.fernet import FernetEncrypter
 
+from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.token import Crypt
 from idpyoidc.server.token import is_expired
 from idpyoidc.server.token.handler import DefaultToken
 from idpyoidc.server.token.handler import TokenHandler
 from idpyoidc.server.token.id_token import IDToken
 from idpyoidc.server.token.jwt_token import JWTToken
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,51 +38,16 @@ def test_is_expired():
     assert is_expired(now + 1) is False
 
 
-def test_crypt():
-    crypt = Crypt("Ditt nya bankkort")
-    txt = "Arsenal's great season gifts"
-    enc_text = crypt.encrypt(txt)
-    dec_text = crypt.decrypt(enc_text)
-    assert dec_text == txt
-
-
-class TestCrypt(object):
-    @pytest.fixture(autouse=True)
-    def create_crypt(self):
-        self.crypt = Crypt("4-amino-1H-pyrimidine-2-one")
-
-    def test_encrypt_decrypt(self):
-        ctext = self.crypt.encrypt("Cytosine")
-        plain = self.crypt.decrypt(ctext)
-        assert plain == "Cytosine"
-
-        ctext = self.crypt.encrypt("cytidinetriphosp")
-        plain = self.crypt.decrypt(ctext)
-
-        assert plain == "cytidinetriphosp"
-
-    def test_crypt_with_b64(self):
-        db = {}
-        msg = "secret{}{}".format(utc_time_sans_frac(), secrets.token_urlsafe(16))
-        csum = hmac.new(msg.encode("utf-8"), digestmod=hashlib.sha224)
-        txt = csum.digest()  # 28 bytes long, 224 bits
-        db[txt] = "foobar"
-        txt = txt + b"aces"  # another 4 bytes
-
-        ctext = self.crypt.encrypt(txt)
-        onthewire = base64.b64encode(ctext)
-        plain = self.crypt.decrypt(base64.b64decode(onthewire))
-        assert plain.endswith(b"aces")
-        assert db[plain[:-4]] == "foobar"
-
-
 class TestDefaultToken(object):
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
         password = "The longer the better. Is this close to enough ?"
         grant_expires_in = 600
-        self.th = DefaultToken(password, token_class="authorization_code",
-                               lifetime=grant_expires_in)
+        crypt_config = default_crypt_config()
+        crypt_config["kwargs"]["iterations"] = 10
+        self.th = DefaultToken(
+            crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
+        )
 
     def test_default_token_split_token(self):
         _token = self.th("session_id")
@@ -112,16 +80,22 @@ class TestDefaultToken(object):
 class TestTokenHandler(object):
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
-        password = "The longer the better. Is this close to enough ?"
         grant_expires_in = 600
         token_expires_in = 900
         refresh_token_expires_in = 86400
 
-        authorization_code = DefaultToken(password, token_class="authorization_code",
-                                          lifetime=grant_expires_in)
-        access_token = DefaultToken(password, token_class="access_token", lifetime=token_expires_in)
-        refresh_token = DefaultToken(password, token_class="refresh_token",
-                                     lifetime=refresh_token_expires_in)
+        crypt_config = default_crypt_config()
+        crypt_config["kwargs"]["iterations"] = 10
+
+        authorization_code = DefaultToken(
+            crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
+        )
+        access_token = DefaultToken(
+            crypt_conf=crypt_config, token_class="access_token", lifetime=token_expires_in
+        )
+        refresh_token = DefaultToken(
+            crypt_conf=crypt_config, token_class="refresh_token", lifetime=refresh_token_expires_in
+        )
 
         self.handler = TokenHandler(
             authorization_code=authorization_code,
@@ -177,7 +151,9 @@ def test_token_handler_from_config():
     conf = {
         "issuer": "https://example.com/op",
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-        "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}}, },
+        "endpoint": {
+            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
+        },
         "token_handler_args": {
             "jwks_def": {
                 "private_path": "private/token_jwks.json",
@@ -195,7 +171,10 @@ def test_token_handler_from_config():
             },
             "refresh": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {
+                    "lifetime": 3600,
+                    "aud": ["https://example.org/appl"],
+                },
             },
             "id_token": {
                 "class": "idpyoidc.server.token.id_token.IDToken",
@@ -207,6 +186,7 @@ def test_token_handler_from_config():
                 },
             },
         },
+        "session_params": SESSION_PARAMS,
     }
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -266,9 +246,11 @@ def test_file(jwks):
     conf = {
         "issuer": "https://example.com/op",
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-        "endpoint": {"endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}}, },
+        "endpoint": {
+            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
+        },
         "token_handler_args": {
-            "code": {"kwargs": {"lifetime": 600}},
+            "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             "token": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
                 "kwargs": {
@@ -279,7 +261,10 @@ def test_file(jwks):
             },
             "refresh": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {
+                    "lifetime": 3600,
+                    "aud": ["https://example.org/appl"],
+                },
             },
             "id_token": {
                 "class": "idpyoidc.server.token.id_token.IDToken",
@@ -291,31 +276,9 @@ def test_file(jwks):
                 },
             },
         },
+        "session_params": SESSION_PARAMS,
     }
-    for arg in ["jwks_file", "jwks_def"]:
-        try:
-            del conf["token_handler_args"][arg]
-        except KeyError:
-            pass
-
-    for _file in [
-        "private/token_jwks_1.json",
-        "private/token_jwks_2.json",
-        "private/token_jwks.json",
-    ]:
-        if os.path.exists(full_path(_file)):
-            os.unlink(full_path(_file))
-
-    if jwks:
-        conf["token_handler_args"].update(jwks)
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
     token_handler = server.endpoint_context.session_manager.token_handler
     assert token_handler
-
-    if "jwks_file" in conf["token_handler_args"]:
-        assert os.path.exists(full_path("private/token_jwks_1.json"))
-    elif "jwks_def" in conf["token_handler_args"]:
-        assert os.path.exists(full_path("private/token_jwks_2.json"))
-    else:
-        assert os.path.exists(full_path("private/token_jwks.json"))

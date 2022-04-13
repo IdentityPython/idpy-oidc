@@ -1,5 +1,6 @@
 # Message class to pydantic class converter
 
+
 def get_type(typ) -> str:
     if typ == str:
         return "str"

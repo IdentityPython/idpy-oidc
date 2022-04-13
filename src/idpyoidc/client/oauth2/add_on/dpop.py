@@ -24,7 +24,7 @@ class DPoPProof(Message):
         "jti": SINGLE_REQUIRED_STRING,
         "htm": SINGLE_REQUIRED_STRING,
         "htu": SINGLE_REQUIRED_STRING,
-        "iat": SINGLE_REQUIRED_INT
+        "iat": SINGLE_REQUIRED_INT,
     }
     header_params = {"typ", "alg", "jwk"}
     body_params = {"jti", "htm", "htu", "iat"}
@@ -83,11 +83,13 @@ class DPoPProof(Message):
             return None
 
 
-def dpop_header(service_context: ServiceContext,
-                service_endpoint: str,
-                http_method: str,
-                headers: Optional[dict] = None,
-                **kwargs) -> dict:
+def dpop_header(
+    service_context: ServiceContext,
+    service_endpoint: str,
+    http_method: str,
+    headers: Optional[dict] = None,
+    **kwargs
+) -> dict:
     """
 
     :param service_context:
@@ -99,15 +101,15 @@ def dpop_header(service_context: ServiceContext,
     """
 
     provider_info = service_context.provider_info
-    dpop_key = service_context.add_on['dpop'].get('key')
+    dpop_key = service_context.add_on["dpop"].get("key")
 
     if not dpop_key:
         algs_supported = provider_info["dpop_signing_alg_values_supported"]
         if not algs_supported:  # does not support DPoP
             return headers
 
-        chosen_alg = ''
-        for alg in service_context.add_on['dpop']["sign_algs"]:
+        chosen_alg = ""
+        for alg in service_context.add_on["dpop"]["sign_algs"]:
             if alg in algs_supported:
                 chosen_alg = alg
                 break
@@ -117,17 +119,17 @@ def dpop_header(service_context: ServiceContext,
 
         # Mint a new key
         dpop_key = key_by_alg(chosen_alg)
-        service_context.add_on['dpop']['key'] = dpop_key
-        service_context.add_on['dpop']['alg'] = chosen_alg
+        service_context.add_on["dpop"]["key"] = dpop_key
+        service_context.add_on["dpop"]["alg"] = chosen_alg
 
     header_dict = {
         "typ": "dpop+jwt",
-        "alg": service_context.add_on['dpop']['alg'],
+        "alg": service_context.add_on["dpop"]["alg"],
         "jwk": dpop_key.serialize(),
         "jti": uuid.uuid4().hex,
         "htm": http_method,
         "htu": provider_info[service_endpoint],
-        "iat": utc_time_sans_frac()
+        "iat": utc_time_sans_frac(),
     }
 
     _dpop = DPoPProof(**header_dict)
@@ -153,7 +155,7 @@ def add_support(services, signing_algorithms):
     # Access token request should use DPoP header
     _service = services["accesstoken"]
     _context = _service.client_get("service_context")
-    _context.add_on['dpop'] = {
+    _context.add_on["dpop"] = {
         # "key": key_by_alg(signing_algorithm),
         "sign_algs": signing_algorithms
     }

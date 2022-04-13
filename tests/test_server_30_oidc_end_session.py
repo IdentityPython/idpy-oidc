@@ -28,6 +28,8 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 ISS = "https://example.com/"
 
@@ -153,7 +155,7 @@ class TestEndpoint(object):
                     "read_only": False,
                     "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -164,7 +166,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -176,6 +181,7 @@ class TestEndpoint(object):
                     },
                 },
             },
+            "session_params": SESSION_PARAMS,
         }
 
         cookie_conf = {
@@ -228,7 +234,10 @@ class TestEndpoint(object):
 
     def _create_cookie(self, session_id):
         ec = self.session_endpoint.server_get("endpoint_context")
-        return ec.new_cookie(name=ec.cookie_handler.name["session"], sid=session_id, )
+        return ec.new_cookie(
+            name=ec.cookie_handler.name["session"],
+            sid=session_id,
+        )
 
     def _code_auth(self, state):
         req = AuthorizationRequest(
@@ -359,12 +368,16 @@ class TestEndpoint(object):
 
         post_logout_redirect_uri = join_query(
             *self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
-                "post_logout_redirect_uri"]
+                "post_logout_redirect_uri"
+            ]
         )
 
         with pytest.raises(InvalidRequest):
             self.session_endpoint.process_request(
-                {"post_logout_redirect_uri": post_logout_redirect_uri, "state": "abcde", },
+                {
+                    "post_logout_redirect_uri": post_logout_redirect_uri,
+                    "state": "abcde",
+                },
                 http_info=http_info,
             )
 
@@ -398,8 +411,7 @@ class TestEndpoint(object):
         info = self._code_auth("1234567")
 
         res = self.session_endpoint.do_back_channel_logout(
-            self.session_endpoint.server_get("endpoint_context").cdb["client_1"],
-            info["session_id"]
+            self.session_endpoint.server_get("endpoint_context").cdb["client_1"], info["session_id"]
         )
         assert res is None
 
@@ -520,8 +532,9 @@ class TestEndpoint(object):
             _code, client_session_info=True, grant=True
         )
         _grant_code = self.session_manager.find_token(_session_info["session_id"], _code)
-        id_token1 = self._mint_token("id_token", _session_info["grant"],
-                                     _session_info["session_id"], _grant_code)
+        id_token1 = self._mint_token(
+            "id_token", _session_info["grant"], _session_info["session_id"], _grant_code
+        )
 
         _resp2 = self._code_auth2("abcdefg")
         _code2 = _resp2["response_args"]["code"]
@@ -529,8 +542,9 @@ class TestEndpoint(object):
             _code2, client_session_info=True, grant=True
         )
         _grant_code2 = self.session_manager.find_token(_session_info2["session_id"], _code2)
-        id_token2 = self._mint_token("id_token", _session_info2["grant"],
-                                     _session_info2["session_id"], _grant_code2)
+        id_token2 = self._mint_token(
+            "id_token", _session_info2["grant"], _session_info2["session_id"], _grant_code2
+        )
 
         # client0
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][

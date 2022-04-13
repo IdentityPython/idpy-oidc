@@ -2,10 +2,12 @@ import json
 import os
 import sys
 import traceback
+from typing import Union
 from urllib.parse import urlparse
 
 from cryptojwt import as_unicode
 from flask import Blueprint
+from flask import Response
 from flask import current_app
 from flask import redirect
 from flask import render_template
@@ -26,7 +28,7 @@ from idpyoidc.server.oidc.token import Token
 oidc_op_views = Blueprint('oidc_op', __name__, url_prefix='')
 
 
-def _add_cookie(resp, cookie_spec):
+def _add_cookie(resp: Response, cookie_spec: Union[dict, list]):
     kwargs = {k:v
               for k,v in cookie_spec.items()
               if k not in ('name',)}
@@ -35,7 +37,7 @@ def _add_cookie(resp, cookie_spec):
     resp.set_cookie(cookie_spec["name"], **kwargs)
 
 
-def add_cookie(resp, cookie_spec):
+def add_cookie(resp: Response, cookie_spec: Union[dict, list]):
     if isinstance(cookie_spec, list):
         for _spec in cookie_spec:
             _add_cookie(resp, _spec)
@@ -58,11 +60,11 @@ def index():
     return render_template('index.html')
 
 
-def add_headers_and_cookie(resp, info):
-    return resp
+# def add_headers_and_cookie(resp, info):
+#     return resp
 
 
-def do_response(endpoint, req_args, error='', **args):
+def do_response(endpoint, req_args, error='', **args) -> Response:
     info = endpoint.do_response(request=req_args, error=error, **args)
     _log = current_app.logger
     _log.debug('do_response: {}'.format(info))

@@ -27,21 +27,31 @@ def test_unreserved():
 
 
 def test_get_http_url():
-    request = AuthorizationRequest(response_type="query", redirect_uri="https://rp.example.org",
-                                   client_id="client", state="state")
-    _url = get_http_url("https://op.example.com/", request, method='GET')
+    request = AuthorizationRequest(
+        response_type="query",
+        redirect_uri="https://rp.example.org",
+        client_id="client",
+        state="state",
+    )
+    _url = get_http_url("https://op.example.com/", request, method="GET")
     assert _url
     _p = urlsplit(_url)
     msg = parse_qs(_p.query)
-    assert msg == {'client_id': ['client'],
-                   'redirect_uri': ['https://rp.example.org'],
-                   'response_type': ['query'],
-                   'state': ['state']}
+    assert msg == {
+        "client_id": ["client"],
+        "redirect_uri": ["https://rp.example.org"],
+        "response_type": ["query"],
+        "state": ["state"],
+    }
 
 
 def test_get_http_body():
-    request = AuthorizationRequest(response_type="query", redirect_uri="https://rp.example.org",
-                                   client_id="client", state="state")
+    request = AuthorizationRequest(
+        response_type="query",
+        redirect_uri="https://rp.example.org",
+        client_id="client",
+        state="state",
+    )
 
     # default urlencoded
     _body = get_http_body(request)
@@ -88,7 +98,7 @@ def test_set_cookie_del():
     assert len(cookiejar) == 0
 
 
-class FakeResponse():
+class FakeResponse:
     def __init__(self, header):
         self.headers = {"content-type": header}
         self.text = "TEST_RESPONSE"
@@ -104,19 +114,17 @@ def test_verify_header():
     assert verify_header(FakeResponse(json_header), "json") == "json"
     assert verify_header(FakeResponse(jwt_header), "json") == "jwt"
     assert verify_header(FakeResponse(jwt_header), "jwt") == "jwt"
-    assert verify_header(FakeResponse(default_header),
-                         "urlencoded") == "urlencoded"
-    assert verify_header(FakeResponse(plain_text_header),
-                         "urlencoded") == "urlencoded"
-    assert verify_header(FakeResponse('text/html'), 'txt')
-    assert verify_header(FakeResponse('text/plain'), 'txt')
+    assert verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
+    assert verify_header(FakeResponse(plain_text_header), "urlencoded") == "urlencoded"
+    assert verify_header(FakeResponse("text/html"), "txt")
+    assert verify_header(FakeResponse("text/plain"), "txt")
 
     assert verify_header(FakeResponse(json_header), "") == "json"
     assert verify_header(FakeResponse(jwt_header), "") == "jwt"
     assert verify_header(FakeResponse(jwt_header), "") == "jwt"
     assert verify_header(FakeResponse(default_header), "") == "urlencoded"
     assert verify_header(FakeResponse(plain_text_header), "") == "txt"
-    assert verify_header(FakeResponse('text/html'), '') == 'txt'
+    assert verify_header(FakeResponse("text/html"), "") == "txt"
 
     with pytest.raises(WrongContentType):
         verify_header(FakeResponse(json_header), "urlencoded")
@@ -131,28 +139,28 @@ def test_verify_header():
 
 def test_get_deserialization_method_json():
     resp = FakeResponse("application/json")
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
     resp = FakeResponse("application/json; charset=utf-8")
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
     resp.headers["content-type"] = "application/jrd+json"
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
 
 def test_get_deserialization_method_jwt():
     resp = FakeResponse("application/jwt")
-    assert get_deserialization_method(resp) == 'jwt'
+    assert get_deserialization_method(resp) == "jwt"
 
 
 def test_get_deserialization_method_urlencoded():
     resp = FakeResponse(URL_ENCODED)
-    assert get_deserialization_method(resp) == 'urlencoded'
+    assert get_deserialization_method(resp) == "urlencoded"
 
 
 def test_get_deserialization_method_text():
-    resp = FakeResponse('text/html')
-    assert get_deserialization_method(resp) == ''
+    resp = FakeResponse("text/html")
+    assert get_deserialization_method(resp) == ""
 
-    resp = FakeResponse('text/plain')
-    assert get_deserialization_method(resp) == ''
+    resp = FakeResponse("text/plain")
+    assert get_deserialization_method(resp) == ""

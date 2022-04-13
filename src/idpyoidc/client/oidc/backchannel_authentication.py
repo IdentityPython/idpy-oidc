@@ -8,32 +8,34 @@ from idpyoidc.message.oidc.backchannel_authentication import NotificationRequest
 
 class BackChannelAuthentication(Service):
     """The service that talks to the Backchannel Authentication endpoint."""
+
     msg_type = AuthenticationRequest
     response_cls = AuthenticationResponse
     error_msg = ResponseMessage
-    endpoint_name = 'backchannel_authentication_endpoint'
+    endpoint_name = "backchannel_authentication_endpoint"
     synchronous = True
-    service_name = 'backchannel_authentication'
-    response_body_type = 'json'
+    service_name = "backchannel_authentication"
+    response_body_type = "json"
 
     def __init__(self, client_get, conf=None, **kwargs):
         Service.__init__(self, client_get=client_get, conf=conf, **kwargs)
-        self.default_request_args = {'scope': ['openid']}
+        self.default_request_args = {"scope": ["openid"]}
         self.pre_construct = []
         self.post_construct = []
 
 
 class ClientNotification(Service):
     """The service that talks to the Client Notification endpoint."""
+
     msg_type = NotificationRequest
     response_cls = None
     error_msg = None
-    endpoint_name = 'client_notification_endpoint'
+    endpoint_name = "client_notification_endpoint"
     synchronous = True
-    request_body_type = 'json'
-    service_name = 'client_notification'
-    response_body_type = ''
-    http_method = 'POST'
+    request_body_type = "json"
+    service_name = "client_notification"
+    response_body_type = ""
+    http_method = "POST"
 
     def __init__(self, client_get, conf=None, **kwargs):
         Service.__init__(self, client_get=client_get, conf=conf, **kwargs)
@@ -44,8 +46,7 @@ class ClientNotification(Service):
 class ClientNotificationAuthn(ClientAuthnMethod):
     """The bearer header authentication method."""
 
-    def construct(self, request=None, service=None, http_args=None,
-                  **kwargs):
+    def construct(self, request=None, service=None, http_args=None, **kwargs):
         """
         Constructing the Authorization header. The value of
         the Authorization header is "Bearer <access_token>".
@@ -57,9 +58,9 @@ class ClientNotificationAuthn(ClientAuthnMethod):
         :return:
         """
 
-        _token = request.get('client_notification_token')
+        _token = request.get("client_notification_token")
         if not _token:
-            raise KeyError('No client_notification_token token available')
+            raise KeyError("No client_notification_token token available")
         del request["client_notification_token"]
 
         # The authorization value starts with 'Bearer' when bearer tokens

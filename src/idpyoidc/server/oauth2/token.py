@@ -76,14 +76,12 @@ class Token(Endpoint):
                 raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
 
     def _post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         grant_type = request["grant_type"]
         _helper = self.helper.get(grant_type)
         client = kwargs["endpoint_context"].cdb[client_id]
-        grant_types_supported = client.get(
-            "grant_types_supported", self.grant_types_supported
-        )
+        grant_types_supported = client.get("grant_types_supported", self.grant_types_supported)
         if grant_type not in grant_types_supported:
             return self.error_cls(
                 error="invalid_request",

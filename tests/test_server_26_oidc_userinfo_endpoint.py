@@ -22,15 +22,12 @@ from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
 RESPONSE_TYPES_SUPPORTED = [
@@ -92,7 +89,7 @@ class TestEndpoint(object):
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {
-                    "keys": {"key_defs": COOKIE_KEYDEFS},
+                    "encrypter": CRYPT_CONFIG,
                     "name": {
                         "session": "oidc_op",
                         "register": "oidc_op_reg",
@@ -107,8 +104,16 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
-                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
+                "registration": {
+                    "path": "registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
+                "authorization": {
+                    "path": "authorization",
+                    "class": Authorization,
+                    "kwargs": {},
+                },
                 "token": {
                     "path": "token",
                     "class": Token,
@@ -125,7 +130,11 @@ class TestEndpoint(object):
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
                         "client_authn_method": ["bearer_header", "bearer_body"],
                     },
                 },
@@ -145,8 +154,7 @@ class TestEndpoint(object):
                     "acr": "https://refeds.org/profile/mfa",
                     "class": "idpyoidc.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
-                }
-
+                },
             },
             "template_dir": "template",
             "scopes_to_claims": {
@@ -160,6 +168,19 @@ class TestEndpoint(object):
                     "sub",
                     "eduperson_scoped_affiliation",
                 ],
+            },
+            "session_params": SESSION_PARAMS,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {
+                    "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "add_claims_by_scope": True,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             },
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -176,8 +197,7 @@ class TestEndpoint(object):
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier="",
-                        authn_info=None):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=None):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -215,28 +235,28 @@ class TestEndpoint(object):
         assert set(
             self.endpoint.server_get("endpoint_context").provider_info["claims_supported"]
         ) == {
-                   "address",
-                   "birthdate",
-                   "email",
-                   "email_verified",
-                   "eduperson_scoped_affiliation",
-                   "family_name",
-                   "gender",
-                   "given_name",
-                   "locale",
-                   "middle_name",
-                   "name",
-                   "nickname",
-                   "phone_number",
-                   "phone_number_verified",
-                   "picture",
-                   "preferred_username",
-                   "profile",
-                   "sub",
-                   "updated_at",
-                   "website",
-                   "zoneinfo",
-               }
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "eduperson_scoped_affiliation",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "sub",
+            "updated_at",
+            "website",
+            "zoneinfo",
+        }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
@@ -362,7 +382,8 @@ class TestEndpoint(object):
             ],
         }
         self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(
-            self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()) + ["aba"]
+            self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()
+        ) + ["aba"]
 
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship_2", "aba"]
@@ -578,7 +599,7 @@ class TestEndpoint(object):
 
     def test_process_request_absent_userinfo_conf(self):
         # consider to have a configuration without userinfo defined in
-        ec = self.endpoint.server_get('endpoint_context')
+        ec = self.endpoint.server_get("endpoint_context")
         ec.userinfo = None
 
         session_id = self._create_session(AUTH_REQ)

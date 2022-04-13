@@ -1,3 +1,7 @@
+import os
+
+# from cryptojwt.jwe.fernet import DEFAULT_ITERATIONS
+
 DEF_SIGN_ALG = {
     "id_token": "RS256",
     "userinfo": "RS256",

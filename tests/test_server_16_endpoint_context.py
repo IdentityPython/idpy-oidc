@@ -14,7 +14,9 @@ from idpyoidc.server.exception import OidcEndpointError
 from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.util import allow_refresh_token
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
 KEYDEFS = [
@@ -60,7 +62,7 @@ conf = {
                     "client_secret_post",
                     "client_secret_basic",
                 ]
-            }
+            },
         }
     },
     "token_handler_args": {
@@ -69,7 +71,12 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {"kwargs": {"lifetime": 600}},
+        "code": {
+            "lifetime": 600,
+            "kwargs": {
+                "crypt_conf": CRYPT_CONFIG
+            }
+        },
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -80,7 +87,10 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
@@ -89,6 +99,7 @@ conf = {
         "kwargs": {"db_file": full_path("users.json")},
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": SESSION_PARAMS,
 }
 
 
@@ -109,8 +120,14 @@ class TestEndpointContext:
         endpoint = do_endpoints(conf, self.server_get)
         _cap = get_provider_capabilities(conf, endpoint)
         pi = self.endpoint_context.create_providerinfo(_cap)
-        assert set(pi.keys()) == {'claims_supported', 'issuer', 'version', 'scopes_supported',
-                                  'subject_types_supported', 'grant_types_supported'}
+        assert set(pi.keys()) == {
+            "claims_supported",
+            "issuer",
+            "version",
+            "scopes_supported",
+            "subject_types_supported",
+            "grant_types_supported",
+        }
 
     def test_allow_refresh_token(self):
         self.endpoint_context.session_manager = create_session_manager(
@@ -135,7 +152,7 @@ class TestEndpointContext:
             "authorization_code",
             "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            "refresh_token"
+            "refresh_token",
         ]
         del self.endpoint_context.session_manager.token_handler.handler["refresh_token"]
         with pytest.raises(OidcEndpointError):
@@ -145,9 +162,13 @@ class TestEndpointContext:
 class Tokenish(Endpoint):
     default_capabilities = None
     provider_info_attributes = {
-        "token_endpoint_auth_methods_supported": ['client_secret_post', 'client_secret_basic',
-                                                  'client_secret_jwt', 'private_key_jwt'],
-        "token_endpoint_auth_signing_alg_values_supported": None
+        "token_endpoint_auth_methods_supported": [
+            "client_secret_post",
+            "client_secret_basic",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ],
+        "token_endpoint_auth_signing_alg_values_supported": None,
     }
     auth_method_attribute = "token_endpoint_auth_methods_supported"
 
@@ -190,16 +211,14 @@ CONF = {
     "kwargs",
     [
         {},
-        {"client_authn_method": ['client_secret_jwt', 'private_key_jwt']},
-        {"token_endpoint_auth_methods_supported": ['client_secret_jwt', 'private_key_jwt']}
-    ]
+        {"client_authn_method": ["client_secret_jwt", "private_key_jwt"]},
+        {"token_endpoint_auth_methods_supported": ["client_secret_jwt", "private_key_jwt"]},
+    ],
 )
 def test_provider_configuration(kwargs):
     conf = copy.deepcopy(CONF)
     conf["endpoint"] = {
-        "endpoint": {
-            "path": "endpoint",
-            "class": Tokenish, "kwargs": kwargs},
+        "endpoint": {"path": "endpoint", "class": Tokenish, "kwargs": kwargs},
     }
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -208,16 +227,28 @@ def test_provider_configuration(kwargs):
 
     _cap = get_provider_capabilities(conf, _endpoints)
     pi = server.endpoint_context.create_providerinfo(_cap)
-    assert set(pi.keys()) == {'version', 'acr_values_supported', 'issuer', 'jwks_uri',
-                              'scopes_supported', 'grant_types_supported', 'claims_supported',
-                              'subject_types_supported', 'token_endpoint_auth_methods_supported',
-                              'token_endpoint_auth_signing_alg_values_supported', }
+    assert set(pi.keys()) == {
+        "version",
+        "acr_values_supported",
+        "issuer",
+        "jwks_uri",
+        "scopes_supported",
+        "grant_types_supported",
+        "claims_supported",
+        "subject_types_supported",
+        "token_endpoint_auth_methods_supported",
+        "token_endpoint_auth_signing_alg_values_supported",
+    }
 
     if kwargs:
-        assert pi['token_endpoint_auth_methods_supported'] == ['client_secret_jwt',
-                                                               'private_key_jwt']
+        assert pi["token_endpoint_auth_methods_supported"] == [
+            "client_secret_jwt",
+            "private_key_jwt",
+        ]
     else:
-        assert pi['token_endpoint_auth_methods_supported'] == ['client_secret_post',
-                                                               'client_secret_basic',
-                                                               'client_secret_jwt',
-                                                               'private_key_jwt']
+        assert pi["token_endpoint_auth_methods_supported"] == [
+            "client_secret_post",
+            "client_secret_basic",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ]

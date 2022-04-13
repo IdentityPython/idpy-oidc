@@ -52,11 +52,11 @@ class UserInfo(Endpoint):
         return _info["client_id"]
 
     def do_response(
-            self,
-            response_args: Optional[Union[Message, dict]] = None,
-            request: Optional[Union[Message, dict]] = None,
-            client_id: Optional[str] = "",
-            **kwargs
+        self,
+        response_args: Optional[Union[Message, dict]] = None,
+        request: Optional[Union[Message, dict]] = None,
+        client_id: Optional[str] = "",
+        **kwargs
     ) -> dict:
 
         if "error" in kwargs and kwargs["error"]:

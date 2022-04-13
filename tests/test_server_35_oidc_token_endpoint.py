@@ -29,7 +29,9 @@ from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import lv_pack
 from idpyoidc.time_util import utc_time_sans_frac
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from .test_server_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 
 KEYDEFS = [
@@ -106,7 +108,7 @@ def conf():
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
         "token_handler_args": {
             "jwks_file": "private/token_jwks.json",
-            "code": {"kwargs": {"lifetime": 600}},
+            "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             "token": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
                 "kwargs": {
@@ -131,8 +133,16 @@ def conf():
                 "class": ProviderConfiguration,
                 "kwargs": {},
             },
-            "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
-            "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
+            "registration": {
+                "path": "registration",
+                "class": Registration,
+                "kwargs": {},
+            },
+            "authorization": {
+                "path": "authorization",
+                "class": Authorization,
+                "kwargs": {},
+            },
             "token": {
                 "path": "token",
                 "class": Token,
@@ -168,7 +178,11 @@ def conf():
                     "usage_rules": {
                         "authorization_code": {
                             "expires_in": 300,
-                            "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                            "supports_minting": [
+                                "access_token",
+                                "refresh_token",
+                                "id_token",
+                            ],
                             "max_usage": 1,
                         },
                         "access_token": {"expires_in": 600},
@@ -181,6 +195,7 @@ def conf():
                 }
             },
         },
+        "session_params": SESSION_PARAMS,
     }
 
 
@@ -442,8 +457,10 @@ class TestEndpoint(_TestEndpoint):
         _req = self.token_endpoint.parse_request(_request.to_urlencoded())
 
         assert isinstance(_req, TokenErrorResponse)
-        assert _req.to_dict() == {"error": "invalid_grant",
-                                  "error_description": "Invalid refresh token"}
+        assert _req.to_dict() == {
+            "error": "invalid_grant",
+            "error_description": "Invalid refresh token",
+        }
 
     def test_refresh_scopes(self):
         areq = AUTH_REQ.copy()
@@ -490,9 +507,7 @@ class TestEndpoint(_TestEndpoint):
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(
-            _session_info["session_id"], _token_value
-        )
+        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
@@ -531,7 +546,7 @@ class TestEndpoint(_TestEndpoint):
 
         assert _resp.to_dict() == {
             "error": "invalid_request",
-            "error_description": "Invalid refresh scopes"
+            "error_description": "Invalid refresh scopes",
         }
 
     def test_refresh_more_scopes_2(self):
@@ -595,9 +610,7 @@ class TestEndpoint(_TestEndpoint):
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(
-            _session_info["session_id"], _token_value
-        )
+        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
@@ -941,9 +954,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
 
         assert isinstance(_resp, TokenErrorResponse)
-        assert _resp.to_dict() == {
-            "error": "invalid_grant", "error_description": "Wrong client"
-        }
+        assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
 
     def test_refresh_token_request_other_client(self):
         _context = self.endpoint_context
@@ -956,9 +967,7 @@ class TestEndpoint(_TestEndpoint):
         _token_request["code"] = code.value
 
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(
-            request=_req, issue_refresh=True
-        )
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["client_id"] = "client_2"
@@ -970,11 +979,11 @@ class TestEndpoint(_TestEndpoint):
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_urlencoded())
-        _resp = self.token_endpoint.process_request(request=_req, )
+        _resp = self.token_endpoint.process_request(
+            request=_req,
+        )
         assert isinstance(_resp, TokenErrorResponse)
-        assert _resp.to_dict() == {
-            "error": "invalid_grant", "error_description": "Wrong client"
-        }
+        assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
 
 
 class TestOldTokens(object):
@@ -1055,7 +1064,8 @@ class TestOldTokens(object):
         _res = dict(zip(["_id", "token_class", "sid", "exp"], _handler.split_token(code.value)))
 
         _clear_txt_sid = self.session_manager.session_key(
-            *self.session_manager.decrypt_session_id(_res["sid"]))
+            *self.session_manager.decrypt_session_id(_res["sid"])
+        )
 
         _old_type_token = base64.b64encode(
             _handler.crypt.encrypt(lv_pack(_res["_id"], "A", _clear_txt_sid, _res["exp"]).encode())
@@ -1081,7 +1091,10 @@ class TestOldTokens(object):
         # payload.update(kwargs)
         _context = _handler.server_get("endpoint_context")
         signer = JWT(
-            key_jar=_context.keyjar, iss=_handler.issuer, lifetime=300, sign_alg=_handler.alg,
+            key_jar=_context.keyjar,
+            iss=_handler.issuer,
+            lifetime=300,
+            sign_alg=_handler.alg,
         )
 
         _old_type_token = signer.pack(payload)

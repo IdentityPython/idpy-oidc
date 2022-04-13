@@ -16,8 +16,10 @@ def full_path(local_file):
 
 def test_login_hint():
     userinfo = init_user_info(
-        {"class": "idpyoidc.server.user_info.UserInfo",
-         "kwargs": {"db_file": full_path("users.json")}, },
+        {
+            "class": "idpyoidc.server.user_info.UserInfo",
+            "kwargs": {"db_file": full_path("users.json")},
+        },
         "",
     )
     login_hint_lookup = init_service({"class": "idpyoidc.server.login_hint.LoginHintLookup"}, None)

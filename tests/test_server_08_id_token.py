@@ -14,6 +14,8 @@ from idpyoidc.server.token.id_token import get_sign_and_encrypt_algorithms
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -69,7 +71,12 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {"kwargs": {"lifetime": 600}},
+        "code": {
+            "lifetime": 600,
+            "kwargs": {
+                "crypt_conf": CRYPT_CONFIG
+            }
+        },
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -80,7 +87,10 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {
             "class": "idpyoidc.server.token.id_token.IDToken",
@@ -100,10 +110,10 @@ conf = {
             "kwargs": {"user": "diana"},
         },
         "mfa": {
-            "acr": 'https://refeds.org/profile/mfa',
+            "acr": "https://refeds.org/profile/mfa",
             "class": "idpyoidc.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
-        }
+        },
     },
     "session_manager": {
         "grant_config": {
@@ -115,7 +125,7 @@ conf = {
                 "access_token": {},
                 "refresh_token": {
                     "supports_minting": ["access_token", "refresh_token"],
-                    "expires_in": 3600
+                    "expires_in": 3600,
                 },
             },
             "expires_in": 43200,
@@ -127,7 +137,11 @@ conf = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
                         "max_usage": 1,
                     },
                     "access_token": {},
@@ -137,9 +151,13 @@ conf = {
             }
         },
     },
-    "userinfo": {"class": "idpyoidc.server.user_info.UserInfo", "kwargs": {"db": USERS}, },
+    "userinfo": {
+        "class": "idpyoidc.server.user_info.UserInfo",
+        "kwargs": {"db": USERS},
+    },
     "client_authn": verify_client,
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": SESSION_PARAMS,
 }
 
 USER_ID = "diana"
@@ -165,7 +183,7 @@ class TestEndpoint(object):
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = USER_ID
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=''):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -231,7 +249,7 @@ class TestEndpoint(object):
             "scope",
             "client_id",
             "iss",
-            "sid"
+            "sid",
         }
 
     def test_id_token_payload_with_code(self):
@@ -257,7 +275,7 @@ class TestEndpoint(object):
             "iss",
             "iat",
             "nonce",
-            "sid"
+            "sid",
         }
 
     def test_id_token_payload_with_access_token(self):
@@ -288,7 +306,7 @@ class TestEndpoint(object):
             "iat",
             "nonce",
             "at_hash",
-            "sid"
+            "sid",
         }
 
     def test_id_token_payload_with_code_and_access_token(self):
@@ -298,7 +316,11 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code)
 
         id_token = self._mint_id_token(
-            grant, session_id, token_ref=code, code=code.value, access_token=access_token.value,
+            grant,
+            session_id,
+            token_ref=code,
+            code=code.value,
+            access_token=access_token.value,
         )
 
         _jwt = factory(id_token.value)
@@ -318,7 +340,7 @@ class TestEndpoint(object):
             "nonce",
             "at_hash",
             "c_hash",
-            "sid"
+            "sid",
         }
 
     def test_id_token_payload_with_userinfo(self):
@@ -345,7 +367,7 @@ class TestEndpoint(object):
             "exp",
             "auth_time",
             "sub",
-            "sid"
+            "sid",
         }
 
     def test_id_token_payload_many_0(self):
@@ -357,7 +379,11 @@ class TestEndpoint(object):
         access_token = self._mint_access_token(grant, session_id, code)
 
         id_token = self._mint_id_token(
-            grant, session_id, token_ref=code, code=code.value, access_token=access_token.value,
+            grant,
+            session_id,
+            token_ref=code,
+            code=code.value,
+            access_token=access_token.value,
         )
 
         _jwt = factory(id_token.value)
@@ -378,7 +404,7 @@ class TestEndpoint(object):
             "exp",
             "iat",
             "iss",
-            "sid"
+            "sid",
         }
 
     def test_sign_encrypt_id_token(self):
@@ -401,7 +427,10 @@ class TestEndpoint(object):
     def test_get_sign_algorithm(self):
         client_info = self.endpoint_context.cdb[AREQ["client_id"]]
         algs = get_sign_and_encrypt_algorithms(
-            self.endpoint_context, client_info, "id_token", sign=True,
+            self.endpoint_context,
+            client_info,
+            "id_token",
+            sign=True,
         )
         # default signing alg
         assert algs == {"sign": True, "encrypt": False, "sign_alg": "RS256"}
@@ -484,7 +513,8 @@ class TestEndpoint(object):
 
         self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
         self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {
-            "address": None}
+            "address": None
+        }
 
         _claims = self.endpoint_context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"

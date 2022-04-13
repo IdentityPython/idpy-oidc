@@ -14,6 +14,7 @@ from idpyoidc.server.session.token import SessionToken
 from idpyoidc.server.token import DefaultToken
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
+from . import CRYPT_CONFIG
 from . import full_path
 
 KEYDEFS = [
@@ -40,11 +41,12 @@ conf = {
         "kwargs": {"db_file": full_path("users.json")},
     },
     "session_params": {
+        "encrypter": CRYPT_CONFIG,
         "remove_inactive_token": True,
         "remember_token": {
             "function": remember_token,
-        }
-    }
+        },
+    },
 }
 
 USER_ID = "diana"
@@ -414,13 +416,13 @@ class TestGrant:
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
             scope=["openid", "email", "eduperson"],
-            claims=["given_name", "eduperson_affiliation"]
+            claims=["given_name", "eduperson_affiliation"],
         )
 
         spec = grant.get_spec(access_token)
         assert set(spec.keys()) == {"scope", "claims", "resources"}
         assert spec["scope"] == ["openid", "email", "eduperson"]
-        assert spec["claims"] == {'eduperson_affiliation': None, 'given_name': None}
+        assert spec["claims"] == {"eduperson_affiliation": None, "given_name": None}
         assert spec["resources"] == ["https://api.example.com"]
 
     def test_get_usage_rules(self):

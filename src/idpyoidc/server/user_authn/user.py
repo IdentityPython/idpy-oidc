@@ -138,13 +138,13 @@ class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-            self,
-            db,
-            template_handler,
-            template="user_pass.jinja2",
-            server_get=None,
-            verify_endpoint="",
-            **kwargs,
+        self,
+        db,
+        template_handler,
+        template="user_pass.jinja2",
+        server_get=None,
+        verify_endpoint="",
+        **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(server_get=server_get)

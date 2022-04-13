@@ -16,6 +16,8 @@ from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oauth2.pushed_authorization import PushedAuthorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.registration import Registration
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -84,7 +86,7 @@ class TestEndpoint(object):
                         {"type": "oct", "bytes": 24, "use": ["enc"], "kid": "refresh"},
                     ],
                 },
-                "code": {"lifetime": 600},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -110,7 +112,11 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "registration", "class": Registration, "kwargs": {}, },
+                "registration": {
+                    "path": "registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "authorization",
                     "class": Authorization,
@@ -154,6 +160,7 @@ class TestEndpoint(object):
                     },
                 },
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint_context = server.endpoint_context

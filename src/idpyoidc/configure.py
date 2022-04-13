@@ -5,13 +5,24 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.logging import configure_logging
+from idpyoidc.util import instantiate
 from idpyoidc.util import load_config_file
 
-DEFAULT_FILE_ATTRIBUTE_NAMES = ['server_key', 'server_cert', 'filename', 'template_dir',
-                                'private_path', 'public_path', 'db_file', 'jwks_file']
+DEFAULT_FILE_ATTRIBUTE_NAMES = [
+    "server_key",
+    "server_cert",
+    "filename",
+    "template_dir",
+    "private_path",
+    "public_path",
+    "db_file",
+    "jwks_file",
+]
 
-DEFAULT_DIR_ATTRIBUTE_NAMES = ['template_dir']
+DEFAULT_DIR_ATTRIBUTE_NAMES = ["template_dir"]
 
 
 def lower_or_upper(config, param, default=None):
@@ -81,18 +92,19 @@ def set_domain_and_port(conf: dict, domain: str, port: int):
 
 
 class Base(dict):
-    """ Configuration base class """
+    """Configuration base class"""
 
     parameter = {}
 
-    def __init__(self,
-                 conf: Dict,
-                 base_path: str = '',
-                 file_attributes: Optional[List[str]] = None,
-                 dir_attributes: Optional[List[str]] = None,
-                 domain: Optional[str] = "",
-                 port: Optional[int] = 0,
-                 ):
+    def __init__(
+        self,
+        conf: Dict,
+        base_path: str = "",
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+    ):
         dict.__init__(self)
         if file_attributes is None:
             self._file_attributes = DEFAULT_FILE_ATTRIBUTE_NAMES
@@ -120,12 +132,12 @@ class Base(dict):
 
     def __setattr__(self, key, value):
         if key in self and self.key:
-            raise KeyError('{} has already been set'.format(key))
+            raise KeyError("{} has already been set".format(key))
         super(Base, self).__setitem__(key, value)
 
     def __setitem__(self, key, value):
         if key in self and self.key:
-            raise KeyError('{} has already been set'.format(key))
+            raise KeyError("{} has already been set".format(key))
         super(Base, self).__setitem__(key, value)
 
     def get(self, item, default=None):
@@ -133,19 +145,20 @@ class Base(dict):
 
     def items(self):
         for key in self.keys():
-            if key.startswith('__') and key.endswith('__'):
+            if key.startswith("__") and key.endswith("__"):
                 continue
             yield key, getattr(self, key)
 
-    def extend(self,
-               conf: Dict,
-               base_path: str,
-               domain: str,
-               port: int,
-               entity_conf: Optional[List[dict]] = None,
-               file_attributes: Optional[List[str]] = None,
-               dir_attributes: Optional[List[str]] = None,
-               ):
+    def extend(
+        self,
+        conf: Dict,
+        base_path: str,
+        domain: str,
+        port: int,
+        entity_conf: Optional[List[dict]] = None,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
+    ):
         for econf in entity_conf:
             _path = econf.get("path")
             _cnf = conf
@@ -157,9 +170,18 @@ class Base(dict):
                     continue
             _attr = econf["attr"]
             _cls = econf["class"]
-            setattr(self, _attr,
-                    _cls(_cnf, base_path=base_path, file_attributes=file_attributes,
-                         domain=domain, port=port, dir_attributes=dir_attributes))
+            setattr(
+                self,
+                _attr,
+                _cls(
+                    _cnf,
+                    base_path=base_path,
+                    file_attributes=file_attributes,
+                    domain=domain,
+                    port=port,
+                    dir_attributes=dir_attributes,
+                ),
+            )
 
     def complete_paths(self, conf: Dict, keys: List[str], default_config: Dict, base_path: str):
         for key in keys:
@@ -175,9 +197,15 @@ class Base(dict):
 
             setattr(self, key, _val)
 
-    def format(self, conf, base_path: str, domain: str, port: int,
-               file_attributes: Optional[List[str]] = None,
-               dir_attributes: Optional[List[str]] = None) -> Union[Dict, str]:
+    def format(
+        self,
+        conf,
+        base_path: str,
+        domain: str,
+        port: int,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
+    ) -> Union[Dict, str]:
         """
         Formats parts of the configuration. That includes replacing the strings {domain} and {port}
         with the used domain and port and making references to files and directories absolute
@@ -207,36 +235,50 @@ class Base(dict):
 
 class Configuration(Base):
     """Entity Configuration Base"""
-    uris = ["redirect_uris", 'issuer', 'base_url', 'server_name']
 
-    def __init__(self,
-                 conf: Dict,
-                 base_path: str = '',
-                 entity_conf: Optional[List[dict]] = None,
-                 file_attributes: Optional[List[str]] = None,
-                 domain: Optional[str] = "",
-                 port: Optional[int] = 0,
-                 dir_attributes: Optional[List[str]] = None,
-                 ):
-        Base.__init__(self, conf, base_path=base_path, file_attributes=file_attributes,
-                      dir_attributes=dir_attributes, domain=domain, port=port)
+    uris = ["redirect_uris", "issuer", "base_url", "server_name"]
 
-        log_conf = self.conf.get('logging')
+    def __init__(
+        self,
+        conf: Dict,
+        base_path: str = "",
+        entity_conf: Optional[List[dict]] = None,
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        dir_attributes: Optional[List[str]] = None,
+    ):
+        Base.__init__(
+            self,
+            conf,
+            base_path=base_path,
+            file_attributes=file_attributes,
+            dir_attributes=dir_attributes,
+            domain=domain,
+            port=port,
+        )
+
+        log_conf = self.conf.get("logging")
         if log_conf:
             self.logger = configure_logging(config=log_conf).getChild(__name__)
         else:
-            self.logger = logging.getLogger('client')
+            self.logger = logging.getLogger("client")
 
         self.web_conf = lower_or_upper(self.conf, "webserver")
 
         if entity_conf:
-            skip = [ec["path"] for ec in entity_conf if 'path' in ec]
+            skip = [ec["path"] for ec in entity_conf if "path" in ec]
             check = [l[0] for l in skip]
 
-            self.extend(conf=self.conf, base_path=base_path,
-                        domain=self.domain, port=self.port, entity_conf=entity_conf,
-                        file_attributes=self._file_attributes,
-                        dir_attributes=self._dir_attributes)
+            self.extend(
+                conf=self.conf,
+                base_path=base_path,
+                domain=self.domain,
+                port=self.port,
+                entity_conf=entity_conf,
+                file_attributes=self._file_attributes,
+                dir_attributes=self._dir_attributes,
+            )
             for key, val in conf.items():
                 if key in ["logging", "webserver", "domain", "port"]:
                     continue
@@ -250,16 +292,22 @@ class Configuration(Base):
                 setattr(self, key, val)
 
 
-def create_from_config_file(cls,
-                            filename: str,
-                            base_path: Optional[str] = '',
-                            entity_conf: Optional[List[dict]] = None,
-                            file_attributes: Optional[List[str]] = None,
-                            domain: Optional[str] = "",
-                            port: Optional[int] = 0,
-                            dir_attributes: Optional[List[str]] = None
-                            ):
-    return cls(load_config_file(filename),
-               entity_conf=entity_conf,
-               base_path=base_path, file_attributes=file_attributes,
-               domain=domain, port=port, dir_attributes=dir_attributes)
+def create_from_config_file(
+    cls,
+    filename: str,
+    base_path: Optional[str] = "",
+    entity_conf: Optional[List[dict]] = None,
+    file_attributes: Optional[List[str]] = None,
+    domain: Optional[str] = "",
+    port: Optional[int] = 0,
+    dir_attributes: Optional[List[str]] = None,
+):
+    return cls(
+        load_config_file(filename),
+        entity_conf=entity_conf,
+        base_path=base_path,
+        file_attributes=file_attributes,
+        domain=domain,
+        port=port,
+        dir_attributes=dir_attributes,
+    )

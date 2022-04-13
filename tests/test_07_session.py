@@ -255,7 +255,7 @@ def test_logout_token_wrong_iat():
     val = {
         "iss": ISS,
         "aud": [CLIENT_ID],
-        "iat": NOW + 10,
+        "iat": NOW + 100,
         "jti": "bWJq",
         "sid": "08a5019c-17e1-4977-8f42-65a12843ea02",
         "events": {BACK_CHANNEL_LOGOUT_EVENT: {}},
@@ -265,7 +265,7 @@ def test_logout_token_wrong_iat():
         lt.verify()
 
     # Within allowed clock skew
-    lt.verify(skew=60)
+    lt.verify(skew=100)
 
 
 def test_logout_token_wrong_aud():

@@ -22,6 +22,8 @@ from idpyoidc.server.session import MintingNotAllowed
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -80,14 +82,12 @@ USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 def conf():
     return {
         "issuer": "https://example.com/",
-        "httpc_params": {
-            "verify": False
-        },
+        "httpc_params": {"verify": False},
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
         "token_handler_args": {
             "jwks_file": "private/token_jwks.json",
-            "code": {"kwargs": {"lifetime": 600}},
+            "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             "token": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
                 "kwargs": {
@@ -98,11 +98,18 @@ def conf():
             },
             "refresh": {
                 "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                "kwargs": {
+                    "lifetime": 3600,
+                    "aud": ["https://example.org/appl"],
+                },
             },
         },
         "endpoint": {
-            "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
+            "authorization": {
+                "path": "authorization",
+                "class": Authorization,
+                "kwargs": {},
+            },
             "token": {
                 "path": "token",
                 "class": Token,
@@ -126,8 +133,10 @@ def conf():
         "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
         "client_authn": verify_client,
         "template_dir": "template",
-        "claims_interface": {"class": "idpyoidc.server.session.claims.OAuth2ClaimsInterface",
-                             "kwargs": {}},
+        "claims_interface": {
+            "class": "idpyoidc.server.session.claims.OAuth2ClaimsInterface",
+            "kwargs": {},
+        },
         "authz": {
             "class": AuthzHandling,
             "kwargs": {
@@ -148,6 +157,7 @@ def conf():
                 }
             },
         },
+        "session_params": {"encrypter": SESSION_PARAMS},
     }
 
 
@@ -569,9 +579,7 @@ class TestEndpoint(object):
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(
-            _session_info["session_id"], _token_value
-        )
+        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
@@ -601,7 +609,7 @@ class TestEndpoint(object):
 
         assert _resp.to_dict() == {
             "error": "invalid_request",
-            "error_description": "Invalid refresh scopes"
+            "error_description": "Invalid refresh scopes",
         }
 
     def test_refresh_more_scopes_2(self):
@@ -645,9 +653,7 @@ class TestEndpoint(object):
 
         _token_value = _resp["response_args"]["access_token"]
         _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(
-            _session_info["session_id"], _token_value
-        )
+        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
         )
@@ -726,9 +732,7 @@ class TestEndpoint(object):
         _resp = self.token_endpoint.process_request(request=_req)
 
         assert isinstance(_resp, TokenErrorResponse)
-        assert _resp.to_dict() == {
-            "error": "invalid_grant", "error_description": "Wrong client"
-        }
+        assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
 
     def test_refresh_token_request_other_client(self):
         _context = self.endpoint_context
@@ -741,9 +745,7 @@ class TestEndpoint(object):
         _token_request["code"] = code.value
 
         _req = self.token_endpoint.parse_request(_token_request)
-        _resp = self.token_endpoint.process_request(
-            request=_req, issue_refresh=True
-        )
+        _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
         _request["client_id"] = "client_2"
@@ -755,8 +757,8 @@ class TestEndpoint(object):
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
-        _resp = self.token_endpoint.process_request(request=_req, )
+        _resp = self.token_endpoint.process_request(
+            request=_req,
+        )
         assert isinstance(_resp, TokenErrorResponse)
-        assert _resp.to_dict() == {
-            "error": "invalid_grant", "error_description": "Wrong client"
-        }
+        assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
