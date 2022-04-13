@@ -1,1 +1,1 @@
-{"keys": [{"kty": "oct", "use": "enc", "kid": "code", "k": "-79_--FvcCmJfDcoWkNsQGdsf1u9XOY4"}, {"kty": "oct", "use": "enc", "kid": "refresh", "k": "mgbrjz28uGedHlUyUoJsDJZpRndQLOcQ"}]}
+{"keys": [{"kty": "oct", "use": "enc", "kid": "code", "k": "vSHDkLBHhDStkR0NWu8519rmV5zmnm5_"}]}
