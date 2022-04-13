@@ -75,7 +75,7 @@ def test_entity_config(filename):
 def test_init_crypto_None():
     _res = init_crypto()
     assert _res["conf"]["class"] == DEFAULT_CRYPTO
-    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
+    assert set(_res["conf"]["kwargs"].keys()) == {"key"}
     assert isinstance(_res["encrypter"], FernetEncrypter)
 
 
