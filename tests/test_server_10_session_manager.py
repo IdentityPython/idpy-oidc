@@ -12,7 +12,9 @@ from idpyoidc.server.session.token import AccessToken
 from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.time_util import utc_time_sans_frac
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
 AUTH_REQ = AuthorizationRequest(
@@ -50,7 +52,10 @@ class TestSessionManager:
                     "read_only": False,
                     "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
-                "code": {"lifetime": 600},
+                "code": {
+                    "lifetime": 600,
+                    "kwargs": {"crypt_conf": CRYPT_CONFIG}
+                },
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -77,13 +82,12 @@ class TestSessionManager:
                     },
                 },
             },
-            "session_params": {
-                "password": "ses_key",
-                "salt": "ses_salt"
-            },
+            "session_params": SESSION_PARAMS,
             "template_dir": "template",
-            "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface",
-                                 "kwargs": {}},
+            "claims_interface": {
+                "class": "idpyoidc.server.session.claims.ClaimsInterface",
+                "kwargs": {},
+            },
             "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
@@ -104,10 +108,8 @@ class TestSessionManager:
                     "authorization_code": {
                         "supports_minting": ["access_token", "refresh_token", "id_token"]
                     },
-                    "refresh_token": {
-                        "supports_minting": ["id_token"]
-                    }
-                }
+                    "refresh_token": {"supports_minting": ["id_token"]},
+                },
             }
         }
 
@@ -287,7 +289,10 @@ class TestSessionManager:
 
     def test_find_token(self):
         session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
 
         _info = self.session_manager.get_session_info(session_id=session_id, grant=True)
@@ -323,7 +328,10 @@ class TestSessionManager:
 
     def test_get_client_session_info(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
 
         csi = self.session_manager.get_client_session_info(_session_id)
@@ -332,7 +340,10 @@ class TestSessionManager:
 
     def test_get_general_session_info(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
 
         _session_info = self.session_manager.get_session_info(_session_id)
@@ -348,7 +359,10 @@ class TestSessionManager:
 
     def test_get_session_info_by_token(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
 
         grant = self.session_manager.get_grant(_session_id)
@@ -366,7 +380,10 @@ class TestSessionManager:
 
     def test_token_usage_default(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
         grant = self.session_manager[_session_id]
 
@@ -387,7 +404,10 @@ class TestSessionManager:
 
     def test_token_usage_grant(self):
         _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event, auth_req=AUTH_REQ, user_id="diana", client_id="client_1",
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
         )
         grant = self.session_manager[_session_id]
         grant.usage_rules = {
@@ -553,7 +573,9 @@ class TestSessionManager:
         assert isinstance(res[0], AuthnEvent)
 
         try:
-            self.session_manager.get_authentication_events(user_id="diana", )
+            self.session_manager.get_authentication_events(
+                user_id="diana",
+            )
         except AttributeError:
             pass
         else:
@@ -630,7 +652,9 @@ class TestSessionManager:
         assert isinstance(res, list)
 
         try:
-            self.session_manager.grants(user_id="diana", )
+            self.session_manager.grants(
+                user_id="diana",
+            )
         except AttributeError:
             pass
         else:
@@ -662,7 +686,7 @@ class TestSessionManager:
 
         _jwt1 = factory(id_token_1.value)
         _jwt2 = factory(id_token_2.value)
-        assert _jwt1.jwt.payload()['sid'] == _jwt2.jwt.payload()['sid']
+        assert _jwt1.jwt.payload()["sid"] == _jwt2.jwt.payload()["sid"]
 
         assert id_token_1.session_id == id_token_2.session_id
 

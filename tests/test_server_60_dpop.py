@@ -19,6 +19,8 @@ from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 DPOP_HEADER = (
     "eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7Imt0eSI6IkVDIiwieCI6Imw4dEZyaHgtMz"
@@ -32,7 +34,7 @@ DPOP_HEADER = (
 def test_verify_header():
     _dpop = DPoPProof()
     assert _dpop.verify_header(DPOP_HEADER)
-    assert set(_dpop.keys()) == {'typ', 'alg', 'jwk', 'jti', 'htm', 'htu', 'iat'}
+    assert set(_dpop.keys()) == {"typ", "alg", "jwk", "jti", "htm", "htu", "iat"}
     assert _dpop.verify() is None
 
     _dpop_dict = _dpop.to_dict()
@@ -123,15 +125,13 @@ class TestEndpoint(object):
             "add_on": {
                 "dpop": {
                     "function": "idpyoidc.server.oauth2.add_on.dpop.add_support",
-                    "kwargs": {
-                        "dpop_signing_alg_values_supported": ["ES256"]
-                    }
+                    "kwargs": {"dpop_signing_alg_values_supported": ["ES256"]},
                 },
             },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {"lifetime": 600},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -143,7 +143,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -161,10 +164,7 @@ class TestEndpoint(object):
                     "class": Authorization,
                     "kwargs": {},
                 },
-                "token": {
-                    "path": "{}/token",
-                    "class": Token,
-                    "kwargs": {}},
+                "token": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
             "client_authn": verify_client,
             "authentication": {
@@ -179,6 +179,7 @@ class TestEndpoint(object):
                 "class": user_info.UserInfo,
                 "kwargs": {"db_file": "users.json"},
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -206,9 +207,7 @@ class TestEndpoint(object):
         )
 
     def _mint_code(self, grant, client_id):
-        session_id = self.session_manager.encrypted_session_id(
-            self.user_id, client_id, grant.id
-        )
+        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
@@ -229,12 +228,16 @@ class TestEndpoint(object):
         return _code
 
     def test_post_parse_request(self):
-        auth_req = post_parse_request(AUTH_REQ, AUTH_REQ["client_id"], self.endpoint_context,
-                                      http_info={
-                                          "headers": {"dpop": DPOP_HEADER},
-                                          "url": 'https://server.example.com/token',
-                                          "method": "POST"
-                                      })
+        auth_req = post_parse_request(
+            AUTH_REQ,
+            AUTH_REQ["client_id"],
+            self.endpoint_context,
+            http_info={
+                "headers": {"dpop": DPOP_HEADER},
+                "url": "https://server.example.com/token",
+                "method": "POST",
+            },
+        )
         assert auth_req
         assert "dpop_jkt" in auth_req
 
@@ -246,11 +249,14 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ.to_dict()
         _context = self.endpoint_context
         _token_request["code"] = code.value
-        _req = self.token_endpoint.parse_request(_token_request, http_info={
-            "headers": {"dpop": DPOP_HEADER},
-            "url": 'https://server.example.com/token',
-            "method": "POST"
-        })
+        _req = self.token_endpoint.parse_request(
+            _token_request,
+            http_info={
+                "headers": {"dpop": DPOP_HEADER},
+                "url": "https://server.example.com/token",
+                "method": "POST",
+            },
+        )
 
         assert "dpop_jkt" in _req
 

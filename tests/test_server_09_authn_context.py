@@ -14,6 +14,8 @@ from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.user_authn.user import NoAuthn
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 METHOD = {
     "diana": {
@@ -21,7 +23,11 @@ METHOD = {
         "kwargs": {"user": "diana"},
         "class": "idpyoidc.server.user_authn.user.NoAuthn",
     },
-    "krall": {"acr": INTERNETPROTOCOLPASSWORD, "kwargs": {"user": "krall"}, "class": NoAuthn, },
+    "krall": {
+        "acr": INTERNETPROTOCOLPASSWORD,
+        "kwargs": {"user": "krall"},
+        "class": NoAuthn,
+    },
 }
 
 KEYDEFS = [
@@ -116,14 +122,22 @@ class TestAuthnBrokerEC:
     def create_authn_broker(self):
         conf = {
             "issuer": "https://example.com/",
-            "password": "mycket hemligt zebra",
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": METHOD,
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
-            "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+            "claims_interface": {
+                "class": "idpyoidc.server.session.claims.ClaimsInterface",
+                "kwargs": {},
+            },
+            "session_params": SESSION_PARAMS,
         }
         cookie_conf = {
             "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
@@ -168,7 +182,11 @@ class TestAuthnBrokerEC:
 
 
 def test_authn_event():
-    an = AuthnEvent(uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref", )
+    an = AuthnEvent(
+        uid="uid",
+        valid_until=utc_time_sans_frac() + 1,
+        authn_info="authn_class_ref",
+    )
 
     assert an.is_valid()
 

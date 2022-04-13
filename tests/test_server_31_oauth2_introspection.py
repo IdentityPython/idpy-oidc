@@ -23,6 +23,8 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -98,7 +100,7 @@ class TestEndpoint:
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -109,11 +111,14 @@ class TestEndpoint:
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
-                }
+                },
             },
             "endpoint": {
                 "authorization": {
@@ -162,7 +167,11 @@ class TestEndpoint:
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -174,6 +183,7 @@ class TestEndpoint:
                     }
                 },
             },
+            "session_params": SESSION_PARAMS,
         }
         if jwt_token:
             conf["token_handler_args"]["token"] = {
@@ -196,7 +206,8 @@ class TestEndpoint:
             },
         }
         endpoint_context.keyjar.import_jwks_as_json(
-            endpoint_context.keyjar.export_jwks_as_json(private=True), endpoint_context.issuer,
+            endpoint_context.keyjar.export_jwks_as_json(private=True),
+            endpoint_context.issuer,
         )
         self.introspection_endpoint = server.server_get("endpoint", "introspection")
         self.token_endpoint = server.server_get("endpoint", "token")
@@ -329,7 +340,7 @@ class TestEndpoint:
             "iat",
             "scope",
             "aud",
-            "token_type"
+            "token_type",
         }
         assert _payload["active"] is True
         assert _payload["token_type"] == "bearer"
@@ -338,7 +349,10 @@ class TestEndpoint:
         # access_token = self._get_access_token(AUTH_REQ)
         _context = self.introspection_endpoint.server_get("endpoint_context")
         _req = self.introspection_endpoint.parse_request(
-            {"client_id": "client_1", "client_secret": _context.cdb["client_1"]["client_secret"], }
+            {
+                "client_id": "client_1",
+                "client_secret": _context.cdb["client_1"]["client_secret"],
+            }
         )
         _resp = self.introspection_endpoint.process_request(_req)
         assert "error" in _resp

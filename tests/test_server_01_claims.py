@@ -5,6 +5,7 @@ import pytest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
+from tests import CRYPT_CONFIG
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -82,7 +83,14 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {"kwargs": {"lifetime": 600}},
+        "code": {
+            "kwargs": {
+                "lifetime": 600,
+                "kwargs": {
+                    "crypt_conf": CRYPT_CONFIG
+                }
+            }
+        },
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -93,7 +101,10 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
@@ -108,13 +119,13 @@ conf = {
                 "keys": {
                     "key_defs": [
                         {"type": "OCT", "use": ["enc"], "kid": "password"},
-                        {"type": "OCT", "use": ["enc"], "kid": "salt"}
+                        {"type": "OCT", "use": ["enc"], "kid": "salt"},
                     ]
                 },
-                "iterations": 1
+                "iterations": 1,
             }
         }
-    }
+    },
 }
 
 USER_ID = "diana"
@@ -136,9 +147,7 @@ class TestEndpoint(object):
                 "always": {},
             },
         }
-        self.endpoint_context.keyjar.add_symmetric(
-            "client_1", "hemligtochintekort", ["sig", "enc"]
-        )
+        self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.claims_interface = self.endpoint_context.claims_interface
 
         self.user_id = USER_ID
@@ -191,8 +200,10 @@ class TestEndpoint(object):
             "base_claims": {"email": None, "email_verified": None},
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = [
+            "name",
+            "email",
+        ]
 
         claims = self.claims_interface.get_claims(session_id, [], "id_token")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
@@ -204,8 +215,10 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = [
+            "name",
+            "email",
+        ]
 
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "id_token")
         assert set(claims.keys()) == {
@@ -223,13 +236,18 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = [
+            "name",
+            "email",
+        ]
         self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
-            "phone", "phone_verified"]
+            "phone",
+            "phone_verified",
+        ]
 
-        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "id_token",
-                                                  "userinfo")
+        claims = self.claims_interface.get_claims(
+            session_id, ["openid", "address"], "id_token", "userinfo"
+        )
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -237,7 +255,7 @@ class TestEndpoint(object):
             "sub",
             "address",
             "phone",
-            "phone_verified"
+            "phone_verified",
         }
 
     def test_get_claims_access_token_3(self):
@@ -247,8 +265,10 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = ["name",
-                                                                                         "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = [
+            "name",
+            "email",
+        ]
 
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "access_token")

@@ -16,7 +16,7 @@ from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AuthorizationRequest
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 
 def query_string_compare(query_str1, query_str2):
@@ -67,10 +67,8 @@ def test_set_cookie():
     c_2 = cookies[""][""]["value_2"]
 
     assert not (c_2.domain_specified and c_2.path_specified)
-    assert c_1.domain_specified and not c_1.domain_initial_dot and not \
-        c_1.path_specified
-    assert c_0.domain_specified and c_0.domain_initial_dot and \
-           c_0.path_specified
+    assert c_1.domain_specified and not c_1.domain_initial_dot and not c_1.path_specified
+    assert c_0.domain_specified and c_0.domain_initial_dot and c_0.path_specified
 
     assert c_0.expires == expires
     assert c_0.domain == domain_0
@@ -106,7 +104,7 @@ def test_match_to():
     assert not util.match_to_(str3, list_of_str)
 
 
-class FakeResponse():
+class FakeResponse:
     def __init__(self, header):
         self.headers = {"content-type": header}
         self.text = "TEST_RESPONSE"
@@ -122,19 +120,17 @@ def test_verify_header():
     assert util.verify_header(FakeResponse(json_header), "json") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "json") == "jwt"
     assert util.verify_header(FakeResponse(jwt_header), "jwt") == "jwt"
-    assert util.verify_header(FakeResponse(default_header),
-                              "urlencoded") == "urlencoded"
-    assert util.verify_header(FakeResponse(plain_text_header),
-                              "urlencoded") == "urlencoded"
-    assert util.verify_header(FakeResponse('text/html'), 'txt')
-    assert util.verify_header(FakeResponse('text/plain'), 'txt')
+    assert util.verify_header(FakeResponse(default_header), "urlencoded") == "urlencoded"
+    assert util.verify_header(FakeResponse(plain_text_header), "urlencoded") == "urlencoded"
+    assert util.verify_header(FakeResponse("text/html"), "txt")
+    assert util.verify_header(FakeResponse("text/plain"), "txt")
 
     assert util.verify_header(FakeResponse(json_header), "") == "json"
     assert util.verify_header(FakeResponse(jwt_header), "") == "jwt"
     assert util.verify_header(FakeResponse(jwt_header), "") == "jwt"
     assert util.verify_header(FakeResponse(default_header), "") == "urlencoded"
     assert util.verify_header(FakeResponse(plain_text_header), "") == "txt"
-    assert util.verify_header(FakeResponse('text/html'), '') == 'txt'
+    assert util.verify_header(FakeResponse("text/html"), "") == "txt"
 
     with pytest.raises(WrongContentType):
         util.verify_header(FakeResponse(json_header), "urlencoded")
@@ -149,119 +145,135 @@ def test_verify_header():
 
 def test_get_deserialization_method_json():
     resp = FakeResponse("application/json")
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
     resp = FakeResponse("application/json; charset=utf-8")
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
     resp.headers["content-type"] = "application/jrd+json"
-    assert get_deserialization_method(resp) == 'json'
+    assert get_deserialization_method(resp) == "json"
 
 
 def test_get_deserialization_method_jwt():
     resp = FakeResponse("application/jwt")
-    assert get_deserialization_method(resp) == 'jwt'
+    assert get_deserialization_method(resp) == "jwt"
 
 
 def test_get_deserialization_method_urlencoded():
     resp = FakeResponse(URL_ENCODED)
-    assert get_deserialization_method(resp) == 'urlencoded'
+    assert get_deserialization_method(resp) == "urlencoded"
 
 
 def test_get_deserialization_method_text():
-    resp = FakeResponse('text/html')
-    assert get_deserialization_method(resp) == ''
+    resp = FakeResponse("text/html")
+    assert get_deserialization_method(resp) == ""
 
-    resp = FakeResponse('text/plain')
-    assert get_deserialization_method(resp) == ''
+    resp = FakeResponse("text/plain")
+    assert get_deserialization_method(resp) == ""
 
 
 def test_verify_no_content_type():
-    resp = FakeResponse('text/html')
-    del resp.headers['content-type']
-    assert util.verify_header(resp, 'txt') == 'txt'
+    resp = FakeResponse("text/html")
+    del resp.headers["content-type"]
+    assert util.verify_header(resp, "txt") == "txt"
 
 
 def test_get_http_url():
-    url = u'https://localhost:8092/authorization'
-    method = 'GET'
-    values = {'acr_values': 'PASSWORD',
-              'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
-              'redirect_uri':
-                  'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-              'response_type': 'code', 'client_id': 'ok8tx7ulVlNV',
-              'scope': 'openid profile email address phone'}
+    url = "https://localhost:8092/authorization"
+    method = "GET"
+    values = {
+        "acr_values": "PASSWORD",
+        "state": "urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a",
+        "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
+        "response_type": "code",
+        "client_id": "ok8tx7ulVlNV",
+        "scope": "openid profile email address phone",
+    }
     request = AuthorizationRequest(**values)
 
     _url = util.get_http_url(url, request, method)
     _part = urlsplit(_url)
     _req = parse_qs(_part.query)
-    assert set(_req.keys()) == {'acr_values', 'state', 'redirect_uri',
-                                'response_type', 'client_id', 'scope'}
+    assert set(_req.keys()) == {
+        "acr_values",
+        "state",
+        "redirect_uri",
+        "response_type",
+        "client_id",
+        "scope",
+    }
 
 
 def test_get_http_body_default_encoding():
     values = {
-        'redirect_uri':
-            'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl'
-                '/YLBBZDB9wefNExQlLDUIIDM2rT'
-                '2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
-        'grant_type': 'authorization_code'}
+        "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
+        "code": "Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl"
+        "/YLBBZDB9wefNExQlLDUIIDM2rT"
+        "2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=",
+        "grant_type": "authorization_code",
+    }
     request = AccessTokenRequest(**values)
 
     body = util.get_http_body(request)
 
     _req = parse_qs(body)
-    assert set(_req.keys()) == {'code', 'grant_type', 'redirect_uri'}
+    assert set(_req.keys()) == {"code", "grant_type", "redirect_uri"}
 
 
 def test_get_http_body_url_encoding():
     values = {
-        'redirect_uri':
-            'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl'
-                '/YLBBZDB9wefNExQlLDUIIDM2rT'
-                '2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
-        'grant_type': 'authorization_code'}
+        "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
+        "code": "Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl"
+        "/YLBBZDB9wefNExQlLDUIIDM2rT"
+        "2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=",
+        "grant_type": "authorization_code",
+    }
     request = AccessTokenRequest(**values)
 
     body = util.get_http_body(request, URL_ENCODED)
 
     _req = parse_qs(body)
-    assert set(_req.keys()) == {'code', 'grant_type', 'redirect_uri'}
+    assert set(_req.keys()) == {"code", "grant_type", "redirect_uri"}
 
 
 def test_get_http_body_json():
     values = {
-        'redirect_uri':
-            'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-        'code': 'Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl'
-                '/YLBBZDB9wefNExQlLDUIIDM2rT'
-                '2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=',
-        'grant_type': 'authorization_code'}
+        "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
+        "code": "Je1iKfPN1vCiN7L43GiXAuAWGAnm0mzA7QIjl"
+        "/YLBBZDB9wefNExQlLDUIIDM2rT"
+        "2t+gwuoRoapEXJyY2wrvg9cWTW2vxsZU+SuWzZlMDXc=",
+        "grant_type": "authorization_code",
+    }
     request = AccessTokenRequest(**values)
 
     body = util.get_http_body(request, JSON_ENCODED)
 
     _req = json.loads(body)
-    assert set(_req.keys()) == {'code', 'grant_type', 'redirect_uri'}
+    assert set(_req.keys()) == {"code", "grant_type", "redirect_uri"}
 
 
 def test_get_http_url_with_qp():
-    url = u'https://localhost:8092/authorization?test=testslice'
-    method = 'GET'
-    values = {'acr_values': 'PASSWORD',
-              'state': 'urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a',
-              'redirect_uri':
-                  'https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7',
-              'response_type': 'code', 'client_id': 'ok8tx7ulVlNV',
-              'scope': 'openid profile email address phone'}
+    url = "https://localhost:8092/authorization?test=testslice"
+    method = "GET"
+    values = {
+        "acr_values": "PASSWORD",
+        "state": "urn:uuid:92d81fb3-72e8-4e6c-9173-c360b782148a",
+        "redirect_uri": "https://localhost:8666/919D3F697FDAAF138124B83E09ECB0B7",
+        "response_type": "code",
+        "client_id": "ok8tx7ulVlNV",
+        "scope": "openid profile email address phone",
+    }
     request = AuthorizationRequest(**values)
 
     _url = util.get_http_url(url, request, method)
     _part = urlsplit(_url)
     _req = parse_qs(_part.query)
-    assert set(_req.keys()) == {'acr_values', 'state', 'redirect_uri',
-                                'response_type', 'client_id', 'scope',
-                                'test'}
+    assert set(_req.keys()) == {
+        "acr_values",
+        "state",
+        "redirect_uri",
+        "response_type",
+        "client_id",
+        "scope",
+        "test",
+    }

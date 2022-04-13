@@ -31,13 +31,13 @@ LOGGER = logging.getLogger(__name__)
 
 class CookieHandler:
     def __init__(
-            self,
-            sign_key: Optional[SYMKey] = None,
-            enc_key: Optional[SYMKey] = None,
-            keys: Optional[dict] = None,
-            sign_alg: [str] = "SHA256",
-            name: Optional[dict] = None,
-            **kwargs,
+        self,
+        sign_key: Optional[SYMKey] = None,
+        enc_key: Optional[SYMKey] = None,
+        keys: Optional[dict] = None,
+        sign_alg: [str] = "SHA256",
+        name: Optional[dict] = None,
+        **kwargs,
     ):
 
         if keys:
@@ -153,9 +153,9 @@ class CookieHandler:
             mac = base64.b64decode(b64_mac)
             verifier = HMACSigner(algorithm=self.sign_alg)
             if verifier.verify(
-                    payload.encode("utf-8") + timestamp.encode("utf-8"),
-                    mac,
-                    self.sign_key.key,
+                payload.encode("utf-8") + timestamp.encode("utf-8"),
+                mac,
+                self.sign_key.key,
             ):
                 return payload, timestamp
             else:
@@ -178,9 +178,9 @@ class CookieHandler:
             if len(p) == 3:
                 verifier = HMACSigner(algorithm=self.sign_alg)
                 if verifier.verify(
-                        payload.encode("utf-8") + timestamp.encode("utf-8"),
-                        base64.b64decode(p[2]),
-                        self.sign_key.key,
+                    payload.encode("utf-8") + timestamp.encode("utf-8"),
+                    base64.b64decode(p[2]),
+                    self.sign_key.key,
                 ):
                     return payload, timestamp
                 else:
@@ -190,13 +190,13 @@ class CookieHandler:
         return None
 
     def make_cookie_content(
-            self,
-            name: str,
-            value: str,
-            typ: Optional[str] = "",
-            timestamp: Optional[Union[int, str]] = "",
-            max_age: Optional[int] = 0,
-            **kwargs,
+        self,
+        name: str,
+        value: str,
+        typ: Optional[str] = "",
+        timestamp: Optional[Union[int, str]] = "",
+        max_age: Optional[int] = 0,
+        **kwargs,
     ) -> dict:
         """
         Create and return information to put in a cookie

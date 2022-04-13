@@ -10,7 +10,7 @@ from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.time_util import time_sans_frac
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,14 +20,12 @@ class AccessToken(access_token.AccessToken):
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
 
-    def __init__(self,
-                 client_get,
-                 conf: Optional[dict] = None):
+    def __init__(self, client_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, client_get, conf=conf)
 
-    def gather_verify_arguments(self,
-                                response: Optional[Union[dict, Message]] = None,
-                                behaviour_args: Optional[dict] = None):
+    def gather_verify_arguments(
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+    ):
         """
         Need to add some information before running verify()
 
@@ -37,11 +35,11 @@ class AccessToken(access_token.AccessToken):
         _entity = self.client_get("entity")
 
         kwargs = {
-            'client_id': _entity.get_client_id(),
-            'iss': _context.issuer,
-            'keyjar': _context.keyjar,
-            'verify': True,
-            'skew': _context.clock_skew,
+            "client_id": _entity.get_client_id(),
+            "iss": _context.issuer,
+            "keyjar": _context.keyjar,
+            "verify": True,
+            "skew": _context.clock_skew,
         }
 
         _reg_resp = _context.registration_response
@@ -53,7 +51,7 @@ class AccessToken(access_token.AccessToken):
                     pass
 
         try:
-            kwargs['allow_missing_kid'] = _context.allow['missing_kid']
+            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
         except KeyError:
             pass
 
@@ -64,29 +62,28 @@ class AccessToken(access_token.AccessToken):
 
         return kwargs
 
-    def update_service_context(self, resp, key='', **kwargs):
+    def update_service_context(self, resp, key="", **kwargs):
         _state_interface = self.client_get("service_context").state
         try:
-            _idt = resp[verified_claim_name('id_token')]
+            _idt = resp[verified_claim_name("id_token")]
         except KeyError:
             pass
         else:
             try:
-                if _state_interface.get_state_by_nonce(_idt['nonce']) != key:
+                if _state_interface.get_state_by_nonce(_idt["nonce"]) != key:
                     raise ParameterError('Someone has messed with "nonce"')
             except KeyError:
-                raise ValueError('Invalid nonce value')
+                raise ValueError("Invalid nonce value")
 
-            _state_interface.store_sub2state(_idt['sub'], key)
+            _state_interface.store_sub2state(_idt["sub"], key)
 
-        if 'expires_in' in resp:
-            resp['__expires_at'] = time_sans_frac() + int(
-                resp['expires_in'])
+        if "expires_in" in resp:
+            resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
 
-        _state_interface.store_item(resp, 'token_response', key)
+        _state_interface.store_item(resp, "token_response", key)
 
     def get_authn_method(self):
         try:
-            return self.client_get("service_context").behaviour['token_endpoint_auth_method']
+            return self.client_get("service_context").behaviour["token_endpoint_auth_method"]
         except KeyError:
             return self.default_authn_method

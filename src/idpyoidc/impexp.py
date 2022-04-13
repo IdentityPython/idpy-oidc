@@ -24,8 +24,8 @@ class ImpExp:
         pass
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
-        if cls in [None, 0, "", [], {}, bool, b'']:
-            if cls == b'':
+        if cls in [None, 0, "", [], {}, bool, b""]:
+            if cls == b"":
                 val = as_unicode(item)
             else:
                 val = item
@@ -35,7 +35,8 @@ class ImpExp:
             else:
                 if isinstance(item, DictType):  # item should be a class instance
                     val = {
-                        "DICT_TYPE": {"class": fully_qualified_name(item), "kwargs": item.kwargs}}
+                        "DICT_TYPE": {"class": fully_qualified_name(item), "kwargs": item.kwargs}
+                    }
                 else:
                     raise ValueError("Expected a DictType class")
         elif isinstance(item, Message):
@@ -77,11 +78,11 @@ class ImpExp:
         pass
 
     def load_attr(
-            self,
-            cls: Any,
-            item: dict,
-            init_args: Optional[dict] = None,
-            load_args: Optional[dict] = None,
+        self,
+        cls: Any,
+        item: dict,
+        init_args: Optional[dict] = None,
+        load_args: Optional[dict] = None,
     ) -> Any:
         if load_args:
             _kwargs = {"load_args": load_args}
@@ -93,8 +94,8 @@ class ImpExp:
         if init_args:
             _kwargs["init_args"] = init_args
 
-        if cls in [None, 0, "", [], {}, bool, b'']:
-            if cls == b'':
+        if cls in [None, 0, "", [], {}, bool, b""]:
+            if cls == b"":
                 val = as_bytes(item)
             else:
                 val = item

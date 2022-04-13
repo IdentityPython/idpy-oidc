@@ -37,13 +37,13 @@ def test_authorization_code_extras():
 
 
 def test_dump_load(
-        cls=AuthorizationCode,
-        kwargs=dict(
-            value="ABCD",
-            scope=["openid", "foo", "bar"],
-            claims={"userinfo": {"given_name": None}},
-            resources=["https://api.example.com"],
-        ),
+    cls=AuthorizationCode,
+    kwargs=dict(
+        value="ABCD",
+        scope=["openid", "foo", "bar"],
+        claims={"userinfo": {"given_name": None}},
+        resources=["https://api.example.com"],
+    ),
 ):
     code = cls(**kwargs)
 

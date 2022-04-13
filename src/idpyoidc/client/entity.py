@@ -3,6 +3,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
@@ -11,20 +12,23 @@ from idpyoidc.client.service_context import ServiceContext
 
 
 class Entity(object):
-    def __init__(self,
-                 keyjar: Optional[KeyJar] = None,
-                 config: Optional[Union[dict, Configuration]] = None,
-                 services: Optional[dict] = None,
-                 jwks_uri: Optional[str] = '',
-                 httpc_params: Optional[dict] = None):
+    def __init__(
+        self,
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        services: Optional[dict] = None,
+        jwks_uri: Optional[str] = "",
+        httpc_params: Optional[dict] = None,
+    ):
 
         if httpc_params:
             self.httpc_params = httpc_params
         else:
             self.httpc_params = {"verify": True}
 
-        self._service_context = ServiceContext(keyjar=keyjar, config=config,
-                                               jwks_uri=jwks_uri, httpc_params=self.httpc_params)
+        self._service_context = ServiceContext(
+            keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params
+        )
 
         if config:
             _srvs = config.get("services")
@@ -34,11 +38,9 @@ class Entity(object):
         if not _srvs:
             _srvs = services or DEFAULT_OAUTH2_SERVICES
 
-        self._service = init_services(service_definitions=_srvs,
-                                      client_get=self.client_get)
+        self._service = init_services(service_definitions=_srvs, client_get=self.client_get)
 
         self.setup_client_authn_methods(config)
-
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
@@ -73,4 +75,5 @@ class Entity(object):
 
     def setup_client_authn_methods(self, config):
         self._service_context.client_authn_method = client_auth_setup(
-            config.get("client_authn_methods"))
+            config.get("client_authn_methods")
+        )

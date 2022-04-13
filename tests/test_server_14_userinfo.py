@@ -121,27 +121,33 @@ def test_custom_scopes():
 
     assert set(
         convert_scopes2claims(["email"], _available_claims, scope2claim_map=_scopes).keys()
-    ) == {"email", "email_verified", }
+    ) == {
+        "email",
+        "email_verified",
+    }
     assert set(
         convert_scopes2claims(["address"], _available_claims, scope2claim_map=_scopes).keys()
     ) == {"address"}
     assert set(
         convert_scopes2claims(["phone"], _available_claims, scope2claim_map=_scopes).keys()
-    ) == {"phone_number", "phone_number_verified", }
+    ) == {
+        "phone_number",
+        "phone_number_verified",
+    }
 
     assert set(
         convert_scopes2claims(
             ["research_and_scholarship"], _available_claims, scope2claim_map=_scopes
         ).keys()
     ) == {
-               "name",
-               "given_name",
-               "family_name",
-               "email",
-               "email_verified",
-               "sub",
-               "eduperson_scoped_affiliation",
-           }
+        "name",
+        "given_name",
+        "family_name",
+        "email",
+        "email_verified",
+        "sub",
+        "eduperson_scoped_affiliation",
+    }
 
 
 def test_dict_subset_true():

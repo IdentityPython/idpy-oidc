@@ -19,6 +19,8 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.oidc.userinfo import UserInfo
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.storage.abfile import AbstractFileSystem
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -45,8 +47,16 @@ CONF = {
             "class": ProviderConfiguration,
             "kwargs": {},
         },
-        "registration_endpoint": {"path": "registration", "class": Registration, "kwargs": {}, },
-        "authorization_endpoint": {"path": "authorization", "class": Authorization, "kwargs": {}, },
+        "registration_endpoint": {
+            "path": "registration",
+            "class": Registration,
+            "kwargs": {},
+        },
+        "authorization_endpoint": {
+            "path": "authorization",
+            "class": Authorization,
+            "kwargs": {},
+        },
         "token_endpoint": {"path": "token", "class": Token, "kwargs": {}},
         "userinfo_endpoint": {
             "path": "userinfo",
@@ -66,6 +76,12 @@ CONF = {
     "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
     "login_hint_lookup": {"class": LoginHintLookup, "kwargs": {}},
+    "session_params": SESSION_PARAMS,
+    "token_handler_args": {
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+        "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+        "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+    },
 }
 
 client_yaml = """
@@ -111,7 +127,7 @@ def test_capabilities_default():
         "code id_token token",
     }
     assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
-    assert server.endpoint_context.jwks_uri == 'https://127.0.0.1:443/static/jwks.json'
+    assert server.endpoint_context.jwks_uri == "https://127.0.0.1:443/static/jwks.json"
 
 
 def test_capabilities_subset1():
@@ -150,11 +166,8 @@ def test_cdb():
 def test_cdb_afs():
     _cnf = copy(CONF)
     _cnf["client_db"] = {
-        "class": 'idpyoidc.storage.abfile.AbstractFileSystem',
-        "kwargs": {
-            'fdir': full_path("afs"),
-            'value_conv': 'idpyoidc.util.JSON'
-        }
+        "class": "idpyoidc.storage.abfile.AbstractFileSystem",
+        "kwargs": {"fdir": full_path("afs"), "value_conv": "idpyoidc.util.JSON"},
     }
     server = Server(_cnf)
     assert isinstance(server.endpoint_context.cdb, AbstractFileSystem)

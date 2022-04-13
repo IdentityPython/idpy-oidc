@@ -10,7 +10,6 @@ def test_get_http_params_1():
     conf = {
         "httpc_params": {"verify": False},
         "verify": True,
-
     }
     _params = get_http_params(conf)
     assert _params == {"verify": False}
@@ -29,10 +28,10 @@ def test_get_http_params_3():
 
 
 def test_add_path():
-    assert add_path('https://example.com/', '/usr') == 'https://example.com/usr'
-    assert add_path('https://example.com/', 'usr') == 'https://example.com/usr'
-    assert add_path('https://example.com', '/usr') == 'https://example.com/usr'
-    assert add_path('https://example.com', 'usr') == 'https://example.com/usr'
+    assert add_path("https://example.com/", "/usr") == "https://example.com/usr"
+    assert add_path("https://example.com/", "usr") == "https://example.com/usr"
+    assert add_path("https://example.com", "/usr") == "https://example.com/usr"
+    assert add_path("https://example.com", "usr") == "https://example.com/usr"
 
 
 def test_load_yaml():

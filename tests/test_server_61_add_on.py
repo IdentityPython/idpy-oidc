@@ -13,6 +13,8 @@ from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -77,15 +79,13 @@ class TestEndpoint(object):
             "add_on": {
                 "extra_args": {
                     "function": "idpyoidc.server.oauth2.add_on.extra_args.add_support",
-                    "kwargs": {
-                        "authorization": {"iss": "issuer"}
-                    }
+                    "kwargs": {"authorization": {"iss": "issuer"}},
                 },
             },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {"lifetime": 600},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -97,7 +97,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -115,10 +118,7 @@ class TestEndpoint(object):
                     "class": Authorization,
                     "kwargs": {},
                 },
-                "token": {
-                    "path": "{}/token",
-                    "class": Token,
-                    "kwargs": {}},
+                "token": {"path": "{}/token", "class": Token, "kwargs": {}},
             },
             "client_authn": verify_client,
             "authentication": {
@@ -133,6 +133,7 @@ class TestEndpoint(object):
                 "class": user_info.UserInfo,
                 "kwargs": {"db_file": "users.json"},
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -147,12 +148,12 @@ class TestEndpoint(object):
 
     def test_process_request(self):
         _context = self.endpoint.server_get("endpoint_context")
-        assert _context.add_on["extra_args"] == {'authorization': {'iss': 'issuer'}}
+        assert _context.add_on["extra_args"] == {"authorization": {"iss": "issuer"}}
 
         _pr_resp = self.endpoint.parse_request(AUTH_REQ)
         _args = self.endpoint.process_request(_pr_resp)
         _resp = self.endpoint.do_response(request=AUTH_REQ, **_args)
         parse_res = urlparse(_resp["response"])
         _payload = AuthorizationResponse().from_urlencoded(parse_res.query)
-        assert 'iss' in _payload
+        assert "iss" in _payload
         assert _payload["iss"] == _context.issuer

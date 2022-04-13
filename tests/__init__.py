@@ -8,14 +8,15 @@ def full_path(local_file):
 
 
 CRYPT_CONFIG = {
-        "kwargs": {
-            "keys": {
-                "key_defs": [
-                    {"type": "OCT", "use": ["enc"], "kid": "password"},
-                    {"type": "OCT", "use": ["enc"], "kid": "salt"},
-                ]
-            },
-            "iterations": 1,
-        }
+    "kwargs": {
+        "keys": {
+            "key_defs": [
+                {"type": "OCT", "use": ["enc"], "kid": "password"},
+                {"type": "OCT", "use": ["enc"], "kid": "salt"},
+            ]
+        },
+        "iterations": 1,
     }
+}
 
+SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}

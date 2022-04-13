@@ -4,7 +4,8 @@ from typing import Optional
 
 from cryptojwt import as_unicode
 from cryptojwt.jwe.fernet import FernetEncrypter
-from idpyoidc.encrypter import init_crypto
+
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.time_util import utc_time_sans_frac
@@ -78,19 +79,21 @@ class Token(object):
 
 
 class DefaultToken(Token):
-    def __init__(self,
-                 token_class: Optional[str] = "",
-                 token_type: Optional[str] = "Bearer",
-                 crypt_conf: Optional[dict] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        token_class: Optional[str] = "",
+        token_type: Optional[str] = "Bearer",
+        crypt_conf: Optional[dict] = None,
+        **kwargs
+    ):
         Token.__init__(self, token_class, **kwargs)
-        _res = init_crypto(crypt_conf)
+        _res = init_encrypter(crypt_conf)
         self.crypt = _res["encrypter"]
         self.crypt_config = _res["conf"]
         self.token_type = token_type
 
     def __call__(
-            self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
+        self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
     ) -> str:
         """
         Return a token.

@@ -788,9 +788,7 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
-                    raise NotForMe(
-                        '"{}" not in {}'.format(kwargs["client_id"], self["aud"]), self
-                    )
+                    raise NotForMe('"{}" not in {}'.format(kwargs["client_id"], self["aud"]), self)
 
             # Then azp has to be present and be one of the aud values
             if len(self["aud"]) > 1:
@@ -938,8 +936,8 @@ class ProviderConfigurationResponse(ResponseMessage):
 
         # The parameter is optional
         if (
-                "token_endpoint_auth_signing_alg_values_supported" in self
-                and "none" in self["token_endpoint_auth_signing_alg_values_supported"]
+            "token_endpoint_auth_signing_alg_values_supported" in self
+            and "none" in self["token_endpoint_auth_signing_alg_values_supported"]
         ):
             raise ValueError(
                 "The value none must not be used for "
@@ -955,8 +953,8 @@ class ProviderConfigurationResponse(ResponseMessage):
             raise ValueError("Issuer ID invalid")
 
         if (
-                any("code" in rt for rt in self["response_types_supported"])
-                and "token_endpoint" not in self
+            any("code" in rt for rt in self["response_types_supported"])
+            and "token_endpoint" not in self
         ):
             raise MissingRequiredAttribute("token_endpoint")
 
@@ -1173,7 +1171,7 @@ def factory(msgtype, **kwargs):
 
 
 def make_openid_request(
-        arq, keys, issuer, request_object_signing_alg, recv, with_jti=False, lifetime=0
+    arq, keys, issuer, request_object_signing_alg, recv, with_jti=False, lifetime=0
 ):
     """
     Construct the JWT to be passed by value (the request parameter) or by

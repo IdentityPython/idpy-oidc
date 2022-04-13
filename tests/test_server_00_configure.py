@@ -1,11 +1,12 @@
 import json
 import os
 
+import pytest
+
 from idpyoidc.configure import Configuration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.logging import configure_logging
 from idpyoidc.server.configure import OPConfiguration
-import pytest
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -46,7 +47,7 @@ def test_op_configure_from_file():
 
     assert configuration
     assert "key_conf" in configuration
-    assert 'userinfo' in configuration
+    assert "userinfo" in configuration
     authz_conf = configuration["authz"]
     assert set(authz_conf.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token")
@@ -66,13 +67,16 @@ def test_op_configure_default():
 
     configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     assert configuration
-    assert 'userinfo' in configuration
+    assert "userinfo" in configuration
     authz = configuration["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True}, }
+        "base_claims": {
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+        }
     }
 
 
@@ -85,26 +89,23 @@ def test_op_configure_default_from_file():
         port=443,
     )
     assert configuration
-    assert 'userinfo' in configuration
+    assert "userinfo" in configuration
     authz = configuration["authz"]
     assert set(authz.keys()) == {"kwargs", "class"}
     id_token_conf = configuration.get("id_token", {})
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
     assert id_token_conf["kwargs"] == {
-        "base_claims": {"email": {"essential": True}, "email_verified": {"essential": True}, }
+        "base_claims": {
+            "email": {"essential": True},
+            "email_verified": {"essential": True},
+        }
     }
 
 
 def test_server_configure():
     configuration = create_from_config_file(
         Configuration,
-        entity_conf=[
-            {
-                "class": OPConfiguration,
-                "attr": "op",
-                "path": ["op", "server_info"]
-            }
-        ],
+        entity_conf=[{"class": OPConfiguration, "attr": "op", "path": ["op", "server_info"]}],
         filename=full_path("srv_config.json"),
         base_path=BASEDIR,
     )

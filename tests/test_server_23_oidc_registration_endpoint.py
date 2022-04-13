@@ -17,6 +17,8 @@ from idpyoidc.server.oidc.registration import match_sp_sep
 from idpyoidc.server.oidc.registration import verify_url
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.oidc.userinfo import UserInfo
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -63,7 +65,7 @@ MSG = {
         "https://client.example.org/rf.txt#qpXaRLh_n93TT",
         "https://client.example.org/rf.txt",
     ],
-    "post_logout_redirect_uri": "https://rp.example.com/pl"
+    "post_logout_redirect_uri": "https://rp.example.com/pl",
 }
 
 CLI_REQ = RegistrationRequest(**MSG)
@@ -90,7 +92,7 @@ class TestEndpoint(object):
                     "read_only": False,
                     "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -101,7 +103,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -130,7 +135,11 @@ class TestEndpoint(object):
                     "kwargs": {
                         "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
-                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
                         "request_uri_parameter_supported": True,
@@ -151,6 +160,7 @@ class TestEndpoint(object):
                 "userinfo": {"path": "userinfo", "class": UserInfo, "kwargs": {}},
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         server.endpoint_context.cdb["client_id"] = {}

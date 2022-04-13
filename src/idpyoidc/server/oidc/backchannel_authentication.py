@@ -37,7 +37,7 @@ class BackChannelAuthentication(Endpoint):
     endpoint_name = "backchannel_authentication_endpoint"
     name = "backchannel_authentication"
     provider_info_attributes = {
-        "backchannel_token_delivery_modes_supported": ['poll', 'ping', 'push'],
+        "backchannel_token_delivery_modes_supported": ["poll", "ping", "push"],
         "backchannel_authentication_request_signing_alg_values_supported": None,
         "backchannel_user_code_parameter_supported": True,
     }
@@ -53,7 +53,7 @@ class BackChannelAuthentication(Endpoint):
 
     def do_request_user(self, request):
         cn = verified_claim_name("id_token_hint")
-        _request_user = ''
+        _request_user = ""
         if request.get(cn):
             _request_user = request[cn].get("sub", "")
         elif request.get("login_hint"):
@@ -62,12 +62,14 @@ class BackChannelAuthentication(Endpoint):
                 _context = self.server_get("endpoint_context")
                 if _context.login_hint_lookup:
                     _request_user = _context.login_hint_lookup(_login_hint)
-        elif request.get('login_hint_token'):
+        elif request.get("login_hint_token"):
             _context = self.server_get("endpoint_context")
-            _request_user = execute(self.parse_login_hint_token,
-                                    keyjar=_context.keyjar,
-                                    login_hint_token=request.get('login_hint_token'),
-                                    context=_context)
+            _request_user = execute(
+                self.parse_login_hint_token,
+                keyjar=_context.keyjar,
+                login_hint_token=request.get("login_hint_token"),
+                context=_context,
+            )
 
         return _request_user
 
@@ -83,17 +85,18 @@ class BackChannelAuthentication(Endpoint):
         return set(res)
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
     ):
         try:
             request_user = self.do_request_user(request)
         except KeyError:
             logger.error("Login hint didn't lead to a known user")
-            _error_msg = self.error_cls(error="invalid_request",
-                                        error_description="Login hint didn't lead to a known user")
+            _error_msg = self.error_cls(
+                error="invalid_request", error_description="Login hint didn't lead to a known user"
+            )
             return _error_msg
 
         if request_user:  # Got a request for a legitimate user, create a session
@@ -105,12 +108,18 @@ class BackChannelAuthentication(Endpoint):
             auth_req_id = uuid.uuid4().hex
             _context.session_manager.auth_req_id_map[auth_req_id] = _sid
 
-            return {"response_args": {"auth_req_id": auth_req_id, "expires_in": self.expires_in,
-                                      "interval": self.interval}}
+            return {
+                "response_args": {
+                    "auth_req_id": auth_req_id,
+                    "expires_in": self.expires_in,
+                    "interval": self.interval,
+                }
+            }
         else:
             _error_msg = self.error_cls(
                 error="invalid_request",
-                error_description="Don't know which user you're looking for")
+                error_description="Don't know which user you're looking for",
+            )
             return _error_msg
 
 
@@ -118,12 +127,16 @@ class CIBATokenHelper(AccessTokenHelper):
     def _get_session_info(self, request, session_manager):
         _path = request["_session_path"]
         _grant = session_manager.get(_path)
-        session_info = {"user_id": _path[0], "client_id": _path[1], "grant_id": _path[2],
-                        "session_id": request["_session_id"]}
+        session_info = {
+            "user_id": _path[0],
+            "client_id": _path[1],
+            "grant_id": _path[2],
+            "session_id": request["_session_id"],
+        }
         return session_info, _grant
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
@@ -133,8 +146,11 @@ class CIBATokenHelper(AccessTokenHelper):
         # one without authentication information, the other one with
         logger.debug(f"Session info: {_info}")
         # There should be zero or one
-        _subs = [s for s in _mngr.get(
-            [_info["user_id"], _info["client_id"]]).subordinate if s != _info["grant_id"]]
+        _subs = [
+            s
+            for s in _mngr.get([_info["user_id"], _info["client_id"]]).subordinate
+            if s != _info["grant_id"]
+        ]
 
         if len(_subs) == 0:  # No successful authentication performed
             logger.warning("No authentication found")
@@ -286,11 +302,11 @@ class ClientNotification(Endpoint):
         Endpoint.__init__(self, server_get, **kwargs)
 
     def process_request(
-                self,
-                request: Optional[Union[Message, dict]] = None,
-                http_info: Optional[dict] = None,
-                **kwargs
-        ) -> Union[Message, dict]:
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
+    ) -> Union[Message, dict]:
         return {}
 
 
@@ -305,13 +321,13 @@ class ClientNotificationAuthn(ClientSecretBasic):
         return False
 
     def _verify(
-            self,
-            endpoint_context: EndpointContext,
-            request: Optional[Union[dict, Message]] = None,
-            authorization_token: Optional[str] = None,
-            endpoint=None,  # Optional[Endpoint]
-            get_client_id_from_token: Optional[Callable] = None,
-            **kwargs
+        self,
+        endpoint_context: EndpointContext,
+        request: Optional[Union[dict, Message]] = None,
+        authorization_token: Optional[str] = None,
+        endpoint=None,  # Optional[Endpoint]
+        get_client_id_from_token: Optional[Callable] = None,
+        **kwargs,
     ):
         ttype, token = authorization_token.split(" ", 1)
         if ttype != "Bearer":

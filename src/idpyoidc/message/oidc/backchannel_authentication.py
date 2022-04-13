@@ -78,7 +78,8 @@ class AuthenticationRequest(Message):
         if _mode in ["ping", "push"]:
             if "client_notification_token" not in self:
                 raise MissingRequiredAttribute(
-                    "client_notification_token must be present in ping or push mode")
+                    "client_notification_token must be present in ping or push mode"
+                )
 
 
 class AuthenticationRequestJWT(Message):
@@ -117,7 +118,7 @@ class AuthenticationResponse(ResponseMessage):
     c_param = {
         "auth_req_id": SINGLE_REQUIRED_STRING,
         "expires_in": SINGLE_REQUIRED_INT,
-        "interval": SINGLE_OPTIONAL_INT
+        "interval": SINGLE_OPTIONAL_INT,
     }
     c_default = {"interval": 5}
 
@@ -134,14 +135,12 @@ class TokenRequest(Message):
 
 
 class NotificationRequest(Message):
-    c_param = {
-        "auth_req_id": SINGLE_REQUIRED_STRING
-    }
+    c_param = {"auth_req_id": SINGLE_REQUIRED_STRING}
 
 
 class PushErrorPayload(Message):
     c_param = {
         "error": SINGLE_REQUIRED_STRING,
         "auth_req_id": SINGLE_REQUIRED_STRING,
-        "error_description": SINGLE_OPTIONAL_STRING
+        "error_description": SINGLE_OPTIONAL_STRING,
     }

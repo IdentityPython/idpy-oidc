@@ -33,12 +33,12 @@ class Server(ImpExp):
     parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
     def __init__(
-            self,
-            conf: Union[dict, OPConfiguration, ASConfiguration],
-            keyjar: Optional[KeyJar] = None,
-            cwd: Optional[str] = "",
-            cookie_handler: Optional[Any] = None,
-            httpc: Optional[Any] = None,
+        self,
+        conf: Union[dict, OPConfiguration, ASConfiguration],
+        keyjar: Optional[KeyJar] = None,
+        cwd: Optional[str] = "",
+        cookie_handler: Optional[Any] = None,
+        httpc: Optional[Any] = None,
     ):
         ImpExp.__init__(self)
         self.conf = conf
@@ -147,6 +147,6 @@ class Server(ImpExp):
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
 
     def setup_client_authn_methods(self):
-        self.endpoint_context.client_authn_method = client_auth_setup(self.server_get,
-                                                                      self.conf.get(
-                                                                          "client_authn_methods"))
+        self.endpoint_context.client_authn_method = client_auth_setup(
+            self.server_get, self.conf.get("client_authn_methods")
+        )

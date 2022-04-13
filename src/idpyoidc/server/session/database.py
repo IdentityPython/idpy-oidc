@@ -6,8 +6,9 @@ from typing import Union
 
 import cryptography
 from cryptojwt import as_unicode
+
 from idpyoidc.encrypter import default_crypt_config
-from idpyoidc.encrypter import init_crypto
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.server.constant import DIVIDER
@@ -39,7 +40,7 @@ class Database(ImpExp):
         if crypt_config is None:
             crypt_config = default_crypt_config()
 
-        _crypt = init_crypto(crypt_config)
+        _crypt = init_encrypter(crypt_config)
         self.crypt = _crypt["encrypter"]
         self.crypt_config = _crypt["conf"]
 
@@ -194,7 +195,5 @@ class Database(ImpExp):
         self.db = DLDict()
 
     def local_load_adjustments(self, **kwargs):
-        _crypt = init_crypto(self.crypt_config)
+        _crypt = init_encrypter(self.crypt_config)
         self.crypt = _crypt["encrypter"]
-
-

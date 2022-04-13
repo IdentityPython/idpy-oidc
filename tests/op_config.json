@@ -172,8 +172,19 @@
       ]
     },
     "code": {
+      "lifetime": 600,
       "kwargs": {
-        "lifetime": 600
+        "crypt_conf": {
+          "kwargs": {
+            "keys": {
+              "key_defs": [
+                {"type": "OCT", "use": ["enc"], "kid": "password"},
+                {"type": "OCT", "use": ["enc"], "kid": "salt"}
+              ]
+            },
+            "iterations": 1
+          }
+        }
       }
     },
     "token": {

@@ -30,9 +30,9 @@ class ClaimsInterface:
         self.server_get = server_get
 
     def authorization_request_claims(
-            self,
-            authorization_request: dict,
-            claims_release_point: Optional[str] = "",
+        self,
+        authorization_request: dict,
+        claims_release_point: Optional[str] = "",
     ) -> dict:
         if authorization_request and "claims" in authorization_request:
             return authorization_request["claims"].get(claims_release_point, {})
@@ -59,11 +59,11 @@ class ClaimsInterface:
         return module
 
     def _client_claims(
-            self,
-            client_id: str,
-            module: object,
-            claims_release_point: str,
-            secondary_identifier: Optional[str] = "",
+        self,
+        client_id: str,
+        module: object,
+        claims_release_point: str,
+        secondary_identifier: Optional[str] = "",
     ):
         _context = self.server_get("endpoint_context")
         add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
@@ -86,12 +86,12 @@ class ClaimsInterface:
         return _claims_by_scope, _always_add
 
     def get_claims_from_request(
-            self,
-            auth_req: dict,
-            claims_release_point: str,
-            scopes: str = None,
-            client_id: str = None,
-            secondary_identifier: str = "",
+        self,
+        auth_req: dict,
+        claims_release_point: str,
+        scopes: str = None,
+        client_id: str = None,
+        secondary_identifier: str = "",
     ) -> dict:
         _context = self.server_get("endpoint_context")
         # which endpoint module configuration to get the base claims from
@@ -143,11 +143,11 @@ class ClaimsInterface:
         return base_claims
 
     def get_claims(
-            self,
-            session_id: str,
-            scopes: str,
-            claims_release_point: str,
-            secondary_identifier: Optional[str] = "",
+        self,
+        session_id: str,
+        scopes: str,
+        claims_release_point: str,
+        secondary_identifier: Optional[str] = "",
     ) -> dict:
         """
 
@@ -179,7 +179,7 @@ class ClaimsInterface:
         return claims
 
     def get_claims_all_usage_from_request(
-            self, auth_req: dict, scopes: str = None, client_id: str = None
+        self, auth_req: dict, scopes: str = None, client_id: str = None
     ) -> dict:
         _claims = {}
         for usage in self.claims_release_points:

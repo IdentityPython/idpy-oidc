@@ -13,27 +13,28 @@ KEYSPEC = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-CLI_KEY = init_key_jar(public_path='{}/pub_client.jwks'.format(_dirname),
-                       private_path='{}/priv_client.jwks'.format(_dirname),
-                       key_defs=KEYSPEC, issuer_id='client_id')
+CLI_KEY = init_key_jar(
+    public_path="{}/pub_client.jwks".format(_dirname),
+    private_path="{}/priv_client.jwks".format(_dirname),
+    key_defs=KEYSPEC,
+    issuer_id="client_id",
+)
 
 
 class TestDPoPWithoutUserinfo:
     @pytest.fixture(autouse=True)
     def create_client(self):
         config = {
-            'client_id': 'client_id',
-            'client_secret': 'a longesh password',
-            'redirect_uris': ['https://example.com/cli/authz_cb'],
-            'behaviour': {'response_types': ['code']},
-            'add_ons': {
+            "client_id": "client_id",
+            "client_secret": "a longesh password",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "behaviour": {"response_types": ["code"]},
+            "add_ons": {
                 "ciba": {
                     "function": "idpyoidc.client.oidc.add_on.ciba.add_support",
-                    "kwargs": {
-                        "signing_algorithms": ["ES256", "ES512"]
-                    }
+                    "kwargs": {"signing_algorithms": ["ES256", "ES512"]},
                 }
-            }
+            },
         }
 
         self.client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
@@ -41,5 +42,5 @@ class TestDPoPWithoutUserinfo:
         self.client.client_get("service_context").provider_info = {
             "authorization_endpoint": "https://example.com/auth",
             "token_endpoint": "https://example.com/token",
-            "dpop_signing_alg_values_supported": ["RS256", "ES256"]
+            "dpop_signing_alg_values_supported": ["RS256", "ES256"],
         }

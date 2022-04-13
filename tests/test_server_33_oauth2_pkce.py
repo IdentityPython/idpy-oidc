@@ -21,7 +21,9 @@ from idpyoidc.server.oidc.add_on.pkce import CC_METHOD
 from idpyoidc.server.oidc.add_on.pkce import add_pkce_support
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
 BASECH = string.ascii_letters + string.digits + "-._~"
@@ -121,7 +123,11 @@ def conf():
         "capabilities": CAPABILITIES,
         "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
         "endpoint": {
-            "authorization": {"path": "{}/authorization", "class": Authorization, "kwargs": {}, },
+            "authorization": {
+                "path": "{}/authorization",
+                "class": Authorization,
+                "kwargs": {},
+            },
             "token": {
                 "path": "{}/token",
                 "class": Token,
@@ -163,6 +169,12 @@ def conf():
         "userinfo": {
             "class": "idpyoidc.server.user_info.UserInfo",
             "kwargs": {"db_file": full_path("users.json")},
+        },
+        "session_params": SESSION_PARAMS,
+        "token_handler_args": {
+            "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         },
     }
 

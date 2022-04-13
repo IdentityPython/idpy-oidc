@@ -12,7 +12,9 @@ from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 from idpyoidc.server.user_authn.user import NoAuthn
+from . import CRYPT_CONFIG
 
+from . import SESSION_PARAMS
 from . import full_path
 
 KEYDEFS = [
@@ -126,9 +128,12 @@ class TestUserAuthn(object):
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
+            },
             "endpoint": {
                 "authorization": {
                     "path": "{}/authorization",
@@ -144,7 +149,11 @@ class TestUserAuthn(object):
             },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "authentication": {
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
+                "anon": {
+                    "acr": UNSPECIFIED,
+                    "class": NoAuthn,
+                    "kwargs": {"user": "diana"},
+                },
             },
             "cookie_handler": {
                 "class": "idpyoidc.server.cookie_handler.CookieHandler",
@@ -162,6 +171,7 @@ class TestUserAuthn(object):
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -223,7 +233,8 @@ class TestUserAuthn(object):
 
         # Parse cookies once before setup_auth
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=cookies_1, name=self.endpoint_context.cookie_handler.name["session"])
+            cookies=cookies_1, name=self.endpoint_context.cookie_handler.name["session"]
+        )
 
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
 

@@ -54,6 +54,8 @@ from idpyoidc.server.user_authn.user import UserAuthnMethod
 from idpyoidc.server.user_authn.user import UserPassJinja2
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import JSONDictDB
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -152,7 +154,7 @@ class TestEndpoint(object):
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -163,7 +165,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -183,7 +188,11 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -213,7 +222,7 @@ class TestEndpoint(object):
                     "kwargs": {
                         "db_file": "users.json",
                         "claim_types_supported": ["normal", "aggregated", "distributed"],
-                        "add_claims_by_scope": True
+                        "add_claims_by_scope": True,
                     },
                 },
             },
@@ -232,7 +241,11 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -259,6 +272,7 @@ class TestEndpoint(object):
                 "class": LoginHint2Acrs,
                 "kwargs": {"scheme_map": {"email": [INTERNETPROTOCOLPASSWORD]}},
             },
+            "session_params": {"encrypter": SESSION_PARAMS},
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -405,7 +419,8 @@ class TestEndpoint(object):
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
         idt = verify_id_token(
-            _resp["response_args"], keyjar=self.endpoint.server_get("endpoint_context").keyjar,
+            _resp["response_args"],
+            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
         )
         assert idt
         # from config
@@ -429,7 +444,8 @@ class TestEndpoint(object):
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
-            _resp["response_args"], keyjar=self.endpoint.server_get("endpoint_context").keyjar,
+            _resp["response_args"],
+            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]
@@ -632,13 +648,14 @@ class TestEndpoint(object):
         session_id = self._create_session(request)
 
         kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
-            value=json.dumps({'sid': session_id, 'state': request.get("state")}),
-            name=self.endpoint_context.cookie_handler.name["session"]
+            value=json.dumps({"sid": session_id, "state": request.get("state")}),
+            name=self.endpoint_context.cookie_handler.name["session"],
         )
 
         # Parsed once before setup_auth
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"])
+            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"]
+        )
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
         assert set(res.keys()) == {"session_id", "identity", "user"}
@@ -690,8 +707,13 @@ class TestEndpoint(object):
         item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
 
         res = self.endpoint.process_request(request)
-        assert set(res.keys()) == {'content_type', 'cookie', 'response_msg', 'response_placement',
-                                   'session_id'}
+        assert set(res.keys()) == {
+            "content_type",
+            "cookie",
+            "response_msg",
+            "response_placement",
+            "session_id",
+        }
 
     def test_setup_auth_error_form_post(self):
         request = AuthorizationRequest(
@@ -709,7 +731,7 @@ class TestEndpoint(object):
         item["method"].fail = NoSuchAuthentication
 
         res = self.endpoint.process_request(request)
-        assert set(res.keys()) == {'content_type', 'response_msg', 'response_placement'}
+        assert set(res.keys()) == {"content_type", "response_msg", "response_placement"}
         assert res["response_placement"] == "body"
         assert res["content_type"] == "text/html"
         assert "Submit This Form" in res["response_msg"]
@@ -812,7 +834,8 @@ class TestEndpoint(object):
     def test_parse_request(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -829,7 +852,8 @@ class TestEndpoint(object):
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
-            AUTH_REQ_DICT, aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            AUTH_REQ_DICT,
+            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"
@@ -894,7 +918,8 @@ class TestEndpoint(object):
 
     def test_do_request_uri(self):
         request = AuthorizationRequest(
-            redirect_uri="https://rp.example.com/cb", request_uri="https://example.com/request",
+            redirect_uri="https://rp.example.com/cb",
+            request_uri="https://example.com/request",
         )
 
         orig_request = AuthorizationRequest(
@@ -1034,8 +1059,10 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.server_get("endpoint_context")
         # userinfo
         _userinfo = init_user_info(
-            {"class": "idpyoidc.server.user_info.UserInfo",
-             "kwargs": {"db_file": full_path("users.json")}, },
+            {
+                "class": "idpyoidc.server.user_info.UserInfo",
+                "kwargs": {"db_file": full_path("users.json")},
+            },
             "",
         )
         # login_hint
@@ -1070,7 +1097,10 @@ class TestACR(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -1090,14 +1120,16 @@ class TestACR(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration,
-                                 "kwargs": {}, },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
                     "kwargs": {
-                        "response_types_supported": [" ".join(x) for x in
-                                                     RESPONSE_TYPES_SUPPORTED],
+                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                         "response_modes_supported": ["query", "fragment", "form_post"],
                         "claims_parameter_supported": True,
                         "request_parameter_supported": True,
@@ -1121,7 +1153,11 @@ class TestACR(object):
                     "class": userinfo.UserInfo,
                     "kwargs": {
                         "db_file": "users.json",
-                        "claim_types_supported": ["normal", "aggregated", "distributed", ],
+                        "claim_types_supported": [
+                            "normal",
+                            "aggregated",
+                            "distributed",
+                        ],
                     },
                 },
             },
@@ -1135,7 +1171,7 @@ class TestACR(object):
                     "acr": "https://refeds.org/profile/mfa",
                     "class": "idpyoidc.server.user_authn.user.NoAuthn",
                     "kwargs": {"user": "diana"},
-                }
+                },
             },
             "userinfo": {"class": UserInfo, "kwargs": {"db": USERINFO_db}},
             "template_dir": "template",
@@ -1145,8 +1181,11 @@ class TestACR(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token",
-                                                     "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -1199,7 +1238,7 @@ class TestACR(object):
             state="state",
             nonce="nonce",
             scope="openid",
-            claims={"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}}
+            claims={"id_token": {"acr": {"value": "https://refeds.org/profile/mfa"}}},
         )
 
         redirect_uri = request["redirect_uri"]
@@ -1207,8 +1246,9 @@ class TestACR(object):
         cinfo = _context.cdb["client_1"]
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-        _session_info = self.session_manager.get_session_info(session_id=res["session_id"],
-                                                              grant=True)
+        _session_info = self.session_manager.get_session_info(
+            session_id=res["session_id"], grant=True
+        )
         _grant = _session_info["grant"]
         assert _grant.authentication_event["authn_info"] == "https://refeds.org/profile/mfa"
 
@@ -1216,7 +1256,7 @@ class TestACR(object):
         assert id_token
         _jws = factory(id_token.value)
         _payload = _jws.jwt.payload()
-        assert 'acr' in _payload
+        assert "acr" in _payload
         assert _payload["acr"] == "https://refeds.org/profile/mfa"
 
 
@@ -1308,7 +1348,11 @@ class TestUserAuthn(object):
                         "passwd_label": "Secret sauce",
                     },
                 },
-                "anon": {"acr": UNSPECIFIED, "class": NoAuthn, "kwargs": {"user": "diana"}, },
+                "anon": {
+                    "acr": UNSPECIFIED,
+                    "class": NoAuthn,
+                    "kwargs": {"user": "diana"},
+                },
             },
             "cookie_handler": {
                 "class": "idpyoidc.server.cookie_handler.CookieHandler",
@@ -1343,7 +1387,8 @@ class TestUserAuthn(object):
 
         # Parsed once before setup_auth
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"])
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"]
+        )
 
         _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
         assert _info["sub"] == "diana"

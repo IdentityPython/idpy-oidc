@@ -7,13 +7,11 @@ from idpyoidc.impexp import ImpExp
 
 
 class CIBAClient(ImpExp):
-    parameter = {
-        "context": {}
-    }
+    parameter = {"context": {}}
 
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
+        self,
+        keyjar: Optional[KeyJar] = None,
     ):
         ImpExp.__init__(self)
         self.keyjar = keyjar
@@ -30,14 +28,15 @@ class CIBAClient(ImpExp):
             "scope": scope,
             "client_notification_token": client_notification_token,
             "binding_message": binding_message,
-            "login_hint": login_hint
+            "login_hint": login_hint,
         }
-        request = _service.get_request_parameters(request_args=request_args,
-                                                  authn_method="private_key_jwt")
+        request = _service.get_request_parameters(
+            request_args=request_args, authn_method="private_key_jwt"
+        )
 
         self.context[client_notification_token] = {
             "authentication_request": request,
-            "client_id": _service.client_get("service_context").issuer
+            "client_id": _service.client_get("service_context").issuer,
         }
         return request
 
@@ -48,18 +47,17 @@ class CIBAClient(ImpExp):
     def do_client_notification(self, msg, http_info):
         _notification_endpoint = self.server.server_get("endpoint", "client_notification")
         _nreq = _notification_endpoint.parse_request(
-            msg, http_info, get_client_id_from_token=self.get_client_id_from_token)
+            msg, http_info, get_client_id_from_token=self.get_client_id_from_token
+        )
         _ninfo = _notification_endpoint.process_request(_nreq)
 
 
 class CIBAServer(ImpExp):
-    parameter = {
-        "context": {}
-    }
+    parameter = {"context": {}}
 
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
+        self,
+        keyjar: Optional[KeyJar] = None,
     ):
         ImpExp.__init__(self)
         self.keyjar = keyjar

@@ -2,6 +2,7 @@ import os
 from typing import Optional
 
 from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.util import instantiate
 
 DEFAULT_CRYPTO = "cryptojwt.jwe.fernet.FernetEncrypter"
@@ -22,7 +23,7 @@ def default_crypt_config():
             # "hash_alg": "SHA256",
             # "digest_size": 0,
             # "iterations": DEFAULT_ITERATIONS,
-        }
+        },
     }
 
 
@@ -37,15 +38,12 @@ def get_crypt_config(conf):
         else:
             _args = {"password": _pwd}
             _args["salt"] = conf.get("salt", os.urandom(16))
-            _crypt_config = {
-                "class": "cryptojwt.jwe.fernet.FernetEncrypter",
-                "kwargs": _args
-            }
+            _crypt_config = {"class": "cryptojwt.jwe.fernet.FernetEncrypter", "kwargs": _args}
     return _crypt_config
 
 
 # This is pretty complex because it must be able to cope with many variants.
-def init_crypto(conf: Optional[dict] = None):
+def init_encrypter(conf: Optional[dict] = None):
     if conf is None:
         conf = default_crypt_config()
         _kwargs = conf.get("kwargs")
@@ -58,8 +56,12 @@ def init_crypto(conf: Optional[dict] = None):
             if conf.get("password"):
                 _kwargs = {
                     "password": conf.get("password"),
-                    "salt": conf.get("salt", os.urandom(16))
+                    "salt": conf.get("salt", os.urandom(16)),
                 }
+                for attr, val in conf.items():
+                    if attr in ["password", "salt"]:
+                        continue
+                    _kwargs[attr] = val
             elif conf.get("keys"):
                 _kj = init_key_jar(**conf["keys"])
                 _kwargs = {}
@@ -69,6 +71,10 @@ def init_crypto(conf: Optional[dict] = None):
                         _kwargs[usage] = _key[0].key
                     else:
                         _kwargs[usage] = os.urandom(16)
+                for attr, val in conf.items():
+                    if attr == "keys":
+                        continue
+                    _kwargs[attr] = val
             else:
                 _kwargs = default_crypt_config().get("kwargs")
         else:
@@ -82,9 +88,14 @@ def init_crypto(conf: Optional[dict] = None):
                     else:
                         _kwargs[usage] = os.urandom(16)
             else:
-                _kwargs = {usage: _cargs.get(usage, os.urandom(16)) for usage in
-                           ["password", "salt"]}
+                _kwargs = {
+                    usage: _cargs.get(usage, os.urandom(16)) for usage in ["password", "salt"]
+                }
+            for attr, val in _cargs.items():
+                if attr == "keys":
+                    continue
+                _kwargs[attr] = val
     return {
         "encrypter": instantiate(_class, **_kwargs),
-        "conf": {"class": _class, "kwargs": _kwargs}
+        "conf": {"class": _class, "kwargs": _kwargs},
     }

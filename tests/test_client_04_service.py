@@ -22,18 +22,19 @@ KEYDEFS = [
 ]
 
 CLIENT_CONF = {
-    'redirect_uris': ['https://example.com/cli/authz_cb'],
-    'behaviour': {'response_types': ['code']},
-    "key_conf": {"key_defs": KEYDEFS}
+    "redirect_uris": ["https://example.com/cli/authz_cb"],
+    "behaviour": {"response_types": ["code"]},
+    "key_conf": {"key_defs": KEYDEFS},
 }
 
 
 class TestService:
     @pytest.fixture(autouse=True)
     def create_service(self):
-        self.service = Service(client_get=self.client_get,
-                               conf={"http_method": "POST",
-                                     "msg_type": AuthorizationRequest})
+        self.service = Service(
+            client_get=self.client_get,
+            conf={"http_method": "POST", "msg_type": AuthorizationRequest},
+        )
 
         self.service_context = ServiceContext(config=CLIENT_CONF)
 
@@ -47,26 +48,30 @@ class TestService:
     def test_gather_request_args(self):
         self.service.conf["request_args"] = {"response_type": "code"}
         args = self.service.gather_request_args(state="state")
-        assert args == {'response_type': 'code', 'state': 'state'}
+        assert args == {"response_type": "code", "state": "state"}
 
         self.service_context.client_id = "client"
         args = self.service.gather_request_args(state="state")
-        assert args == {'client_id': 'client', 'response_type': 'code', 'state': 'state'}
+        assert args == {"client_id": "client", "response_type": "code", "state": "state"}
 
-        self.service.default_request_args = {'scope': ['openid']}
+        self.service.default_request_args = {"scope": ["openid"]}
         args = self.service.gather_request_args(state="state")
-        assert args == {'client_id': 'client',
-                        'response_type': 'code',
-                        'scope': ['openid'],
-                        'state': 'state'}
+        assert args == {
+            "client_id": "client",
+            "response_type": "code",
+            "scope": ["openid"],
+            "state": "state",
+        }
 
         self.service_context.behaviour = {"redirect_uri": "https://rp.example.com"}
         args = self.service.gather_request_args(state="state")
-        assert args == {'client_id': 'client',
-                        'redirect_uri': 'https://rp.example.com',
-                        'response_type': 'code',
-                        'scope': ['openid'],
-                        'state': 'state'}
+        assert args == {
+            "client_id": "client",
+            "redirect_uri": "https://rp.example.com",
+            "response_type": "code",
+            "scope": ["openid"],
+            "state": "state",
+        }
 
     def test_parse_response_urlencoded(self):
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_urlencoded()
@@ -76,7 +81,7 @@ class TestService:
         self.service_context.client_id = "client"
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
-        assert arg.to_dict() == {'code': 'auth_grant', 'state': 'state'}
+        assert arg.to_dict() == {"code": "auth_grant", "state": "state"}
 
     def test_parse_response_json(self):
         self.service.response_body_type = "json"
@@ -88,7 +93,7 @@ class TestService:
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_json()
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
-        assert arg.to_dict() == {'code': 'auth_grant', 'state': 'state'}
+        assert arg.to_dict() == {"code": "auth_grant", "state": "state"}
 
     def test_parse_response_jwt(self):
         self.service.response_body_type = "jwt"
@@ -97,11 +102,12 @@ class TestService:
         self.service_context.client_id = "client"
 
         _sign_key = self.service_context.keyjar.get_signing_key()
-        resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(key=_sign_key,
-                                                                               algorithm="RS256")
+        resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
+            key=_sign_key, algorithm="RS256"
+        )
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
-        assert arg.to_dict() == {'code': 'auth_grant', 'state': 'state'}
+        assert arg.to_dict() == {"code": "auth_grant", "state": "state"}
 
     def test_parse_response_err(self):
         self.service.response_body_type = "urlencoded"
@@ -110,8 +116,9 @@ class TestService:
         self.service_context.client_id = "client"
 
         _sign_key = self.service_context.keyjar.get_signing_key()
-        resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(key=_sign_key,
-                                                                               algorithm="RS256")
+        resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
+            key=_sign_key, algorithm="RS256"
+        )
         with pytest.raises(ValueError):
             arg = self.service.parse_response(resp1)
 
@@ -119,47 +126,43 @@ class TestService:
 class TestAuthorization(object):
     @pytest.fixture(autouse=True)
     def create_service(self):
-        self.entity = Entity(config=CLIENT_CONF,
-                             services={"base": {"class": "idpyoidc.client.service.Service"}})
-        self.service = self.entity.get_service('')
+        self.entity = Entity(
+            config=CLIENT_CONF, services={"base": {"class": "idpyoidc.client.service.Service"}}
+        )
+        self.service = self.entity.get_service("")
 
     def test_construct(self):
-        req_args = {'foo': 'bar'}
-        _req = self.service.construct(request_args=req_args, state='state')
+        req_args = {"foo": "bar"}
+        _req = self.service.construct(request_args=req_args, state="state")
         assert isinstance(_req, Message)
-        assert set(_req.keys()) == {'foo'}
+        assert set(_req.keys()) == {"foo"}
 
     def test_get_request_parameters(self):
-        req_args = {'response_type': 'code'}
-        self.service.endpoint = 'https://example.com/authorize'
-        _info = self.service.get_request_parameters(request_args=req_args,
-                                                    state='state')
-        assert set(_info.keys()) == {'url', 'method', 'request'}
-        msg = Message().from_urlencoded(self.service.get_urlinfo(_info['url']))
-        assert msg.to_dict() == {
-            'response_type': 'code'
-        }
+        req_args = {"response_type": "code"}
+        self.service.endpoint = "https://example.com/authorize"
+        _info = self.service.get_request_parameters(request_args=req_args, state="state")
+        assert set(_info.keys()) == {"url", "method", "request"}
+        msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
+        assert msg.to_dict() == {"response_type": "code"}
 
     def test_request_init(self):
-        req_args = {'response_type': 'code', 'state': "state"}
-        self.service.endpoint = 'https://example.com/authorize'
+        req_args = {"response_type": "code", "state": "state"}
+        self.service.endpoint = "https://example.com/authorize"
         _info = self.service.get_request_parameters(request_args=req_args)
-        assert set(_info.keys()) == {'url', 'method', 'request'}
-        msg = Message().from_urlencoded(self.service.get_urlinfo(_info['url']))
-        assert msg.to_dict() == {'response_type': 'code', 'state': 'state'}
+        assert set(_info.keys()) == {"url", "method", "request"}
+        msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
+        assert msg.to_dict() == {"response_type": "code", "state": "state"}
 
     def test_response(self):
         _state = "today"
-        req_args = {'response_type': 'code', 'state': _state}
-        self.service.endpoint = 'https://example.com/authorize'
+        req_args = {"response_type": "code", "state": _state}
+        self.service.endpoint = "https://example.com/authorize"
         _info = self.service.get_request_parameters(request_args=req_args)
-        assert set(_info.keys()) == {'url', 'method', 'request'}
-        msg = Message().from_urlencoded(
-            self.service.get_urlinfo(_info['url']))
+        assert set(_info.keys()) == {"url", "method", "request"}
+        msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
         self.service.client_get("service_context").state.store_item(msg, "request", _state)
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
-        response = self.service.parse_response(
-            resp1.to_urlencoded(), "urlencoded", state=_state)
+        response = self.service.parse_response(resp1.to_urlencoded(), "urlencoded", state=_state)
         self.service.update_service_context(response, key=_state)
         assert self.service.client_get("service_context").state.get_state(_state)

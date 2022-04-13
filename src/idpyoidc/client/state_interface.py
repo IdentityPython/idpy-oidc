@@ -11,22 +11,23 @@ from idpyoidc.util import rndstr
 
 class State(Message):
     """A structure to keep information about previous events."""
+
     c_param = {
-        'iss': SINGLE_REQUIRED_STRING,
-        'auth_request': SINGLE_OPTIONAL_JSON,
-        'auth_response': SINGLE_OPTIONAL_JSON,
-        'token_response': SINGLE_OPTIONAL_JSON,
-        'refresh_token_request': SINGLE_OPTIONAL_JSON,
-        'refresh_token_response': SINGLE_OPTIONAL_JSON,
-        'user_info': SINGLE_OPTIONAL_JSON
+        "iss": SINGLE_REQUIRED_STRING,
+        "auth_request": SINGLE_OPTIONAL_JSON,
+        "auth_response": SINGLE_OPTIONAL_JSON,
+        "token_response": SINGLE_OPTIONAL_JSON,
+        "refresh_token_request": SINGLE_OPTIONAL_JSON,
+        "refresh_token_response": SINGLE_OPTIONAL_JSON,
+        "user_info": SINGLE_OPTIONAL_JSON,
     }
 
 
 KEY_PATTERN = {
-    'nonce': '__{}__',
-    'logout state': '::{}::',
-    'session id': '..{}..',
-    'subject id': '=={}=='
+    "nonce": "__{}__",
+    "logout state": "::{}::",
+    "session id": "..{}..",
+    "subject id": "=={}==",
 }
 
 
@@ -76,9 +77,7 @@ class InMemoryStateDataBase:
 class StateInterface(ImpExp):
     """A more powerful interface to a state DB."""
 
-    parameter = {
-        "_db": None
-    }
+    parameter = {"_db": None}
 
     def __init__(self):
         ImpExp.__init__(self)
@@ -129,7 +128,7 @@ class StateInterface(ImpExp):
         _state = self.get_state(key)
         if not _state:
             raise KeyError(key)
-        return _state['iss']
+        return _state["iss"]
 
     def get_item(self, item_cls, item_type, key):
         """
@@ -189,8 +188,7 @@ class StateInterface(ImpExp):
 
         return args
 
-    def multiple_extend_request_args(self, args, key, parameters, item_types,
-                                     orig=False):
+    def multiple_extend_request_args(self, args, key, parameters, item_types, orig=False):
         """
         Go through a set of items (by their type) and add the attribute-value
         that match the list of parameters to the arguments
@@ -276,7 +274,7 @@ class StateInterface(ImpExp):
         :param nonce: The nonce value
         :param state: The state value
         """
-        self.store_x2state(nonce, state, 'nonce')
+        self.store_x2state(nonce, state, "nonce")
 
     def get_state_by_nonce(self, nonce):
         """
@@ -287,7 +285,7 @@ class StateInterface(ImpExp):
         :param nonce: The nonce value
         :return: The state value
         """
-        return self.get_state_by_x(nonce, 'nonce')
+        return self.get_state_by_x(nonce, "nonce")
 
     def store_logout_state2state(self, logout_state, state):
         """
@@ -298,7 +296,7 @@ class StateInterface(ImpExp):
         :param logout_state: The logout state value
         :param state: The state value
         """
-        self.store_x2state(logout_state, state, 'logout state')
+        self.store_x2state(logout_state, state, "logout state")
 
     def get_state_by_logout_state(self, logout_state):
         """
@@ -309,7 +307,7 @@ class StateInterface(ImpExp):
         :param logout_state: The logout state value
         :return: The state value
         """
-        return self.get_state_by_x(logout_state, 'logout state')
+        return self.get_state_by_x(logout_state, "logout state")
 
     def store_sid2state(self, sid, state):
         """
@@ -320,7 +318,7 @@ class StateInterface(ImpExp):
         :param sid: The session ID value
         :param state: The state value
         """
-        self.store_x2state(sid, state, 'session id')
+        self.store_x2state(sid, state, "session id")
 
     def get_state_by_sid(self, sid):
         """
@@ -331,7 +329,7 @@ class StateInterface(ImpExp):
         :param sid: The session ID value
         :return: The state value
         """
-        return self.get_state_by_x(sid, 'session id')
+        return self.get_state_by_x(sid, "session id")
 
     def store_sub2state(self, sub, state):
         """
@@ -342,7 +340,7 @@ class StateInterface(ImpExp):
         :param sub: The Subject ID value
         :param state: The state value
         """
-        self.store_x2state(sub, state, 'subject id')
+        self.store_x2state(sub, state, "subject id")
 
     def get_state_by_sub(self, sub):
         """
@@ -353,9 +351,9 @@ class StateInterface(ImpExp):
         :param sub: The Subject ID value
         :return: The state value
         """
-        return self.get_state_by_x(sub, 'subject id')
+        return self.get_state_by_x(sub, "subject id")
 
-    def create_state(self, iss, key=''):
+    def create_state(self, iss, key=""):
         """
         Create a State and assign some value to it.
 
@@ -365,9 +363,8 @@ class StateInterface(ImpExp):
         if not key:
             key = rndstr(32)
         else:
-            if key.startswith('__') and key.endswith('__'):
-                raise ValueError(
-                    'Invalid format. Leading and trailing "__" not allowed')
+            if key.startswith("__") and key.endswith("__"):
+                raise ValueError('Invalid format. Leading and trailing "__" not allowed')
 
         _state = State(iss=iss)
         self._db[key] = _state.to_json()

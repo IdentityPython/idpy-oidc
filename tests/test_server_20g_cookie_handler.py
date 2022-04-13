@@ -25,9 +25,7 @@ class TestCookieSign(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("idpyoidc.server", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {
-            "name", "value", "samesite", "httponly", "secure"
-        }
+        assert set(_cookie_info.keys()) == {"name", "value", "samesite", "httponly", "secure"}
         assert len(_cookie_info["value"].split("|")) == 3
 
     def test_make_cookie_content_max_age(self):
@@ -36,7 +34,12 @@ class TestCookieSign(object):
         )
         assert _cookie_info
         assert set(_cookie_info.keys()) == {
-            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+            "name",
+            "value",
+            "max-age",
+            "samesite",
+            "httponly",
+            "secure",
         }
         assert len(_cookie_info["value"].split("|")) == 3
 
@@ -76,9 +79,7 @@ class TestCookieHandlerSignEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("idpyoidc.server", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {
-            'name', 'value', 'samesite', 'httponly', 'secure'
-        }
+        assert set(_cookie_info.keys()) == {"name", "value", "samesite", "httponly", "secure"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -87,7 +88,12 @@ class TestCookieHandlerSignEnc(object):
         )
         assert _cookie_info
         assert set(_cookie_info.keys()) == {
-            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+            "name",
+            "value",
+            "max-age",
+            "samesite",
+            "httponly",
+            "secure",
         }
         assert len(_cookie_info["value"].split("|")) == 4
 
@@ -126,9 +132,7 @@ class TestCookieHandlerEnc(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("idpyoidc.server", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {
-            'name', 'value', 'samesite', 'httponly', 'secure'
-        }
+        assert set(_cookie_info.keys()) == {"name", "value", "samesite", "httponly", "secure"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -137,7 +141,12 @@ class TestCookieHandlerEnc(object):
         )
         assert _cookie_info
         assert set(_cookie_info.keys()) == {
-            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+            "name",
+            "value",
+            "max-age",
+            "samesite",
+            "httponly",
+            "secure",
         }
         assert len(_cookie_info["value"].split("|")) == 4
 
@@ -180,9 +189,7 @@ class TestCookieHandlerSignEncKeys(object):
     def test_make_cookie_content(self):
         _cookie_info = self.cookie_handler.make_cookie_content("idpyoidc.server", "value", "sso")
         assert _cookie_info
-        assert set(_cookie_info.keys()) == {
-            'name', 'value', 'samesite', 'httponly', 'secure'
-        }
+        assert set(_cookie_info.keys()) == {"name", "value", "samesite", "httponly", "secure"}
         assert len(_cookie_info["value"].split("|")) == 4
 
     def test_make_cookie_content_max_age(self):
@@ -191,7 +198,12 @@ class TestCookieHandlerSignEncKeys(object):
         )
         assert _cookie_info
         assert set(_cookie_info.keys()) == {
-            'name', 'value', 'max-age', 'samesite', 'httponly', 'secure'
+            "name",
+            "value",
+            "max-age",
+            "samesite",
+            "httponly",
+            "secure",
         }
         assert len(_cookie_info["value"].split("|")) == 4
 
@@ -221,119 +233,3 @@ class TestCookieHandlerSignEncKeys(object):
 def test_compute_session_state():
     hv = compute_session_state("state", "salt", "client_id", "https://example.com/redirect")
     assert hv == "d21113fbe4b54661ae45f3a3233b0f865ccc646af248274b6fa5664267540e29.salt"
-
-
-#
-# def test_create_session_cookie():
-#     kaka = create_session_cookie(
-#         "sess_man", "session_state", domain="example.com", path="/"
-#     )
-#
-#     assert isinstance(kaka, SimpleCookie)
-#     assert {"sess_man"} == set(kaka.keys())
-#     morsel = kaka["sess_man"]
-#     assert morsel.value == "session_state"
-#     assert morsel["path"] == "/"
-#     assert morsel["domain"] == "example.com"
-#
-#
-# def test_append_cookie():
-#     kaka1 = create_session_cookie(
-#         "sess_man", "session_state", domain="example.com", path="/"
-#     )
-#     kaka2 = create_session_cookie("foobar", "value", domain="example.com", path="/")
-#
-#     kakor = append_cookie(kaka1, kaka2)
-#     assert {"sess_man", "foobar"} == set(kakor.keys())
-#
-#
-# conf = {
-#     "issuer": "https://example.com/",
-#     "httpc_params": {"verify": False, "timeout": 1},
-#     "token_expires_in": 600,
-#     "grant_expires_in": 300,
-#     "refresh_token_expires_in": 86400,
-#     "verify_ssl": False,
-#     "endpoint": {"token": {"path": "token", "class": Token, "kwargs": {}}},
-#     "template_dir": "template",
-#     "keys": {
-#         "private_path": "own/jwks.json",
-#         "key_defs": KEYDEFS,
-#         "uri_path": "static/jwks.json",
-#     },
-# }
-#
-# cookie_conf = {
-#     "sign_key": SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch"),
-#     "default_values": {
-#         "name": "oidc_op",
-#         "domain": "example.com",
-#         "path": "/",
-#         "max_age": 3600,
-#     },
-# }
-#
-# client_id = "client_id"
-# client_secret = "a_longer_client_secret"
-# # Need to add the client_secret as a symmetric key bound to the client_id
-# KEYJAR.add_symmetric(client_id, client_secret, ["sig"])
-#
-# endpoint_context = EndpointContext(conf, keyjar=KEYJAR)
-# endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-# endpoint_context.cookie_handler = CookieHandler(**cookie_conf)
-#
-# enc_key = rndstr(32)
-#
-#
-# def test_new_cookie():
-#     kaka = new_cookie(
-#         endpoint_context, "foobar", client_id="client_id", sid="sessionID"
-#     )
-#     assert isinstance(kaka, SimpleCookie)
-#     assert {"foobar"} == set(kaka.keys())
-#
-#     val = endpoint_context.cookie_handler.get_cookie_value(kaka, "foobar")
-#     assert isinstance(val, tuple)
-#     b64val, ts, typ = val
-#     info = cookie_value(b64val)
-#     assert set(info.keys()) == {"client_id", "sid"}
-#
-#
-# def test_cookie_default():
-#     _key = SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch")
-#     kaka = make_cookie("test", "data", sign_key=_key)
-#     assert kaka["test"]["secure"] is True
-#     assert kaka["test"]["httponly"] is True
-#     assert kaka["test"]["samesite"] is ""
-#
-#
-# def test_cookie_http_only_false():
-#     _key = SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch")
-#     kaka = make_cookie("test", "data", sign_key=_key, http_only=False)
-#     assert kaka["test"]["secure"] is True
-#     assert kaka["test"]["httponly"] is False
-#     assert kaka["test"]["samesite"] is ""
-#
-#
-# def test_cookie_not_secure():
-#     _key = SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch")
-#     kaka = make_cookie("test", "data", _key, secure=False)
-#     assert kaka["test"]["secure"] is False
-#     assert kaka["test"]["httponly"] is True
-#     assert kaka["test"]["samesite"] is ""
-#
-#
-# def test_cookie_same_site_none():
-#     _key = SYMKey(k="ghsNKDDLshZTPn974nOsIGhedULrsqnsGoBFBLwUKuJhE2ch")
-#     kaka = make_cookie("test", "data", sign_key=_key, same_site="None")
-#     assert kaka["test"]["secure"] is True
-#     assert kaka["test"]["httponly"] is True
-#     assert kaka["test"]["samesite"] is "None"
-#
-#
-# def test_cookie_enc():
-#     _key = SYMKey(k=enc_key)
-#     _enc_data = sign_enc_payload(json.dumps({"test": "data"}), timestamp=time.time(),
-#     enc_key=_key)
-#     _data, _timestamp = ver_dec_content(_enc_data.split('|'), enc_key=_key)
-#     assert json.loads(_data) == {"test": "data"}

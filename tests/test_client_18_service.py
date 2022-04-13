@@ -31,49 +31,44 @@ class TestDummyService(object):
     @pytest.fixture(autouse=True)
     def create_service(self):
         config = {
-            "issuer": 'https://www.example.org/as',
-            'client_id': 'client_id',
-            'client_secret': 'a longesh password',
-            'redirect_uris': ['https://example.com/cli/authz_cb'],
-            'behaviour': {'response_types': ['code']}
+            "issuer": "https://www.example.org/as",
+            "client_id": "client_id",
+            "client_secret": "a longesh password",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "behaviour": {"response_types": ["code"]},
         }
-        service = {
-            "dummy": {
-                "class": DummyService
-            }
-        }
+        service = {"dummy": {"class": DummyService}}
 
         entity = Entity(config=config, services=service)
         self.service = DummyService(client_get=entity.client_get, conf={})
 
     def test_construct(self):
-        req_args = {'foo': 'bar'}
+        req_args = {"foo": "bar"}
         _req = self.service.construct(request_args=req_args)
         assert isinstance(_req, Message)
-        assert list(_req.keys()) == ['foo']
+        assert list(_req.keys()) == ["foo"]
 
     def test_construct_service_context(self):
-        req_args = {'foo': 'bar', 'req_str': 'some string'}
+        req_args = {"foo": "bar", "req_str": "some string"}
         _req = self.service.construct(request_args=req_args)
         assert isinstance(_req, Message)
-        assert set(_req.keys()) == {'foo', 'req_str'}
+        assert set(_req.keys()) == {"foo", "req_str"}
 
     def test_get_request_parameters(self):
-        req_args = {'foo': 'bar', 'req_str': 'some string'}
-        self.service.endpoint = 'https://example.com/authorize'
+        req_args = {"foo": "bar", "req_str": "some string"}
+        self.service.endpoint = "https://example.com/authorize"
         _info = self.service.get_request_parameters(request_args=req_args)
-        assert set(_info.keys()) == {'url', 'method', "request"}
-        msg = DummyMessage().from_urlencoded(
-            self.service.get_urlinfo(_info['url']))
+        assert set(_info.keys()) == {"url", "method", "request"}
+        msg = DummyMessage().from_urlencoded(self.service.get_urlinfo(_info["url"]))
 
     def test_request_init(self):
-        req_args = {'foo': 'bar', 'req_str': 'some string'}
-        self.service.endpoint = 'https://example.com/authorize'
+        req_args = {"foo": "bar", "req_str": "some string"}
+        self.service.endpoint = "https://example.com/authorize"
         _info = self.service.get_request_parameters(request_args=req_args)
-        assert set(_info.keys()) == {'url', 'method', "request"}
-        msg = DummyMessage().from_urlencoded(
-            self.service.get_urlinfo(_info['url']))
-        assert msg.to_dict() == {'foo': 'bar', 'req_str': 'some string'}
+        assert set(_info.keys()) == {"url", "method", "request"}
+        msg = DummyMessage().from_urlencoded(self.service.get_urlinfo(_info["url"]))
+        assert msg.to_dict() == {"foo": "bar", "req_str": "some string"}
+
 
 # class TestRequest(object):
 #     @pytest.fixture(autouse=True)

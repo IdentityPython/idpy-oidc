@@ -1,20 +1,16 @@
-import os
 from typing import Callable
 from typing import Optional
 
 from cryptojwt import JWT
-from cryptojwt.jwe.fernet import FernetEncrypter
 from cryptojwt.jws.exception import JWSException
-from idpyoidc.encrypter import init_crypto
 
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
-
-from ..constant import DEFAULT_TOKEN_LIFETIME
-from . import Token
 from . import is_expired
+from . import Token
 from .exception import UnknownToken
 from .exception import WrongTokenClass
-from ..session.manager import get_crypt_config
+from ..constant import DEFAULT_TOKEN_LIFETIME
 
 
 class JWTToken(Token):
@@ -28,16 +24,11 @@ class JWTToken(Token):
             lifetime: int = DEFAULT_TOKEN_LIFETIME,
             server_get: Callable = None,
             token_type: str = "Bearer",
-            crypt_config: Optional[dict] = None,
             **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
         self.lifetime = lifetime
-
-        _res = init_crypto(crypt_config)
-        self.crypt = _res["encrypter"]
-        self.crypt_config = _res["conf"]
 
         self.kwargs = kwargs
         _context = server_get("endpoint_context")

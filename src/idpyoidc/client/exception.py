@@ -1,5 +1,4 @@
-
-__author__ = 'roland'
+__author__ = "roland"
 
 
 # The base exception class for oidc service specific exceptions

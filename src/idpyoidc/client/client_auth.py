@@ -16,14 +16,16 @@ from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-# from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
 from ..message import VREQUIRED
 from .util import sanitize
 
+# from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
+
+
 LOGGER = logging.getLogger(__name__)
 
-__author__ = 'roland hedberg'
+__author__ = "roland hedberg"
 
 
 class AuthnFailure(Exception):
@@ -48,10 +50,10 @@ def assertion_jwt(client_id, keys, audience, algorithm, lifetime=600):
     """
     _now = utc_time_sans_frac()
 
-    _token = AuthnToken(iss=client_id, sub=client_id,
-                        aud=audience, jti=rndstr(32),
-                        exp=_now + lifetime, iat=_now)
-    LOGGER.debug('AuthnToken: %s', _token.to_dict())
+    _token = AuthnToken(
+        iss=client_id, sub=client_id, aud=audience, jti=rndstr(32), exp=_now + lifetime, iat=_now
+    )
+    LOGGER.debug("AuthnToken: %s", _token.to_dict())
     return _token.to_jwt(key=keys, algorithm=algorithm)
 
 
@@ -62,7 +64,7 @@ class ClientAuthnMethod:
     """
 
     def construct(self, request, service=None, http_args=None, **kwargs):
-        """ Add authentication information to a request"""
+        """Add authentication information to a request"""
         raise NotImplementedError()
 
     def modify_request(self, request, service, **kwargs):
@@ -125,18 +127,20 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     @staticmethod
     def _with_or_without_client_id(request, service):
-        """ Add or delete client_id from request.
+        """Add or delete client_id from request.
 
         If we're doing an access token request with an authorization code
         then we should add client_id to the request if it's not already there.
         :param request: A request
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         """
-        if isinstance(request, AccessTokenRequest) and request[
-            'grant_type'] == 'authorization_code':
-            if 'client_id' not in request:
+        if (
+            isinstance(request, AccessTokenRequest)
+            and request["grant_type"] == "authorization_code"
+        ):
+            if "client_id" not in request:
                 try:
-                    request['client_id'] = service.client_get("service_context").client_id
+                    request["client_id"] = service.client_get("service_context").client_id
                 except AttributeError:
                     pass
         else:
@@ -272,16 +276,18 @@ def find_token(request, token_type, service, **kwargs):
         # I should pick the latest acquired token, this should be the right
         # order for that.
         _arg = service.client_get("service_context").state.multiple_extend_request_args(
-            {}, kwargs['key'], ['access_token'],
-            ['auth_response', 'token_response', 'refresh_token_response'])
-        return _arg.get('access_token')
+            {},
+            kwargs["key"],
+            ["access_token"],
+            ["auth_response", "token_response", "refresh_token_response"],
+        )
+        return _arg.get("access_token")
 
 
 class BearerHeader(ClientAuthnMethod):
     """The bearer header authentication method."""
 
-    def construct(self, request=None, service=None, http_args=None,
-                  **kwargs):
+    def construct(self, request=None, service=None, http_args=None, **kwargs):
         """
         Constructing the Authorization header. The value of
         the Authorization header is "Bearer <access_token>".
@@ -293,13 +299,13 @@ class BearerHeader(ClientAuthnMethod):
         :return:
         """
 
-        if service.service_name == 'refresh_token':
-            _acc_token = find_token(request, 'refresh_token', service, **kwargs)
+        if service.service_name == "refresh_token":
+            _acc_token = find_token(request, "refresh_token", service, **kwargs)
         else:
-            _acc_token = find_token(request, 'access_token', service, **kwargs)
+            _acc_token = find_token(request, "access_token", service, **kwargs)
 
         if not _acc_token:
-            raise KeyError('No access or refresh token available')
+            raise KeyError("No access or refresh token available")
 
         # The authorization value starts with 'Bearer' when bearer tokens
         # are used
@@ -329,14 +335,14 @@ class BearerBody(ClientAuthnMethod):
         :param service: The service using this authentication method.
         :param kwargs: Extra keyword arguments
         """
-        _acc_token = ''
-        for _token_type in ['access_token', 'refresh_token']:
+        _acc_token = ""
+        for _token_type in ["access_token", "refresh_token"]:
             _acc_token = find_token(request, _token_type, service, **kwargs)
             if _acc_token:
                 break
 
         if not _acc_token:
-            raise KeyError('No access or refresh token available')
+            raise KeyError("No access or refresh token available")
 
         request["access_token"] = _acc_token
 
@@ -370,7 +376,7 @@ def bearer_auth(request, authn):
         return request["access_token"]
     except KeyError:
         if not authn.startswith("Bearer "):
-            raise ValueError('Not a bearer token')
+            raise ValueError("Not a bearer token")
         return authn[7:]
 
 
@@ -407,8 +413,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         :param service_context: A :py:class:`idpyoidc.client.service_context.ServiceContext` instance
         :return: A key
         """
-        return service_context.keyjar.get_signing_key(
-            alg2keytype(algorithm), alg=algorithm)
+        return service_context.keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)
 
     @staticmethod
     def _get_key_by_kid(kid, algorithm, service_context):
@@ -439,8 +444,9 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 signing_key = [self._get_key_by_kid(kid, algorithm, context)]
             elif ktype in context.kid["sig"]:
                 try:
-                    signing_key = [self._get_key_by_kid(
-                        context.kid["sig"][ktype], algorithm, context)]
+                    signing_key = [
+                        self._get_key_by_kid(context.kid["sig"][ktype], algorithm, context)
+                    ]
                 except KeyError:
                     signing_key = self.get_signing_key_from_keyjar(algorithm, context)
             else:
@@ -456,7 +462,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # audience for the signed JWT depends on which endpoint
         # we're talking to.
-        if 'authn_endpoint' in kwargs and kwargs['authn_endpoint'] in ['token_endpoint']:
+        if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
             reg_resp = context.registration_response
             if reg_resp:
                 algorithm = reg_resp["token_endpoint_auth_signing_alg"]
@@ -470,14 +476,15 @@ class JWSAuthnMethod(ClientAuthnMethod):
                         algorithm = "RS256"  # default
                     else:
                         for alg in algs:  # pick the first one I support and have keys for
-                            if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(alg,
-                                                                                       context):
+                            if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
+                                alg, context
+                            ):
                                 algorithm = alg
                                 break
 
-            audience = context.provider_info['token_endpoint']
+            audience = context.provider_info["token_endpoint"]
         else:
-            audience = context.provider_info['issuer']
+            audience = context.provider_info["issuer"]
 
         if not algorithm:
             algorithm = self.choose_algorithm(**kwargs)
@@ -488,8 +495,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _entity = service.client_get("entity")
         audience, algorithm = self._get_audience_and_algorithm(_context, **kwargs)
 
-        if 'kid' in kwargs:
-            signing_key = self._get_signing_key(algorithm, _context, kid=kwargs['kid'])
+        if "kid" in kwargs:
+            signing_key = self._get_signing_key(algorithm, _context, kid=kwargs["kid"])
         else:
             signing_key = self._get_signing_key(algorithm, _context)
 
@@ -497,7 +504,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             raise UnsupportedAlgorithm(algorithm)
 
         try:
-            _args = {'lifetime': kwargs['lifetime']}
+            _args = {"lifetime": kwargs["lifetime"]}
         except KeyError:
             _args = {}
 
@@ -513,15 +520,14 @@ class JWSAuthnMethod(ClientAuthnMethod):
         :param service: The service using this authentication method.
         :param kwargs: Extra keyword arguments
         """
-        if 'client_assertion' in kwargs:
-            request["client_assertion"] = kwargs['client_assertion']
-            if 'client_assertion_type' in kwargs:
-                request[
-                    'client_assertion_type'] = kwargs['client_assertion_type']
+        if "client_assertion" in kwargs:
+            request["client_assertion"] = kwargs["client_assertion"]
+            if "client_assertion_type" in kwargs:
+                request["client_assertion_type"] = kwargs["client_assertion_type"]
             else:
                 request["client_assertion_type"] = JWT_BEARER
-        elif 'client_assertion' in request:
-            if 'client_assertion_type' not in request:
+        elif "client_assertion" in request:
+            if "client_assertion_type" not in request:
                 request["client_assertion_type"] = JWT_BEARER
         else:
             request["client_assertion"] = self._construct_client_assertion(service, **kwargs)
@@ -591,7 +597,7 @@ CLIENT_AUTHN_METHOD = {
     "bearer_body": BearerBody,
     "client_secret_jwt": ClientSecretJWT,
     "private_key_jwt": PrivateKeyJWT,
-#    "client_notification_authn": ClientNotificationAuthn
+    #    "client_notification_authn": ClientNotificationAuthn
 }
 
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]

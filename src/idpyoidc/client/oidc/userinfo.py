@@ -11,9 +11,9 @@ from idpyoidc.message import oidc
 logger = logging.getLogger(__name__)
 
 UI2REG = {
-    'sigalg': 'userinfo_signed_response_alg',
-    'encalg': 'userinfo_encrypted_response_alg',
-    'encenc': 'userinfo_encrypted_response_enc'
+    "sigalg": "userinfo_signed_response_alg",
+    "encalg": "userinfo_encrypted_response_alg",
+    "encenc": "userinfo_encrypted_response_enc",
 }
 
 
@@ -25,18 +25,18 @@ def carry_state(request_args=None, **kwargs):
     :param kwargs:
     :return: The value of the state parameter
     """
-    return request_args, {'state': get_state_parameter(request_args, kwargs)}
+    return request_args, {"state": get_state_parameter(request_args, kwargs)}
 
 
 class UserInfo(Service):
     msg_type = Message
     response_cls = oidc.OpenIDSchema
     error_msg = oidc.ResponseMessage
-    endpoint_name = 'userinfo_endpoint'
+    endpoint_name = "userinfo_endpoint"
     synchronous = True
-    service_name = 'userinfo'
-    default_authn_method = 'bearer_header'
-    http_method = 'GET'
+    service_name = "userinfo"
+    default_authn_method = "bearer_header"
+    http_method = "GET"
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
@@ -50,8 +50,10 @@ class UserInfo(Service):
             pass
         else:
             request_args = self.client_get("service_context").state.multiple_extend_request_args(
-                request_args, kwargs['state'], ['access_token'],
-                ['auth_response', 'token_response', 'refresh_token_response']
+                request_args,
+                kwargs["state"],
+                ["access_token"],
+                ["auth_response", "token_response", "refresh_token_response"],
             )
 
         return request_args, {}
@@ -60,16 +62,18 @@ class UserInfo(Service):
         _context = self.client_get("service_context")
         _state_interface = _context.state
         _args = _state_interface.multiple_extend_request_args(
-            {}, kwargs['state'], ['id_token'],
-            ['auth_response', 'token_response', 'refresh_token_response']
+            {},
+            kwargs["state"],
+            ["id_token"],
+            ["auth_response", "token_response", "refresh_token_response"],
         )
 
         try:
-            _sub = _args['id_token']['sub']
+            _sub = _args["id_token"]["sub"]
         except KeyError:
             logger.warning("Can not verify value on sub")
         else:
-            if response['sub'] != _sub:
+            if response["sub"] != _sub:
                 raise ValueError('Incorrect "sub" value')
 
         try:
@@ -81,39 +85,40 @@ class UserInfo(Service):
                 if "JWT" in spec:
                     try:
                         aggregated_claims = Message().from_jwt(
-                            spec["JWT"].encode("utf-8"),
-                            keyjar=_context.keyjar)
+                            spec["JWT"].encode("utf-8"), keyjar=_context.keyjar
+                        )
                     except MissingSigningKey as err:
                         logger.warning(
-                            'Error encountered while unpacking aggregated '
-                            'claims'.format(err))
+                            "Error encountered while unpacking aggregated " "claims".format(err)
+                        )
                     else:
-                        claims = [value for value, src in
-                                  response["_claim_names"].items() if
-                                  src == csrc]
+                        claims = [
+                            value for value, src in response["_claim_names"].items() if src == csrc
+                        ]
 
                         for key in claims:
                             response[key] = aggregated_claims[key]
-                elif 'endpoint' in spec:
+                elif "endpoint" in spec:
                     _info = {
                         "headers": self.get_authn_header(
-                            {}, self.default_authn_method,
+                            {},
+                            self.default_authn_method,
                             authn_endpoint=self.endpoint_name,
-                            key=kwargs["state"]
+                            key=kwargs["state"],
                         ),
-                        "url": spec["endpoint"]
+                        "url": spec["endpoint"],
                     }
 
         # Extension point
         for meth in self.post_parse_process:
-            response = meth(response, _state_interface, kwargs['state'])
+            response = meth(response, _state_interface, kwargs["state"])
 
-        _state_interface.store_item(response, 'user_info', kwargs['state'])
+        _state_interface.store_item(response, "user_info", kwargs["state"])
         return response
 
-    def gather_verify_arguments(self,
-                                response: Optional[Union[dict, Message]] = None,
-                                behaviour_args: Optional[dict] = None):
+    def gather_verify_arguments(
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+    ):
         """
         Need to add some information before running verify()
 
@@ -121,10 +126,11 @@ class UserInfo(Service):
         """
         _context = self.client_get("service_context")
         kwargs = {
-            'client_id': _context.client_id,
-            'iss': _context.issuer,
-            'keyjar': _context.keyjar, 'verify': True,
-            'skew': _context.clock_skew
+            "client_id": _context.client_id,
+            "iss": _context.issuer,
+            "keyjar": _context.keyjar,
+            "verify": True,
+            "skew": _context.clock_skew,
         }
 
         _reg_resp = _context.registration_response
@@ -136,7 +142,7 @@ class UserInfo(Service):
                     pass
 
         try:
-            kwargs['allow_missing_kid'] = _context.allow['missing_kid']
+            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
         except KeyError:
             pass
 

@@ -13,6 +13,8 @@ from idpyoidc.server.oidc.read_registration import RegistrationRead
 from idpyoidc.server.oidc.registration import Registration
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.oidc.userinfo import UserInfo
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -66,7 +68,7 @@ msg = {
         "https://client.example.org/rf.txt#qpXaRLh_n93TT",
         "https://client.example.org/rf.txt",
     ],
-    "post_logout_redirect_uri": "https://rp.example.com/pl"
+    "post_logout_redirect_uri": "https://rp.example.com/pl",
 }
 
 CLI_REQ = RegistrationRequest(**msg)
@@ -78,9 +80,11 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
+            "token_handler_args": {
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+            },
             "capabilities": CAPABILITIES,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "cookie_handler": {
@@ -98,7 +102,11 @@ class TestEndpoint(object):
                     "class": RegistrationRead,
                     "kwargs": {"client_authn_method": ["bearer_header"]},
                 },
-                "authorization": {"path": "authorization", "class": Authorization, "kwargs": {}, },
+                "authorization": {
+                    "path": "authorization",
+                    "class": Authorization,
+                    "kwargs": {},
+                },
                 "token": {
                     "path": "token",
                     "class": Token,
@@ -114,6 +122,7 @@ class TestEndpoint(object):
                 "userinfo": {"path": "userinfo", "class": UserInfo, "kwargs": {}},
             },
             "template_dir": "template",
+            "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.registration_endpoint = server.server_get("endpoint", "registration")
@@ -137,7 +146,8 @@ class TestEndpoint(object):
         }
 
         _api_req = self.registration_api_endpoint.parse_request(
-            "client_id={}".format(_resp["response_args"]["client_id"]), http_info=http_info,
+            "client_id={}".format(_resp["response_args"]["client_id"]),
+            http_info=http_info,
         )
         assert set(_api_req.keys()) == {"client_id"}
 

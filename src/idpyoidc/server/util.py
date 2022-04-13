@@ -6,6 +6,7 @@ import logging
 from cryptography.fernet import Fernet
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
+
 from idpyoidc.util import importer
 
 from .exception import OidcEndpointError
@@ -105,7 +106,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l):]
+        txt = v[int(l) :]
     return res
 
 
@@ -135,7 +136,8 @@ def get_http_params(config):
 def allow_refresh_token(endpoint_context):
     # Are there a refresh_token handler
     refresh_token_handler = endpoint_context.session_manager.token_handler.handler.get(
-        "refresh_token")
+        "refresh_token"
+    )
 
     # Is refresh_token grant type supported
     _token_supported = False
@@ -179,6 +181,7 @@ def execute(spec, **kwargs):
             return _func(**kwargs)
         else:
             return kwargs
+
 
 # def sector_id_from_redirect_uris(uris):
 #     if not uris:

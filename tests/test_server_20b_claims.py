@@ -5,6 +5,7 @@ import pytest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -60,7 +61,11 @@ conf = {
             "class": "idpyoidc.server.oidc.authorization.Authorization",
             "kwargs": {},
         },
-        "token_endpoint": {"path": "token", "class": "idpyoidc.server.oidc.token.Token", "kwargs": {}, },
+        "token_endpoint": {
+            "path": "token",
+            "class": "idpyoidc.server.oidc.token.Token",
+            "kwargs": {},
+        },
         "userinfo_endpoint": {
             "path": "userinfo",
             "class": "idpyoidc.server.oidc.userinfo.UserInfo",
@@ -89,7 +94,10 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
@@ -98,6 +106,7 @@ conf = {
         "kwargs": {"db_file": full_path("users.json")},
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": SESSION_PARAMS,
 }
 
 USER_ID = "diana"
@@ -153,8 +162,10 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+            "name",
+            "email",
+        ]
 
         claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "userinfo")
         assert set(claims.keys()) == {
@@ -217,8 +228,10 @@ class TestEndpoint(object):
         self.server.server_get("endpoint", "userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+            "name",
+            "email",
+        ]
 
         self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 
@@ -247,16 +260,19 @@ class TestEndpoint(object):
         self.server.server_get("endpoint", "userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = ["name",
-                                                                                     "email"]
+        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+            "name",
+            "email",
+        ]
 
         self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
 
         self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
 
         session_id = self._create_session(AREQ)
-        claims_restriction = self.claims_interface.get_claims_all_usage(session_id,
-                                                                        ["openid", "address"])
+        claims_restriction = self.claims_interface.get_claims_all_usage(
+            session_id, ["openid", "address"]
+        )
 
         _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"])
         assert _claims == {"name": "Diana Krall", "email": "diana@example.org"}

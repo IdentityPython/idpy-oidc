@@ -373,7 +373,7 @@ class TestMerge:
             "redirect_uri": "http://localhost:8087authz",
             "response_type": ["code id_token"],
             "response_mode": "form_post",
-            "client_id": "a1b2c3"
+            "client_id": "a1b2c3",
         }
 
         self.req_obj = AuthorizationRequest(
@@ -381,8 +381,7 @@ class TestMerge:
             state="id-b0be8bb64118c3ec5f70093a1174b039",
             redirect_uri="http://localhost:8087authz",
             response_type=["code"],
-            client_id="a1b2c3"
-
+            client_id="a1b2c3",
         )
 
     def test_merge_strict(self):
@@ -675,7 +674,7 @@ class TestJWTSecuredAuthorizationRequest:
             "response_type": ["code"],
             "client_id": "foobar",
             "redirect_uri": "http://foobar.example.com/oaclient",
-            "state": "cold"
+            "state": "cold",
         }
 
     def test_1(self):

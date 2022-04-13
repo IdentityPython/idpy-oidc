@@ -36,6 +36,8 @@ from idpyoidc.server.oauth2.authorization import join_query
 from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import in_a_while
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
@@ -154,7 +156,7 @@ class TestEndpoint(object):
                     "read_only": False,
                     "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
-                "code": {"kwargs": {"lifetime": 600}},
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -165,7 +167,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -216,18 +221,27 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
                             "refresh_token": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                             },
                         },
                         "expires_in": 43200,
                     }
                 },
             },
+            "session_params": SESSION_PARAMS,
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -295,8 +309,7 @@ class TestEndpoint(object):
         assert "code" in _query
 
     def test_do_response_code_token(self):
-        """UnAuthorized Client
-        """
+        """UnAuthorized Client"""
         _orig_req = AUTH_REQ_DICT.copy()
         _orig_req["response_type"] = "code token"
         msg = ""
@@ -495,7 +508,8 @@ class TestEndpoint(object):
 
         # Parsed once before setup_auth
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"])
+            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"]
+        )
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
         assert set(res.keys()) == {"session_id", "identity", "user"}
@@ -627,7 +641,8 @@ class TestEndpoint(object):
             "response_placement",
         }
         assert info["response_msg"] == FORM_POST.format(
-            action="https://example.com/cb", inputs='<input type="hidden" name="foo" value="bar"/>',
+            action="https://example.com/cb",
+            inputs='<input type="hidden" name="foo" value="bar"/>',
         )
 
     def test_response_mode_fragment(self):

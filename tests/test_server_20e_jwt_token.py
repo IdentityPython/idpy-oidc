@@ -1,7 +1,9 @@
 import os
 
+import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
@@ -18,7 +20,8 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.time_util import utc_time_sans_frac
-import pytest
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -103,8 +106,13 @@ class TestEndpoint(object):
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
-                "jwks_file": "private/token_jwks.json",
-                "code": {"lifetime": 600},
+                # "jwks_file": "private/token_jwks.json",
+                "code": {
+                    "lifetime": 600,
+                    "kwargs": {
+                        "crypt_conf": CRYPT_CONFIG
+                    }
+                },
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -116,7 +124,10 @@ class TestEndpoint(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -134,7 +145,11 @@ class TestEndpoint(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -163,7 +178,11 @@ class TestEndpoint(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -175,8 +194,11 @@ class TestEndpoint(object):
                     }
                 },
             },
-            "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface",
-                                 "kwargs": {}},
+            "claims_interface": {
+                "class": "idpyoidc.server.session.claims.ClaimsInterface",
+                "kwargs": {},
+            },
+            "session_params": {"encrypter": SESSION_PARAMS},
         }
         server = Server(conf, keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -252,7 +274,8 @@ class TestEndpoint(object):
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
         self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {
-            "address": None}
+            "address": None
+        }
         self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
@@ -290,8 +313,11 @@ class TestEndpointWebID(object):
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
-                "jwks_file": "private/token_jwks.json",
-                "code": {"lifetime": 600},
+                #"jwks_file": "private/token_jwks.json",
+                "code": {
+                    "lifetime": 600,
+                    "crypt_config": CRYPT_CONFIG
+                },
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -303,7 +329,10 @@ class TestEndpointWebID(object):
                 },
                 "refresh": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
-                    "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
                 },
                 "id_token": {
                     "class": "idpyoidc.server.token.id_token.IDToken",
@@ -321,7 +350,11 @@ class TestEndpointWebID(object):
                     "class": ProviderConfiguration,
                     "kwargs": {},
                 },
-                "registration": {"path": "{}/registration", "class": Registration, "kwargs": {}, },
+                "registration": {
+                    "path": "{}/registration",
+                    "class": Registration,
+                    "kwargs": {},
+                },
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
@@ -350,7 +383,11 @@ class TestEndpointWebID(object):
                     "grant_config": {
                         "usage_rules": {
                             "authorization_code": {
-                                "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                                "supports_minting": [
+                                    "access_token",
+                                    "refresh_token",
+                                    "id_token",
+                                ],
                                 "max_usage": 1,
                             },
                             "access_token": {},
@@ -362,9 +399,12 @@ class TestEndpointWebID(object):
                     }
                 },
             },
-            "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface",
-                                 "kwargs": {}},
+            "claims_interface": {
+                "class": "idpyoidc.server.session.claims.ClaimsInterface",
+                "kwargs": {},
+            },
             "scopes_to_claims": _scope2claims,
+            "session_params": SESSION_PARAMS,
         }
         server = Server(conf, keyjar=KEYJAR)
         self.endpoint_context = server.endpoint_context
@@ -448,9 +488,12 @@ class TestEndpointWebID(object):
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
-            "access_token", grant, session_id, code,
+            "access_token",
+            grant,
+            session_id,
+            code,
             resources=[_auth_req["client_id"]],
-            aud=["https://audience.example.com"]
+            aud=["https://audience.example.com"],
         )
 
         _verifier = JWT(self.endpoint_context.keyjar)
@@ -458,7 +501,7 @@ class TestEndpointWebID(object):
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {'client_1', 'https://audience.example.com'}
+        assert set(_info["aud"]) == {"client_1", "https://audience.example.com"}
         assert "webid" in _info
 
     def test_mint_with_scope(self):
@@ -476,9 +519,12 @@ class TestEndpointWebID(object):
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
-            "access_token", grant, session_id, code,
+            "access_token",
+            grant,
+            session_id,
+            code,
             scope=["openid"],
-            aud=["https://audience.example.com"]
+            aud=["https://audience.example.com"],
         )
 
         _verifier = JWT(self.endpoint_context.keyjar)
@@ -486,8 +532,8 @@ class TestEndpointWebID(object):
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {'https://audience.example.com'}
-        assert _info["scope"] == ['openid']
+        assert set(_info["aud"]) == {"https://audience.example.com"}
+        assert _info["scope"] == ["openid"]
 
     def test_mint_with_extra(self):
         _auth_req = AuthorizationRequest(
@@ -504,7 +550,10 @@ class TestEndpointWebID(object):
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
-            "access_token", grant, session_id, code,
+            "access_token",
+            grant,
+            session_id,
+            code,
             claims=["name", "family_name"],
         )
 

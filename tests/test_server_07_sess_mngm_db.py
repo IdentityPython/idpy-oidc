@@ -11,6 +11,7 @@ from idpyoidc.server.session.info import ClientSessionInfo
 from idpyoidc.server.session.info import UserSessionInfo
 from idpyoidc.server.session.manager import public_id
 from idpyoidc.server.session.token import SessionToken
+from tests import CRYPT_CONFIG
 
 AUTHZ_REQ = AuthorizationRequest(
     client_id="client_1",
@@ -24,7 +25,7 @@ AUTHZ_REQ = AuthorizationRequest(
 class TestDB:
     @pytest.fixture(autouse=True)
     def setup_environment(self):
-        self.db = Database()
+        self.db = Database(crypt_config=CRYPT_CONFIG)
 
     def test_user_info(self):
         with pytest.raises(KeyError):

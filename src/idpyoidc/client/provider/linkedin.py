@@ -12,10 +12,8 @@ class AccessTokenResponse(Message):
     """
     Access token response
     """
-    c_param = {
-        "access_token": SINGLE_REQUIRED_STRING,
-        "expires_in": SINGLE_REQUIRED_INT
-    }
+
+    c_param = {"access_token": SINGLE_REQUIRED_STRING, "expires_in": SINGLE_REQUIRED_INT}
 
 
 class UserSchema(Message):
@@ -24,7 +22,7 @@ class UserSchema(Message):
         "headline": SINGLE_OPTIONAL_STRING,
         "id": SINGLE_REQUIRED_STRING,
         "lastName": SINGLE_OPTIONAL_STRING,
-        "siteStandardProfileRequest": SINGLE_OPTIONAL_JSON
+        "siteStandardProfileRequest": SINGLE_OPTIONAL_JSON,
     }
 
 

@@ -1,11 +1,10 @@
 import copy
 import os
 
-from idpyoidc.server.oidc.token import Token
 import pytest
 from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import init_key_jar
 from cryptojwt.key_jar import KeyJar
+from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.actor import CIBAClient
 from idpyoidc.actor import CIBAServer
@@ -17,8 +16,11 @@ from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
 from idpyoidc.server.oidc.backchannel_authentication import ClientNotification
+from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import MOBILETWOFACTORCONTRACT
 from idpyoidc.util import rndstr
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 ISSUER_1 = "https://example.com/actor1"
@@ -67,7 +69,7 @@ SERVER_CONFIG = {
     "keys": {"uri_path": "jwks.json", "key_defs": KEYSPEC},
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
-        "code": {"lifetime": 600},
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -91,33 +93,29 @@ SERVER_CONFIG = {
         },
     },
     "endpoint": {
-        "token": {
-            "path": "token",
-            "class": Token,
-            "kwargs": {}
-        },
+        "token": {"path": "token", "class": Token, "kwargs": {}},
     },
-    "client_authn": verify_client
+    "client_authn": verify_client,
+    "session_params": SESSION_PARAMS,
 }
 
 
 def _create_client(issuer, client_id, service):
     client_config = {
         "issuer": issuer,
-        'client_id': client_id,
-        'client_secret': rndstr(24),
-        'redirect_uris': [f'https://example.com/{client_id}/authz_cb'],
-        'behaviour': {'response_types': ['code']},
+        "client_id": client_id,
+        "client_secret": rndstr(24),
+        "redirect_uris": [f"https://example.com/{client_id}/authz_cb"],
+        "behaviour": {"response_types": ["code"]},
         "client_authn_methods": {
-            "client_notification_authn":
-                "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
-        }
+            "client_notification_authn": "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+        },
     }
     _services = {
-        'discovery': {
-            'class': 'idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery'
+        "discovery": {
+            "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"
         },
-        'registration': {'class': 'idpyoidc.client.oidc.registration.Registration'},
+        "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
     }
     _services.update(service)
 
@@ -133,8 +131,7 @@ def _create_server(issuer, endpoint, port, extra_conf=None):
     if extra_conf:
         _config.update(extra_conf)
 
-    return Server(OPConfiguration(conf=_config, base_path=BASEDIR, domain="127.0.0.1",
-                                  port=port))
+    return Server(OPConfiguration(conf=_config, base_path=BASEDIR, domain="127.0.0.1", port=port))
 
 
 # Locally defined
@@ -168,24 +165,24 @@ class TestPushActor:
         actor_1.client = _create_client(
             ISSUER_2,
             "actor1",
-            {'authentication': {
-                'class': 'idpyoidc.client.oidc.backchannel_authentication.BackChannelAuthentication'
-            }}
+            {
+                "authentication": {
+                    "class": "idpyoidc.client.oidc.backchannel_authentication.BackChannelAuthentication"
+                }
+            },
         )
 
         endpoint = {
             "client_notify": {
                 "path": "notify",
                 "class": ClientNotification,
-                "kwargs": {
-                    "client_authn_method": ["client_notification_authn"]
-                }
+                "kwargs": {"client_authn_method": ["client_notification_authn"]},
             }
         }
         extra = {
             "client_authn_methods": {
-                "client_notification_authn":
-                    "idpyoidc.server.oidc.backchannel_authentication.ClientNotificationAuthn"}
+                "client_notification_authn": "idpyoidc.server.oidc.backchannel_authentication.ClientNotificationAuthn"
+            }
         }
 
         actor_1.server = _create_server(ISSUER_1, endpoint, 6000, extra_conf=extra)
@@ -198,31 +195,33 @@ class TestPushActor:
         actor_2.client = _create_client(
             ISSUER_1,
             "actor2",
-            {'notification': {
-                'class': 'idpyoidc.client.oidc.backchannel_authentication.ClientNotification'
-            }}
+            {
+                "notification": {
+                    "class": "idpyoidc.client.oidc.backchannel_authentication.ClientNotification"
+                }
+            },
         )
         endpoint = {
             "backchannel_authentication": {
                 "path": "authentication",
                 "class": BackChannelAuthentication,
                 "kwargs": {
-                    "client_authn_method": ["client_secret_basic", "client_secret_post",
-                                            "client_secret_jwt", "private_key_jwt"],
-                    "parse_login_hint_token": {
-                        "func": parse_login_hint_token
-                    }
-                }
+                    "client_authn_method": [
+                        "client_secret_basic",
+                        "client_secret_post",
+                        "client_secret_jwt",
+                        "private_key_jwt",
+                    ],
+                    "parse_login_hint_token": {"func": parse_login_hint_token},
+                },
             }
         }
         extra = {
             "login_hint_lookup": {"class": "idpyoidc.server.login_hint.LoginHintLookup"},
             "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
-                "kwargs": {
-                    "db_file": "users.json"
-                }
-            }
+                "kwargs": {"db_file": "users.json"},
+            },
         }
         actor_2.server = _create_server(ISSUER_2, endpoint, 7000, extra)
 
@@ -235,17 +234,15 @@ class TestPushActor:
             },
             actor_2.server.server_get("endpoint_context").issuer: {
                 "client_secret": _client_context.client_secret
-            }
+            },
         }
         _server_context = actor_2.server.server_get("endpoint_context")
         _client_context = actor_1.client.client_get("service_context")
         _server_context.cdb = {
-            _client_context.client_id: {
-                "client_secret": _client_context.client_secret
-            },
+            _client_context.client_id: {"client_secret": _client_context.client_secret},
             actor_1.server.server_get("endpoint_context").issuer: {
                 "client_secret": _client_context.client_secret
-            }
+            },
         }
 
         # Transfer provider metadata 1->2 and 2->1
@@ -273,8 +270,9 @@ class TestPushActor:
         self.actor_1 = actor_1
         self.actor_2 = actor_2
 
-    def _create_session(self, server, user_id, auth_req, sub_type="public", sector_identifier="",
-                        authn_info=""):
+    def _create_session(
+        self, server, user_id, auth_req, sub_type="public", sector_identifier="", authn_info=""
+    ):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -297,7 +295,7 @@ class TestPushActor:
         _req = self.actor_1.create_authentication_request(
             scope="openid email example-scope",
             binding_message="W4SCT",
-            login_hint="mail:diana@example.org"
+            login_hint="mail:diana@example.org",
         )
         assert _req
         assert _req["method"] == "GET"
@@ -318,14 +316,15 @@ class TestPushActor:
 
         # User interaction with the authentication device returns some authentication info
 
-        session_id_2 = self._create_session(self.actor_2.server, req_user, _request,
-                                            authn_info=MOBILETWOFACTORCONTRACT)
+        session_id_2 = self._create_session(
+            self.actor_2.server, req_user, _request, authn_info=MOBILETWOFACTORCONTRACT
+        )
 
         # Create fake token response
         token_request = {
             "grant_type": "urn:openid:params:grant-type:ciba",
             "auth_req_id": _info["response_args"]["auth_req_id"],
-            "client_id": "actor1"
+            "client_id": "actor1",
         }
         _token_endpoint = self.actor_2.server.server_get("endpoint", "token")
         _treq = _token_endpoint.parse_request(token_request)
@@ -335,17 +334,17 @@ class TestPushActor:
 
         # Send the response to the client notification endpoint
 
-        _tinfo["response_args"]["client_notification_token"] = _request[
-            "client_notification_token"]
+        _tinfo["response_args"]["client_notification_token"] = _request["client_notification_token"]
         _notification_service = self.actor_2.client.client_get("service", "client_notification")
         _not_req = _notification_service.get_request_parameters(
-            request_args=_tinfo["response_args"],
-            authn_method="client_notification_authn")
+            request_args=_tinfo["response_args"], authn_method="client_notification_authn"
+        )
 
         assert _not_req
 
         # The receiver of the notification
 
-        _ninfo = self.actor_1.do_client_notification(_not_req["body"],
-                                                     http_info={"headers": _not_req["headers"]})
+        _ninfo = self.actor_1.do_client_notification(
+            _not_req["body"], http_info={"headers": _not_req["headers"]}
+        )
         assert _ninfo is None

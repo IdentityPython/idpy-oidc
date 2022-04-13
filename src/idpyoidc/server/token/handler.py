@@ -25,11 +25,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-            self,
-            access_token: Optional[Token] = None,
-            authorization_code: Optional[Token] = None,
-            refresh_token: Optional[Token] = None,
-            id_token: Optional[Token] = None,
+        self,
+        access_token: Optional[Token] = None,
+        authorization_code: Optional[Token] = None,
+        refresh_token: Optional[Token] = None,
+        id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"authorization_code": authorization_code, "access_token": access_token}
@@ -142,13 +142,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-        server_get,
-        code: Optional[dict] = None,
-        token: Optional[dict] = None,
-        refresh: Optional[dict] = None,
-        id_token: Optional[dict] = None,
-        jwks_file: Optional[str] = "",
-        **kwargs
+    server_get,
+    code: Optional[dict] = None,
+    token: Optional[dict] = None,
+    refresh: Optional[dict] = None,
+    id_token: Optional[dict] = None,
+    jwks_file: Optional[str] = "",
+    **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -177,16 +177,13 @@ def factory(
         read_only = defs.get("read_only", read_only)
         key_defs = defs.get("key_defs", [])
 
-    if not jwks_file:
-        jwks_file = os.path.join(cwd, JWKS_FILE)
+    # if not jwks_file:
+    #     jwks_file = os.path.join(cwd, JWKS_FILE)
 
-    if not key_defs:
-        for kid, cnf in [("code", code), ("refresh", refresh), ("token", token)]:
-            if cnf is not None:
-                if default_token(cnf):
-                    key_defs.append({"type": "oct", "bytes": 24, "use": ["enc"], "kid": kid})
-
-    kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
+    if key_defs or jwks_file:
+        kj = init_key_jar(key_defs=key_defs, private_path=jwks_file, read_only=read_only)
+    else:
+        kj = None
 
     args = {}
     for cls, cnf, attr in [
@@ -196,7 +193,8 @@ def factory(
     ]:
         if cnf is not None:
             if default_token(cnf):
-                _add_passwd(kj, cnf, cls)
+                if kj:
+                    _add_passwd(kj, cnf, cls)
             args[attr] = init_token_handler(server_get, cnf, token_class_map[cls])
 
     if id_token is not None:

@@ -16,7 +16,7 @@ from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
 
-__author__ = 'Roland Hedberg'
+__author__ = "Roland Hedberg"
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,16 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
-    def __init__(self, keyjar=None, verify_ssl=True, config=None,
-                 httplib=None, services=None, jwks_uri='', httpc_params=None):
+    def __init__(
+        self,
+        keyjar=None,
+        verify_ssl=True,
+        config=None,
+        httplib=None,
+        services=None,
+        jwks_uri="",
+        httpc_params=None,
+    ):
         """
 
         :param keyjar: A py:class:`idpyoidc.key_jar.KeyJar` instance
@@ -46,23 +54,31 @@ class Client(Entity):
         :return: Client instance
         """
 
-        Entity.__init__(self, keyjar=keyjar,
-                        config=config, services=services, jwks_uri=jwks_uri,
-                        httpc_params=httpc_params)
+        Entity.__init__(
+            self,
+            keyjar=keyjar,
+            config=config,
+            services=services,
+            jwks_uri=jwks_uri,
+            httpc_params=httpc_params,
+        )
 
         self.http = httplib or HTTPLib(httpc_params)
 
-        if 'add_ons' in config:
-            do_add_ons(config['add_ons'], self._service)
+        if "add_ons" in config:
+            do_add_ons(config["add_ons"], self._service)
 
         # just ignore verify_ssl until it goes away
         self.verify_ssl = self.httpc_params.get("verify", True)
 
-    def do_request(self,
-                   request_type: str,
-                   response_body_type: Optional[str] = "",
-                   request_args: Optional[dict] = None,
-                   behaviour_args: Optional[dict] = None, **kwargs):
+    def do_request(
+        self,
+        request_type: str,
+        response_body_type: Optional[str] = "",
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
+        **kwargs
+    ):
         _srv = self._service[request_type]
 
         _info = _srv.get_request_parameters(request_args=request_args, **kwargs)
@@ -70,25 +86,29 @@ class Client(Entity):
         if not response_body_type:
             response_body_type = _srv.response_body_type
 
-        logger.debug('do_request info: {}'.format(_info))
+        logger.debug("do_request info: {}".format(_info))
 
         try:
-            _state = kwargs['state']
+            _state = kwargs["state"]
         except:
-            _state = ''
-        return self.service_request(_srv, response_body_type=response_body_type,
-                                    state=_state, **_info)
+            _state = ""
+        return self.service_request(
+            _srv, response_body_type=response_body_type, state=_state, **_info
+        )
 
     def set_client_id(self, client_id):
-        self._service_context.set('client_id', client_id)
+        self._service_context.set("client_id", client_id)
 
-    def get_response(self,
-                     service: Service,
-                     url: str,
-                     method: Optional[str] = "GET",
-                     body: Optional[dict] = None,
-                     response_body_type: Optional[str] = "",
-                     headers: Optional[dict] = None, **kwargs):
+    def get_response(
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
+    ):
         """
 
         :param url:
@@ -102,11 +122,11 @@ class Client(Entity):
         try:
             resp = self.http(url, method, data=body, headers=headers)
         except Exception as err:
-            logger.error('Exception on request: {}'.format(err))
+            logger.error("Exception on request: {}".format(err))
             raise
 
         if 300 <= resp.status_code < 400:
-            return {'http_response': resp}
+            return {"http_response": resp}
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
@@ -114,22 +134,24 @@ class Client(Entity):
             if not response_body_type:
                 response_body_type = service.response_body_type
 
-            if response_body_type == 'html':
+            if response_body_type == "html":
                 return resp.text
 
             if body:
-                kwargs['request_body'] = body
+                kwargs["request_body"] = body
 
-        return self.parse_request_response(service, resp,
-                                           response_body_type, **kwargs)
+        return self.parse_request_response(service, resp, response_body_type, **kwargs)
 
-    def service_request(self,
-                        service: Service,
-                        url: str,
-                        method: Optional[str] = "GET",
-                        body: Optional[dict] = None,
-                        response_body_type: Optional[str] = "",
-                        headers: Optional[dict] = None, **kwargs) -> Message:
+    def service_request(
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
+    ) -> Message:
         """
         The method that sends the request and handles the response returned.
         This assumes that the response arrives in the HTTP response.
@@ -151,25 +173,26 @@ class Client(Entity):
         logger.debug(REQUEST_INFO.format(url, method, body, headers))
 
         try:
-            response = service.get_response_ext(url, method, body, response_body_type, headers,
-                                                **kwargs)
+            response = service.get_response_ext(
+                url, method, body, response_body_type, headers, **kwargs
+            )
         except AttributeError:
-            response = self.get_response(service, url, method, body, response_body_type, headers,
-                                         **kwargs)
+            response = self.get_response(
+                service, url, method, body, response_body_type, headers, **kwargs
+            )
 
-        if 'error' in response:
+        if "error" in response:
             pass
         else:
             try:
-                kwargs['key'] = kwargs['state']
+                kwargs["key"] = kwargs["state"]
             except KeyError:
                 pass
 
             service.update_service_context(response, **kwargs)
         return response
 
-    def parse_request_response(self, service, reqresp, response_body_type='',
-                               state="", **kwargs):
+    def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):
         """
         Deal with a self.http response. The response are expected to
         follow a special pattern, having the attributes:
@@ -197,18 +220,19 @@ class Client(Entity):
 
             if _deser_method != response_body_type:
                 logger.warning(
-                    'Not the body type I expected: {} != {}'.format(
-                        _deser_method, response_body_type))
-            if _deser_method in ['json', 'jwt', 'urlencoded']:
+                    "Not the body type I expected: {} != {}".format(
+                        _deser_method, response_body_type
+                    )
+                )
+            if _deser_method in ["json", "jwt", "urlencoded"]:
                 value_type = _deser_method
             else:
                 value_type = response_body_type
 
-            logger.debug('Successful response: {}'.format(reqresp.text))
+            logger.debug("Successful response: {}".format(reqresp.text))
 
             try:
-                return service.parse_response(reqresp.text, value_type,
-                                              state, **kwargs)
+                return service.parse_response(reqresp.text, value_type, state, **kwargs)
             except Exception as err:
                 logger.error(err)
                 raise
@@ -218,36 +242,38 @@ class Client(Entity):
             logger.error("(%d) %s" % (reqresp.status_code, reqresp.text))
             raise ParseError("ERROR: Something went wrong: %s" % reqresp.text)
         elif 400 <= reqresp.status_code < 500:
-            logger.error('Error response ({}): {}'.format(reqresp.status_code,
-                                                          reqresp.text))
+            logger.error("Error response ({}): {}".format(reqresp.status_code, reqresp.text))
             # expecting an error response
             _deser_method = get_deserialization_method(reqresp)
             if not _deser_method:
-                _deser_method = 'json'
+                _deser_method = "json"
 
             try:
                 err_resp = service.parse_response(reqresp.text, _deser_method)
             except (FormatError, ValueError):
                 if _deser_method != response_body_type:
                     try:
-                        err_resp = service.parse_response(reqresp.text,
-                                                          response_body_type)
+                        err_resp = service.parse_response(reqresp.text, response_body_type)
                     except (OidcServiceError, FormatError, ValueError):
-                        raise OidcServiceError("HTTP ERROR: %s [%s] on %s" % (
-                            reqresp.text, reqresp.status_code, reqresp.url))
+                        raise OidcServiceError(
+                            "HTTP ERROR: %s [%s] on %s"
+                            % (reqresp.text, reqresp.status_code, reqresp.url)
+                        )
                 else:
-                    raise OidcServiceError("HTTP ERROR: %s [%s] on %s" % (
-                        reqresp.text, reqresp.status_code, reqresp.url))
+                    raise OidcServiceError(
+                        "HTTP ERROR: %s [%s] on %s"
+                        % (reqresp.text, reqresp.status_code, reqresp.url)
+                    )
             except JSONDecodeError:  # So it's not JSON assume text then
-                err_resp = {'error': reqresp.text}
+                err_resp = {"error": reqresp.text}
 
-            err_resp['status_code'] = reqresp.status_code
+            err_resp["status_code"] = reqresp.status_code
             return err_resp
         else:
-            logger.error('Error response ({}): {}'.format(reqresp.status_code,
-                                                          reqresp.text))
-            raise OidcServiceError("HTTP ERROR: %s [%s] on %s" % (
-                reqresp.text, reqresp.status_code, reqresp.url))
+            logger.error("Error response ({}): {}".format(reqresp.status_code, reqresp.text))
+            raise OidcServiceError(
+                "HTTP ERROR: %s [%s] on %s" % (reqresp.text, reqresp.status_code, reqresp.url)
+            )
 
 
 def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dict] = None):
@@ -258,17 +284,16 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
     try:
-        client.get_service('provider_info')
+        client.get_service("provider_info")
     except KeyError:
-        raise ConfigurationError(
-            'Can not do dynamic provider info discovery')
+        raise ConfigurationError("Can not do dynamic provider info discovery")
     else:
         _context = client.client_get("service_context")
         try:
-            _context.set('issuer', _context.config['srv_discovery_url'])
+            _context.set("issuer", _context.config["srv_discovery_url"])
         except KeyError:
             pass
 
-        response = client.do_request('provider_info', behaviour_args=behaviour_args)
+        response = client.do_request("provider_info", behaviour_args=behaviour_args)
         if is_error_message(response):
-            raise OidcServiceError(response['error'])
+            raise OidcServiceError(response["error"])

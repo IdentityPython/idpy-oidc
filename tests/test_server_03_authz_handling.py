@@ -8,6 +8,8 @@ from idpyoidc.server.authz import Implicit
 from idpyoidc.server.authz import factory
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.session.grant import Grant
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -66,7 +68,7 @@ conf = {
                     "client_secret_post",
                     "client_secret_basic",
                 ]
-            }
+            },
         }
     },
     "authz": {
@@ -75,7 +77,11 @@ conf = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token", ],
+                        "supports_minting": [
+                            "access_token",
+                            "refresh_token",
+                            "id_token",
+                        ],
                         "max_usage": 1,
                     },
                     "access_token": {},
@@ -91,7 +97,12 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {"kwargs": {"lifetime": 600}},
+        "code": {
+            "lifetime": 600,
+            "kwargs": {
+                "crypt_conf": CRYPT_CONFIG
+            }
+        },
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -102,11 +113,15 @@ conf = {
         },
         "refresh": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600, "aud": ["https://example.org/appl"], },
+            "kwargs": {
+                "lifetime": 3600,
+                "aud": ["https://example.org/appl"],
+            },
         },
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": SESSION_PARAMS,
 }
 
 USER_ID = "diana"
@@ -182,7 +197,7 @@ class TestEndpoint(object):
         assert _usage_rules["refresh_token"] == {}
 
     def test_factory(self):
-        _mod = factory('Implicit', server_get=self.server.server_get)
+        _mod = factory("Implicit", server_get=self.server.server_get)
         assert isinstance(_mod, Implicit)
 
     def test_call(self):

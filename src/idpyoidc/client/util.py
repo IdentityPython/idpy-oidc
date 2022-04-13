@@ -1,8 +1,8 @@
 """Utilities"""
-from http.cookiejar import Cookie
-from http.cookiejar import http2time
 import logging
 import secrets
+from http.cookiejar import Cookie
+from http.cookiejar import http2time
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -27,13 +27,9 @@ from .exception import WrongContentType
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'roland'
+__author__ = "roland"
 
-PAIRS = {
-    "port": "port_specified",
-    "domain": "domain_specified",
-    "path": "path_specified"
-}
+PAIRS = {"port": "port_specified", "domain": "domain_specified", "path": "path_specified"}
 
 ATTRS = {
     "version": None,
@@ -52,7 +48,7 @@ ATTRS = {
     "comment": None,
     "comment_url": None,
     "rest": "",
-    "rfc2109": True
+    "rfc2109": True,
 }
 
 
@@ -76,7 +72,7 @@ def sanitize(str):
     return str
 
 
-def get_http_url(url, req, method='GET'):
+def get_http_url(url, req, method="GET"):
     """
     Add a query part representing the request to a url that may already contain
     a query part. Only done if the HTTP method used is 'GET' or 'DELETE'.
@@ -94,8 +90,7 @@ def get_http_url(url, req, method='GET'):
                 _req.update(parse_qs(comp.query))
 
             _query = str(_req.to_urlencoded())
-            return urlunsplit((comp.scheme, comp.netloc, comp.path,
-                               _query, comp.fragment))
+            return urlunsplit((comp.scheme, comp.netloc, comp.path, _query, comp.fragment))
 
         return url
 
@@ -170,8 +165,7 @@ def set_cookie(cookiejar, kaka):
                         std_attr["expires"] = http2time(morsel[attr])
         except TimeFormatError:
             # Ignore cookie
-            logger.info(
-                "Time format error on %s parameter in received cookie" % (sanitize(attr),))
+            logger.info("Time format error on %s parameter in received cookie" % (sanitize(attr),))
             continue
 
         for att, spec in PAIRS.items():
@@ -183,9 +177,9 @@ def set_cookie(cookiejar, kaka):
 
         if morsel["max-age"] == 0:
             try:
-                cookiejar.clear(domain=std_attr["domain"],
-                                path=std_attr["path"],
-                                name=std_attr["name"])
+                cookiejar.clear(
+                    domain=std_attr["domain"], path=std_attr["path"], name=std_attr["name"]
+                )
             except (ValueError, KeyError):
                 pass
         else:
@@ -218,23 +212,21 @@ def verify_header(reqresp, body_type):
         if body_type:
             return body_type
         else:
-            return 'txt'  # reasonable default ??
+            return "txt"  # reasonable default ??
 
     logger.debug('Expected body type: "{}"'.format(body_type))
 
     if body_type == "":
-        if match_to_("application/json", _ctype) or match_to_(
-                'application/jrd+json', _ctype):
-            body_type = 'json'
+        if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
+            body_type = "json"
         elif match_to_("application/jwt", _ctype):
             body_type = "jwt"
         elif match_to_(URL_ENCODED, _ctype):
-            body_type = 'urlencoded'
+            body_type = "urlencoded"
         else:
-            body_type = 'txt'  # reasonable default ??
+            body_type = "txt"  # reasonable default ??
     elif body_type == "json":
-        if match_to_("application/json", _ctype) or match_to_(
-                'application/jrd+json', _ctype):
+        if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
             pass
         elif match_to_("application/jwt", _ctype):
             body_type = "jwt"
@@ -248,7 +240,7 @@ def verify_header(reqresp, body_type):
             # I can live with text/plain
             if not match_to_("text/plain", _ctype):
                 raise WrongContentType(_ctype)
-    elif body_type == 'txt':
+    elif body_type == "txt":
         if match_to_("text/plain", _ctype):
             pass
         elif match_to_("text/html", _ctype):
@@ -277,23 +269,22 @@ def get_deserialization_method(reqresp):
         # let's try to detect the format
         try:
             content = reqresp.json()
-            return 'json'
+            return "json"
         except:
-            return 'urlencoded'  # reasonable default ??
+            return "urlencoded"  # reasonable default ??
 
-    if match_to_("application/json", _ctype) or match_to_(
-            'application/jrd+json', _ctype):
-        deser_method = 'json'
+    if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
+        deser_method = "json"
     elif match_to_("application/jwt", _ctype):
         deser_method = "jwt"
     elif match_to_("application/jose", _ctype):
         deser_method = "jose"
     elif match_to_(URL_ENCODED, _ctype):
-        deser_method = 'urlencoded'
+        deser_method = "urlencoded"
     elif match_to_("text/plain", _ctype) or match_to_("test/html", _ctype):
-        deser_method = ''
+        deser_method = ""
     else:
-        deser_method = ''  # reasonable default ??
+        deser_method = ""  # reasonable default ??
 
     return deser_method
 
@@ -310,13 +301,13 @@ def get_value_type(http_response, body_type):
     if body_type:
         return verify_header(http_response, body_type)
     else:
-        return 'urlencoded'
+        return "urlencoded"
 
 
 def do_add_ons(add_ons, services):
     for key, spec in add_ons.items():
-        _func = importer(spec['function'])
-        _func(services, **spec['kwargs'])
+        _func = importer(spec["function"])
+        _func(services, **spec["kwargs"])
 
 
 def lower_or_upper(config, param, default=None):

@@ -33,7 +33,7 @@ class DLDict(ImpExp):
         return res
 
     def load(
-            self, spec: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None
+        self, spec: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None
     ) -> "DLDict":
         if load_args:
             _kwargs = {"load_args": load_args}
