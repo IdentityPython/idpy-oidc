@@ -102,27 +102,50 @@
     "class": "idpyoidc.server.login_hint.LoginHint2Acrs",
     "kwargs": {
       "scheme_map": {
-        "email": ["idpyoidc.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"]
+        "email": [
+          "idpyoidc.server.user_authn.authn_context.INTERNETPROTOCOLPASSWORD"
+        ]
       }
     }
   },
   "session_params": {
-      "password": "ses_key",
-      "salt": "ses_salt",
-      "sub_func": {
-        "public": {
-          "class": "idpyoidc.server.session.manager.PublicID",
-          "kwargs": {
-            "salt": "mysalt"
-          }
+    "encrypter": {
+      "kwargs": {
+        "keys": {
+          "key_defs": [
+            {
+              "type": "OCT",
+              "use": [
+                "enc"
+              ],
+              "kid": "password"
+            },
+            {
+              "type": "OCT",
+              "use": [
+                "enc"
+              ],
+              "kid": "salt"
+            }
+          ]
         },
-        "pairwise": {
-          "class": "idpyoidc.server.session.manager.PairWiseID",
-          "kwargs": {
-            "salt": "mysalt"
-          }
+        "iterations": 1
+      }
+    },
+    "sub_func": {
+      "public": {
+        "class": "idpyoidc.server.session.manager.PublicID",
+        "kwargs": {
+          "salt": "mysalt"
         }
-     }
+      },
+      "pairwise": {
+        "class": "idpyoidc.server.session.manager.PairWiseID",
+        "kwargs": {
+          "salt": "mysalt"
+        }
+      }
+    }
   },
   "template_dir": "templates",
   "token_handler_args": {

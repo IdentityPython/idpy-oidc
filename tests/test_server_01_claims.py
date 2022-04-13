@@ -102,6 +102,19 @@ conf = {
         "kwargs": {"db_file": full_path("users.json")},
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "session_params": {
+        "encrypter": {
+            "kwargs": {
+                "keys": {
+                    "key_defs": [
+                        {"type": "OCT", "use": ["enc"], "kid": "password"},
+                        {"type": "OCT", "use": ["enc"], "kid": "salt"}
+                    ]
+                },
+                "iterations": 1
+            }
+        }
+    }
 }
 
 USER_ID = "diana"
