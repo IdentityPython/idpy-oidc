@@ -14,7 +14,7 @@ def default_crypt_config():
         "kwargs": {
             "key": os.urandom(32),
             # "password": os.urandom(16),
-            # "salt": os.urandom(16)
+            "salt": os.urandom(16)
             # "keys": {
             #     "key_defs": [
             #         {"type": "OCT", "use": ["enc"], "kid": "password"},

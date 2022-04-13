@@ -123,10 +123,6 @@ class SessionManager(Database):
 
         self.auth_req_id_map = {}
 
-    # def load_key(self):
-    #     """returns the original key assigned in init"""
-    #     return self.crypt_config["password"]
-    #
     def get_salt(self):
         """returns the original salt assigned in init"""
         return self.crypt_config["kwargs"]["salt"]
