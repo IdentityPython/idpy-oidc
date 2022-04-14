@@ -1,6 +1,6 @@
 # idpyoidc
 
-![CI build](https://github.com/IdentityPython/idpyoidc/workflows/idpyoidc/badge.svg)
+![CI build](https://github.com/IdentityPython/idpy-oidc/workflows/idpy-oidc/badge.svg)
 ![pypi](https://img.shields.io/pypi/v/idpyoidc.svg)
 [![Downloads](https://pepy.tech/badge/idpyoidc)](https://pepy.tech/project/idpyoidc)
 [![Downloads](https://pepy.tech/badge/idpyoidc/week)](https://pepy.tech/project/idpyoidc)
