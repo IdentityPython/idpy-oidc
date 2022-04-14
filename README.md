@@ -6,7 +6,7 @@
 [![Downloads](https://pepy.tech/badge/idpyoidc/week)](https://pepy.tech/project/idpyoidc)
 ![License](https://img.shields.io/badge/license-Apache%202-blue.svg)
 
-This project is a Python implementation of OIDC RP and OP and OAuth2 Client and AS.
+This project is a Python implementation of everything OpenID Connect and OAuth2.
 
 ## Introduction
 
