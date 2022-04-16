@@ -7,13 +7,13 @@ from cryptojwt.key_jar import init_key_jar
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server import Server
-from idpyoidc.server import verify_oidc_client_information
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
 from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oauth2.pushed_authorization import PushedAuthorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.registration import Registration
+from idpyoidc.util import verify_oidc_client_information
 import pytest
 import yaml
 
