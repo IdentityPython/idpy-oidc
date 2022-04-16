@@ -210,7 +210,8 @@ class EntityConfiguration(Base):
                 _val = verify_oidc_client_information(_val)
             elif key == "template_dir":
                 _val = os.path.abspath(_val)
-            elif key == "keys":
+
+            if key == "keys":
                 if not self.key_conf:
                     setattr(self, "key_conf", _val)
             else:
