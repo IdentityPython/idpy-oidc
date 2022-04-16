@@ -171,7 +171,7 @@ def add_callbacks(context, ignore: Optional[List[str]] = None):
 
 
 CALLBACK_URIS = [
-    "post_logout_redirect_uris",
+    "post_logout_redirect_uri",
     "backchannel_logout_uri",
     "frontchannel_logout_uri",
     "request_uris",

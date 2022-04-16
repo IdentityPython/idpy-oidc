@@ -221,6 +221,7 @@ def service_endpoint(endpoint):
         # name is not unique
         "cookie": [{"name": k, "value": v} for k, v in request.cookies.items()]
     }
+    _log.info(f"http_info: {http_info}")
 
     if request.method == 'GET':
         try:
