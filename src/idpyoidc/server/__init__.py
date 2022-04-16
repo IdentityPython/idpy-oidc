@@ -1,11 +1,12 @@
 # Server specific defaults and a basic Server class
+import logging
 from typing import Any
 from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
-
 from idpyoidc.impexp import ImpExp
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
@@ -20,6 +21,8 @@ from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import allow_refresh_token
 from idpyoidc.server.util import build_endpoints
 
+logger = logging.getLogger(__name__)
+
 
 def do_endpoints(conf, server_get):
     _endpoints = conf.get("endpoint")
@@ -33,12 +36,12 @@ class Server(ImpExp):
     parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration, ASConfiguration],
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration, ASConfiguration],
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
     ):
         ImpExp.__init__(self)
         self.conf = conf
