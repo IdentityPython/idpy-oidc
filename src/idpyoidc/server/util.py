@@ -1,11 +1,5 @@
-import base64
-import hashlib
 import json
 import logging
-
-from cryptography.fernet import Fernet
-from cryptojwt import as_unicode
-from cryptojwt.utils import as_bytes
 
 from idpyoidc.util import importer
 
@@ -106,7 +100,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l) :]
+        txt = v[int(l):]
     return res
 
 
@@ -181,7 +175,6 @@ def execute(spec, **kwargs):
             return _func(**kwargs)
         else:
             return kwargs
-
 
 # def sector_id_from_redirect_uris(uris):
 #     if not uris:
