@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import os
 import secrets
 import sys
@@ -10,8 +11,11 @@ from urllib.parse import unquote_plus
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-import yaml
 from cryptojwt.utils import importer
+from idpyoidc.message.oidc import RegistrationRequest
+import yaml
+
+logger = logging.getLogger(__name__)
 
 
 def rndstr(size=16):
@@ -135,3 +139,15 @@ def add_path(url, path):
             return "{}{}".format(url, path)
         else:
             return "{}/{}".format(url, path)
+
+
+def verify_oidc_client_information(conf: dict) -> dict:
+    res = {}
+    for key, item in conf.items():
+        _rr = RegistrationRequest(**item)
+        _rr.verify()
+        if _rr.extra():
+            logger.info(f"Extras: {_rr.extra()}")
+        res[key] = _rr
+
+    return res

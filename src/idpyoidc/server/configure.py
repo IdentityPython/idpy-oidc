@@ -8,6 +8,7 @@ from typing import Optional
 
 from idpyoidc.configure import Base
 from idpyoidc.server.scopes import SCOPE2CLAIMS
+from idpyoidc.util import verify_oidc_client_information
 
 logger = logging.getLogger(__name__)
 
@@ -205,9 +206,11 @@ class EntityConfiguration(Base):
             elif not _val:
                 logger.warning(f"{key} not configured, using default configuration values")
 
-            if key == "template_dir":
+            if key == "oidc_clients":
+                _val = verify_oidc_client_information(_val)
+            elif key == "template_dir":
                 _val = os.path.abspath(_val)
-            if key == "keys":
+            elif key == "keys":
                 if not self.key_conf:
                     setattr(self, "key_conf", _val)
             else:
@@ -223,6 +226,7 @@ class OPConfiguration(EntityConfiguration):
             "id_token": None,
             "login_hint2acrs": {},
             "login_hint_lookup": None,
+            "oidc_clients": {},
             "sub_func": {},
             "scopes_to_claims": {},
         }
