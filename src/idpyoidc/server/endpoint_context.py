@@ -72,8 +72,10 @@ def get_token_handler_args(conf: dict) -> dict:
     """
     th_args = conf.get("token_handler_args", None)
     if not th_args:
-        th_args = {typ: {"lifetime": tid} for typ, tid in [("code", 600), ("token", 3600),
-                                                           ("refresh", 86400)]}
+        th_args = {
+            typ: {"lifetime": tid}
+            for typ, tid in [("code", 600), ("token", 3600), ("refresh", 86400)]
+        }
 
     return th_args
 

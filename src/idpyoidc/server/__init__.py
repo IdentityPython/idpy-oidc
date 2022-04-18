@@ -1,4 +1,5 @@
 # Server specific defaults and a basic Server class
+import logging
 from typing import Any
 from typing import Optional
 from typing import Union
@@ -6,6 +7,7 @@ from typing import Union
 from cryptojwt import KeyJar
 
 from idpyoidc.impexp import ImpExp
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
@@ -19,6 +21,8 @@ from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import allow_refresh_token
 from idpyoidc.server.util import build_endpoints
+
+logger = logging.getLogger(__name__)
 
 
 def do_endpoints(conf, server_get):

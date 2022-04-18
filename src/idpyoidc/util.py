@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import os
 import secrets
 import sys
@@ -12,6 +13,8 @@ from urllib.parse import urlunsplit
 
 import yaml
 from cryptojwt.utils import importer
+
+logger = logging.getLogger(__name__)
 
 
 def rndstr(size=16):

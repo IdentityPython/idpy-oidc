@@ -768,13 +768,14 @@ class TestRegistration(object):
         assert len(_req) == 4
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").register_args["post_logout_redirect_uris"] = [
-            "https://example.com/post_logout"
-        ]
+        self.service.client_get("service_context").register_args[
+            "post_logout_redirect_uri"
+        ] = "https://example.com/post_logout"
+
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
         assert len(_req) == 5
-        assert "post_logout_redirect_uris" in _req
+        assert "post_logout_redirect_uri" in _req
 
 
 def test_config_with_required_request_uri():
@@ -823,10 +824,9 @@ def test_config_logout_uri():
     _context.config["client_preferences"]["frontchannel_logout_usable"] = True
     _req = service.construct()
     assert isinstance(_req, RegistrationRequest)
-    assert len(_req) == 7
+    assert len(_req) == 6
     assert "request_uris" in _req
     assert "frontchannel_logout_uri" in _req
-    assert "post_logout_redirect_uris" in _req
 
 
 class TestUserInfo(object):

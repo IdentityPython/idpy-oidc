@@ -12,8 +12,8 @@ from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 from idpyoidc.server.user_authn.user import NoAuthn
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 

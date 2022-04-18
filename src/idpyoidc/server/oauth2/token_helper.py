@@ -16,10 +16,10 @@ from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.oauth2.authorization import check_unknown_scopes_policy
-from idpyoidc.server.session.grant import AuthorizationCode
 from idpyoidc.server.session.grant import Grant
-from idpyoidc.server.session.grant import RefreshToken
+from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import MintingNotAllowed
+from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.session.token import SessionToken
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.time_util import utc_time_sans_frac

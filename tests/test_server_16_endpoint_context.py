@@ -14,8 +14,8 @@ from idpyoidc.server.exception import OidcEndpointError
 from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.util import allow_refresh_token
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 
@@ -71,12 +71,7 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {
-            "lifetime": 600,
-            "kwargs": {
-                "crypt_conf": CRYPT_CONFIG
-            }
-        },
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {

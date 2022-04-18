@@ -5,10 +5,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.logging import configure_logging
-from idpyoidc.util import instantiate
 from idpyoidc.util import load_config_file
 
 DEFAULT_FILE_ATTRIBUTE_NAMES = [

@@ -1,11 +1,5 @@
-import base64
-import hashlib
 import json
 import logging
-
-from cryptography.fernet import Fernet
-from cryptojwt import as_unicode
-from cryptojwt.utils import as_bytes
 
 from idpyoidc.util import importer
 

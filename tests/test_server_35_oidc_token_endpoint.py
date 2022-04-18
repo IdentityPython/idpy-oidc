@@ -29,8 +29,8 @@ from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import lv_pack
 from idpyoidc.time_util import utc_time_sans_frac
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from .test_server_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 

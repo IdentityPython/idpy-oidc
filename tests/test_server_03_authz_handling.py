@@ -97,12 +97,7 @@ conf = {
             "read_only": False,
             "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
         },
-        "code": {
-            "lifetime": 600,
-            "kwargs": {
-                "crypt_conf": CRYPT_CONFIG
-            }
-        },
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {

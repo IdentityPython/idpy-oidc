@@ -35,6 +35,7 @@ class AuthenticationRequest(Message):
     }
 
     def verify(self, **kwargs):
+        super(AuthenticationRequest, self).verify(**kwargs)
         if "request" in self:
             _vc_name = verified_claim_name("request")
             if _vc_name in self:
@@ -102,16 +103,16 @@ class AuthenticationRequestJWT(Message):
     }
 
     def verify(self, **kwargs):
-        def verify(self, **kwargs):
-            _iss = kwargs.get("issuer")
-            if _iss:
-                if _iss not in self["aud"]:
-                    raise ParameterError("Not among audience")
+        Message.verify(self, **kwargs)
+        _iss = kwargs.get("issuer")
+        if _iss:
+            if _iss not in self["aud"]:
+                raise ParameterError("Not among audience")
 
-            _client_id = kwargs.get("client_id")
-            if _client_id:
-                if _client_id != self["iss"]:
-                    raise ParameterError("Issuer mismatch")
+        _client_id = kwargs.get("client_id")
+        if _client_id:
+            if _client_id != self["iss"]:
+                raise ParameterError("Issuer mismatch")
 
 
 class AuthenticationResponse(ResponseMessage):

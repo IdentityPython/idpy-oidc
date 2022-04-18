@@ -21,8 +21,8 @@ from idpyoidc.server.oidc.add_on.pkce import CC_METHOD
 from idpyoidc.server.oidc.add_on.pkce import add_pkce_support
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 
