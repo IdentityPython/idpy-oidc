@@ -769,7 +769,8 @@ class TestRegistration(object):
 
     def test_config_with_post_logout(self):
         self.service.client_get("service_context").register_args[
-            "post_logout_redirect_uri"] = "https://example.com/post_logout"
+            "post_logout_redirect_uri"
+        ] = "https://example.com/post_logout"
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
