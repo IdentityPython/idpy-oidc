@@ -107,12 +107,7 @@ class TestEndpoint(object):
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 # "jwks_file": "private/token_jwks.json",
-                "code": {
-                    "lifetime": 600,
-                    "kwargs": {
-                        "crypt_conf": CRYPT_CONFIG
-                    }
-                },
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -313,11 +308,8 @@ class TestEndpointWebID(object):
             "capabilities": CAPABILITIES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
-                #"jwks_file": "private/token_jwks.json",
-                "code": {
-                    "lifetime": 600,
-                    "crypt_config": CRYPT_CONFIG
-                },
+                # "jwks_file": "private/token_jwks.json",
+                "code": {"lifetime": 600, "crypt_config": CRYPT_CONFIG},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {

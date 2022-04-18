@@ -16,8 +16,8 @@ from idpyoidc.server.session.info import ClientSessionInfo
 from idpyoidc.server.session.info import UserSessionInfo
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.time_util import utc_time_sans_frac
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 
@@ -36,8 +36,8 @@ class TestSession:
             "jwks_uri": "https://example.com/jwks.json",
             "token_handler_args": {
                 "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
-                "token": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
-                "refresh": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             },
             "template_dir": "template",
             "userinfo": {

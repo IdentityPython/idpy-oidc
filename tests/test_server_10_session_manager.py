@@ -12,8 +12,8 @@ from idpyoidc.server.session.token import AccessToken
 from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.time_util import utc_time_sans_frac
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 
@@ -52,10 +52,7 @@ class TestSessionManager:
                     "read_only": False,
                     "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
                 },
-                "code": {
-                    "lifetime": 600,
-                    "kwargs": {"crypt_conf": CRYPT_CONFIG}
-                },
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {

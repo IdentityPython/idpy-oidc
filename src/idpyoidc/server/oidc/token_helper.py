@@ -11,8 +11,8 @@ from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server import oauth2
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
 from idpyoidc.server.session.token import AuthorizationCode
-from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.session.token import MintingNotAllowed
+from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.util import sanitize
 
