@@ -266,3 +266,11 @@ class IDToken(SessionToken):
 
 
 SHORT_TYPE_NAME = {"authorization_code": "A", "access_token": "T", "refresh_token": "R"}
+
+TOKEN_MAP = {
+    "authorization_code": AuthorizationCode,
+    "access_token": AccessToken,
+    "refresh_token": RefreshToken,
+    "id_token": IDToken,
+}
+

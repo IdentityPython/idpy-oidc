@@ -9,17 +9,14 @@ from idpyoidc.impexp import ImpExp
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.authn_event import AuthnEvent
+from idpyoidc.server.session.token import TOKEN_MAP
 from idpyoidc.server.token import Token as TokenHandler
 from idpyoidc.util import importer
 
 from ...message.oauth2 import TokenExchangeRequest
 from . import MintingNotAllowed
 from .claims import claims_match
-from .token import AccessToken
-from .token import AuthorizationCode
-from .token import IDToken
 from .token import Item
-from .token import RefreshToken
 from .token import SessionToken
 
 logger = logging.getLogger(__name__)
@@ -52,14 +49,6 @@ def find_token(issued, token_id):
         if iss.id == token_id:
             return iss
     return None
-
-
-TOKEN_MAP = {
-    "authorization_code": AuthorizationCode,
-    "access_token": AccessToken,
-    "refresh_token": RefreshToken,
-    "id_token": IDToken,
-}
 
 
 def qualified_name(cls):

@@ -5,10 +5,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.logging import configure_logging
-from idpyoidc.util import instantiate
 from idpyoidc.util import load_config_file
 
 DEFAULT_FILE_ATTRIBUTE_NAMES = [
@@ -97,13 +94,13 @@ class Base(dict):
     parameter = {}
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: str = "",
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
+            self,
+            conf: Dict,
+            base_path: str = "",
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
     ):
         dict.__init__(self)
         if file_attributes is None:
@@ -150,14 +147,14 @@ class Base(dict):
             yield key, getattr(self, key)
 
     def extend(
-        self,
-        conf: Dict,
-        base_path: str,
-        domain: str,
-        port: int,
-        entity_conf: Optional[List[dict]] = None,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: str,
+            domain: str,
+            port: int,
+            entity_conf: Optional[List[dict]] = None,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         for econf in entity_conf:
             _path = econf.get("path")
@@ -198,13 +195,13 @@ class Base(dict):
             setattr(self, key, _val)
 
     def format(
-        self,
-        conf,
-        base_path: str,
-        domain: str,
-        port: int,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf,
+            base_path: str,
+            domain: str,
+            port: int,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ) -> Union[Dict, str]:
         """
         Formats parts of the configuration. That includes replacing the strings {domain} and {port}
@@ -239,14 +236,14 @@ class Configuration(Base):
     uris = ["redirect_uris", "issuer", "base_url", "server_name"]
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: str = "",
-        entity_conf: Optional[List[dict]] = None,
-        file_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: str = "",
+            entity_conf: Optional[List[dict]] = None,
+            file_attributes: Optional[List[str]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            dir_attributes: Optional[List[str]] = None,
     ):
         Base.__init__(
             self,
@@ -293,14 +290,14 @@ class Configuration(Base):
 
 
 def create_from_config_file(
-    cls,
-    filename: str,
-    base_path: Optional[str] = "",
-    entity_conf: Optional[List[dict]] = None,
-    file_attributes: Optional[List[str]] = None,
-    domain: Optional[str] = "",
-    port: Optional[int] = 0,
-    dir_attributes: Optional[List[str]] = None,
+        cls,
+        filename: str,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        dir_attributes: Optional[List[str]] = None,
 ):
     return cls(
         load_config_file(filename),
