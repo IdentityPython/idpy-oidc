@@ -4,7 +4,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
-from idpyoidc.server.session.grant import TOKEN_MAP
+from idpyoidc.server.session.token import TOKEN_MAP
 from idpyoidc.server.session.grant import Grant
 from idpyoidc.server.session.grant import find_token
 from idpyoidc.server.session.grant import get_usage_rules
