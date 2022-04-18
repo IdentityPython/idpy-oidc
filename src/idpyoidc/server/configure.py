@@ -7,8 +7,8 @@ from typing import List
 from typing import Optional
 
 from idpyoidc.configure import Base
-from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.client_configure import verify_oidc_client_information
+from idpyoidc.server.scopes import SCOPE2CLAIMS
 
 logger = logging.getLogger(__name__)
 

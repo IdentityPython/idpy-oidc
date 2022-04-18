@@ -101,7 +101,9 @@ def test_init_crypto_None():
 
 
 def test_init_crypto_old():
-    _res = init_encrypter({"password": "long sentence WITH number 64", "salt": "potassium_chloride"})
+    _res = init_encrypter(
+        {"password": "long sentence WITH number 64", "salt": "potassium_chloride"}
+    )
     assert _res["conf"]["class"] == DEFAULT_CRYPTO
     assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
     assert _res["conf"]["kwargs"]["password"] == "long sentence WITH number 64"

@@ -1,11 +1,12 @@
 import json
 import os
 
+import pytest
+
 from idpyoidc.configure import Configuration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.logging import configure_logging
 from idpyoidc.server.configure import OPConfiguration
-import pytest
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 

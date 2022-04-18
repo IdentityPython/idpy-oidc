@@ -3,9 +3,9 @@ from typing import Callable
 from typing import Optional
 
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
-from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
 from idpyoidc.message.oidc import SINGLE_OPTIONAL_DICT
+from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.server.session.token import TOKEN_MAP
 
 logger = logging.getLogger(__name__)
@@ -13,23 +13,25 @@ logger = logging.getLogger(__name__)
 
 class ClientConfiguration(RegistrationResponse):
     c_param = RegistrationResponse.c_param.copy()
-    c_param.update({
-        "token_usage_rules": SINGLE_OPTIONAL_DICT,
-        "token_exchange": SINGLE_OPTIONAL_DICT,
-        "add_claims": SINGLE_OPTIONAL_DICT,
-        "pkce_essential": SINGLE_OPTIONAL_BOOLEAN,
-        "revoke_refresh_on_issue": SINGLE_OPTIONAL_BOOLEAN,
-        "allowed_scopes": OPTIONAL_LIST_OF_STRINGS,
-        "scopes_to_claims": SINGLE_OPTIONAL_DICT,
-        #
-        # These may be added dynamically at run time
-        # "dpop_jkt": SINGLE_OPTIONAL_STRING,
-        # "si_redirects": OPTIONAL_LIST_OF_STRINGS,
-        # "sector_id": SINGLE_OPTIONAL_STRING,
-        # "client_secret_expires_at": SINGLE_OPTIONAL_INT,
-        # "registration_access_token": SINGLE_OPTIONAL_STRING
-        # "auth_method": SINGLE_OPTIONAL_DICT,
-    })
+    c_param.update(
+        {
+            "token_usage_rules": SINGLE_OPTIONAL_DICT,
+            "token_exchange": SINGLE_OPTIONAL_DICT,
+            "add_claims": SINGLE_OPTIONAL_DICT,
+            "pkce_essential": SINGLE_OPTIONAL_BOOLEAN,
+            "revoke_refresh_on_issue": SINGLE_OPTIONAL_BOOLEAN,
+            "allowed_scopes": OPTIONAL_LIST_OF_STRINGS,
+            "scopes_to_claims": SINGLE_OPTIONAL_DICT,
+            #
+            # These may be added dynamically at run time
+            # "dpop_jkt": SINGLE_OPTIONAL_STRING,
+            # "si_redirects": OPTIONAL_LIST_OF_STRINGS,
+            # "sector_id": SINGLE_OPTIONAL_STRING,
+            # "client_secret_expires_at": SINGLE_OPTIONAL_INT,
+            # "registration_access_token": SINGLE_OPTIONAL_STRING
+            # "auth_method": SINGLE_OPTIONAL_DICT,
+        }
+    )
 
     def verify(self, **kwargs):
         RegistrationResponse.verify(self, **kwargs)
@@ -50,9 +52,10 @@ class ClientConfiguration(RegistrationResponse):
                 if _typ not in TOKEN_MAP.keys():
                     logger.warning(f"Undefined token type '{_typ}' used")
 
-                if not set(_rule.keys()).issubset({'expires_in', 'supports_minting', 'max_usage'}):
+                if not set(_rule.keys()).issubset({"expires_in", "supports_minting", "max_usage"}):
                     _diff = set(_rule.keys()).difference(
-                        {'expires_in', 'supports_minting', 'max_usage'})
+                        {"expires_in", "supports_minting", "max_usage"}
+                    )
                     logger.warning(f"Undefined token_usage_rules parameter '{_diff}' used")
 
                 _supports = _rule.get("supports_minting")
@@ -65,9 +68,9 @@ class ClientConfiguration(RegistrationResponse):
             pass
 
 
-def verify_oidc_client_information(conf: dict,
-                                   server_get: Optional[Callable] = None,
-                                   **kwargs) -> dict:
+def verify_oidc_client_information(
+    conf: dict, server_get: Optional[Callable] = None, **kwargs
+) -> dict:
     res = {}
     for key, item in conf.items():
         _rr = ClientConfiguration(**item)
