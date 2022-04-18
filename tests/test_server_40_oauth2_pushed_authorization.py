@@ -1,22 +1,22 @@
 import io
 import os
 
+import pytest
+import yaml
 from cryptojwt import JWT
 from cryptojwt.jwt import remove_jwt_parameters
 from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server import Server
+from idpyoidc.server.client_configure import verify_oidc_client_information
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
 from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oauth2.pushed_authorization import PushedAuthorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.registration import Registration
-from idpyoidc.util import verify_oidc_client_information
-import pytest
-import yaml
-
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
@@ -51,12 +51,12 @@ RESPONSE_TYPES_SUPPORTED = [
 client_yaml = """
 oidc_clients:
   s6BhdRkqt3:
-    "client_secret": 7Fjfp0ZBr1KtDRbnfVdmIw
-    "redirect_uris": 
+    client_id: s6BhdRkqt3
+    client_secret: 7Fjfp0ZBr1KtDRbnfVdmIw
+    redirect_uris: 
         - 'https://client.example.org/cb'
-    "client_salt": "salted"
-    'token_endpoint_auth_method': 'client_secret_post'
-    'response_types': 
+    token_endpoint_auth_method: 'client_secret_post'
+    response_types: 
         - 'code'
         - 'token'
         - 'code id_token'
