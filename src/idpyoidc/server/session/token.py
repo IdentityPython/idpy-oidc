@@ -273,4 +273,3 @@ TOKEN_MAP = {
     "refresh_token": RefreshToken,
     "id_token": IDToken,
 }
-

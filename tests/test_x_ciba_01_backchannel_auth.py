@@ -23,8 +23,8 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from . import CRYPT_CONFIG
 
+from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
 

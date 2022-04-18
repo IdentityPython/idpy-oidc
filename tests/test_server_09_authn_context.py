@@ -124,8 +124,8 @@ class TestAuthnBrokerEC:
             "issuer": "https://example.com/",
             "token_handler_args": {
                 "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
-                "token": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
-                "refresh": {"lifetime": 600,"kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "token": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+                "refresh": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
             },
             "verify_ssl": False,
             "capabilities": CAPABILITIES,

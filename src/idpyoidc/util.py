@@ -11,8 +11,8 @@ from urllib.parse import unquote_plus
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-from cryptojwt.utils import importer
 import yaml
+from cryptojwt.utils import importer
 
 logger = logging.getLogger(__name__)
 
@@ -138,4 +138,3 @@ def add_path(url, path):
             return "{}{}".format(url, path)
         else:
             return "{}/{}".format(url, path)
-
