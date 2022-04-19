@@ -6,6 +6,7 @@ from typing import Optional
 
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
+from idpyoidc.message.oidc import RegistrationResponse
 
 from .util import lower_or_upper
 
@@ -24,7 +25,7 @@ URIS = [
 ]
 
 
-class RPConfiguration(Base):
+class RPHConfiguration(Base):
     def __init__(
         self,
         conf: Dict,
@@ -64,11 +65,12 @@ class RPConfiguration(Base):
                 self.default[param] = _val
 
         self.clients = lower_or_upper(conf, "clients")
-        for id, client in self.clients.items():
-            for param in ["services", "client_preferences", "add_ons"]:
-                if param not in client:
-                    if param in self.default:
-                        client[param] = self.default[param]
+        if self.clients:
+            for id, client in self.clients.items():
+                for param in ["services", "client_preferences", "add_ons"]:
+                    if param not in client:
+                        if param in self.default:
+                            client[param] = self.default[param]
 
         if entity_conf:
             self.extend(
@@ -82,7 +84,7 @@ class RPConfiguration(Base):
 
 
 class Configuration(Base):
-    """RP Configuration"""
+    """A single RP Configuration"""
 
     def __init__(
         self,
@@ -101,6 +103,19 @@ class Configuration(Base):
             file_attributes=file_attributes,
             dir_attributes=dir_attributes,
         )
+
+        _reg_keys = RegistrationResponse.c_param.keys()
+        _del_key = []
+        for attr, val in self.conf.items():
+            if attr in _reg_keys:
+                setattr(self, attr, val)
+                _del_key.append(attr)
+            elif attr in ["issuer", "base_url", "key_conf"]:
+                setattr(self, attr, val)
+                _del_key.append(attr)
+
+        for _key in _del_key:
+            del self.conf[_key]
 
         log_conf = conf.get("logging")
         if log_conf:

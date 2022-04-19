@@ -1,4 +1,3 @@
-from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -13,18 +12,26 @@ from idpyoidc.client.service_context import ServiceContext
 
 class Entity(object):
     def __init__(
-        self,
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        services: Optional[dict] = None,
-        jwks_uri: Optional[str] = "",
-        httpc_params: Optional[dict] = None,
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            jwks_uri: Optional[str] = "",
+            httpc_params: Optional[dict] = None,
     ):
 
         if httpc_params:
             self.httpc_params = httpc_params
         else:
             self.httpc_params = {"verify": True}
+
+        if config is None:
+            config = Configuration({})
+        elif isinstance(config, dict):
+            if not isinstance(config, Configuration):
+                config = Configuration(config)
+        else: # not None and not a dict ??
+            raise ValueError("Configuration in a format I don't support")
 
         self._service_context = ServiceContext(
             keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params

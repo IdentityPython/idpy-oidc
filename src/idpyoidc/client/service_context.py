@@ -5,12 +5,16 @@ common between all the services that are used by OAuth2 client or OpenID Connect
 import copy
 import hashlib
 import os
+from typing import Optional
+from typing import Union
 
 from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
+from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 
+from idpyoidc.client.configure import Configuration
 from idpyoidc.context import OidcContext
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import rndstr
@@ -104,9 +108,20 @@ class ServiceContext(OidcContext):
         }
     )
 
-    def __init__(self, base_url="", keyjar=None, config=None, state=None, **kwargs):
+    def __init__(self,
+                 base_url: Optional[str] = "",
+                 keyjar: Optional[KeyJar] = None,
+                 config: Optional[Union[dict, Configuration]] = None,
+                 state: Optional[StateInterface] = None,
+                 **kwargs):
         if config is None:
-            config = {}
+            config = Configuration({})
+        elif isinstance(config, dict):
+            if not isinstance(config, Configuration):
+                config = Configuration(config)
+        else: # not None and not a dict ??
+            raise ValueError("Configuration in a format I don't support")
+
         self.config = config
 
         OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
@@ -122,7 +137,6 @@ class ServiceContext(OidcContext):
         self.add_on = {}
         self.hash2issuer = {}
         self.httpc_params = {}
-        self.issuer = ""
         self.client_id = ""
         self.client_secret = ""
         self.client_secret_expires_at = 0
@@ -208,7 +222,7 @@ class ServiceContext(OidcContext):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url) :]
+        _name = webname[len(self.base_url):]
         if _name.startswith("/"):
             return _name[1:]
 
