@@ -795,7 +795,7 @@ def test_config_with_required_request_uri():
 
     _pi = _context.provider_info
     _pi["require_request_uri_registration"] = True
-    _context.config["client_preferences"]["request_uri_usable"] = True
+    _context.client_preferences["request_uri_usable"] = True
     _req = service.construct()
     assert isinstance(_req, RegistrationRequest)
     assert len(_req) == 5
@@ -820,8 +820,8 @@ def test_config_logout_uri():
     _pi = _context.provider_info
     _pi["require_request_uri_registration"] = True
     _pi["frontchannel_logout_supported"] = True
-    _context.config["client_preferences"]["request_uri_usable"] = True
-    _context.config["client_preferences"]["frontchannel_logout_usable"] = True
+    _context.client_preferences["request_uri_usable"] = True
+    _context.client_preferences["frontchannel_logout_usable"] = True
     _req = service.construct()
     assert isinstance(_req, RegistrationRequest)
     assert len(_req) == 6

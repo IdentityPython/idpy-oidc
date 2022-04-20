@@ -9,6 +9,8 @@ from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
 
+from src.idpyoidc.client.configure import get_configuration
+
 
 class Entity(object):
     def __init__(
@@ -25,13 +27,7 @@ class Entity(object):
         else:
             self.httpc_params = {"verify": True}
 
-        if config is None:
-            config = Configuration({})
-        elif isinstance(config, dict):
-            if not isinstance(config, Configuration):
-                config = Configuration(config)
-        else: # not None and not a dict ??
-            raise ValueError("Configuration in a format I don't support")
+        config = get_configuration(config)
 
         self._service_context = ServiceContext(
             keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params

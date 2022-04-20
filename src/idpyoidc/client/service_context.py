@@ -19,6 +19,7 @@ from idpyoidc.context import OidcContext
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import rndstr
 
+from .configure import get_configuration
 from .state_interface import StateInterface
 
 CLI_REG_MAP = {
@@ -114,14 +115,7 @@ class ServiceContext(OidcContext):
                  config: Optional[Union[dict, Configuration]] = None,
                  state: Optional[StateInterface] = None,
                  **kwargs):
-        if config is None:
-            config = Configuration({})
-        elif isinstance(config, dict):
-            if not isinstance(config, Configuration):
-                config = Configuration(config)
-        else: # not None and not a dict ??
-            raise ValueError("Configuration in a format I don't support")
-
+        config = get_configuration(config)
         self.config = config
 
         OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
@@ -167,25 +161,17 @@ class ServiceContext(OidcContext):
         if not self.issuer:
             self.issuer = self.provider_info.get("issuer", "")
 
-        try:
-            self.clock_skew = config["clock_skew"]
-        except KeyError:
-            self.clock_skew = 15
+        self.clock_skew = config.get("clock_skew", 15)
 
-        _seed = config.get("hash_seed")
-        if _seed:
-            self.hash_seed = as_bytes(_seed)
-        else:
-            self.hash_seed = as_bytes(rndstr(32))
+        _seed = config.get("hash_seed", rndstr(32))
+        self.hash_seed = as_bytes(_seed)
 
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        for attr in ["base_url", "requests_dir", "allow", "client_preferences", "verify_args"]:
-            try:
-                setattr(self, attr, config[attr])
-            except KeyError:
-                pass
+        for attr, val in config.conf.items():
+            if attr in self.parameter:
+                setattr(self, attr, val)
 
         for attr in RegistrationRequest.c_param:
             try:
@@ -198,10 +184,10 @@ class ServiceContext(OidcContext):
             if not os.path.isdir(self.requests_dir):
                 os.makedirs(self.requests_dir)
 
-        # The name of the attribute used to be keys. Is now key_conf
-        _key_conf = config.get("keys", config.get("key_conf"))
-        if _key_conf:
-            self.import_keys(_key_conf)
+        # # The name of the attribute used to be keys. Is now key_conf
+        # _key_conf = config.get("keys", config.get("key_conf"))
+        # if _key_conf:
+        #     self.import_keys(_key_conf)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -253,7 +239,7 @@ class ServiceContext(OidcContext):
 
     def import_keys(self, keyspec):
         """
-        The client needs it's own set of keys. It can either dynamically
+        The client needs its own set of keys. It can either dynamically
         create them or load them from local storage.
         This method can also fetch other entities keys provided the
         URL points to a JWKS.
