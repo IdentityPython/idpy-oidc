@@ -1,8 +1,10 @@
 """Configuration management for Client"""
+import copy
 import logging
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
@@ -27,14 +29,14 @@ URIS = [
 
 class RPHConfiguration(Base):
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "127.0.0.1",
-        port: Optional[int] = 80,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "127.0.0.1",
+            port: Optional[int] = 80,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
 
         Base.__init__(
@@ -87,14 +89,14 @@ class Configuration(Base):
     """A single RP Configuration"""
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: str = "",
-        entity_conf: Optional[List[dict]] = None,
-        file_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: str = "",
+            entity_conf: Optional[List[dict]] = None,
+            file_attributes: Optional[List[str]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            dir_attributes: Optional[List[str]] = None,
     ):
         Base.__init__(
             self,
@@ -120,8 +122,8 @@ class Configuration(Base):
         log_conf = conf.get("logging")
         if log_conf:
             self.logger = configure_logging(config=log_conf).getChild(__name__)
-        else:
-            self.logger = logging.getLogger("client")
+        # else:
+        #     self.logger = logging.getLogger("client")
 
         self.web_conf = lower_or_upper(conf, "webserver")
 
@@ -135,3 +137,15 @@ class Configuration(Base):
                 port=port,
                 dir_attributes=dir_attributes,
             )
+
+
+def get_configuration(config: Optional[Union[dict, Configuration]] = None):
+    if config is None:
+        config = Configuration({})
+    elif isinstance(config, dict):
+        if not isinstance(config, Base):
+            config = Configuration(copy.deepcopy(config))
+    else:  # not None and not a dict ??
+        raise ValueError("Configuration in a format I don't support")
+
+    return config

@@ -6,7 +6,7 @@ import pytest
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 
-from idpyoidc.client.configure import RPConfiguration
+from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
 from idpyoidc.client.oauth2 import Client
@@ -186,7 +186,7 @@ class TestClient2(object):
                 }
             },
         }
-        rp_conf = RPConfiguration(conf)
+        rp_conf = RPHConfiguration(conf)
         self.client = Client(config=rp_conf)
         assert self.client
 

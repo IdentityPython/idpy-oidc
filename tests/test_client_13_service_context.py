@@ -15,7 +15,7 @@ def test_client_info_init():
         "client_id": "client_id",
         "issuer": "issuer",
         "client_secret": "client_secret_wordplay",
-        "base_url": "https://example.com",
+        "base_url": BASE_URL,
         "requests_dir": "requests",
     }
     ci = ServiceContext(BASE_URL, config=config)
