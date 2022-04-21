@@ -729,7 +729,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
         assert _resp["error"] == "invalid_request"
-        assert _resp["error_description"] == "Unsupported subject token type"
+        assert _resp["error_description"] == "Subject token invalid"
 
     def test_unsupported_actor_token(self):
         """

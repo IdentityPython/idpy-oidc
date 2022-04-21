@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt import BadSyntax
 from cryptojwt.exception import JWKESTException
 
 from idpyoidc.exception import ImproperlyConfigured
@@ -120,7 +121,8 @@ class AccessTokenHelper(TokenEndpointHelper):
         except KeyError:  # Missing code parameter - absolutely fatal
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
-        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True,
+                                                        handler_key="authorization_code")
         client_id = _session_info["client_id"]
         if client_id != req["client_id"]:
             logger.debug("{} owner of token".format(client_id))
@@ -208,7 +210,8 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _mngr = self.endpoint.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(request["code"], grant=True,
+                                                            handler_key="authorization_code")
         except (KeyError, UnknownToken):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
@@ -241,7 +244,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(token_value, grant=True,
+                                                        handler_key="refresh_token")
         logger.debug("Session info: {}".format(_session_info))
 
         if _session_info["client_id"] != req["client_id"]:
@@ -335,7 +339,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True,
+                                                            handler_key="refresh_token")
         except (KeyError, UnknownToken):
             logger.error("Refresh token invalid")
             return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")
@@ -414,13 +419,17 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
-        except (KeyError, UnknownToken):
-            logger.error("Subject token invalid.")
+            # token exchange is about minting one token based on another
+            _handler_key = self.token_types_mapping[request["subject_token_type"]]
+            _session_info = _mngr.get_session_info_by_token(
+                request["subject_token"], grant=True, handler_key=_handler_key)
+        except (KeyError, UnknownToken, BadSyntax) as err:
+            logger.error(f"Subject token invalid ({err}).")
             return self.error_cls(
                 error="invalid_request", error_description="Subject token invalid"
             )
 
+        # Find the token instance based on the token value
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
         if token.is_active() is False:
             return self.error_cls(
@@ -511,7 +520,9 @@ class TokenExchangeHelper(TokenEndpointHelper):
         _context = self.endpoint.server_get("endpoint_context")
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
+            _handler_key = self.token_types_mapping[request["subject_token_type"]]
+            _session_info = _mngr.get_session_info_by_token(
+                request["subject_token"], grant=True, handler_key=_handler_key)
         except ToOld:
             logger.error("Subject token has expired.")
             return self.error_cls(
