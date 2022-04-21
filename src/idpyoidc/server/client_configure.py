@@ -35,11 +35,6 @@ class ClientConfiguration(RegistrationResponse):
 
     def verify(self, **kwargs):
         RegistrationResponse.verify(self, **kwargs)
-        _server_get = kwargs.get("server_get")
-        if _server_get:
-            _endpoint_context = _server_get("context")
-        else:
-            _endpoint_context = None
 
         if "add_claims" in self:
             if not set(self["add_claims"].keys()).issubset({"always", "by_scope"}):
@@ -69,12 +64,12 @@ class ClientConfiguration(RegistrationResponse):
 
 
 def verify_oidc_client_information(
-    conf: dict, server_get: Optional[Callable] = None, **kwargs
+    conf: dict, upstream_get: Optional[Callable] = None, **kwargs
 ) -> dict:
     res = {}
     for key, item in conf.items():
         _rr = ClientConfiguration(**item)
-        _rr.verify(server_get=server_get, **kwargs)
+        _rr.verify(upstream_get=upstream_get, **kwargs)
         if _rr.extra():
             logger.info(f"Extras: {_rr.extra()}")
         res[key] = _rr

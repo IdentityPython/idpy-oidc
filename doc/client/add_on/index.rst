@@ -1,16 +1,8 @@
-OIDCRP add on documentation
+OAuth2 add on documentation
 ===========================
 
 .. toctree::
 
-   dpop.rst
-   pkce.rst
-   pushed_authorization.rst
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    dpop.rst
+    pkce.rst
+    pushed_authorization.rst

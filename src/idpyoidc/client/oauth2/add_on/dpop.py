@@ -144,7 +144,7 @@ def dpop_header(
     return headers
 
 
-def add_support(services, signing_algorithms):
+def add_support(services, dpop_signing_alg_values_supported):
     """
     Add the necessary pieces to make pushed authorization happen.
 
@@ -154,10 +154,10 @@ def add_support(services, signing_algorithms):
 
     # Access token request should use DPoP header
     _service = services["accesstoken"]
-    _context = _service.superior_get("context")
+    _context = _service.upstream_get("context")
     _context.add_on["dpop"] = {
         # "key": key_by_alg(signing_algorithm),
-        "sign_algs": signing_algorithms
+        "sign_algs": dpop_signing_alg_values_supported
     }
     _service.construct_extra_headers.append(dpop_header)
 

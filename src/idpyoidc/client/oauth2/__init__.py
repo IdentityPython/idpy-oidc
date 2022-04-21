@@ -1,17 +1,23 @@
 import logging
 from json import JSONDecodeError
+from typing import Callable
 from typing import Optional
+from typing import Union
+
+from cryptojwt.key_jar import KeyJar
+from requests import request
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
-from idpyoidc.client.http import HTTPLib
 from idpyoidc.client.service import REQUEST_INFO
 from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
 from idpyoidc.client.util import do_add_ons
 from idpyoidc.client.util import get_deserialization_method
+from idpyoidc.configure import Configuration
+from idpyoidc.context import OidcContext
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
@@ -32,28 +38,45 @@ class ExpiredToken(Exception):
 
 class Client(Entity):
     def __init__(
-        self,
-        keyjar=None,
-        verify_ssl=True,
-        config=None,
-        httplib=None,
-        services=None,
-        jwks_uri="",
-        httpc_params=None,
-        **kwargs
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            context: Optional[OidcContext] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = '',
+            verify_ssl: Optional[bool] = True,
+            jwks_uri: Optional[str] = "",
+            client_type: Optional[str] = "",
+            **kwargs
     ):
         """
 
+        :type client_type: str
+        :param client_type: What kind of client this is. Presently 'oauth2' or 'oidc'
         :param keyjar: A py:class:`idpyoidc.key_jar.KeyJar` instance
         :param config: Configuration information passed on to the
             :py:class:`idpyoidc.client.service_context.ServiceContext`
             initialization
-        :param httplib: A HTTP client to use
+        :param httpc: A HTTP client to use
+        :param httpc_params: HTTP request arguments
         :param services: A list of service definitions
         :param jwks_uri: A jwks_uri
-        :param httpc_params: HTTP request arguments
         :return: Client instance
         """
+
+        if not client_type:
+            client_type = "oauth2"
+
+        if verify_ssl is False:
+            # just ignore verify_ssl until it goes away
+            if httpc_params:
+                httpc_params['verify'] = False
+            else:
+                httpc_params = {'verify': False}
 
         Entity.__init__(
             self,
@@ -61,24 +84,32 @@ class Client(Entity):
             config=config,
             services=services,
             jwks_uri=jwks_uri,
+            httpc=httpc,
             httpc_params=httpc_params,
+            client_type=client_type,
+            context=context,
+            upstream_get=upstream_get,
+            key_conf=key_conf,
+            entity_id=entity_id
         )
 
-        self.http = httplib or HTTPLib(httpc_params)
+        self.httpc = httpc or request
 
-        if "add_ons" in config:
-            do_add_ons(config["add_ons"], self._service)
+        if isinstance(config, Configuration):
+            _add_ons = config.conf.get("add_ons")
+        else:
+            _add_ons = config.get("add_ons")
 
-        # just ignore verify_ssl until it goes away
-        self.verify_ssl = self.httpc_params.get("verify", True)
+        if _add_ons:
+            do_add_ons(_add_ons, self._service)
 
     def do_request(
-        self,
-        request_type: str,
-        response_body_type: Optional[str] = "",
-        request_args: Optional[dict] = None,
-        behaviour_args: Optional[dict] = None,
-        **kwargs
+            self,
+            request_type: str,
+            response_body_type: Optional[str] = "",
+            request_args: Optional[dict] = None,
+            behaviour_args: Optional[dict] = None,
+            **kwargs
     ):
         _srv = self._service[request_type]
 
@@ -91,24 +122,24 @@ class Client(Entity):
 
         try:
             _state = kwargs["state"]
-        except:
+        except Exception:
             _state = ""
         return self.service_request(
             _srv, response_body_type=response_body_type, state=_state, **_info
         )
 
     def set_client_id(self, client_id):
-        self._service_context.set("client_id", client_id)
+        self.get_context().set("client_id", client_id)
 
     def get_response(
-        self,
-        service: Service,
-        url: str,
-        method: Optional[str] = "GET",
-        body: Optional[dict] = None,
-        response_body_type: Optional[str] = "",
-        headers: Optional[dict] = None,
-        **kwargs
+            self,
+            service: Service,
+            url: str,
+            method: Optional[str] = "GET",
+            body: Optional[dict] = None,
+            response_body_type: Optional[str] = "",
+            headers: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -121,7 +152,7 @@ class Client(Entity):
         :return:
         """
         try:
-            resp = self.http(url, method, data=body, headers=headers)
+            resp = self.httpc(method, url, data=body, headers=headers, **self.httpc_params)
         except Exception as err:
             logger.error("Exception on request: {}".format(err))
             raise
@@ -131,7 +162,7 @@ class Client(Entity):
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
-                kwargs["keyjar"] = service.superior_get("context").keyjar
+                kwargs["keyjar"] = self.get_attribute('keyjar')
             if not response_body_type:
                 response_body_type = service.response_body_type
 
@@ -144,14 +175,14 @@ class Client(Entity):
         return self.parse_request_response(service, resp, response_body_type, **kwargs)
 
     def service_request(
-        self,
-        service: Service,
-        url: str,
-        method: Optional[str] = "GET",
-        body: Optional[dict] = None,
-        response_body_type: Optional[str] = "",
-        headers: Optional[dict] = None,
-        **kwargs
+            self,
+            service: Service,
+            url: str,
+            method: Optional[str] = "GET",
+            body: Optional[dict] = None,
+            response_body_type: Optional[str] = "",
+            headers: Optional[dict] = None,
+            **kwargs
     ) -> Message:
         """
         The method that sends the request and handles the response returned.
@@ -185,17 +216,12 @@ class Client(Entity):
         if "error" in response:
             pass
         else:
-            try:
-                kwargs["key"] = kwargs["state"]
-            except KeyError:
-                pass
-
-            service.update_service_context(response, **kwargs)
+            service.update_service_context(response, key=kwargs.get('state'), **kwargs)
         return response
 
     def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):
         """
-        Deal with a self.http response. The response are expected to
+        Deal with a self.httpc response. The response are expected to
         follow a special pattern, having the attributes:
 
             - headers (list of tuples with headers attributes and their values)
@@ -289,7 +315,7 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     except KeyError:
         raise ConfigurationError("Can not do dynamic provider info discovery")
     else:
-        _context = client.superior_get("context")
+        _context = client.get_context()
         try:
             _context.set("issuer", _context.config["srv_discovery_url"])
         except KeyError:

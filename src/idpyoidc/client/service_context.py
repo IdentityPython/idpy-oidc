@@ -4,18 +4,31 @@ common between all the services that are used by OAuth2 client or OpenID Connect
 """
 import copy
 import hashlib
-import os
+import logging
+from typing import Callable
+from typing import Optional
+from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
+from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 
-from idpyoidc.context import OidcContext
-from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.client.configure import Configuration
+from idpyoidc.client.current import Current
+from idpyoidc.client.metadata.oauth2 import Metadata as OAUTH2_Metadata
+from idpyoidc.client.metadata.oidc import Metadata as OIDC_Metadata
+from idpyoidc.metadata import Metadata
+from idpyoidc.metadata import metadata_dump
+from idpyoidc.metadata import metadata_load
 from idpyoidc.util import rndstr
+from .client_auth import client_auth_setup
+from .configure import get_configuration
+from ..impexp import ImpExp
+from ..node import Unit
 
-from .state_interface import StateInterface
+logger = logging.getLogger(__name__)
 
 CLI_REG_MAP = {
     "userinfo": {
@@ -59,13 +72,12 @@ DEFAULT_VALUE = {
     "client_id": "",
     "redirect_uris": [],
     "provider_info": {},
-    "behaviour": {},
     "callback": {},
-    "issuer": "",
+    "issuer": ""
 }
 
 
-class ServiceContext(OidcContext):
+class ServiceContext(Unit):
     """
     This class keeps information that a client needs to be able to talk
     to a server. Some of this information comes from configuration and some
@@ -73,122 +85,165 @@ class ServiceContext(OidcContext):
     But information is also picked up during the conversation with a server.
     """
 
-    parameter = OidcContext.parameter.copy()
-    parameter.update(
-        {
-            "add_on": None,
-            "allow": None,
-            "args": None,
-            "base_url": None,
-            "behaviour": None,
-            "callback": None,
-            "client_id": None,
-            "client_preferences": None,
-            "client_secret": None,
-            "client_secret_expires_at": 0,
-            "clock_skew": None,
-            "config": None,
-            "hash_seed": b"",
-            "hash2issuer": None,
-            "httpc_params": None,
-            "issuer": None,
-            "kid": None,
-            "post_logout_redirect_uri": None,
-            "provider_info": None,
-            "redirect_uris": None,
-            "requests_dir": None,
-            "register_args": None,
-            "registration_response": None,
-            "state": StateInterface,
-            "verify_args": None,
-        }
-    )
+    parameter = {
+        "add_on": None,
+        "allow": None,
+        "args": None,
+        "base_url": None,
+        # "behaviour": None,
+        # "client_secret_expires_at": 0,
+        "clock_skew": None,
+        "config": None,
+        "hash_seed": b"",
+        "httpc_params": None,
+        "iss_hash": None,
+        "issuer": None,
+        # 'keyjar': KeyJar,
+        # "metadata": Metadata,
+        "provider_info": None,
+        "requests_dir": None,
+        "registration_response": None,
+        "cstate": Current,
+        # 'usage': None,
+        "verify_args": None,
+    }
 
-    def __init__(self, base_url="", keyjar=None, config=None, state=None, **kwargs):
-        if config is None:
-            config = {}
+    metadata_attributes = {
+        "application_type": "web",
+        "contacts": None,
+        "client_name": None,
+        "client_id": None,
+        "logo_uri": None,
+        "client_uri": None,
+        "policy_uri": None,
+        "tos_uri": None,
+        "jwks_uri": None,
+        "jwks": None,
+        "sector_identifier_uri": None,
+        "grant_types": ["authorization_code", "implicit", "refresh_token"],
+        "default_max_age": None,
+        "id_token_signed_response_alg": "RS256",
+        "id_token_encrypted_response_alg": None,
+        "id_token_encrypted_response_enc": None,
+        "initiate_login_uri": None,
+        "subject_type": None,
+        "default_acr_values": None,
+        "require_auth_time": None,
+        "redirect_uris": None,
+        "request_object_signing_alg": None,
+        "request_object_encryption_alg": None,
+        "request_object_encryption_enc": None,
+        "request_uris": None,
+        "response_types": ["code"]
+    }
+
+    usage_rules = {
+        "form_post": None,
+        "jwks": None,
+        "jwks_uri": None,
+        "request_parameter": None,
+        "request_uri": None,
+        "scope": ["openid"],
+        "verify_args": None,
+    }
+
+    special_load_dump = {
+        "metadata": {"load": metadata_load, "dump": metadata_dump},
+    }
+
+    init_args = ['upstream_get']
+
+    def __init__(self,
+                 base_url: Optional[str] = "",
+                 config: Optional[Union[dict, Configuration]] = None,
+                 cstate: Optional[Current] = None,
+                 upstream_get: Optional[Callable] = None,
+                 client_type: Optional[str] = 'oidc',
+                 keyjar: Optional[KeyJar] = None,
+                 key_conf: Optional[dict] = None,
+                 metadata_class: Optional[Metadata] = None,
+                 **kwargs):
+        ImpExp.__init__(self)
+        if isinstance(config, Configuration):
+            if key_conf:
+                config.conf['key_conf'] = key_conf
+        elif config is None:
+            if key_conf:
+                config = Configuration({'key_conf': key_conf})
+            else:
+                config = Configuration({})
+        else:
+            if key_conf:
+                config['key_conf'] = key_conf
+            config = get_configuration(config)
+
         self.config = config
+        self.upstream_get = upstream_get
 
-        OidcContext.__init__(self, keyjar=keyjar, config=config,
-                             entity_id=config.get("client_id", ""))
-        self.state = state or StateInterface()
+        if metadata_class:
+            self.metadata = metadata_class
+        else:
+            if not client_type or client_type == "oidc":
+                self.metadata = OIDC_Metadata()
+            elif client_type == "oauth2":
+                self.metadata = OAUTH2_Metadata()
+            else:
+                raise ValueError(f"Unknown client type: {client_type}")
+
+        self.entity_id = config.conf.get("client_id", "")
+        self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
+        self.allow = config.conf.get('allow', {})
         self.base_url = base_url or config.get("base_url", "")
+        self.provider_info = config.conf.get("provider_info", {})
+
         # Below so my IDE won't complain
-        self.allow = {}
-        self.client_preferences = {}
         self.args = {}
         self.add_on = {}
-        self.hash2issuer = {}
-        self.httpc_params = {}
+        self.iss_hash = ""
         self.issuer = ""
-        self.client_id = ""
-        self.client_secret = ""
+        self.httpc_params = {}
         self.client_secret_expires_at = 0
-        self.behaviour = {}
-        self.provider_info = {}
-        self.post_logout_redirect_uri = ""
-        self.redirect_uris = []
-        self.register_args = {}
         self.registration_response = {}
-        self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
-        # Dynamic information
-        for param in [
-            "client_secret",
-            "client_id",
-            "redirect_uris",
-            "provider_info",
-            "behaviour",
-            "callback",
-            "issuer",
-        ]:
-            _val = config.get(param, _def_value[param])
-            self.set(param, _val)
-            if param == "client_secret" and _val:
-                self.keyjar.add_symmetric("", _val)
 
-        if not self.issuer:
+        _issuer = config.get("issuer")
+        if _issuer:
+            self.issuer = _issuer
+        else:
             self.issuer = self.provider_info.get("issuer", "")
 
-        try:
-            self.clock_skew = config["clock_skew"]
-        except KeyError:
-            self.clock_skew = 15
+        self.clock_skew = config.get("clock_skew", 15)
 
-        _seed = config.get("hash_seed")
-        if _seed:
-            self.hash_seed = as_bytes(_seed)
-        else:
-            self.hash_seed = as_bytes(rndstr(32))
+        _seed = config.get("hash_seed", rndstr(32))
+        self.hash_seed = as_bytes(_seed)
 
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        for attr in ["base_url", "requests_dir", "allow", "client_preferences", "verify_args"]:
-            try:
-                setattr(self, attr, config[attr])
-            except KeyError:
-                pass
+        _keyjar = self.metadata.load_conf(config.conf, supports=self.supports(), keyjar=keyjar,
+                                          base_url=config.base_url)
+        if self.upstream_get:
+            self.upstream_get('set_attribute', 'keyjar', _keyjar)
 
-        for attr in RegistrationRequest.c_param:
-            try:
-                self.register_args[attr] = config[attr]
-            except KeyError:
-                pass
+        _response_types = self.get_preference(
+            'response_types_supported',
+            self.supports().get('response_types_supported', []))
 
-        if self.requests_dir:
-            # make sure the path exists. If not, then create it.
-            if not os.path.isdir(self.requests_dir):
-                os.makedirs(self.requests_dir)
+        self.construct_uris(response_types=_response_types)
 
-        # The name of the attribute used to be keys. Is now key_conf
-        _key_conf = config.get("keys", config.get("key_conf"))
-        if _key_conf:
-            self.import_keys(_key_conf)
+        self.setup_client_authn_methods(config)
+
+    def setup_client_authn_methods(self, config):
+        if config and "client_authn_methods" in config.conf:
+            self.client_authn_methods = client_auth_setup(
+                config.conf.get("client_authn_methods")
+            )
+        else:
+            self.client_authn_methods = {}
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -209,44 +264,22 @@ class ServiceContext(OidcContext):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url) :]
+        _name = webname[len(self.base_url):]
         if _name.startswith("/"):
             return _name[1:]
 
         return _name
 
-    def generate_redirect_uris(self, path):
-        """
-        Need to generate a redirect_uri path that is unique for a OP/RP combo
-        This is to counter the mix-up attack.
-
-        :param path: Leading path
-        :return: A list of one unique URL
-        """
-        _hash = hashlib.sha256()
-        try:
-            _hash.update(as_bytes(self.provider_info["issuer"]))
-        except KeyError:
-            _hash.update(as_bytes(self.issuer))
-        _hash.update(as_bytes(self.base_url))
-
-        if not path.startswith("/"):
-            redirs = ["{}/{}/{}".format(self.base_url, path, _hash.hexdigest())]
-        else:
-            redirs = ["{}{}/{}".format(self.base_url, path, _hash.hexdigest())]
-
-        self.set("redirect_uris", redirs)
-        return redirs
-
     def import_keys(self, keyspec):
         """
-        The client needs it's own set of keys. It can either dynamically
+        The client needs its own set of keys. It can either dynamically
         create them or load them from local storage.
         This method can also fetch other entities keys provided the
         URL points to a JWKS.
 
         :param keyspec:
         """
+        _keyjar = self.upstream_get('attribute', 'keyjar')
         for where, spec in keyspec.items():
             if where == "file":
                 for typ, files in spec.items():
@@ -255,28 +288,34 @@ class ServiceContext(OidcContext):
                             _key = RSAKey(priv_key=import_private_rsa_key_from_file(fil), use="sig")
                             _bundle = KeyBundle()
                             _bundle.append(_key)
-                            self.keyjar.add_kb("", _bundle)
+                            _keyjar.add_kb("", _bundle)
             elif where == "url":
                 for iss, url in spec.items():
                     _bundle = KeyBundle(source=url)
-                    self.keyjar.add_kb(iss, _bundle)
+                    _keyjar.add_kb(iss, _bundle)
+
+    def _get_crypt(self, typ, attr):
+        _item_typ = CLI_REG_MAP.get(typ)
+        _alg = ''
+        if _item_typ:
+            _alg = self.metadata.get_usage(_item_typ[attr])
+            if not _alg:
+                _alg = self.metadata.get_preference(_item_typ[attr])
+
+        if not _alg:
+            _item_typ = PROVIDER_INFO_MAP.get(typ)
+            if _item_typ:
+                _alg = self.provider_info.get(_item_typ[attr])
+
+        return _alg
 
     def get_sign_alg(self, typ):
         """
 
         :param typ: ['id_token', 'userinfo', 'request_object']
-        :return:
+        :return: signing algorithm
         """
-
-        try:
-            return self.behaviour[CLI_REG_MAP[typ]["sign"]]
-        except KeyError:
-            try:
-                return self.provider_info[PROVIDER_INFO_MAP[typ]["sign"]]
-            except (KeyError, TypeError):
-                pass
-
-        return None
+        return self._get_crypt(typ, 'sign')
 
     def get_enc_alg_enc(self, typ):
         """
@@ -287,15 +326,7 @@ class ServiceContext(OidcContext):
 
         res = {}
         for attr in ["enc", "alg"]:
-            try:
-                _alg = self.behaviour[CLI_REG_MAP[typ][attr]]
-            except KeyError:
-                try:
-                    _alg = self.provider_info[PROVIDER_INFO_MAP[typ][attr]]
-                except KeyError:
-                    _alg = None
-
-            res[attr] = _alg
+            res[attr] = self._get_crypt(typ, attr)
 
         return res
 
@@ -304,3 +335,99 @@ class ServiceContext(OidcContext):
 
     def set(self, key, value):
         setattr(self, key, value)
+
+    def get_client_id(self):
+        return self.metadata.get_usage("client_id")
+
+    def collect_usage(self):
+        return self.metadata.use
+
+    def supports(self):
+        res = {}
+        if self.upstream_get:
+            services = self.upstream_get('services')
+            if services:
+                for service in services.values():
+                    res.update(service.supports())
+        res.update(self.metadata.supports())
+        return res
+
+    def prefers(self):
+        return self.metadata.prefer
+
+    def get_preference(self, claim, default=None):
+        return self.metadata.get_preference(claim, default=default)
+
+    def set_preference(self, key, value):
+        self.metadata.set_preference(key, value)
+
+    def get_usage(self, claim, default: Optional[str] = None):
+        return self.metadata.get_usage(claim, default)
+
+    def set_usage(self, claim, value):
+        return self.metadata.set_usage(claim, value)
+
+    def get_keyjar(self):
+        val = getattr(self, 'keyjar', None)
+        if not val:
+            return self.upstream_get('attribute', 'keyjar')
+        else:
+            return val
+
+    def _callback_per_service(self):
+        _cb = {}
+        if self.upstream_get:
+            _services = self.upstream_get('services')
+            if _services:
+                for service in _services.values():
+                    _cbs = service._callback_path.keys()
+                    if _cbs:
+                        _cb[service.service_name] = _cbs
+        return _cb
+
+    def construct_uris(self, response_types: Optional[list] = None):
+        _hash = hashlib.sha256()
+        _hash.update(self.hash_seed)
+        _hash.update(as_bytes(self.issuer))
+        _hex = _hash.hexdigest()
+
+        self.iss_hash = _hex
+
+        _base_url = self.get("base_url")
+
+        _callback_uris = self.get_preference('callback_uris', {})
+        if self.upstream_get:
+            services = self.upstream_get('services')
+            if services:
+                for service in services.values():
+                    _callback_uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
+                                                                 context=self,
+                                                                 response_types=response_types))
+
+        self.set_preference('callback_uris', _callback_uris)
+        if 'redirect_uris' in _callback_uris:
+            _redirect_uris = set()
+            for flow, _uris in _callback_uris['redirect_uris'].items():
+                _redirect_uris.update(set(_uris))
+            self.set_preference('redirect_uris', list(_redirect_uris))
+
+    def prefer_or_support(self, claim):
+        if claim in self.metadata.prefer:
+            return 'prefer'
+        else:
+            for service in self.upstream_get('services').values():
+                _res = service.prefer_or_support(claim)
+                if _res:
+                    return _res
+
+        if claim in self.metadata.supported(claim):
+            return 'support'
+        return None
+
+    def map_supported_to_preferred(self, info: Optional[dict] = None):
+        self.metadata.supported_to_preferred(self.supports(), base_url=self.base_url, info=info)
+        return self.metadata.prefer
+
+    def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
+        return self.metadata.preferred_to_registered(supported=self.supports(),
+                                                     response=registration_response)

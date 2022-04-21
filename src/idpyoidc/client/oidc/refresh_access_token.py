@@ -8,7 +8,8 @@ class RefreshAccessToken(refresh_access_token.RefreshAccessToken):
     error_msg = oidc.ResponseMessage
 
     def get_authn_method(self):
+        _metadata = self.upstream_get("context").metadata
         try:
-            return self.superior_get("context").behaviour["token_endpoint_auth_method"]
+            return _metadata.get_usage("token_endpoint_auth_method")
         except KeyError:
             return self.default_authn_method

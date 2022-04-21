@@ -120,7 +120,7 @@ def _acr_claim(request):
     return None
 
 
-def pick_auth(endpoint_context, areq, pick_all=False):
+def pick_auth(context, areq, pick_all=False):
     """
     Pick authentication method
 
@@ -128,8 +128,8 @@ def pick_auth(endpoint_context, areq, pick_all=False):
     :return: A dictionary with the authentication method and its authn class ref
     """
     acrs = []
-    if len(endpoint_context.authn_broker) == 1:
-        return endpoint_context.authn_broker.default()
+    if len(context.authn_broker) == 1:
+        return context.authn_broker.default()
 
     if "acr_values" in areq:
         if not isinstance(areq["acr_values"], list):
@@ -144,14 +144,14 @@ def pick_auth(endpoint_context, areq, pick_all=False):
                 if _ith.get("acr"):
                     acrs = [_ith["acr"]]
             else:
-                if areq.get("login_hint") and endpoint_context.login_hint2acrs:
-                    acrs = endpoint_context.login_hint2acrs(areq["login_hint"])
+                if areq.get("login_hint") and context.login_hint2acrs:
+                    acrs = context.login_hint2acrs(areq["login_hint"])
 
     if not acrs:
-        return endpoint_context.authn_broker.default()
+        return context.authn_broker.default()
 
     for acr in acrs:
-        res = endpoint_context.authn_broker.pick(acr)
+        res = context.authn_broker.pick(acr)
         logger.debug(f"Picked AuthN broker for ACR {str(acr)}: {str(res)}")
         if res:
             return res if pick_all else res[0]
@@ -159,7 +159,7 @@ def pick_auth(endpoint_context, areq, pick_all=False):
     return None
 
 
-def init_method(authn_spec, server_get, template_handler=None):
+def init_method(authn_spec, upstream_get, template_handler=None):
     try:
         _args = authn_spec["kwargs"]
     except KeyError:
@@ -168,25 +168,25 @@ def init_method(authn_spec, server_get, template_handler=None):
     if "template" in _args:
         _args["template_handler"] = template_handler
 
-    _args["server_get"] = server_get
+    _args["upstream_get"] = upstream_get
 
     args = {"method": instantiate(authn_spec["class"], **_args)}
     args.update({k: v for k, v in authn_spec.items() if k not in ["class", "kwargs"]})
     return args
 
 
-def populate_authn_broker(methods, server_get, template_handler=None):
+def populate_authn_broker(methods, upstream_get, template_handler=None):
     """
 
     :param methods: Authentication method specifications
-    :param server_get: method that returns things from server
+    :param upstream_get: method that returns things from server
     :param template_handler: A class used to render templates
     :return:
     """
     authn_broker = AuthnBroker()
 
     for id, authn_spec in methods.items():
-        args = init_method(authn_spec, server_get, template_handler)
+        args = init_method(authn_spec, upstream_get, template_handler)
         authn_broker[id] = args
 
     return authn_broker

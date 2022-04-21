@@ -19,7 +19,7 @@ class Introspection(Endpoint):
     response_format = "json"
     endpoint_name = "introspection_endpoint"
     name = "introspection"
-    default_capabilities = {
+    _supports = {
         "client_authn_method": [
             "client_secret_basic",
             "client_secret_post",
@@ -28,8 +28,8 @@ class Introspection(Endpoint):
         ]
     }
 
-    def __init__(self, server_get, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         self.offset = kwargs.get("offset", 0)
 
     def _introspect(self, token, client_id, grant):
@@ -51,7 +51,7 @@ class Introspection(Endpoint):
         if not aud:
             aud = grant.resources
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         ret = {
             "active": True,
             "scope": " ".join(scope),
@@ -97,7 +97,7 @@ class Introspection(Endpoint):
 
         request_token = _introspect_request["token"]
         _resp = self.response_cls(active=False)
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         try:
             _session_info = _context.session_manager.get_session_info_by_token(
@@ -124,7 +124,7 @@ class Introspection(Endpoint):
         _resp.weed()
 
         _claims_restriction = _context.claims_interface.get_claims(
-            _session_info["session_id"], scopes=_token.scope, claims_release_point="introspection"
+            _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"
         )
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(

@@ -1,12 +1,16 @@
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 
+from idpyoidc import metadata
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
+from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
@@ -27,41 +31,68 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
-    def __init__(self, superior_get, conf=None):
-        authorization.Authorization.__init__(self, superior_get, conf=conf)
-        self.default_request_args = {"scope": ["openid"]}
+    _supports = {
+        "request_object_signing_alg_values_supported": metadata.get_signing_algs,
+        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs,
+        "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
+                                     'code id_token', 'code idtoken token'],
+        'request_parameter_supported': None,
+        'request_uri_parameter_supported': None,
+        "request_uris": None,
+        "request_parameter": None,
+        "encrypt_request_object_supported": False,
+        "redirect_uris": None,
+        "response_modes_supported": ['query', 'fragment', 'form_post']
+    }
+
+    _callback_path = {
+        "request_uris": ["req"],
+        "redirect_uris": {  # based on response_types
+            "code": "authz_cb",
+            "token": "authz_tok_cb",
+            "form_post": "form"
+        }
+    }
+
+    def __init__(self, upstream_get, conf=None, request_args: Optional[dict] = None):
+        authorization.Authorization.__init__(self, upstream_get, conf=conf)
+        self.default_request_args.update({"scope": ["openid"]})
+        if request_args:
+            self.default_request_args.update(request_args)
         self.pre_construct = [
             self.set_state,
             pre_construct_pick_redirect_uri,
             self.oidc_pre_construct,
         ]
         self.post_construct = [self.oidc_post_construct]
+        if 'scope' not in self.default_request_args:
+            self.default_request_args['scope'] = ['openid']
 
     def set_state(self, request_args, **kwargs):
+        _context = self.upstream_get("context")
         try:
             _state = kwargs["state"]
         except KeyError:
             try:
                 _state = request_args["state"]
             except KeyError:
-                _state = ""
+                _state = _context.cstate.create_key()
 
-        _context = self.superior_get("context")
-        request_args["state"] = _context.state.create_state(_context.issuer, _state)
+        request_args["state"] = _state
+        _context.cstate.set(_state, {'iss': _context.issuer})
         return request_args, {}
 
     def update_service_context(self, resp, key="", **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
 
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        _context.state.store_item(resp.to_json(), "auth_response", key)
+        _context.cstate.update(key, resp)
 
     def get_request_from_response(self, response):
-        _context = self.superior_get("context")
-        return _context.state.get_item(
-            oauth2.AuthorizationRequest, "auth_request", response["state"]
-        )
+        _context = self.upstream_get("service_context")
+        return _context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
 
     def post_parse_response(self, response, **kwargs):
         response = authorization.Authorization.post_parse_response(self, response, **kwargs)
@@ -70,8 +101,8 @@ class Authorization(authorization.Authorization):
         if _idt:
             # If there is a verified ID Token then we have to do nonce
             # verification.
-            _request = self.get_request_from_response(response)
-            _req_nonce = _request.get("nonce")
+            _req_nonce = self.upstream_get("context").cstate.get_set(
+                response["state"], claim=['nonce']).get('nonce')
             if _req_nonce:
                 _id_token_nonce = _idt.get("nonce")
                 if not _id_token_nonce:
@@ -81,14 +112,14 @@ class Authorization(authorization.Authorization):
         return response
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if request_args is None:
             request_args = {}
 
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.behaviour.get("response_types")
+            _response_types = _context.get_usage("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -96,12 +127,20 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            request_args["scope"] = _context.behaviour.get("scope", ["openid"])
+            _scope = _context.get_usage("scope")
+            if _scope:
+                request_args["scope"] = _scope
+            else:
+                _scope = _context.get_preference("scopes_supported")
+                if _scope:
+                    request_args['scope'] = _scope
+                else:
+                    request_args["scope"] = "openid"
         elif "openid" not in request_args["scope"]:
             request_args["scope"].append("openid")
 
         # 'code' and/or 'id_token' in response_type means an ID Roken
-        # will eventually be returnedm, hence the need for a nonce
+        # will eventually be returned, hence the need for a nonce
         if "code" in _response_types or "id_token" in _response_types:
             if "nonce" not in request_args:
                 request_args["nonce"] = rndstr(32)
@@ -123,6 +162,11 @@ class Authorization(authorization.Authorization):
             else:
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
+        else:
+            if _context.get_usage("request_uri"):
+                post_args["request_param"] = "request_uri"
+            elif _context.get_usage("request_parameter"):
+                post_args["request_param"] = "request"
 
         return request_args, post_args
 
@@ -137,8 +181,9 @@ class Authorization(authorization.Authorization):
                 break
 
         if not alg:
+            _context = self.upstream_get("context")
             try:
-                alg = self.superior_get("context").behaviour["request_object_signing_alg"]
+                alg = _context.metadata.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -150,12 +195,14 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: The URL the OP should use to access the file
         """
-        _context = self.superior_get("context")
-        try:
-            _webname = _context.registration_response["request_uris"][0]
-            filename = _context.filename_from_webname(_webname)
-        except KeyError:
+        _context = self.upstream_get("context")
+        _webname = _context.get_usage("request_uris")
+        if _webname is None:
             filename, _webname = construct_request_uri(**kwargs)
+        else:
+            # webname should be a list
+            _webname = _webname[0]
+            filename = _context.filename_from_webname(_webname)
 
         fid = open(filename, mode="w")
         fid.write(req)
@@ -163,33 +210,34 @@ class Authorization(authorization.Authorization):
         return _webname
 
     def construct_request_parameter(
-        self, req, request_param, audience=None, expires_in=0, **kwargs
+            self, req, request_param, audience=None, expires_in=0, **kwargs
     ):
         """Construct a request parameter"""
         alg = self.get_request_object_signing_alg(**kwargs)
         kwargs["request_object_signing_alg"] = alg
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if "keys" not in kwargs and alg and alg != "none":
-            kwargs["keys"] = _context.keyjar
+            kwargs["keys"] = self.upstream_get('attribute', 'keyjar')
 
         if alg == "none":
             kwargs["keys"] = []
 
-        _srv_cntx = _context
-
         # This is the issuer of the JWT, that is me !
         _issuer = kwargs.get("issuer")
         if _issuer is None:
-            kwargs["issuer"] = _srv_cntx.client_id
+            kwargs["issuer"] = _context.get_client_id()
 
         if kwargs.get("recv") is None:
             try:
-                kwargs["recv"] = _srv_cntx.provider_info["issuer"]
+                kwargs["recv"] = _context.provider_info["issuer"]
             except KeyError:
-                kwargs["recv"] = _srv_cntx.issuer
+                kwargs["recv"] = _context.issuer
 
-        del kwargs["service"]
+        try:
+            del kwargs["service"]
+        except KeyError:
+            pass
 
         if expires_in:
             req["exp"] = utc_time_sans_frac() + int(expires_in)
@@ -207,15 +255,13 @@ class Authorization(authorization.Authorization):
             if k in kwargs
         }
 
-        _req = make_openid_request(req, **_mor_args)
+        _req_jwt = make_openid_request(req, **_mor_args)
 
         # Should the request be encrypted
-        _req = request_object_encryption(_req, _context, **kwargs)
-
-        if request_param == "request":
-            req["request"] = _req
-        else:  # MUST be request_uri
-            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        _req_jwte = request_object_encryption(_req_jwt, _context,
+                                              self.upstream_get('attribute', 'keyjar'),
+                                              **kwargs)
+        return _req_jwte
 
     def oidc_post_construct(self, req, **kwargs):
         """
@@ -225,27 +271,39 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: A possibly modified request.
         """
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if "openid" in req["scope"]:
             _response_type = req["response_type"][0]
             if "id_token" in _response_type or "code" in _response_type:
-                _context.state.store_nonce2state(req["nonce"], req["state"])
+                _context.cstate.bind_key(req["nonce"], req["state"])
 
         if "offline_access" in req["scope"]:
             if "prompt" not in req:
                 req["prompt"] = "consent"
 
-        _context.state.store_item(req, "auth_request", req["state"])
+        _context.cstate.update(req["state"], req)
 
+        # Overrides what's in the configuration
         _request_param = kwargs.get("request_param")
         if _request_param:
             del kwargs["request_param"]
-            # local_dir, base_path
-            _config = _context.get("config")
-            kwargs["local_dir"] = _config.get("local_dir", "./requests")
+        else:
+            if _context.work_environment.get_support("request_uri"):
+                _request_param = "request_uri"
+            elif _context.work_environment.get_support("request_parameter"):
+                _request_param = "request"
+
+        _req = None  # just a flag
+        if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            self.construct_request_parameter(req, _request_param, **kwargs)
-            # removed all arguments except request/request_uri and the required
+            kwargs["local_dir"] = _context.work_environment.get("requests_dir", "./requests")
+            _req = self.construct_request_parameter(req, _request_param, **kwargs)
+            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        elif _request_param == "request":
+            _req = self.construct_request_parameter(req, _request_param)
+            req["request"] = _req
+
+        if _req:
             _leave = ["request", "request_uri"]
             _leave.extend(req.required_parameters())
             _keys = [k for k in req.keys() if k not in _leave]
@@ -255,22 +313,23 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         kwargs = {
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
             "skew": _context.clock_skew,
         }
 
-        _client_id = _context.client_id
+        _client_id = _context.get_client_id()
         if _client_id:
             kwargs["client_id"] = _client_id
 
@@ -282,13 +341,54 @@ class Authorization(authorization.Authorization):
                 except KeyError:
                     pass
 
-        try:
-            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
-        except KeyError:
-            pass
+        _allow = _context.allow.get("missing_kid")
+        if _allow:
+            kwargs["allow_missing_kid"] = _allow
 
-        _verify_args = _context.behaviour.get("verify_args")
+        _verify_args = _context.work_environment.get_support("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 
         return kwargs
+
+    def _do_request_uris(self, base_url, hex, context, callback_uris):
+        _uri_name = 'request_uris'
+        if context.get_preference('request_parameter') == _uri_name:
+            if _uri_name not in callback_uris:
+                callback_uris[_uri_name] = self.get_uri(base_url,
+                                                        self._callback_path[_uri_name],
+                                                        hex)
+        return callback_uris
+
+    def _do_type(self, context, typ, response_types):
+        if typ == 'code' and 'code' in response_types:
+            if typ in context.get_preference('response_modes_supported'):
+                return True
+        elif typ == 'implicit':
+            if typ in context.get_preference('response_modes_supported'):
+                if implicit_response_types(response_types):
+                    return True
+        elif typ == 'form_post':
+            if typ in context.get_preference('response_modes_supported'):
+                return True
+        return False
+
+    def construct_uris(self,
+                       base_url: str,
+                       hex: bytes,
+                       context: ServiceContext,
+                       targets: Optional[List[str]] = None,
+                       response_types: Optional[List[str]] = None):
+        _callback_uris = context.get_preference('callback_uris', {})
+
+        for uri_name in self._callback_path.keys():
+            if uri_name == 'redirect_uris':
+                _callback_uris = self._do_redirect_uris(base_url, hex, context, _callback_uris,
+                                                        response_types)
+            elif uri_name == 'request_uris':
+                _callback_uris = self._do_request_uris(base_url, hex, context, _callback_uris)
+            else:
+                _callback_uris[uri_name] = self.get_uri(base_url, self._callback_path[uri_name],
+                                                        hex)
+
+        return _callback_uris

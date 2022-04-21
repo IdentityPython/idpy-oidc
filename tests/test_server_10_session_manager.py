@@ -92,8 +92,8 @@ class TestSessionManager:
         }
         server = Server(conf)
         self.server = server
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb = {
+        self.context = server.context
+        self.context.cdb = {
             "client_1": {
                 "client_secret": "hemligt",
                 "redirect_uris": [("{}cb".format(CLI1), None)],
@@ -107,10 +107,11 @@ class TestSessionManager:
                     },
                     "refresh_token": {"supports_minting": ["id_token"]},
                 },
+                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             }
         }
 
-        self.session_manager = server.endpoint_context.session_manager
+        self.session_manager = server.context.session_manager
         self.authn_event = AuthnEvent(
             uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref"
         )
@@ -127,7 +128,7 @@ class TestSessionManager:
 
         client_id = authz_req["client_id"]
         ae = create_authn_event(USER_ID)
-        return self.server.endpoint_context.session_manager.create_session(
+        return self.server.context.session_manager.create_session(
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
 
@@ -150,7 +151,7 @@ class TestSessionManager:
         )
 
         _user_info_1 = self.session_manager.get_user_session_info(session_key_1)
-        assert _user_info_1.subordinate == ["client_1"]
+        assert _user_info_1.subordinate == ['diana;;client_1']
         _client_info_1 = self.session_manager.get_client_session_info(session_key_1)
         assert len(_client_info_1.subordinate) == 1
         # grant = self.session_manager.get_grant(session_key_1)
@@ -170,7 +171,7 @@ class TestSessionManager:
         )
 
         _user_info_2 = self.session_manager.get_user_session_info(session_key_2)
-        assert _user_info_2.subordinate == ["client_1", "client_2"]
+        assert _user_info_2.subordinate == ["diana;;client_1", "diana;;client_2"]
 
         grant_1 = self.session_manager.get_grant(session_key_1)
         grant_2 = self.session_manager.get_grant(session_key_2)
@@ -219,7 +220,7 @@ class TestSessionManager:
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -228,7 +229,7 @@ class TestSessionManager:
 
     def test_code_usage(self):
         session_id = self._create_session(AUTH_REQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -348,8 +349,11 @@ class TestSessionManager:
         assert set(_session_info.keys()) == {
             "client_id",
             "grant_id",
-            "session_id",
             "user_id",
+            "user",
+            "client",
+            "grant",
+            "branch_id"
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -364,13 +368,18 @@ class TestSessionManager:
 
         grant = self.session_manager.get_grant(_session_id)
         code = self._mint_token("authorization_code", grant, _session_id)
-        _session_info = self.session_manager.get_session_info_by_token(code.value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            code.value, handler_key="authorization_code"
+        )
 
         assert set(_session_info.keys()) == {
             "client_id",
-            "session_id",
+            "branch_id",
             "grant_id",
             "user_id",
+            "user",
+            "client",
+            "grant"
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -445,13 +454,13 @@ class TestSessionManager:
             "expires_in": 43200,
         }
 
-        self.endpoint_context.authz = AuthzHandling(
+        self.context.authz = AuthzHandling(
             self.server.get_endpoint_context, grant_config=grant_config
         )
 
-        self.endpoint_context.cdb["client_1"] = {}
+        self.context.cdb["client_1"] = {}
 
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
 
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
@@ -490,23 +499,24 @@ class TestSessionManager:
             "expires_in": 43200,
         }
 
-        self.endpoint_context.authz = AuthzHandling(
+        self.context.authz = AuthzHandling(
             self.server.get_endpoint_context, grant_config=grant_config
         )
 
         # Change expiration time for the code and allow refresh tokens for this
         # specific client
-        self.endpoint_context.cdb["client_1"] = {
+        self.context.cdb["client_1"] = {
             "token_usage_rules": {
                 "authorization_code": {
                     "expires_in": 600,
                     "supports_minting": ["access_token", "refresh_token"],
                 },
                 "refresh_token": {"supports_minting": ["access_token"]},
-            }
+            },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
 
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
@@ -532,9 +542,9 @@ class TestSessionManager:
 
         # Test with another client
 
-        self.endpoint_context.cdb["client_2"] = {}
+        self.context.cdb["client_2"] = {}
 
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_2")
+        token_usage_rules = self.context.authz.usage_rules("client_2")
 
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
@@ -553,7 +563,7 @@ class TestSessionManager:
         self.session_manager.revoke_token(_session_id, code.value, recursive=1)
 
     def test_authentication_events(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -579,7 +589,7 @@ class TestSessionManager:
             raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
     def test_user_info(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -590,7 +600,7 @@ class TestSessionManager:
         self.session_manager.get_user_info("diana")
 
     def test_revoke_client_session(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -601,7 +611,7 @@ class TestSessionManager:
         self.session_manager.revoke_client_session(_session_id)
 
     def test_revoke_grant(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -613,7 +623,7 @@ class TestSessionManager:
         self.session_manager.revoke_grant(_session_id)
 
     def test_revoke_dependent(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -632,7 +642,7 @@ class TestSessionManager:
         assert grant.issued_token[0].token_class == "authorization_code"
 
     def test_grants(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,
@@ -644,28 +654,26 @@ class TestSessionManager:
 
         assert isinstance(res, list)
 
-        res = self.session_manager.grants(user_id="diana", client_id="client_1")
+        res = self.session_manager.grants(path=["diana", "client_1"])
 
         assert isinstance(res, list)
 
         try:
-            self.session_manager.grants(
-                user_id="diana",
-            )
+            self.session_manager.grants(path=["diana"])
         except AttributeError:
             pass
         else:
             raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
-        # and now cove add_grant
+        # and now add_grant
         grant = self.session_manager[_session_id]
         grant_kwargs = grant.parameter
         for i in ("not_before", "used"):
             grant_kwargs.pop(i)
-        self.session_manager.add_grant("diana", "client_1", **grant_kwargs)
+        self.session_manager.add_grant(["diana", "client_1"], **grant_kwargs)
 
     def test_find_latest_idtoken(self):
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.context.authz.usage_rules("client_1")
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,
             auth_req=AUTH_REQ,

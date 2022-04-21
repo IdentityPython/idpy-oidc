@@ -2,6 +2,7 @@
 import json
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -16,16 +17,20 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
-
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
+from .client_auth import client_auth_setup
+from .client_auth import method_to_item
+from .client_auth import single_authn_setup
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 
 __author__ = "Roland Hedberg"
+
+from ..context import OidcContext
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,30 +67,56 @@ class Service(ImpExp):
         "response_cls": object,
     }
 
-    init_args = ["superior_get"]
+    init_args = ["upstream_get"]
+
+    _supports = {}
+    _callback_path = {}
 
     def __init__(
-        self, superior_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
+            self,
+            upstream_get: Callable,
+            conf: Optional[Union[dict, Configuration]] = None,
+            **kwargs
     ):
         ImpExp.__init__(self)
 
-        self.superior_get = superior_get
+        self.upstream_get = upstream_get
         self.default_request_args = {}
+        self.client_authn_methods = {}
+
         if conf:
             self.conf = conf
             for param in [
                 "msg_type",
                 "response_cls",
                 "error_msg",
-                "default_authn_method",
                 "http_method",
                 "request_body_type",
                 "response_body_type",
+                "default_authn_method"
             ]:
                 if param in conf:
                     setattr(self, param, conf[param])
+
+            _default_request_args = conf.get("request_args", {})
+            if _default_request_args:
+                self.default_request_args = _default_request_args
+                del conf["request_args"]
+
+            _client_authn_methods = conf.get("client_authn_methods", None)
+            if _client_authn_methods:
+                self.client_authn_methods = client_auth_setup(method_to_item(_client_authn_methods))
+
+            if self.default_authn_method:
+                if self.default_authn_method not in self.client_authn_methods:
+                    self.client_authn_methods[self.default_authn_method] = single_authn_setup(
+                        self.default_authn_method, None)
+
         else:
             self.conf = {}
+            if self.default_authn_method:
+                self.client_authn_methods[self.default_authn_method] = single_authn_setup(
+                    self.default_authn_method, None)
 
         # pull in all the modifiers
         self.pre_construct = []
@@ -104,7 +135,14 @@ class Service(ImpExp):
         """
         ar_args = kwargs.copy()
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
+        _use = _context.collect_usage()
+        if not _use:
+            _use = _context.map_preferred_to_registered()
+
+        if "request_args" in self.conf:
+            ar_args.update(self.conf["request_args"])
+
         # Go through the list of claims defined for the message class.
         # There are a couple of places where information can be found.
         # Access them in the order of priority
@@ -115,23 +153,18 @@ class Service(ImpExp):
             if prop in ar_args:
                 continue
 
-            if prop != "state":
-                val = _context.get(prop)
-            else:
-                val = ""
-
+            val = _use.get(prop)
             if not val:
-                if "request_args" in self.conf:
-                    val = self.conf["request_args"].get(prop)
-                if not val:
-                    val = _context.register_args.get(prop)
-                    if not val:
-                        val = self.default_request_args.get(prop)
-                        if not val:
-                            val = _context.behaviour.get(prop)
+                # val = request_claim(_context, prop)
+                # if not val:
+                val = self.default_request_args.get(prop)
 
             if val:
                 ar_args[prop] = val
+
+        for key, val in self.default_request_args.items():
+            if key not in ar_args:
+                ar_args[key] = val
 
         return ar_args
 
@@ -187,7 +220,7 @@ class Service(ImpExp):
 
         return request_args
 
-    def update_service_context(self, resp, key="", **kwargs):
+    def update_service_context(self, resp: Message, key: Optional[str] = '', **kwargs):
         """
         A method run after the response has been parsed and verified.
 
@@ -197,7 +230,7 @@ class Service(ImpExp):
         """
         pass
 
-    def construct(self, request_args=None, **kwargs):
+    def construct(self, request_args: Optional[dict] = None, **kwargs):
         """
         Instantiate the request as a message class instance with
         attribute values gathered in a pre_construct method or in the
@@ -253,12 +286,15 @@ class Service(ImpExp):
 
         if authn_method:
             LOGGER.debug("Client authn method: %s", authn_method)
-            _context = self.superior_get("context")
-            try:
-                _func = _context.client_authn_method[authn_method]
-            except KeyError:  # not one of the common
-                LOGGER.error(f"Unknown client authentication method: {authn_method}")
-                raise Unsupported(f"Unknown client authentication method: {authn_method}")
+            if self.client_authn_methods and authn_method in self.client_authn_methods:
+                _func = self.client_authn_methods[authn_method]
+            else:
+                _context = self.upstream_get("context")
+                try:
+                    _func = _context.client_authn_methods[authn_method]
+                except KeyError:  # not one of the common
+                    LOGGER.error(f"Unknown client authentication method: {authn_method}")
+                    raise Unsupported(f"Unknown client authentication method: {authn_method}")
 
             return _func.construct(request, self, http_args=http_args, **kwargs)
 
@@ -289,10 +325,10 @@ class Service(ImpExp):
         if self.endpoint:
             return self.endpoint
 
-        return self.superior_get("context").provider_info[self.endpoint_name]
+        return self.upstream_get("context").provider_info[self.endpoint_name]
 
     def get_authn_header(
-        self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
+            self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
     ) -> dict:
         """
         Construct an authorization specification to be sent in the
@@ -324,11 +360,11 @@ class Service(ImpExp):
         return self.default_authn_method
 
     def get_headers(
-        self,
-        request: Union[dict, Message],
-        http_method: str,
-        authn_method: Optional[str] = "",
-        **kwargs,
+            self,
+            request: Union[dict, Message],
+            http_method: str,
+            authn_method: Optional[str] = "",
+            **kwargs,
     ) -> dict:
         """
 
@@ -346,7 +382,7 @@ class Service(ImpExp):
 
         for meth in self.construct_extra_headers:
             _headers = meth(
-                self.superior_get("context"),
+                self.upstream_get("context"),
                 headers=_headers,
                 request=request,
                 authn_method=authn_method,
@@ -358,7 +394,7 @@ class Service(ImpExp):
         return _headers
 
     def get_request_parameters(
-        self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
+            self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
     ) -> dict:
         """
         Builds the request message and constructs the HTTP headers.
@@ -393,7 +429,7 @@ class Service(ImpExp):
         _info = {"method": method, "request": request}
 
         _args = kwargs.copy()
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if _context.issuer:
             _args["iss"] = _context.issuer
 
@@ -420,6 +456,7 @@ class Service(ImpExp):
                 content_type = JSON_ENCODED
 
             _info["body"] = get_http_body(request, content_type)
+
             _headers.update({"Content-Type": content_type})
 
         if _headers:
@@ -459,7 +496,8 @@ class Service(ImpExp):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -467,12 +505,12 @@ class Service(ImpExp):
         :return: dictionary with arguments to the verify call
         """
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         kwargs = {
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
-            "client_id": _context.client_id,
+            "client_id": _context.get_client_id(),
         }
 
         if self.service_name == "provider_info":
@@ -482,21 +520,23 @@ class Service(ImpExp):
         return kwargs
 
     def _do_jwt(self, info):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         args = {"allowed_sign_algs": _context.get_sign_alg(self.service_name)}
         enc_algs = _context.get_enc_alg_enc(self.service_name)
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
-        _jwt = JWT(key_jar=_context.keyjar, **args)
-        _jwt.iss = _context.client_id
+
+        _jwt = JWT(key_jar=_context.get_keyjar(), **args)
+        _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
 
         try:
             resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
         except Exception as err:
+            LOGGER.error("Error while deserializing: %s (1 pass)", err)
             resp = None
             if sformat == "json":
                 # Could be JWS or JWE but wrongly tagged
@@ -537,7 +577,7 @@ class Service(ImpExp):
         :param sformat: Which serialization that was used
         :param state: The state
         :param kwargs: Extra key word arguments
-        :return: The parsed and to some extend verified response
+        :return: The parsed and to some extent verified response
         """
 
         if not sformat:
@@ -545,19 +585,23 @@ class Service(ImpExp):
 
         LOGGER.debug("response format: %s", sformat)
 
-        if sformat in ["jose", "jws", "jwe"]:
-            resp = self.post_parse_response(info, state=state)
-
-            if not resp:
-                LOGGER.error("Missing or faulty response")
-                raise ResponseError("Missing or faulty response")
-
-            return resp
+        resp = None
+        if sformat == "jose":
+            try:
+                self._do_jwt(info)
+                sformat = "dict"
+            except Exception:
+                _keyjar = self.upstream_get("attribute", 'keyjar')
+                resp = self.response_cls().from_jwe(info, keys=_keyjar)
+        elif sformat == "jwe":
+            _keyjar = self.upstream_get("attribute", 'keyjar')
+            _client_id = self.upstream_get("attribute", 'client_id')
+            resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":
             info = self.get_urlinfo(info)
-        elif sformat == "jwt":
+        elif sformat in ["jwt", "jws"]:
             info = self._do_jwt(info)
             sformat = "dict"
         elif sformat == "json":
@@ -566,7 +610,12 @@ class Service(ImpExp):
 
         LOGGER.debug("response_cls: %s", self.response_cls.__name__)
 
-        resp = self._do_response(info, sformat, **kwargs)
+        if resp is None:
+            if not info:
+                LOGGER.error("Missing or faulty response")
+                raise ResponseError("Missing or faulty response")
+
+            resp = self._do_response(info, sformat, **kwargs)
 
         LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
 
@@ -591,68 +640,78 @@ class Service(ImpExp):
 
         return resp
 
-    def get_conf_attr(self, attr, default=None):
-        """
-        Get the value of a attribute in the configuration
+    def supports(self):
+        res = {}
+        for key, val in self._supports.items():
+            if isinstance(val, Callable):
+                res[key] = val()
+            else:
+                res[key] = val
+        return res
 
-        :param attr: The attribute
-        :param default: If the attribute doesn't appear in the configuration
-            return this value
-        :return: The value of attribute in the configuration or the default
-            value
-        """
-        if attr in self.conf:
-            return self.conf[attr]
+    def get_callback_path(self, callback):
+        return self._callback_path.get(callback)
 
-        return default
+    @staticmethod
+    def get_uri(base_url, path, hex):
+        return f"{base_url}/{path}/{hex}"
+
+    def construct_uris(self,
+                       base_url: str,
+                       hex: bytes,
+                       context: OidcContext,
+                       targets: Optional[List[str]] = None,
+                       response_types: Optional[list] = None):
+        if not targets:
+            targets = self._callback_path.keys()
+
+        if not targets:
+            return {}
+
+        _callback_uris = context.get_preference('callback_uris', {})
+        for uri in targets:
+            if uri in _callback_uris:
+                pass
+            else:
+                _path = self._callback_path.get(uri)
+                if isinstance(_path, str):
+                    _callback_uris[uri] = self.get_uri(base_url, self._callback_path.get(_path), hex)
+                else:
+                    _callback_uris[uri] = [self.get_uri(base_url, self._callback_path.get(_var),
+                                                        hex) for _var in _path]
+
+        return _callback_uris
+
+    def supported(self, claim):
+        return claim in self._supports
+
+    def callback_uris(self):
+        return list(self._callback_path.keys())
 
 
-# def gather_constructors(service_methods, construct):
-#     """Loads the construct methods that are defined."""
-#     try:
-#         _methods = service_methods
-#     except KeyError:
-#         pass
-#     else:
-#         for meth in _methods:
-#             try:
-#                 func = meth['function']
-#             except KeyError:
-#                 pass
-#             else:
-#                 construct.append(importer(func))
-
-
-def init_services(service_definitions, superior_get):
+def init_services(service_definitions, upstream_get):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
-    :param superior_get: A function that returns different things from the base entity.
+    :param upstream_get: A function that returns different things from the base entity.
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
     service = DLDict()
     for service_name, service_configuration in service_definitions.items():
         try:
-            kwargs = service_configuration["kwargs"]
+            kwargs = {"conf": service_configuration["kwargs"]}
         except KeyError:
             kwargs = {}
 
-        kwargs.update({"superior_get": superior_get})
+        kwargs.update({"upstream_get": upstream_get})
 
         if isinstance(service_configuration["class"], str):
-            _value_cls = service_configuration["class"]
             _cls = importer(service_configuration["class"])
             _srv = _cls(**kwargs)
         else:
-            _value_cls = qualified_name(service_configuration["class"])
             _srv = service_configuration["class"](**kwargs)
-
-        # if 'post_functions' in service_configuration:
-        #     gather_constructors(service_configuration['post_functions'], _srv.post_construct)
-        # if 'pre_functions' in service_configuration:
-        #     gather_constructors(service_configuration['pre_functions'], _srv.pre_construct)
 
         service[_srv.service_name] = _srv
 

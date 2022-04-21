@@ -10,7 +10,6 @@ from cryptojwt.utils import as_unicode
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.util import importer
-
 from . import DefaultToken
 from . import Token
 from . import UnknownToken
@@ -25,11 +24,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-        self,
-        access_token: Optional[Token] = None,
-        authorization_code: Optional[Token] = None,
-        refresh_token: Optional[Token] = None,
-        id_token: Optional[Token] = None,
+            self,
+            access_token: Optional[Token] = None,
+            authorization_code: Optional[Token] = None,
+            refresh_token: Optional[Token] = None,
+            id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"authorization_code": authorization_code, "access_token": access_token}
@@ -83,7 +82,7 @@ class TokenHandler(ImpExp):
         return self.handler.keys()
 
 
-def init_token_handler(server_get, spec, token_class):
+def init_token_handler(upstream_get, spec, token_class):
     _kwargs = spec.get("kwargs", {})
 
     _lt = spec.get("lifetime")
@@ -109,7 +108,7 @@ def init_token_handler(server_get, spec, token_class):
             )
         _kwargs = spec
 
-    return cls(token_class=token_class, server_get=server_get, **_kwargs)
+    return cls(token_class=token_class, upstream_get=upstream_get, **_kwargs)
 
 
 def _add_passwd(keyjar, conf, kid):
@@ -142,13 +141,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-    server_get,
-    code: Optional[dict] = None,
-    token: Optional[dict] = None,
-    refresh: Optional[dict] = None,
-    id_token: Optional[dict] = None,
-    jwks_file: Optional[str] = "",
-    **kwargs
+        upstream_get,
+        code: Optional[dict] = None,
+        token: Optional[dict] = None,
+        refresh: Optional[dict] = None,
+        id_token: Optional[dict] = None,
+        jwks_file: Optional[str] = "",
+        **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -169,7 +168,7 @@ def factory(
 
     key_defs = []
     read_only = False
-    cwd = server_get("context").cwd
+    cwd = upstream_get("attribute", "cwd")
     if kwargs.get("jwks_def"):
         defs = kwargs["jwks_def"]
         if not jwks_file:
@@ -195,9 +194,9 @@ def factory(
             if default_token(cnf):
                 if kj:
                     _add_passwd(kj, cnf, cls)
-            args[attr] = init_token_handler(server_get, cnf, token_class_map[cls])
+            args[attr] = init_token_handler(upstream_get, cnf, token_class_map[cls])
 
     if id_token is not None:
-        args["id_token"] = init_token_handler(server_get, id_token, token_class="")
+        args["id_token"] = init_token_handler(upstream_get, id_token, token_class="")
 
     return TokenHandler(**args)

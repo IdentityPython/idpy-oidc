@@ -8,15 +8,23 @@ from typing import Union
 from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
+from requests import request
 
-import requests
 from idpyoidc.context import OidcContext
+from idpyoidc.message.oidc import ProviderConfigurationResponse
+from idpyoidc.metadata import Metadata
+from idpyoidc.server import authz
+from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
+from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
+from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
+from idpyoidc.server.metadata.oauth2 import Metadata as OAUTH2_Env
+from idpyoidc.server.metadata.oidc import Metadata as OIDC_Env
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 
@@ -48,11 +56,11 @@ def init_user_info(conf, cwd: str):
     return conf["class"](**kwargs)
 
 
-def init_service(conf, server_get=None):
+def init_service(conf, upstream_get=None):
     kwargs = conf.get("kwargs", {})
 
-    if server_get:
-        kwargs["server_get"] = server_get
+    if upstream_get:
+        kwargs["upstream_get"] = upstream_get
 
     if isinstance(conf["class"], str):
         try:
@@ -111,20 +119,34 @@ class EndpointContext(OidcContext):
         "client_authn_method": {},
     }
 
+    init_args = ['upstream_get', 'handler']
+
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        server_get: Callable,
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-        entity_id: Optional[str] = ""
+            self,
+            conf: Union[dict, OPConfiguration],
+            upstream_get: Callable,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            server_type: Optional[str] = '',
+            entity_id: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            metadata_class: Optional[Metadata] = None
     ):
-        entity_id = entity_id or conf.get("issuer", "")
-        OidcContext.__init__(self, config=conf, keyjar=keyjar, entity_id=entity_id)
+        _id = entity_id or conf.get("issuer", "")
+        OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
-        self.server_get = server_get
+        self.upstream_get = upstream_get
+
+        if metadata_class:
+            self.metadata = metadata_class
+        else:
+            if not server_type or server_type == "oidc":
+                self.metadata = OIDC_Env()
+            elif server_type == "oauth2":
+                self.metadata = OAUTH2_Env()
+            else:
+                raise ValueError(f"Unknown server type: {server_type}")
 
         _client_db = conf.get("client_db")
         if _client_db:
@@ -150,10 +172,10 @@ class EndpointContext(OidcContext):
         self.cookie_handler = cookie_handler
         self.claims_interface = None
         self.endpoint_to_authn_method = {}
-        self.httpc = httpc or requests
+        self.httpc = httpc or request
         self.idtoken = None
         self.issuer = ""
-        self.jwks_uri = None
+        # self.jwks_uri = None
         self.login_hint_lookup = None
         self.login_hint2acrs = None
         self.par_db = {}
@@ -200,16 +222,6 @@ class EndpointContext(OidcContext):
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
-        # self.setup = {}
-        _keys_conf = conf.get("key_conf")
-        if _keys_conf:
-            jwks_uri_path = _keys_conf["uri_path"]
-
-            if self.issuer.endswith("/"):
-                self.jwks_uri = "{}{}".format(self.issuer, jwks_uri_path)
-            else:
-                self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
-
         for item in [
             "cookie_handler",
             "authentication",
@@ -238,7 +250,68 @@ class EndpointContext(OidcContext):
         self.dev_auth_db = None
         _interface = conf.get("claims_interface")
         if _interface:
-            self.claims_interface = init_service(_interface, self.server_get)
+            self.claims_interface = init_service(_interface, self.upstream_get)
+
+        if isinstance(conf, OPConfiguration):
+            conf = conf.conf
+        _supports = self.supports()
+        self.keyjar = self.metadata.load_conf(conf, supports=_supports, keyjar=keyjar)
+        self.provider_info = self.metadata.provider_info(_supports)
+        self.provider_info['issuer'] = self.issuer
+        self.provider_info.update(self._get_endpoint_info())
+
+        # INTERFACES
+
+        self.authz = self.setup_authz()
+
+        self.setup_authentication()
+
+        self.session_manager = create_session_manager(
+            self.unit_get,
+            self.th_args,
+            sub_func=self._sub_func,
+            conf=self.conf,
+        )
+
+        self.do_userinfo()
+
+        # Must be done after userinfo
+        self.setup_login_hint_lookup()
+        self.set_remember_token()
+
+        self.setup_client_authn_methods()
+
+        _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
+        # if _id_token_handler:
+        #     self.provider_info.update(_id_token_handler.provider_info)
+
+    def setup_authz(self):
+        authz_spec = self.conf.get("authz")
+        if authz_spec:
+            return init_service(authz_spec, self.unit_get)
+        else:
+            return authz.Implicit(self.unit_get)
+
+    def setup_client_authn_methods(self):
+        self.client_authn_methods = client_auth_setup(
+            self.upstream_get, self.conf.get("client_authn_methods")
+        )
+
+    def setup_login_hint_lookup(self):
+        _conf = self.conf.get("login_hint_lookup")
+        if _conf:
+            _userinfo = None
+            _kwargs = _conf.get("kwargs")
+            if _kwargs:
+                _userinfo_conf = _kwargs.get("userinfo")
+                if _userinfo_conf:
+                    _userinfo = init_user_info(_userinfo_conf, self.cwd)
+
+            if _userinfo is None:
+                _userinfo = self.userinfo
+
+            self.login_hint_lookup = init_service(_conf)
+            self.login_hint_lookup.userinfo = _userinfo
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(
@@ -251,10 +324,10 @@ class EndpointContext(OidcContext):
         if _spec:
             _kwargs = _spec.get("kwargs", {})
             _cls = importer(_spec["class"])
-            self.scopes_handler = _cls(self.server_get, **_kwargs)
+            self.scopes_handler = _cls(self.upstream_get, **_kwargs)
         else:
             self.scopes_handler = Scopes(
-                self.server_get,
+                self.upstream_get,
                 allowed_scopes=self.conf.get("allowed_scopes"),
                 scopes_to_claims=self.conf.get("scopes_to_claims"),
             )
@@ -309,36 +382,6 @@ class EndpointContext(OidcContext):
                 else:
                     self._sub_func[key] = args["function"]
 
-    def create_providerinfo(self, capabilities):
-        """
-        Dynamically create the provider info response
-
-        :param capabilities:
-        :return:
-        """
-
-        _provider_info = capabilities
-        _provider_info["issuer"] = self.issuer
-        _provider_info["version"] = "3.0"
-
-        # acr_values
-        if self.authn_broker:
-            acr_values = self.authn_broker.get_acr_values()
-            if acr_values is not None:
-                _provider_info["acr_values_supported"] = acr_values
-
-        if self.jwks_uri and self.keyjar:
-            _provider_info["jwks_uri"] = self.jwks_uri
-
-        if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = self.scopes_handler.get_allowed_scopes()
-        if "claims_supported" not in _provider_info:
-            _provider_info["claims_supported"] = list(
-                self.scopes_handler.scopes_to_claims(_provider_info["scopes_supported"]).keys()
-            )
-
-        return _provider_info
-
     def set_remember_token(self):
         ses_par = self.conf.get("session_params") or {}
 
@@ -369,3 +412,96 @@ class EndpointContext(OidcContext):
 
             self.login_hint_lookup = init_service(_conf)
             self.login_hint_lookup.userinfo = _userinfo
+
+    def supports(self):
+        res = {}
+        if self.upstream_get:
+            for endpoint in self.upstream_get('endpoints').values():
+                res.update(endpoint.supports())
+        res.update(self.metadata.supports())
+        return res
+
+    def set_provider_info(self):
+        _info = self.metadata.provider_info(self.supports())
+        _info.update( {'issuer': self.issuer, 'version': "3.0"})
+
+        for endp in self.upstream_get('endpoints').values():
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+
+        # acr_values
+        if 'acr_values_supported' not in _info:
+            if self.authn_broker:
+                acr_values = self.authn_broker.get_acr_values()
+                if acr_values is not None:
+                    _info["acr_values_supported"] = acr_values
+
+        self.provider_info = _info
+
+    def get_preference(self, claim, default=None):
+        return self.metadata.get_preference(claim, default=default)
+
+    def set_preference(self, key, value):
+        self.metadata.set_preference(key, value)
+
+    def get_usage(self, claim, default: Optional[str] = None):
+        return self.metadata.get_usage(claim, default)
+
+    def set_usage(self, claim, value):
+        return self.metadata.set_usage(claim, value)
+
+    def setup_authentication(self):
+        _conf = self.conf.get("authentication")
+        if _conf:
+            self.authn_broker = populate_authn_broker(
+                _conf, self.upstream_get, self.template_handler
+            )
+        else:
+            self.authn_broker = {}
+
+        self.endpoint_to_authn_method = {}
+        for method in self.authn_broker:
+            try:
+                self.endpoint_to_authn_method[method.action] = method
+            except AttributeError:
+                pass
+
+    def unit_get(self, what, *arg):
+        _func = getattr(self, f"get_{what}", None)
+        if _func:
+            return _func(*arg)
+        return None
+
+    def get_attribute(self, attr, *args):
+        try:
+            val = getattr(self, attr)
+        except AttributeError:
+            if self.upstream_get:
+                return self.upstream_get("attribute", attr)
+            else:
+                return None
+        else:
+            if val is None and self.upstream_get:
+                return self.upstream_get("attribute", attr)
+            else:
+                return val
+
+    def set_attribute(self, attr, val):
+        setattr(self, attr, val)
+
+    def get_unit(self, *args):
+        return self
+
+    def get_context(self, *args):
+        return self
+
+    def map_supported_to_preferred(self):
+        self.metadata.supported_to_preferred(self.supports())
+        return self.metadata.prefer
+
+    def _get_endpoint_info(self):
+        _res = {}
+        for name, endp in self.upstream_get('endpoints').items():
+            if endp.endpoint_name:
+                _res[endp.endpoint_name] = endp.full_path
+        return _res

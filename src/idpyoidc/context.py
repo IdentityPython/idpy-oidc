@@ -1,11 +1,5 @@
 import copy
-from typing import Optional
-from typing import Union
 from urllib.parse import quote_plus
-
-from cryptojwt import KeyJar
-from cryptojwt.key_jar import init_key_jar
-from idpyoidc.configure import Configuration
 
 from idpyoidc.impexp import ImpExp
 
@@ -23,44 +17,19 @@ def add_issuer(conf, issuer):
 
 
 class OidcContext(ImpExp):
-    parameter = {"keyjar": KeyJar, "issuer": None}
+    parameter = {"entity_id": None}
 
-    def __init__(self,
-                 keyjar: Optional[KeyJar] = None,
-                 config: Optional[Union[dict, Configuration]] = None,
-                 entity_id: Optional[str] = "",
-                 **kwargs):
+    def __init__(self, config=None, entity_id=""):
         ImpExp.__init__(self)
-        if config is None:
-            config = {}
-
-        if not entity_id:
-            entity_id = config.get("entity_id", "")
-
-        self.issuer = self.entity_id = entity_id
-        self.keyjar = self._keyjar(keyjar, conf=config, entity_id=entity_id)
-
-    def _keyjar(self, keyjar=None, conf=None, entity_id=""):
-        if keyjar is None:
-            if "keys" in conf:
-                keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-            elif "key_conf" in conf:
-                keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-            else:
-                _keyjar = KeyJar()
-                if "jwks" in conf:
-                    _keyjar.import_jwks(conf["jwks"], "")
-
-            if "" in _keyjar and entity_id:
-                # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
-
-            _httpc_params = conf.get("httpc_params")
-            if _httpc_params:
-                _keyjar.httpc_params = _httpc_params
-
-            return _keyjar
+        if entity_id:
+            self.entity_id = entity_id
         else:
-            return keyjar
+            if config:
+                val = ''
+                for alt in ['client_id', 'issuer', 'entity_id']:
+                    val = config.get(alt)
+                    if val:
+                        break
+                self.entity_id = val
+            else:
+                self.entity_id = ''

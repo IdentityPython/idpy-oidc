@@ -31,12 +31,12 @@ EXAMPLE_MSG = {
 }
 
 
-def pre(args, request, endpoint_context):
+def pre(args, request, context):
     args.update({"name": "{}, {}".format(args["family_name"], args["given_name"])})
     return args
 
 
-def post(cis, request, endpoint_context):
+def post(cis, request, context):
     cis["request"] = request
     return cis
 
@@ -76,9 +76,9 @@ class TestEndpoint(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        server.endpoint_context.cdb["client_id"] = {}
-        self.endpoint_context = server.endpoint_context
-        _endpoints = do_endpoints(conf, server.server_get)
+        server.context.cdb["client_id"] = {}
+        self.context = server.context
+        _endpoints = do_endpoints(conf, server.unit_get)
         self.endpoint = _endpoints[""]
 
     def test_parse_urlencoded(self):
@@ -89,7 +89,7 @@ class TestEndpoint(object):
 
     def test_parse_url(self):
         self.endpoint.request_format = "url"
-        request = "{}?{}".format(self.endpoint_context.issuer, REQ.to_urlencoded())
+        request = "{}?{}".format(self.context.issuer, REQ.to_urlencoded())
         req = self.endpoint.parse_request(request, http_info={})
         assert req == REQ
 
@@ -108,7 +108,7 @@ class TestEndpoint(object):
 
     def test_parse_jwt(self):
         self.endpoint.request_format = "jwt"
-        kj = self.endpoint_context.keyjar
+        kj = self.endpoint.upstream_get('attribute','keyjar')
         request = REQ.to_jwt(kj.get_signing_key("RSA"), "RS256")
         req = self.endpoint.parse_request(request)
         assert req == REQ

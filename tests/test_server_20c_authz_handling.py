@@ -102,20 +102,21 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_idtoken(self):
         server = Server(conf)
-        server.endpoint_context.cdb["client_1"] = {
+        server.context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        server.endpoint_context.keyjar.add_symmetric(
+        server.keyjar.add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
-        self.session_manager = server.endpoint_context.session_manager
+        self.session_manager = server.context.session_manager
         self.user_id = USER_ID
         self.server = server
-        self.authz = server.endpoint_context.authz
+        self.authz = server.context.authz
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:

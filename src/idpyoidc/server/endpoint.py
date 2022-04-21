@@ -5,14 +5,16 @@ from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
 
+from cryptojwt.exception import IssuerNotFound
+
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import MissingRequiredValue
 from idpyoidc.exception import ParameterError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.node import Node
 from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.construct import construct_provider_info
 from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
 from idpyoidc.util import sanitize
@@ -76,7 +78,7 @@ def fragment_encoding(return_type):
         return True
 
 
-class Endpoint(object):
+class Endpoint(Node):
     request_cls = Message
     response_cls = Message
     error_cls = ResponseMessage
@@ -87,18 +89,21 @@ class Endpoint(object):
     request_placement = "query"
     response_format = "json"
     response_placement = "body"
+    response_content_type = ""
     client_authn_method = ""
-    default_capabilities = None
-    provider_info_attributes = None
     auth_method_attribute = ""
 
-    def __init__(self, server_get: Callable, **kwargs):
-        self.server_get = server_get
+    _supports = {}
+
+    def __init__(self, upstream_get: Callable, **kwargs):
+        self.upstream_get = upstream_get
         self.pre_construct = []
         self.post_construct = []
         self.post_parse_request = []
         self.kwargs = kwargs
         self.full_path = ""
+
+        Node.__init__(self, upstream_get=upstream_get)
 
         for param in [
             "request_cls",
@@ -134,22 +139,46 @@ class Endpoint(object):
             self.client_authn_method = ["none"]  # Ignore default value
         return kwargs
 
-    def get_provider_info_attributes(self):
-        _pia = construct_provider_info(self.provider_info_attributes, **self.kwargs)
-        if self.endpoint_name:
-            _pia[self.endpoint_name] = self.full_path
-        return _pia
-
     def process_verify_error(self, exception):
         _error = "invalid_request"
         return self.error_cls(error=_error, error_description="%s" % exception)
 
+    def find_client_keys(self, iss):
+        return False
+
+    def verify_request(self, request, keyjar, client_id, verify_args, lap=0):
+        # verify that the request message is correct, may have to do it twice
+        try:
+            if verify_args is None:
+                request.verify(keyjar=keyjar, opponent_id=client_id)
+            else:
+                request.verify(keyjar=keyjar, opponent_id=client_id, **verify_args)
+        except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
+            _error = "invalid_request"
+            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
+                if len(err.args) > 1:
+                    if err.args[1] == "initiate_login_uri":
+                        _error = "invalid_client_metadata"
+
+            return self.error_cls(error=_error, error_description="%s" % err)
+        except IssuerNotFound as err:
+            if lap:
+                return self.error_cls(error=err)
+            client_id = self.find_client_keys(err.args[0])
+            if not client_id:
+                return self.error_cls(error=err)
+            else:
+                # Fund a client ID I believe will work
+                self.verify_request(request=request, keyjar=keyjar, client_id=client_id,
+                                    verify_args=verify_args, lap=1)
+        return None
+
     def parse_request(
-        self,
-        request: Union[Message, dict, str],
-        http_info: Optional[dict] = None,
-        verify_args: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Union[Message, dict, str],
+            http_info: Optional[dict] = None,
+            verify_args: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -162,7 +191,8 @@ class Endpoint(object):
         LOGGER.debug("- {} -".format(self.endpoint_name))
         LOGGER.info("Request: %s" % sanitize(request))
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
+        _keyjar = self.upstream_get('attribute', 'keyjar')
 
         if http_info is None:
             http_info = {}
@@ -176,11 +206,11 @@ class Endpoint(object):
                     req = _cls_inst.deserialize(
                         request,
                         "jwt",
-                        keyjar=self.server_get("keyjar"),
+                        keyjar=_keyjar,
                         verify=_context.httpc_params["verify"],
                         **kwargs
                     )
-                elif self.request_format == "url":
+                elif self.request_format == "url":  # A whole URL not just the query part
                     parts = urlparse(request)
                     scheme, netloc, path, params, query, fragment = parts[:6]
                     req = _cls_inst.deserialize(query, "urlencoded")
@@ -198,22 +228,11 @@ class Endpoint(object):
         else:
             _client_id = req.get("client_id")
 
-        keyjar = self.server_get("keyjar")
-
-        # verify that the request message is correct
-        try:
-            if verify_args is None:
-                req.verify(keyjar=keyjar, opponent_id=_client_id)
-            else:
-                req.verify(keyjar=keyjar, opponent_id=_client_id, **verify_args)
-        except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
-            _error = "invalid_request"
-            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
-                if len(err.args) > 1:
-                    if err.args[1] == "initiate_login_uri":
-                        _error = "invalid_client_metadata"
-
-            return self.error_cls(error=_error, error_description="%s" % err)
+        # verify that the request message is correct, may have to do it twice
+        err_response = self.verify_request(request=req, keyjar=_keyjar, client_id=_client_id,
+                                           verify_args=verify_args)
+        if err_response:
+            return err_response
 
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
@@ -239,7 +258,6 @@ class Endpoint(object):
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
         authn_info = verify_client(
-            endpoint_context=self.server_get("context"),
             request=request,
             http_info=http_info,
             **kwargs
@@ -253,41 +271,41 @@ class Endpoint(object):
         return authn_info
 
     def do_post_parse_request(
-        self, request: Message, client_id: Optional[str] = "", **kwargs
+            self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(request, client_id, endpoint_context=_context, **kwargs)
+            request = meth(request, client_id, context=_context, **kwargs)
         return request
 
     def do_pre_construct(
-        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.pre_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request, context=_context, **kwargs)
 
         return response_args
 
     def do_post_construct(
-        self,
-        response_args: Union[Message, dict],
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Union[Message, dict],
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.post_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request, context=_context, **kwargs)
 
         return response_args
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs
     ) -> Union[Message, dict]:
         """
 
@@ -298,10 +316,10 @@ class Endpoint(object):
         return {}
 
     def construct(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ):
         """
         Construct the response
@@ -319,19 +337,19 @@ class Endpoint(object):
         return self.do_post_construct(response, request, **kwargs)
 
     def response_info(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
     def do_response(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        error: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            error: Optional[str] = "",
+            **kwargs
     ) -> dict:
         """
         :param response_args: Information to use when constructing the response
@@ -360,7 +378,9 @@ class Endpoint(object):
             _response = ""
             content_type = kwargs.get("content_type")
             if content_type is None:
-                if self.response_format == "json":
+                if self.response_content_type:
+                    content_type = self.response_content_type
+                elif self.response_format == "json":
                     content_type = "application/json"
                 elif self.response_format in ["jws", "jwe", "jose"]:
                     content_type = "application/jose"
@@ -380,7 +400,10 @@ class Endpoint(object):
                         else:
                             resp = json.dumps(_response)
                     elif self.response_format in ["jws", "jwe", "jose"]:
-                        content_type = "application/jose; charset=utf-8"
+                        if self.response_content_type:
+                            content_type = self.response_content_type
+                        else:
+                            content_type = "application/jose; charset=utf-8"
                         resp = _response
                     else:
                         content_type = "application/x-www-form-urlencoded"
@@ -436,10 +459,19 @@ class Endpoint(object):
 
     def allowed_target_uris(self):
         res = []
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for t in self.allowed_targets:
             if t == "":
                 res.append(_context.issuer)
             else:
-                res.append(self.server_get("endpoint", t).full_path)
+                res.append(self.upstream_get("endpoint", t).full_path)
         return set(res)
+
+    def supports(self):
+        res = {}
+        for key, val in self._supports.items():
+            if isinstance(val, Callable):
+                res[key] = val()
+            else:
+                res[key] = val
+        return res

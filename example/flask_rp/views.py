@@ -100,13 +100,13 @@ def finalize(op_identifier, request_args):
         logger.error(rp.response[0].decode())
         return rp.response[0], rp.status_code
 
-    _context = rp.client_get("service_context")
+    _context = rp.get_context()
     session['client_id'] = _context.get('client_id')
 
     session['state'] = request_args.get('state')
 
     if session['state']:
-        iss = _context.state.get_iss(session['state'])
+        iss = _context.cstate.get_claim(session['state'], claim='iss')
     else:
         return make_response('Unknown state', 400)
 
@@ -123,7 +123,7 @@ def finalize(op_identifier, request_args):
         raise excp
 
     if 'userinfo' in res:
-        _context = rp.client_get("service_context")
+        _context = rp.get_context()
         endpoints = {}
         for k, v in _context.provider_info.items():
             if k.endswith('_endpoint'):
@@ -154,17 +154,26 @@ def finalize(op_identifier, request_args):
         return make_response(res['error'], 400)
 
 
+def match_uri(uri: str, context) -> bool:
+    for _uri_type, _uris in context.get_preference("callback_uris").items():
+        if _uri_type == 'redirect_uris':
+            for _mode, _uri in _uris.items():
+                if uri in _uri:
+                    return True
+        else:
+            if isinstance(_uris, str) and uri == _uris:
+                return True
+            elif uri in _uris:
+                return True
+    return False
+
 def get_op_identifier_by_cb_uri(url: str):
     uri = splitquery(url)[0]
     for k, v in current_app.rph.issuer2rp.items():
-        _cntx = v.get_service_context()
-        for endpoint in ("redirect_uris",
-                         "post_logout_redirect_uris",
-                         "frontchannel_logout_uri",
-                         "backchannel_logout_uri"):
-            if uri in _cntx.get(endpoint, []):
-                return k
+        if match_uri(uri, v.get_service_context()):
+            return k
 
+    return None
 
 @oidc_rp_views.route('/authz_cb/<op_identifier>')
 def authz_cb(op_identifier):
@@ -195,7 +204,7 @@ def session_iframe():  # session management
     logger.debug('session_iframe request_args: {}'.format(request.args))
 
     _rp = get_rp(session['op_identifier'])
-    _context = _rp.client_get("service_context")
+    _context = _rp.get_context()
     session_change_url = "{}/session_change".format(_context.base_url)
 
     _issuer = current_app.rph.hash2issuer[session['op_identifier']]
@@ -216,7 +225,7 @@ def session_change():
     _rp = get_rp(session['op_identifier'])
 
     # If there is an ID token send it along as a id_token_hint
-    _aserv = _rp.client_get("service", 'authorization')
+    _aserv = _rp.upstream_get("service", 'authorization')
     request_args = {"prompt": "none"}
 
     request_args = _aserv.multiple_extend_request_args(
@@ -235,7 +244,7 @@ def session_change():
 def session_logout(op_identifier):
     _rp = get_rp(op_identifier)
     logger.debug('post_logout')
-    return "Post logout from {}".format(_rp.client_get("service_context").issuer)
+    return "Post logout from {}".format(_rp.get_context().issuer)
 
 
 # RP initiated logout
@@ -265,7 +274,7 @@ def frontchannel_logout(op_identifier):
     _rp = get_rp(op_identifier)
     sid = request.args['sid']
     _iss = request.args['iss']
-    if _iss != _rp.client_get("service_context").get('issuer'):
+    if _iss != _rp.get_context().get('issuer'):
         return 'Bad request', 400
     _state = _rp.session_interface.get_state_by_sid(sid)
     _rp.session_interface.remove_state(_state)

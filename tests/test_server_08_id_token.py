@@ -64,7 +64,7 @@ AREQRC = AuthorizationRequest(
 conf = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
-    "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
+    "key_conf": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
     "token_handler_args": {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
@@ -161,9 +161,9 @@ USER_ID = "diana"
 class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_session_manager(self):
-        server = Server(conf)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.server = Server(conf)
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -173,9 +173,10 @@ class TestEndpoint(object):
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
-        self.session_manager = self.endpoint_context.session_manager
+        self.server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        self.session_manager = self.context.session_manager
         self.user_id = USER_ID
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=""):
@@ -195,7 +196,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -204,7 +205,7 @@ class TestEndpoint(object):
     def _mint_access_token(self, grant, session_id, token_ref):
         access_token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -215,7 +216,7 @@ class TestEndpoint(object):
     def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -411,8 +412,8 @@ class TestEndpoint(object):
         assert _jws.jwt.headers["alg"] == "RS256"
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
 
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -420,9 +421,9 @@ class TestEndpoint(object):
         assert res["aud"] == ["client_1"]
 
     def test_get_sign_algorithm(self):
-        client_info = self.endpoint_context.cdb[AREQ["client_id"]]
+        client_info = self.context.cdb[AREQ["client_id"]]
         algs = get_sign_and_encrypt_algorithms(
-            self.endpoint_context,
+            self.context,
             client_info,
             "id_token",
             sign=True,
@@ -431,15 +432,13 @@ class TestEndpoint(object):
         assert algs == {"sign": True, "encrypt": False, "sign_alg": "RS256"}
 
         algs = get_sign_and_encrypt_algorithms(
-            self.endpoint_context, client_info, "id_token", sign=True, encrypt=True
+            self.context, client_info, "id_token", sign=True, encrypt=True
         )
         # default signing alg
         assert algs == {
             "sign": True,
             "encrypt": True,
-            "sign_alg": "RS256",
-            "enc_alg": "RSA-OAEP",
-            "enc_enc": "A128CBC-HS256",
+            "sign_alg": "RS256"
         }
 
     def test_available_claims(self):
@@ -451,8 +450,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "nickname" in res
@@ -464,8 +463,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -481,8 +480,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -496,8 +495,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "foobar" not in res
@@ -507,11 +506,11 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {
+        self.context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {
             "address": None
         }
 
-        _claims = self.endpoint_context.claims_interface.get_claims(
+        _claims = self.context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -519,8 +518,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -530,7 +529,7 @@ class TestEndpoint(object):
         session_id = self._create_session(AREQ)
         grant = self.session_manager[session_id]
 
-        _claims = self.endpoint_context.claims_interface.get_claims(
+        _claims = self.context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -538,8 +537,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -557,8 +556,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -569,9 +568,9 @@ class TestEndpoint(object):
         session_id = self._create_session(AREQS)
         grant = self.session_manager[session_id]
         self.session_manager.token_handler["id_token"].kwargs["add_claims_by_scope"] = True
-        self.endpoint_context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
+        self.context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
 
-        _claims = self.endpoint_context.claims_interface.get_claims(
+        _claims = self.context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -579,8 +578,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -597,8 +596,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         # User information, from scopes -> claims
@@ -620,8 +619,8 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
+        _jwks = self.server.keyjar.export_jwks()
+        client_keyjar.import_jwks(_jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         # Email didn't match
@@ -639,8 +638,8 @@ class TestEndpoint(object):
             grant, session_id, token_ref=code, access_token=access_token.value
         )
 
-        endpoint_context = self.endpoint_context
-        sman = endpoint_context.session_manager
+        context = self.context
+        sman = context.session_manager
         _info = self.session_manager.token_handler.info(id_token.value)
         assert "sid" in _info
         assert "exp" in _info
@@ -653,9 +652,9 @@ class TestEndpoint(object):
         # TODO: we need an authentication event for this id_token for a better coverage
         _id_token.payload(session_id)
 
-        client_info = endpoint_context.cdb[client_id]
+        client_info = context.cdb[client_id]
         get_sign_and_encrypt_algorithms(
-            endpoint_context, client_info, payload_type="id_token", sign=True, encrypt=True
+            context, client_info, payload_type="id_token", sign=True, encrypt=True
         )
 
     def test_id_token_acr_claim(self):

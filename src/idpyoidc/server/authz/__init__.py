@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class AuthzHandling(object):
     """Class that allow an entity to manage authorization"""
 
-    def __init__(self, server_get, grant_config=None, **kwargs):
-        self.server_get = server_get
+    def __init__(self, upstream_get, grant_config=None, **kwargs):
+        self.upstream_get = upstream_get
         self.grant_config = grant_config or {}
         self.kwargs = kwargs
 
@@ -29,7 +29,7 @@ class AuthzHandling(object):
             return _usage_rules
 
         try:
-            _per_client = self.server_get("context").cdb[client_id]["token_usage_rules"]
+            _per_client = self.upstream_get("context").cdb[client_id]["token_usage_rules"]
         except KeyError:
             pass
         else:
@@ -61,7 +61,7 @@ class AuthzHandling(object):
         request: Union[dict, Message],
         resources: Optional[list] = None,
     ) -> Grant:
-        session_info = self.server_get("context").session_manager.get_session_info(
+        session_info = self.upstream_get("context").session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -86,7 +86,7 @@ class AuthzHandling(object):
         if not scopes:
             scopes = request.get("scope", [])
             grant.scope = scopes
-        grant.claims = self.server_get("context").claims_interface.get_claims_all_usage(
+        grant.claims = self.upstream_get("context").claims_interface.get_claims_all_usage(
             session_id=session_id, scopes=scopes
         )
 
@@ -101,13 +101,13 @@ class Implicit(AuthzHandling):
         resources: Optional[list] = None,
     ) -> Grant:
         args = self.grant_config.copy()
-        grant = self.server_get("context").session_manager.get_grant(session_id=session_id)
+        grant = self.upstream_get("context").session_manager.get_grant(session_id=session_id)
         for arg, val in args:
             setattr(grant, arg, val)
         return grant
 
 
-def factory(msgtype, server_get, **kwargs):
+def factory(msgtype, upstream_get, **kwargs):
     """
     Factory method that can be used to easily instantiate a class instance
 
@@ -120,6 +120,6 @@ def factory(msgtype, server_get, **kwargs):
         if inspect.isclass(obj) and issubclass(obj, AuthzHandling):
             try:
                 if obj.__name__ == msgtype:
-                    return obj(server_get, **kwargs)
+                    return obj(upstream_get, **kwargs)
             except AttributeError:
                 pass

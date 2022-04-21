@@ -30,20 +30,20 @@ CC_METHOD = {
 }
 
 
-def post_authn_parse(request, client_id, endpoint_context, **kwargs):
+def post_authn_parse(request, client_id, context, **kwargs):
     """
 
     :param request:
     :param client_id:
-    :param endpoint_context:
+    :param context:
     :param kwargs:
     :return:
     """
-    client = endpoint_context.cdb[client_id]
+    client = context.cdb[client_id]
     if "pkce_essential" in client:
         essential = client["pkce_essential"]
     else:
-        essential = endpoint_context.args["pkce"].get("essential", False)
+        essential = context.args["pkce"].get("essential", False)
     if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -55,7 +55,7 @@ def post_authn_parse(request, client_id, endpoint_context, **kwargs):
 
     if "code_challenge" in request and (
         request["code_challenge_method"]
-        not in endpoint_context.args["pkce"]["code_challenge_methods"]
+        not in context.args["pkce"]["code_challenge_methods"]
     ):
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -84,7 +84,7 @@ def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="
     return True
 
 
-def post_token_parse(request, client_id, endpoint_context, **kwargs):
+def post_token_parse(request, client_id, context, **kwargs):
     """
     To be used as a post_parse_request function.
 
@@ -98,8 +98,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
         return request
 
     try:
-        _session_info = endpoint_context.session_manager.get_session_info_by_token(
-            request["code"], grant=True
+        _session_info = context.session_manager.get_session_info_by_token(
+            request["code"], grant=True, handler_key="authorization_code"
         )
     except KeyError:
         return TokenErrorResponse(error="invalid_grant", error_description="Unknown access grant")
@@ -147,4 +147,4 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
             raise ValueError("Unsupported method: {}".format(method))
         kwargs["code_challenge_methods"][method] = CC_METHOD[method]
 
-    authn_endpoint.server_get("context").args["pkce"] = kwargs
+    authn_endpoint.upstream_get("context").args["pkce"] = kwargs

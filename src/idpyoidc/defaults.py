@@ -12,3 +12,4 @@ DEF_SIGN_ALG = {
 JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
 BASECHR = string.ascii_letters + string.digits
+

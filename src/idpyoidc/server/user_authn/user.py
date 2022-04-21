@@ -13,6 +13,9 @@ from cryptojwt.jwt import JWT
 
 from idpyoidc.server.exception import FailedAuthentication
 from idpyoidc.server.exception import ImproperlyConfigured
+from idpyoidc.server.exception import InconsistentDatabase
+from idpyoidc.server.exception import NoSuchClientSession
+from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.exception import OnlyForTestingWarning
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import instantiate
@@ -44,9 +47,9 @@ class UserAuthnMethod(object):
     url_endpoint = "/verify"
     FAILED_AUTHN = (None, True)
 
-    def __init__(self, server_get=None, **kwargs):
+    def __init__(self, upstream_get=None, **kwargs):
         self.query_param = "upm_answer"
-        self.server_get = server_get
+        self.upstream_get = upstream_get
         self.kwargs = kwargs
 
     def __call__(self, **kwargs):
@@ -64,8 +67,8 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
-            logger.debug("authenticated_as: cookie info={}".format(_info))
             if _info:
+                logger.debug("authenticated_as: cookie info={}".format(_info))
                 if "max_age" in kwargs and kwargs["max_age"] != 0:
                     _max_age = kwargs["max_age"]
                     _now = utc_time_sans_frac()
@@ -74,6 +77,9 @@ class UserAuthnMethod(object):
                             "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age))
                         )
                         return None, 0
+            else:
+                logger.info("Failed to find session based on cookie")
+
             return _info, utc_time_sans_frac()
 
     def verify(self, *args, **kwargs):
@@ -84,7 +90,7 @@ class UserAuthnMethod(object):
         raise NotImplementedError
 
     def unpack_token(self, token):
-        return verify_signed_jwt(token=token, keyjar=self.server_get("context").keyjar)
+        return verify_signed_jwt(token=token, keyjar=self.upstream_get("context").keyjar)
 
     def done(self, areq):
         """
@@ -100,7 +106,7 @@ class UserAuthnMethod(object):
             return False
 
     def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         logger.debug("Value cookies: {}".format(cookie))
 
         if cookie is None:
@@ -109,9 +115,18 @@ class UserAuthnMethod(object):
             for val in cookie:
                 _info = json.loads(val["value"])
                 _info["timestamp"] = int(val["timestamp"])
+
+                # verify session ID
+                try:
+                    _context.session_manager[_info["sid"]]
+                except (KeyError, ValueError, InconsistentDatabase,
+                        NoSuchClientSession, NoSuchGrant) as err:
+                    logger.info(f"Verifying session ID fail due to {err}")
+                    return {}
+
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
                 logger.debug("cookie_info: session id={}".format(session_id))
-                # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
+
                 if session_id[1] != client_id:
                     continue
                 else:
@@ -142,12 +157,12 @@ class UserPassJinja2(UserAuthnMethod):
         db,
         template_handler,
         template="user_pass.jinja2",
-        server_get=None,
+        upstream_get=None,
         verify_endpoint="",
         **kwargs,
     ):
 
-        super(UserPassJinja2, self).__init__(server_get=server_get)
+        super(UserPassJinja2, self).__init__(upstream_get=upstream_get)
         self.template_handler = template_handler
         self.template = template
 
@@ -175,12 +190,13 @@ class UserPassJinja2(UserAuthnMethod):
             ),
             OnlyForTestingWarning,
         )
-        if not self.server_get:
-            raise Exception(f"{self.__class__.__name__} doesn't have a working server_get")
-        _context = self.server_get("context")
+        if not self.upstream_get:
+            raise Exception(f"{self.__class__.__name__} doesn't have a working upstream_get")
+        _context = self.upstream_get("context")
+        _keyjar = self.upstream_get("attribute", 'keyjar')
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
-        jws = create_signed_jwt(_context.issuer, _context.keyjar, **kwargs)
+        jws = create_signed_jwt(_context.issuer, _keyjar, **kwargs)
         _kwargs = self.kwargs.copy()
         for attr in ["policy", "tos", "logo"]:
             _uri = "{}_uri".format(attr)
@@ -203,8 +219,8 @@ class UserPassJinja2(UserAuthnMethod):
 
 
 class BasicAuthn(UserAuthnMethod):
-    def __init__(self, pwd, ttl=5, server_get=None):
-        UserAuthnMethod.__init__(self, server_get=server_get)
+    def __init__(self, pwd, ttl=5, upstream_get=None):
+        UserAuthnMethod.__init__(self, upstream_get=upstream_get)
         self.passwd = pwd
         self.ttl = ttl
 
@@ -235,8 +251,8 @@ class BasicAuthn(UserAuthnMethod):
 class SymKeyAuthn(UserAuthnMethod):
     # user authentication using a token
 
-    def __init__(self, ttl, symkey, server_get=None):
-        UserAuthnMethod.__init__(self, server_get=server_get)
+    def __init__(self, ttl, symkey, upstream_get=None):
+        UserAuthnMethod.__init__(self, upstream_get=upstream_get)
 
         if symkey is not None and symkey == "":
             msg = "SymKeyAuthn.symkey cannot be an empty value"
@@ -269,8 +285,8 @@ class SymKeyAuthn(UserAuthnMethod):
 class NoAuthn(UserAuthnMethod):
     # Just for testing allows anyone it without authentication
 
-    def __init__(self, user, server_get=None):
-        UserAuthnMethod.__init__(self, server_get=server_get)
+    def __init__(self, user, upstream_get=None):
+        UserAuthnMethod.__init__(self, upstream_get=upstream_get)
         self.user = user
         self.fail = None
 

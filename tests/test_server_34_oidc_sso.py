@@ -103,6 +103,13 @@ oidc_clients:
         - 'code id_token'
         - 'id_token'
         - 'code id_token token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client_2:
     client_secret: "spraket_sr.se"
     client_id: client_2,
@@ -111,6 +118,13 @@ oidc_clients:
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client_3:
     client_id: client_3,
     client_secret: '2222222222222222222222222222222222222222'
@@ -119,6 +133,13 @@ oidc_clients:
     post_logout_redirect_uri: ['https://openidconnect.net/', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
@@ -175,22 +196,22 @@ class TestUserAuthn(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        endpoint_context = server.endpoint_context
+        context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
-        endpoint_context.cdb = _clients["oidc_clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        context.cdb = _clients["oidc_clients"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint", "authorization")
-        self.endpoint_context = endpoint_context
+        self.endpoint = server.get_endpoint("authorization")
+        self.context = context
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_sso(self):
         request = self.endpoint.parse_request(AUTH_REQ_DICT)
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
         # info = self.endpoint.process_request(request)
 
@@ -203,7 +224,7 @@ class TestUserAuthn(object):
         # second login - from 2nd client
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
         sid2 = info["session_id"]
 
@@ -216,7 +237,7 @@ class TestUserAuthn(object):
         # third login - from 3rd client
         request = self.endpoint.parse_request(AUTH_REQ_3.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
 
         assert set(info.keys()) == {"session_id", "identity", "user"}
@@ -229,11 +250,11 @@ class TestUserAuthn(object):
 
         request = self.endpoint.parse_request(AUTH_REQ_4.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("context").cdb[request["client_id"]]
 
         # Parse cookies once before setup_auth
-        kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=cookies_1, name=self.endpoint_context.cookie_handler.name["session"]
+        kakor = self.context.cookie_handler.parse_cookie(
+            cookies=cookies_1, name=self.context.cookie_handler.name["session"]
         )
 
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
@@ -246,31 +267,31 @@ class TestUserAuthn(object):
         # Fifth login - from 2nd client - wrong cookie
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
-        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
+        user_session_info = self.endpoint.upstream_get("context").session_manager.get(
             ["diana"]
         )
         assert len(user_session_info.subordinate) == 3
         assert set(user_session_info.subordinate) == {
-            "client_1",
-            "client_2",
-            "client_3",
+            "diana;;client_1",
+            "diana;;client_2",
+            "diana;;client_3",
         }
 
         # Should be one grant for each of client_2 and client_3 and
         # 2 grants for client_1
 
-        csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi1 = self.endpoint.upstream_get("context").session_manager.get(
             ["diana", "client_1"]
         )
-        csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi2 = self.endpoint.upstream_get("context").session_manager.get(
             ["diana", "client_2"]
         )
-        csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi3 = self.endpoint.upstream_get("context").session_manager.get(
             ["diana", "client_3"]
         )
 

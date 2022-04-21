@@ -36,14 +36,15 @@ class BackChannelAuthentication(Endpoint):
     response_placement = "url"
     endpoint_name = "backchannel_authentication_endpoint"
     name = "backchannel_authentication"
-    provider_info_attributes = {
+
+    _supports = {
         "backchannel_token_delivery_modes_supported": ["poll", "ping", "push"],
         "backchannel_authentication_request_signing_alg_values_supported": None,
         "backchannel_user_code_parameter_supported": True,
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         # self.pre_construct.append(self._pre_construct)
         # self.post_parse_request.append(self._do_request_uri)
         # self.post_parse_request.append(self._post_parse_request)
@@ -59,14 +60,14 @@ class BackChannelAuthentication(Endpoint):
         elif request.get("login_hint"):
             _login_hint = request.get("login_hint")
             if _login_hint:
-                _context = self.server_get("context")
+                _context = self.upstream_get("context")
                 if _context.login_hint_lookup:
                     _request_user = _context.login_hint_lookup(_login_hint)
         elif request.get("login_hint_token"):
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             _request_user = execute(
                 self.parse_login_hint_token,
-                keyjar=_context.keyjar,
+                keyjar=self.upstream_get('attribute', 'keyjar'),
                 login_hint_token=request.get("login_hint_token"),
                 context=_context,
             )
@@ -78,10 +79,10 @@ class BackChannelAuthentication(Endpoint):
         The OP MUST accept its Issuer Identifier, Token Endpoint URL, or Backchannel
         Authentication Endpoint URL as values that identify it as an intended audience.
         """
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         res = [_context.issuer]
         res.append(self.full_path)
-        res.append(self.server_get("endpoint", "token").full_path)
+        res.append(self.upstream_get("endpoint", "token").full_path)
         return set(res)
 
     def process_request(
@@ -100,7 +101,7 @@ class BackChannelAuthentication(Endpoint):
             return _error_msg
 
         if request_user:  # Got a request for a legitimate user, create a session
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             _sid = _context.session_manager.create_session(
                 None, request, request_user, client_id=request["client_id"]
             )
@@ -138,7 +139,7 @@ class CIBATokenHelper(AccessTokenHelper):
     def post_parse_request(
         self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         _session_id = _mngr.auth_req_id_map[request["auth_req_id"]]
         _info = _mngr.get_session_info(_session_id)
@@ -179,7 +180,7 @@ class CIBATokenHelper(AccessTokenHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
 
         _mngr = _context.session_manager
         logger.debug("OIDC Access Token")
@@ -239,7 +240,7 @@ class CIBATokenHelper(AccessTokenHelper):
             token = self._mint_token(
                 token_class="access_token",
                 grant=grant,
-                session_id=_session_info["session_id"],
+                session_id=_session_info["branch_id"],
                 client_id=_session_info["client_id"],
                 token_type=token_type,
             )
@@ -255,7 +256,7 @@ class CIBATokenHelper(AccessTokenHelper):
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                 )
             except MintingNotAllowed as err:
@@ -264,14 +265,14 @@ class CIBATokenHelper(AccessTokenHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         if "openid" in _authn_req["scope"]:
             try:
                 _idtoken = self._mint_token(
                     token_class="id_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                 )
             except (JWEException, NoSuitableSigningKeys) as err:
@@ -298,8 +299,8 @@ class ClientNotification(Endpoint):
         "backchannel_client_notification_endpoint": None,
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
 
     def process_request(
         self,
@@ -322,8 +323,6 @@ class ClientNotificationAuthn(ClientSecretBasic):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
-        request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
         get_client_id_from_token: Optional[Callable] = None,

@@ -2,8 +2,12 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc import verified_claim_name
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
+from idpyoidc.metadata import get_encryption_algs
+from idpyoidc.metadata import get_encryption_encs
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -33,13 +37,18 @@ class UserInfo(Service):
     response_cls = oidc.OpenIDSchema
     error_msg = oidc.ResponseMessage
     endpoint_name = "userinfo_endpoint"
-    synchronous = True
     service_name = "userinfo"
     default_authn_method = "bearer_header"
-    http_method = "GET"
 
-    def __init__(self, superior_get, conf=None):
-        Service.__init__(self, superior_get, conf=conf)
+    _supports = {
+        "userinfo_signing_alg_values_supported": get_signing_algs,
+        "userinfo_encryption_alg_values_supported": get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": get_encryption_encs,
+        "encrypt_userinfo_supported": False
+    }
+
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
@@ -49,27 +58,20 @@ class UserInfo(Service):
         if "access_token" in request_args:
             pass
         else:
-            request_args = self.superior_get("context").state.multiple_extend_request_args(
-                request_args,
+            request_args = self.upstream_get("context").cstate.get_set(
                 kwargs["state"],
-                ["access_token"],
-                ["auth_response", "token_response", "refresh_token_response"],
+                claim=["access_token"]
             )
 
         return request_args, {}
 
     def post_parse_response(self, response, **kwargs):
-        _context = self.superior_get("context")
-        _state_interface = _context.state
-        _args = _state_interface.multiple_extend_request_args(
-            {},
-            kwargs["state"],
-            ["id_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
-        )
+        _context = self.upstream_get("context")
+        _current = _context.cstate
+        _args = _current.get_set(kwargs["state"], claim=[verified_claim_name("id_token")])
 
         try:
-            _sub = _args["id_token"]["sub"]
+            _sub = _args[verified_claim_name("id_token")]["sub"]
         except KeyError:
             logger.warning("Can not verify value on sub")
         else:
@@ -85,11 +87,12 @@ class UserInfo(Service):
                 if "JWT" in spec:
                     try:
                         aggregated_claims = Message().from_jwt(
-                            spec["JWT"].encode("utf-8"), keyjar=_context.keyjar
+                            spec["JWT"].encode("utf-8"),
+                            keyjar=self.upstream_get('attribute', 'keyjar')
                         )
                     except MissingSigningKey as err:
                         logger.warning(
-                            "Error encountered while unpacking aggregated " "claims".format(err)
+                            f"Error encountered while unpacking aggregated claims: {err}"
                         )
                     else:
                         claims = [
@@ -98,37 +101,28 @@ class UserInfo(Service):
 
                         for key in claims:
                             response[key] = aggregated_claims[key]
-                elif "endpoint" in spec:
-                    _info = {
-                        "headers": self.get_authn_header(
-                            {},
-                            self.default_authn_method,
-                            authn_endpoint=self.endpoint_name,
-                            key=kwargs["state"],
-                        ),
-                        "url": spec["endpoint"],
-                    }
 
         # Extension point
         for meth in self.post_parse_process:
-            response = meth(response, _state_interface, kwargs["state"])
+            response = meth(response, _current, kwargs["state"])
 
-        _state_interface.store_item(response, "user_info", kwargs["state"])
+        _current.update(kwargs["state"], response)
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         kwargs = {
-            "client_id": _context.client_id,
+            "client_id": _context.get_client_id(),
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
             "skew": _context.clock_skew,
         }

@@ -108,6 +108,13 @@ clients:
     'response_types': 
         - 'code'
         - 'token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client2:
     client_secret: "spraket"
     redirect_uris:
@@ -115,6 +122,13 @@ clients:
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
@@ -125,20 +139,24 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
-            "capabilities": CAPABILITIES,
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+            ],
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+            "response_modes_supported": ["query", "fragment", "form_post"],
+            "claims_parameter_supported": True,
+            "request_parameter_supported": True,
+            "request_uri_parameter_supported": True,
+            "request_cls": JWTSecuredAuthorizationRequest,
             "endpoint": {
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
-                    "kwargs": {
-                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-                        "response_modes_supported": ["query", "fragment", "form_post"],
-                        "claims_parameter_supported": True,
-                        "request_parameter_supported": True,
-                        "request_uri_parameter_supported": True,
-                        "request_cls": JWTSecuredAuthorizationRequest,
-                    },
+                    "kwargs": {},
                 }
             },
             "authentication": {
@@ -169,25 +187,23 @@ class TestEndpoint(object):
             },
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
+        context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
-        endpoint_context.cdb = _clients["clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
-        self.endpoint = server.server_get("endpoint", "authorization")
-        self.session_manager = endpoint_context.session_manager
+        context.cdb = _clients["clients"]
+        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        self.endpoint = server.get_endpoint("authorization")
+        self.session_manager = context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("context").provider_info["issuer"],
+            aud=self.endpoint.upstream_get("context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -205,7 +221,7 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("context").provider_info["issuer"],
+            aud=self.endpoint.upstream_get("context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"

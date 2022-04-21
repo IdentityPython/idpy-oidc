@@ -136,18 +136,19 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint = server.server_get("endpoint", "authorization")
+        self.endpoint = server.get_endpoint("authorization")
 
     def test_process_request(self):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         assert _context.add_on["extra_args"] == {"authorization": {"iss": "issuer"}}
 
         _pr_resp = self.endpoint.parse_request(AUTH_REQ)

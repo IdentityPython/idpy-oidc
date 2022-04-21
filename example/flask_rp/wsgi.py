@@ -4,7 +4,7 @@ import os
 import sys
 
 from idpyoidc.client.configure import Configuration
-from idpyoidc.client.configure import RPConfiguration
+from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.ssl_context import create_context
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     template_dir = os.path.join(dir_path, 'templates')
 
     _config = create_from_config_file(Configuration,
-                                      entity_conf=[{"class": RPConfiguration, "attr": "rp"}],
+                                      entity_conf=[{"class": RPHConfiguration, "attr": "rp"}],
                                       filename=conf)
 
     app = application.oidc_provider_init_app(_config.rp, name, template_folder=template_dir)

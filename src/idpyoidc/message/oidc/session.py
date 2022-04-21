@@ -4,21 +4,20 @@ from cryptojwt.exception import UnsupportedAlgorithm
 
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import NotForMe
+from idpyoidc.message import Message
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.time_util import utc_time_sans_frac
-
 from ..oauth2 import ResponseMessage
+from ..oidc import clear_verified_claims
 from ..oidc import ID_TOKEN_VERIFY_ARGS
-from ..oidc import SINGLE_OPTIONAL_IDTOKEN
 from ..oidc import IdToken
 from ..oidc import MessageWithIdToken
-from ..oidc import clear_verified_claims
+from ..oidc import SINGLE_OPTIONAL_IDTOKEN
 from ..oidc import verified_claim_name
 from ..oidc import verify_id_token
 
@@ -136,13 +135,8 @@ class LogoutToken(Message):
         except KeyError:
             _skew = 0
 
-        try:
-            _exp = self["iat"]
-        except KeyError:
-            pass
-        else:
-            if self["iat"] > (_now + _skew):
-                raise ValueError("Invalid issued_at time")
+        if 'iat' in self and self["iat"] > (_now + _skew):
+            raise ValueError("Invalid issued_at time")
 
         _allowed = kwargs.get("allowed_sign_alg")
         if _allowed and self.jws_header["alg"] != _allowed:

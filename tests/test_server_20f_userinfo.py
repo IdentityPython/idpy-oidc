@@ -192,16 +192,17 @@ class TestCollectUserInfo:
         }
 
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        self.endpoint_context = server.endpoint_context
+        self.context = server.context
         # Just has to be there
-        self.endpoint_context.cdb["client1"] = {
+        self.context.cdb["client1"] = {
             "add_claims": {
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(server.server_get)
+        self.session_manager = self.context.session_manager
+        self.claims_interface = ClaimsInterface(server.unit_get)
         self.user_id = "diana"
         self.server = server
 
@@ -289,7 +290,7 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
+        _userinfo_endpoint = self.server.get_endpoint("userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = False
         del _userinfo_endpoint.kwargs["base_claims"]
@@ -310,12 +311,12 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
+        _userinfo_endpoint = self.server.get_endpoint("userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]
 
-        self.endpoint_context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {
+        self.context.cdb[_req["client_id"]]["add_claims"]["always"]["userinfo"] = {
             "phone_number": None
         }
 
@@ -421,10 +422,10 @@ class TestCollectUserInfoCustomScopes:
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self, conf):
         self.server = Server(conf)
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client1"] = {}
-        self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(self.server.server_get)
+        self.context = self.server.context
+        self.context.cdb["client1"] = {}
+        self.session_manager = self.context.session_manager
+        self.claims_interface = ClaimsInterface(self.server.unit_get)
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
@@ -473,10 +474,10 @@ class TestCollectUserInfoCustomScopes:
     def test_collect_user_info_scope_mapping_per_client(self, conf):
         conf["scopes_to_claims"] = SCOPE2CLAIMS
         server = Server(conf)
-        endpoint_context = server.endpoint_context
-        self.session_manager = endpoint_context.session_manager
-        claims_interface = endpoint_context.claims_interface
-        endpoint_context.cdb["client1"] = {
+        context = server.context
+        self.session_manager = context.session_manager
+        claims_interface = context.claims_interface
+        context.cdb["client1"] = {
             "scopes_to_claims": {
                 "openid": ["sub"],
                 "research_and_scholarship": [
@@ -514,7 +515,7 @@ class TestCollectUserInfoCustomScopes:
         }
 
     def test_collect_user_info_allowed_scopes_per_client(self):
-        self.endpoint_context.cdb["client1"] = {"allowed_scopes": {"openid"}}
+        self.context.cdb["client1"] = {"allowed_scopes": {"openid"}}
 
         _req = OIDR.copy()
         _req["scope"] = "openid research_and_scholarship"

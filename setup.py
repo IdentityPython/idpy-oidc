@@ -18,6 +18,7 @@ import os
 import re
 import sys
 
+from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -57,18 +58,7 @@ setup(
     author_email="roland@catalogix.se",
     license="Apache 2.0",
     url='https://github.com/IdentityPython/idpy-oidc/',
-    packages=["idpyoidc", "idpyoidc/message","idpyoidc/message/oauth2", "idpyoidc/message/oidc",
-              "idpyoidc/storage", "idpyoidc/client", "idpyoidc/server", "idpyoidc/server/session",
-              "idpyoidc/server/token", "idpyoidc/server/authz",
-              "idpyoidc/server/user_authn",
-              "idpyoidc/server/user_info",
-              "idpyoidc/server/oauth2", "idpyoidc/server/oauth2/add_on",
-              "idpyoidc/server/oidc", "idpyoidc/server/oidc/add_on",
-              "idpyoidc/client/oidc", "idpyoidc/client/oidc/add_on",
-              "idpyoidc/client/provider", "idpyoidc/actor",
-              "idpyoidc/client/oauth2", "idpyoidc/client/oauth2/add_on",
-              "idpyoidc/client/oauth2/client_credentials", "idpyoidc/actor"
-              ],
+    packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -77,6 +67,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "cryptojwt>=1.8.1",

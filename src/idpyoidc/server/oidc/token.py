@@ -1,5 +1,7 @@
 import logging
 
+from idpyoidc import metadata
+
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import TokenErrorResponse
@@ -23,16 +25,17 @@ class Token(token.Token):
     endpoint_name = "token_endpoint"
     name = "token"
     default_capabilities = None
-    provider_info_attributes = {
+
+    _supports = {
         "token_endpoint_auth_methods_supported": [
             "client_secret_post",
             "client_secret_basic",
             "client_secret_jwt",
             "private_key_jwt",
         ],
-        "token_endpoint_auth_signing_alg_values_supported": None,
+        "token_endpoint_auth_signing_alg_values_supported": metadata.get_signing_algs,
     }
-    auth_method_attribute = "token_endpoint_auth_methods_supported"
+
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,

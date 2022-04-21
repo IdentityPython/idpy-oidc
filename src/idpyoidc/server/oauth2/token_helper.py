@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt import BadSyntax
 from cryptojwt.exception import JWKESTException
 
 from idpyoidc.exception import ImproperlyConfigured
@@ -12,6 +13,7 @@ from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oauth2 import TokenExchangeResponse
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.message.oidc import TokenErrorResponse
+from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
@@ -21,6 +23,7 @@ from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.session.token import SessionToken
+from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
@@ -36,7 +39,7 @@ class TokenEndpointHelper(object):
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
@@ -49,17 +52,17 @@ class TokenEndpointHelper(object):
         raise NotImplementedError
 
     def _mint_token(
-        self,
-        token_class: str,
-        grant: Grant,
-        session_id: str,
-        client_id: str,
-        based_on: Optional[SessionToken] = None,
-        scope: Optional[list] = None,
-        token_args: Optional[dict] = None,
-        token_type: Optional[str] = "",
+            self,
+            token_class: str,
+            grant: Grant,
+            session_id: str,
+            client_id: str,
+            based_on: Optional[SessionToken] = None,
+            scope: Optional[list] = None,
+            token_args: Optional[dict] = None,
+            token_type: Optional[str] = "",
     ) -> SessionToken:
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
@@ -78,7 +81,7 @@ class TokenEndpointHelper(object):
 
         token = grant.mint_token(
             session_id,
-            endpoint_context=_context,
+            context=_context,
             token_class=token_class,
             token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
@@ -99,6 +102,54 @@ class TokenEndpointHelper(object):
 
         return token
 
+def validate_resource_indicators_policy(request, context, **kwargs):
+    if "resource" not in request:
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description="Missing resource parameter",
+        )
+
+    resource_servers_per_client = kwargs["resource_servers_per_client"]
+    client_id = request["client_id"]
+
+    resource_servers_per_client = kwargs.get("resource_servers_per_client", None)
+
+    if isinstance(resource_servers_per_client, dict) and client_id not in resource_servers_per_client:
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description=f"Resources for client {client_id} not found",
+        )
+
+    if isinstance(resource_servers_per_client, dict):
+        permitted_resources = [res for res in resource_servers_per_client[client_id]]
+    else:
+        permitted_resources = [res for res in resource_servers_per_client]
+
+    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
+    if not common_resources:
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description=f"Invalid resource requested by client {client_id}",
+        )
+
+    common_resources = [r for r in common_resources if r in context.cdb.keys()]
+    if not common_resources:
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description=f"Invalid resource requested by client {client_id}",
+        )
+
+    if client_id not in common_resources:
+        common_resources.append(client_id)
+
+    request["resource"] = common_resources
+
+    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
+    permitted_scopes = [r for res in permitted_scopes for r in res]
+    scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
+    request["scope"] = scopes
+    return request
+
 
 class AccessTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
@@ -108,7 +159,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Access Token")
 
@@ -120,12 +171,32 @@ class AccessTokenHelper(TokenEndpointHelper):
         except KeyError:  # Missing code parameter - absolutely fatal
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
-        _session_info = _mngr.get_session_info_by_token(_access_code, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            _access_code, grant=True, handler_key="authorization_code"
+        )
         client_id = _session_info["client_id"]
         if client_id != req["client_id"]:
             logger.debug("{} owner of token".format(client_id))
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
+        _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
+
+        if ("resource_indicators" in _cinfo
+            and "access_token" in _cinfo["resource_indicators"]):
+            resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
+        else:
+            resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
+
+        if resource_indicators_config is not None:
+            if "policy" not in resource_indicators_config:
+                policy = {"policy": {"callable": validate_resource_indicators_policy}}
+                resource_indicators_config.update(policy)
+
+            req = self._enforce_resource_indicators_policy(req, resource_indicators_config)
+
+            if isinstance(req, TokenErrorResponse):
+                return req
 
         if "grant_types_supported" in _context.cdb[client_id]:
             grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
@@ -149,19 +220,33 @@ class AccessTokenHelper(TokenEndpointHelper):
         logger.debug("All checks OK")
 
         issue_refresh = kwargs.get("issue_refresh", False)
+
+        if resource_indicators_config is not None:
+            scope = req["scope"]
+        else:
+            scope = grant.scope
+
         _response = {
             "token_type": "Bearer",
-            "scope": grant.scope,
+            "scope": scope,
         }
 
         if "access_token" in _supports_minting:
+
+            resources = req.get("resource", None)
+            if resources:
+                token_args = {"resources": resources}
+            else:
+                token_args = None
+
             try:
                 token = self._mint_token(
                     token_class="access_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
+                    token_args=token_args
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -171,15 +256,15 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if (
-            issue_refresh
-            and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
+                issue_refresh
+                and "refresh_token" in _supports_minting
+                and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                 )
@@ -189,14 +274,34 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         _based_on.register_usage()
 
         return _response
 
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.endpoint.upstream_get("context")
+
+        policy = config["policy"]
+        callable = policy["callable"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(callable, str):
+            try:
+                fn = importer(callable)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+        else:
+            fn = callable
+        try:
+            return fn(request, context=_context, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens
@@ -206,9 +311,11 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("context").session_manager
+        _mngr = self.endpoint.upstream_get("context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["code"], grant=True, handler_key="authorization_code"
+            )
         except (KeyError, UnknownToken):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
@@ -233,7 +340,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Refresh Token")
 
@@ -241,7 +348,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, grant=True, handler_key="refresh_token"
+        )
         logger.debug("Session info: {}".format(_session_info))
 
         if _session_info["client_id"] != req["client_id"]:
@@ -267,7 +376,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
-            session_id=_session_info["session_id"],
+            session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=token,
             scope=scope,
@@ -289,7 +398,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
             refresh_token = self._mint_token(
                 token_class="refresh_token",
                 grant=_grant,
-                session_id=_session_info["session_id"],
+                session_id=_session_info["branch_id"],
                 client_id=_session_info["client_id"],
                 based_on=token,
                 scope=scope,
@@ -300,9 +409,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-            "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+                "client_id" in req
+                and req["client_id"] in _context.cdb
+                and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
@@ -314,7 +423,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -325,17 +434,17 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("context")
-        try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
+        _context = self.endpoint.upstream_get("context")
 
-        request.verify(keyjar=keyjar, opponent_id=client_id)
+        request.verify(
+            keyjar=self.endpoint.upstream_get('sttribute', 'keyjar'),
+            opponent_id=client_id)
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["refresh_token"], grant=True, handler_key="refresh_token"
+            )
         except (KeyError, UnknownToken):
             logger.error("Refresh token invalid")
             return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")
@@ -375,14 +484,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
         TokenEndpointHelper.__init__(self, endpoint=endpoint, config=config)
         if config is None:
             self.config = {
-                "subject_token_types_supported": [
-                    "urn:ietf:params:oauth:token-type:access_token",
-                    "urn:ietf:params:oauth:token-type:refresh_token",
-                ],
                 "requested_token_types_supported": [
                     "urn:ietf:params:oauth:token-type:access_token",
                     "urn:ietf:params:oauth:token-type:refresh_token",
                 ],
+                "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
                 "policy": {"": {"callable": validate_token_exchange_policy}},
             }
         else:
@@ -391,37 +497,42 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def post_parse_request(self, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         if "token_exchange" in _context.cdb[request["client_id"]]:
             config = _context.cdb[request["client_id"]]["token_exchange"]
         else:
             config = self.config
 
         try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
-
-        try:
-            request.verify(keyjar=keyjar, opponent_id=client_id)
+            request.verify(
+                keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
+                opponent_id=client_id
+            )
         except (
-            MissingRequiredAttribute,
-            ValueError,
-            MissingRequiredValue,
-            JWKESTException,
+                MissingRequiredAttribute,
+                ValueError,
+                MissingRequiredValue,
+                JWKESTException,
         ) as err:
             return self.endpoint.error_cls(error="invalid_request", error_description="%s" % err)
 
+        self._validate_configuration(config)
+
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
-        except (KeyError, UnknownToken):
-            logger.error("Subject token invalid.")
+            # token exchange is about minting one token based on another
+            _handler_key = self.token_types_mapping[request["subject_token_type"]]
+            _session_info = _mngr.get_session_info_by_token(
+                request["subject_token"], grant=True, handler_key=_handler_key
+            )
+        except (KeyError, UnknownToken, BadSyntax) as err:
+            logger.error(f"Subject token invalid ({err}).")
             return self.error_cls(
                 error="invalid_request", error_description="Subject token invalid"
             )
 
-        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        # Find the token instance based on the token value
+        token = _mngr.find_token(_session_info["branch_id"], request["subject_token"])
         if token.is_active() is False:
             return self.error_cls(
                 error="invalid_request", error_description="Subject token inactive"
@@ -432,7 +543,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return resp
 
     def _enforce_policy(self, request, token, config):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         subject_token_types_supported = config.get(
             "subject_token_types_supported", self.token_types_mapping.keys()
         )
@@ -449,8 +560,8 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         if (
-            "requested_token_type" in request
-            and request["requested_token_type"] not in config["requested_token_types_supported"]
+                "requested_token_type" in request
+                and request["requested_token_type"] not in config["requested_token_types_supported"]
         ):
             return TokenErrorResponse(
                 error="invalid_request",
@@ -467,11 +578,6 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         if subject_token_type not in config["policy"]:
-            if "" not in config["policy"]:
-                raise ImproperlyConfigured(
-                    "subject_token_type {subject_token_type} missing from "
-                    "policy and no default is defined"
-                )
             subject_token_type = ""
 
         policy = config["policy"][subject_token_type]
@@ -508,10 +614,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return TokenExchangeResponse(**response_args)
 
     def process_request(self, request, **kwargs):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
+            _handler_key = self.token_types_mapping[request["subject_token_type"]]
+            _session_info = _mngr.get_session_info_by_token(
+                request["subject_token"], grant=True, handler_key=_handler_key
+            )
         except ToOld:
             logger.error("Subject token has expired.")
             return self.error_cls(
@@ -523,14 +632,14 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Subject token invalid"
             )
 
-        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        token = _mngr.find_token(_session_info["branch_id"], request["subject_token"])
         _requested_token_type = request.get(
             "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
         )
 
         _token_class = self.token_types_mapping[_requested_token_type]
 
-        sid = _session_info["session_id"]
+        sid = _session_info["branch_id"]
 
         _token_type = "Bearer"
         # Is DPOP supported
@@ -583,6 +692,41 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         return self.token_exchange_response(token=new_token)
 
+    def _validate_configuration(self, config):
+        if "requested_token_types_supported" not in config:
+            raise ImproperlyConfigured(
+                "Missing 'requested_token_types_supported' from Token Exchange configuration"
+            )
+        if "policy" not in config:
+            raise ImproperlyConfigured("Missing 'policy' from Token Exchange configuration")
+        if "" not in config["policy"]:
+            raise ImproperlyConfigured(
+                "Default Token Exchange policy configuration is not defined"
+            )
+        if "callable" not in config["policy"][""]:
+            raise ImproperlyConfigured(
+                "Missing 'callable' from default Token Exchange policy configuration"
+            )
+
+        _default_requested_token_type = config.get("default_requested_token_type",
+                                                   DEFAULT_REQUESTED_TOKEN_TYPE)
+        if _default_requested_token_type not in config["requested_token_types_supported"]:
+            raise ImproperlyConfigured(
+                f"Unsupported default requested_token_type {_default_requested_token_type}"
+            )
+
+    def get_handler_key(self, request, endpoint_context):
+        client_info = endpoint_context.cdb.get(request["client_id"], {})
+
+        default_requested_token_type = (
+                client_info.get("token_exchange", {}).get("default_requested_token_type", None)
+                or
+                self.config.get("default_requested_token_type", DEFAULT_REQUESTED_TOKEN_TYPE)
+        )
+
+        requested_token_type = request.get("requested_token_type", default_requested_token_type)
+        return TOKEN_TYPES_MAPPING[requested_token_type]
+
 
 def validate_token_exchange_policy(request, context, subject_token, **kwargs):
     if "resource" in request:
@@ -605,14 +749,14 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         )
 
     if (
-        "requested_token_type" in request
-        and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
+            "requested_token_type" in request
+            and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
     ):
         if "offline_access" not in subject_token.scope:
             return TokenErrorResponse(
                 error="invalid_request",
                 error_description=f"Exchange {request['subject_token_type']} to refresh token "
-                f"forbbiden",
+                                  f"forbidden",
             )
 
     if "scope" in request:

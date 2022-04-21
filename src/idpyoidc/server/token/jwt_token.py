@@ -4,13 +4,13 @@ from typing import Optional
 from cryptojwt import JWT
 from cryptojwt.jws.exception import JWSException
 
-from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
-from . import is_expired
+
+from ..constant import DEFAULT_TOKEN_LIFETIME
 from . import Token
+from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
-from ..constant import DEFAULT_TOKEN_LIFETIME
 
 
 class JWTToken(Token):
@@ -22,7 +22,7 @@ class JWTToken(Token):
             aud: Optional[list] = None,
             alg: str = "ES256",
             lifetime: int = DEFAULT_TOKEN_LIFETIME,
-            server_get: Callable = None,
+            upstream_get: Callable = None,
             token_type: str = "Bearer",
             **kwargs
     ):
@@ -31,11 +31,11 @@ class JWTToken(Token):
         self.lifetime = lifetime
 
         self.kwargs = kwargs
-        _context = server_get("context")
-        # self.key_jar = keyjar or _context.keyjar
+        _context = upstream_get("context")
+        # self.key_jar = keyjar or upstream_get('attribute','keyjar')
         self.issuer = issuer or _context.issuer
         self.cdb = _context.cdb
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
         self.def_aud = aud or []
         self.alg = alg
@@ -45,11 +45,11 @@ class JWTToken(Token):
         return payload
 
     def __call__(
-            self,
-            session_id: Optional[str] = "",
-            token_class: Optional[str] = "",
-            usage_rules: Optional[dict] = None,
-            **payload
+        self,
+        session_id: Optional[str] = "",
+        token_class: Optional[str] = "",
+        usage_rules: Optional[dict] = None,
+        **payload
     ) -> str:
         """
         Return a token.
@@ -69,13 +69,13 @@ class JWTToken(Token):
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         if usage_rules and "expires_in" in usage_rules:
             lifetime = usage_rules.get("expires_in")
         else:
             lifetime = self.lifetime
         signer = JWT(
-            key_jar=_context.keyjar,
+            key_jar=self.upstream_get('attribute','keyjar'),
             iss=self.issuer,
             lifetime=lifetime,
             sign_alg=self.alg,
@@ -84,8 +84,8 @@ class JWTToken(Token):
         return signer.pack(payload)
 
     def get_payload(self, token):
-        _context = self.server_get("context")
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
+        verifier = JWT(key_jar=self.upstream_get('attribute','keyjar'),
+                       allowed_sign_algs=[self.alg])
         try:
             _payload = verifier.unpack(token)
         except JWSException:

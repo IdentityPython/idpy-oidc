@@ -7,7 +7,6 @@ SERVICE_NAME = "OIC"
 CLIENT_CONFIG = {}
 
 DEFAULT_OIDC_SERVICES = {
-    "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
     "discovery": {"class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
     "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
     "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
@@ -19,7 +18,7 @@ DEFAULT_OIDC_SERVICES = {
 }
 
 DEFAULT_OAUTH2_SERVICES = {
-    "discovery": {"class": "idpyoidc.client.oauth2.provider_info_discovery.ProviderInfoDiscovery"},
+    "discovery": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
     "refresh_access_token": {
@@ -27,9 +26,8 @@ DEFAULT_OAUTH2_SERVICES = {
     },
 }
 
-DEFAULT_CLIENT_PREFS = {
+DEFAULT_CLIENT_PREFERENCES = {
     "application_type": "web",
-    "application_name": "rphandler",
     "response_types": [
         "code",
         "id_token",
@@ -38,14 +36,19 @@ DEFAULT_CLIENT_PREFS = {
         "code id_token token",
         "code token",
     ],
-    "scope": ["openid"],
     "token_endpoint_auth_method": "client_secret_basic",
+    "scopes_supported": ["openid"],
+}
+
+DEFAULT_USAGE = {
+    "jwks_uri": True,
+    "scope": ["openid"],
 }
 
 # Using PKCE is default
 DEFAULT_CLIENT_CONFIGS = {
     "": {
-        "client_preferences": DEFAULT_CLIENT_PREFS,
+        "preference": DEFAULT_CLIENT_PREFERENCES,
         "add_ons": {
             "pkce": {
                 "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",

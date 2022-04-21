@@ -22,7 +22,7 @@ def add_code_challenge(request_args, service, **kwargs):
     :param kwargs: Extra set of keyword arguments
     :return: Updated set of request arguments
     """
-    _context = service.superior_get("context")
+    _context = service.upstream_get("context")
     _kwargs = _context.add_on["pkce"]
 
     try:
@@ -50,7 +50,7 @@ def add_code_challenge(request_args, service, **kwargs):
         raise Unsupported("PKCE Transformation method:{}".format(_method))
 
     _item = Message(code_verifier=code_verifier, code_challenge_method=_method)
-    _context.state.store_item(_item, "pkce", request_args["state"])
+    _context.cstate.update(request_args["state"], _item)
 
     request_args.update({"code_challenge": code_challenge, "code_challenge_method": _method})
     return request_args, {}
@@ -69,8 +69,8 @@ def add_code_verifier(request_args, service, **kwargs):
     _state = request_args.get("state")
     if _state is None:
         _state = kwargs.get("state")
-    _item = service.superior_get("context").state.get_item(Message, "pkce", _state)
-    request_args.update({"code_verifier": _item["code_verifier"]})
+    _item = service.upstream_get("context").cstate.get_set(_state, claim=['code_verifier'])
+    request_args.update(_item)
     return request_args
 
 
@@ -91,7 +91,7 @@ def add_support(service, code_challenge_length, code_challenge_method):
     """
     if "authorization" in service and "accesstoken" in service:
         _service = service["authorization"]
-        _context = _service.superior_get("context")
+        _context = _service.upstream_get("context")
         _context.add_on["pkce"] = {
             "code_challenge_length": code_challenge_length,
             "code_challenge_method": code_challenge_method,

@@ -165,19 +165,20 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
-        endpoint_context.cdb["client_1"] = {
+        context = server.context
+        context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
-        self.session_manager = endpoint_context.session_manager
-        self.token_endpoint = server.server_get("endpoint", "token")
+        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        self.session_manager = context.session_manager
+        self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
-        self.endpoint_context = endpoint_context
+        self.context = context
 
     def test_init(self):
         assert self.token_endpoint
@@ -202,7 +203,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -222,7 +223,7 @@ class TestEndpoint(object):
 
         _token = grant.mint_token(
             _session_info,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token
@@ -249,13 +250,13 @@ class TestEndpoint(object):
     def test_auth_code_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = []
+        self.context.cdb["client_1"]["grant_types_supported"] = []
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.endpoint_context
+        _cntx = self.context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -274,7 +275,7 @@ class TestEndpoint(object):
         code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
-        _context = self.endpoint_context
+        _context = self.context
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
         _resp = self.token_endpoint.process_request(request=_req)
@@ -288,7 +289,7 @@ class TestEndpoint(object):
         code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
-        _context = self.endpoint_context
+        _context = self.context
         _token_request["code"] = code.value
 
         _req = self.token_endpoint.parse_request(_token_request)
@@ -319,7 +320,7 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         del _token_request["client_id"]
         del _token_request["client_secret"]
-        _context = self.endpoint_context
+        _context = self.context
 
         _jwt = JWT(CLIENT_KEYJAR, iss=AUTH_REQ["client_id"], sign_alg="RS256")
         _jwt.with_jti = True
@@ -336,13 +337,13 @@ class TestEndpoint(object):
 
     def test_do_refresh_access_token(self):
         areq = AUTH_REQ.copy()
-        areq["scope"] = ["email"]
+        areq["scope"] = ["email", "foobar"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.endpoint_context
+        _cntx = self.context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -353,8 +354,10 @@ class TestEndpoint(object):
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="refresh_token"
+        )
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
@@ -373,13 +376,13 @@ class TestEndpoint(object):
     def test_refresh_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = ["authorization_code"]
+        self.context.cdb["client_1"]["grant_types_supported"] = ["authorization_code"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.endpoint_context
+        _cntx = self.context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -393,11 +396,11 @@ class TestEndpoint(object):
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         self.token_endpoint.revoke_refresh_on_issue = False
-        _cntx = self.endpoint_context
+        _cntx = self.context
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -409,8 +412,10 @@ class TestEndpoint(object):
 
         # Make sure ID Tokens can also be used by this refesh token
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="refresh_token"
+        )
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = [
             "access_token",
             "refresh_token",
@@ -435,19 +440,20 @@ class TestEndpoint(object):
         assert isinstance(msg, dict)
 
     def test_new_refresh_token(self, conf):
-        self.endpoint_context.cdb["client_1"] = {
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -474,12 +480,13 @@ class TestEndpoint(object):
         assert first_refresh_token != second_refresh_token
 
     def test_revoke_on_issue_refresh_token(self, conf):
-        self.endpoint_context.cdb["client_1"] = {
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         self.token_endpoint.revoke_refresh_on_issue = True
@@ -487,7 +494,7 @@ class TestEndpoint(object):
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -511,19 +518,20 @@ class TestEndpoint(object):
         assert second_refresh_token.revoked is False
 
     def test_revoke_on_issue_refresh_token_per_client(self, conf):
-        self.endpoint_context.cdb["client_1"] = {
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint_context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
+        self.context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()
         areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -554,7 +562,7 @@ class TestEndpoint(object):
         areq["scope"] = ["email", "profile"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -578,10 +586,12 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="access_token"
+        )
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -591,7 +601,7 @@ class TestEndpoint(object):
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -617,7 +627,7 @@ class TestEndpoint(object):
         areq["scope"] = ["email", "profile"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -652,10 +662,12 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="access_token"
+        )
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -665,10 +677,10 @@ class TestEndpoint(object):
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.token_endpoint.server_get("endpoint_context")
+        _cntx = self.token_endpoint.upstream_get("context")
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -681,18 +693,19 @@ class TestEndpoint(object):
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
         _req = self.token_endpoint.parse_request(_request.to_json())
-        with pytest.raises(MintingNotAllowed):
-            self.token_endpoint.process_request(_req)
+        res = self.token_endpoint.process_request(_req)
+        assert "error" in res
+        assert res["error_description"] == 'Minting of access_token not supported'
 
     def test_do_refresh_access_token_revoked(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.token_endpoint.server_get("endpoint_context")
+        _cntx = self.token_endpoint.upstream_get("context")
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -718,7 +731,7 @@ class TestEndpoint(object):
         assert "refresh_token" not in self.token_endpoint.helper
 
     def test_token_request_other_client(self):
-        _context = self.endpoint_context
+        _context = self.context
         _context.cdb["client_2"] = _context.cdb["client_1"]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
@@ -735,7 +748,7 @@ class TestEndpoint(object):
         assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
 
     def test_refresh_token_request_other_client(self):
-        _context = self.endpoint_context
+        _context = self.context
         _context.cdb["client_2"] = _context.cdb["client_1"]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
@@ -752,8 +765,10 @@ class TestEndpoint(object):
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value)
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="refresh_token"
+        )
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())

@@ -172,7 +172,7 @@ class EntityConfiguration(Base):
         port: Optional[int] = 0,
         file_attributes: Optional[List[str]] = None,
         dir_attributes: Optional[List[str]] = None,
-        superior_get: Optional[Callable] = None
+        upstream_get: Optional[Callable] = None
     ):
 
         conf = copy.deepcopy(conf)
@@ -454,9 +454,9 @@ DEFAULT_EXTENDED_CONF = {
                 "post_logout_uri_path": "post_logout",
                 "signing_alg": "ES256",
                 "frontchannel_logout_supported": True,
-                "frontchannel_logout_session_supported": True,
+                "frontchannel_logout_session_required": True,
                 "backchannel_logout_supported": True,
-                "backchannel_logout_session_supported": True,
+                "backchannel_logout_session_required": True,
                 "check_session_iframe": "check_session_iframe",
             },
         },

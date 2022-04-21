@@ -182,17 +182,18 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.user_id = "diana"
-        self.token_endpoint = server.server_get("endpoint", "token")
-        self.session_manager = self.endpoint_context.session_manager
+        self.token_endpoint = server.get_endpoint("token")
+        self.session_manager = self.context.session_manager
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -214,7 +215,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -231,7 +232,7 @@ class TestEndpoint(object):
         auth_req = post_parse_request(
             AUTH_REQ,
             AUTH_REQ["client_id"],
-            self.endpoint_context,
+            self.context,
             http_info={
                 "headers": {"dpop": DPOP_HEADER},
                 "url": "https://server.example.com/token",
@@ -247,7 +248,7 @@ class TestEndpoint(object):
         code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ.to_dict()
-        _context = self.endpoint_context
+        _context = self.context
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(
             _token_request,
@@ -270,6 +271,8 @@ class TestEndpoint(object):
         assert _payload["cnf"]["jkt"] == _req["dpop_jkt"]
 
         # Make sure DPoP also is in the session access token instance.
-        _session_info = self.session_manager.get_session_info_by_token(access_token)
-        _token = self.session_manager.find_token(_session_info["session_id"], access_token)
+        _session_info = self.session_manager.get_session_info_by_token(
+            access_token, handler_key="access_token"
+        )
+        _token = self.session_manager.find_token(_session_info["branch_id"], access_token)
         assert _token.token_type == "DPoP"
