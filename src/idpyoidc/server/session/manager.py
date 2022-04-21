@@ -565,7 +565,7 @@ class SessionManager(Database):
         grant: Optional[bool] = False,
         authentication_event: Optional[bool] = False,
         authorization_request: Optional[bool] = False,
-        handler_key: Optional[str] = '',
+        handler_key: Optional[str] = "",
     ) -> dict:
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)

@@ -354,7 +354,8 @@ class TestEndpoint(object):
 
         _token_value = _resp["response_args"]["refresh_token"]
         _session_info = self.session_manager.get_session_info_by_token(
-            _token_value, handler_key="refresh_token")
+            _token_value, handler_key="refresh_token"
+        )
         _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
@@ -410,8 +411,9 @@ class TestEndpoint(object):
 
         # Make sure ID Tokens can also be used by this refesh token
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value,
-                                                                       handler_key="refresh_token")
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="refresh_token"
+        )
         _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
         _token.usage_rules["supports_minting"] = [
             "access_token",
@@ -580,8 +582,9 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value,
-                                                                       handler_key="access_token")
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="access_token"
+        )
         at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
@@ -655,8 +658,9 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value,
-                                                                       handler_key="access_token")
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="access_token"
+        )
         at = self.session_manager.find_token(_session_info["session_id"], _token_value)
         rt = self.session_manager.find_token(
             _session_info["session_id"], _resp["response_args"]["refresh_token"]
@@ -756,8 +760,9 @@ class TestEndpoint(object):
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(_token_value,
-                                                                       handler_key="refresh_token")
+        _session_info = self.session_manager.get_session_info_by_token(
+            _token_value, handler_key="refresh_token"
+        )
         _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
