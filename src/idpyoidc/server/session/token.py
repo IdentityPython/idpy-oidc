@@ -273,3 +273,9 @@ TOKEN_MAP = {
     "refresh_token": RefreshToken,
     "id_token": IDToken,
 }
+
+TOKEN_TYPES_MAPPING = {
+    "urn:ietf:params:oauth:token-type:access_token": "access_token",
+    "urn:ietf:params:oauth:token-type:refresh_token": "refresh_token",
+    "urn:ietf:params:oauth:token-type:id_token": "id_token",
+}

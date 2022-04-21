@@ -7,11 +7,13 @@ from cryptojwt.jwe.exception import JWEException
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
+from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
@@ -125,8 +127,14 @@ class Token(Endpoint):
 
         _access_token = response_args["access_token"]
         _context = self.server_get("endpoint_context")
+
+        if isinstance(request, TokenExchangeRequest):
+            _handler_key = TOKEN_TYPES_MAPPING[request["requested_token_type"]]
+        else:
+            _handler_key = "access_token"
+
         _session_info = _context.session_manager.get_session_info_by_token(
-            _access_token, grant=True
+            _access_token, grant=True, handler_key=_handler_key
         )
 
         _cookie = _context.new_cookie(

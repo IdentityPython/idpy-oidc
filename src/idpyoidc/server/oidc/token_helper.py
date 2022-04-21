@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt import BadSyntax
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
@@ -29,7 +30,9 @@ class AccessTokenHelper(TokenEndpointHelper):
         except KeyError:  # Missing code parameter - absolutely fatal
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
-        _session_info = session_manager.get_session_info_by_token(_access_code, grant=True)
+        _session_info = session_manager.get_session_info_by_token(
+            _access_code, grant=True, handler_key="authorization_code"
+        )
         logger.debug(f"Session info: {_session_info}")
         return _session_info, _access_code
 
@@ -174,7 +177,9 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _mngr = self.endpoint.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["code"], grant=True, handler_key="authorization_code"
+            )
         except (KeyError, UnknownToken):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
@@ -211,7 +216,10 @@ class RefreshTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
 
         token_value = req["refresh_token"]
-        _session_info = _mngr.get_session_info_by_token(token_value, grant=True)
+
+        _session_info = _mngr.get_session_info_by_token(
+            token_value, handler_key="refresh_token", grant=True
+        )
         if _session_info["client_id"] != req["client_id"]:
             logger.debug("{} owner of token".format(_session_info["client_id"]))
             logger.warning("{} using token it was not given".format(req["client_id"]))
@@ -299,7 +307,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
-            revoke_refresh = revoke_refresh = self.endpoint.revoke_refresh_on_issue
+            revoke_refresh = self.endpoint.revoke_refresh_on_issue
 
         if revoke_refresh:
             token.revoke()
@@ -328,8 +336,10 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["refresh_token"], grant=True)
-        except (KeyError, UnknownToken):
+            _session_info = _mngr.get_session_info_by_token(
+                request["refresh_token"], handler_key="refresh_token", grant=True
+            )
+        except (KeyError, UnknownToken, BadSyntax):
             logger.error("Refresh token invalid")
             return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")
 

@@ -528,7 +528,10 @@ class Authorization(Endpoint):
             except BadSyntax:
                 return identity
         else:
-            _id = b64d(as_bytes(identity))
+            try:
+                _id = b64d(as_bytes(identity))
+            except BadSyntax:
+                return identity
 
         return json.loads(as_unicode(_id))
 

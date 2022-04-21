@@ -294,7 +294,9 @@ class TestEndpoint(object):
     def test_end_session_endpoint_with_cookie(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(_code)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _code, handler_key="authorization_code"
+        )
         cookie = self._create_cookie(_session_info["session_id"])
         http_info = {"cookie": [cookie]}
         resp = self.session_endpoint.process_request({"state": "foo"}, http_info=http_info)
@@ -342,7 +344,9 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         self._code_auth2("abcdefg")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(_code)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _code, handler_key="authorization_code"
+        )
         cookie = self._create_cookie(_session_info["session_id"])
         http_info = {"cookie": [cookie]}
 
@@ -362,7 +366,9 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         self._code_auth2("abcdefg")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(_code)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _code, handler_key="authorization_code"
+        )
         cookie = self._create_cookie(_session_info["session_id"])
         http_info = {"cookie": [cookie]}
 
@@ -477,7 +483,7 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True
+            _code, client_session_info=True, handler_key="authorization_code"
         )
 
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
@@ -505,7 +511,7 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True
+            _code, client_session_info=True, handler_key="authorization_code"
         )
 
         # del self.session_endpoint.server_get("endpoint_context").cdb['client_1'][
@@ -529,7 +535,7 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
         _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True, grant=True
+            _code, client_session_info=True, grant=True, handler_key="authorization_code"
         )
         _grant_code = self.session_manager.find_token(_session_info["session_id"], _code)
         id_token1 = self._mint_token(
@@ -539,7 +545,7 @@ class TestEndpoint(object):
         _resp2 = self._code_auth2("abcdefg")
         _code2 = _resp2["response_args"]["code"]
         _session_info2 = self.session_manager.get_session_info_by_token(
-            _code2, client_session_info=True, grant=True
+            _code2, client_session_info=True, grant=True, handler_key="authorization_code"
         )
         _grant_code2 = self.session_manager.find_token(_session_info2["session_id"], _code2)
         id_token2 = self._mint_token(
@@ -593,7 +599,9 @@ class TestEndpoint(object):
 
             _resp = self._code_auth("1234567")
             _code = _resp["response_args"]["code"]
-            _session_info = self.session_manager.get_session_info_by_token(_code)
+            _session_info = self.session_manager.get_session_info_by_token(
+                _code, handler_key="authorization_code"
+            )
             _cdb = self.session_endpoint.server_get("endpoint_context").cdb
             _cdb["client_1"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
             _cdb["client_1"]["client_id"] = "client_1"
@@ -604,7 +612,9 @@ class TestEndpoint(object):
     def test_logout_from_client_unknow_sid(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(_code)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _code, handler_key="authorization_code"
+        )
         self._code_auth2("abcdefg")
 
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
@@ -615,7 +625,9 @@ class TestEndpoint(object):
     def test_logout_from_client_no_session(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(_code)
+        _session_info = self.session_manager.get_session_info_by_token(
+            _code, handler_key="authorization_code"
+        )
         self._code_auth2("abcdefg")
 
         # client0

@@ -364,7 +364,9 @@ class TestSessionManager:
 
         grant = self.session_manager.get_grant(_session_id)
         code = self._mint_token("authorization_code", grant, _session_id)
-        _session_info = self.session_manager.get_session_info_by_token(code.value)
+        _session_info = self.session_manager.get_session_info_by_token(
+            code.value, handler_key="authorization_code"
+        )
 
         assert set(_session_info.keys()) == {
             "client_id",

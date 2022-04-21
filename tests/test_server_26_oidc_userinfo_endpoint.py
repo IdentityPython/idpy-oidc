@@ -488,7 +488,7 @@ class TestEndpoint(object):
         args = self.endpoint.process_request(_req, http_info=http_info)
 
         assert isinstance(args, ResponseMessage)
-        assert args["error_description"] == "Wrong type of token"
+        assert args["error_description"] == "Invalid Token"
 
     def test_invalid_token(self):
         _auth_req = AUTH_REQ.copy()

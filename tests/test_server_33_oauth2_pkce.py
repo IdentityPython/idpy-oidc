@@ -261,7 +261,7 @@ class TestEndpoint(object):
         assert isinstance(resp["response_args"], AuthorizationResponse)
 
         session_info = self.session_manager.get_session_info_by_token(
-            resp["response_args"]["code"], grant=True
+            resp["response_args"]["code"], grant=True, handler_key="authorization_code"
         )
 
         session_info["grant"].authorization_request["code_challenge_method"] = "plain"

@@ -14,6 +14,7 @@ from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
 from idpyoidc.server.session.database import NoSuchClientSession
+from idpyoidc.server.token import Token
 from idpyoidc.util import rndstr
 
 from ..token import UnknownToken
@@ -559,13 +560,18 @@ class SessionManager(Database):
     def get_session_info_by_token(
         self,
         token_value: str,
-        user_session_info: bool = False,
-        client_session_info: bool = False,
-        grant: bool = False,
-        authentication_event: bool = False,
-        authorization_request: bool = False,
+        user_session_info: Optional[bool] = False,
+        client_session_info: Optional[bool] = False,
+        grant: Optional[bool] = False,
+        authentication_event: Optional[bool] = False,
+        authorization_request: Optional[bool] = False,
+        handler_key: Optional[str] = "",
     ) -> dict:
-        _token_info = self.token_handler.info(token_value)
+        if handler_key:
+            _token_info = self.token_handler.handler[handler_key].info(token_value)
+        else:
+            _token_info = self.token_handler.info(token_value)
+
         sid = _token_info.get("sid")
         # If the token is an ID Token then the sid will not be in the
         # _token_info

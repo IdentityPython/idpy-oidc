@@ -48,7 +48,9 @@ class UserInfo(Endpoint):
         self.allowed_targets.append("")
 
     def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(token)
+        _info = endpoint_context.session_manager.get_session_info_by_token(
+            token, handler_key="access_token"
+        )
         return _info["client_id"]
 
     def do_response(
@@ -113,7 +115,9 @@ class UserInfo(Endpoint):
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(request["access_token"], grant=True)
+            _session_info = _mngr.get_session_info_by_token(
+                request["access_token"], grant=True, handler_key="access_token"
+            )
         except (KeyError, ValueError):
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 

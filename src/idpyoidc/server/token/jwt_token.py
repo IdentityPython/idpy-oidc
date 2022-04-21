@@ -6,25 +6,26 @@ from cryptojwt.jws.exception import JWSException
 
 from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
-from . import is_expired
+
+from ..constant import DEFAULT_TOKEN_LIFETIME
 from . import Token
+from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
-from ..constant import DEFAULT_TOKEN_LIFETIME
 
 
 class JWTToken(Token):
     def __init__(
-            self,
-            token_class,
-            # keyjar: KeyJar = None,
-            issuer: str = None,
-            aud: Optional[list] = None,
-            alg: str = "ES256",
-            lifetime: int = DEFAULT_TOKEN_LIFETIME,
-            server_get: Callable = None,
-            token_type: str = "Bearer",
-            **kwargs
+        self,
+        token_class,
+        # keyjar: KeyJar = None,
+        issuer: str = None,
+        aud: Optional[list] = None,
+        alg: str = "ES256",
+        lifetime: int = DEFAULT_TOKEN_LIFETIME,
+        server_get: Callable = None,
+        token_type: str = "Bearer",
+        **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
@@ -45,11 +46,11 @@ class JWTToken(Token):
         return payload
 
     def __call__(
-            self,
-            session_id: Optional[str] = "",
-            token_class: Optional[str] = "",
-            usage_rules: Optional[dict] = None,
-            **payload
+        self,
+        session_id: Optional[str] = "",
+        token_class: Optional[str] = "",
+        usage_rules: Optional[dict] = None,
+        **payload
     ) -> str:
         """
         Return a token.

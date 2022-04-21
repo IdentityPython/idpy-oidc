@@ -11,6 +11,7 @@ Contents:
    :maxdepth: 2
 
    intro
+   move
    message/index
    server/index
    client/index
