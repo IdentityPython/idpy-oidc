@@ -692,6 +692,17 @@ class TestEndpoint(object):
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None, req_user="adam")
         assert "error" in res
 
+    def test_unwrap_identity(self):
+        identity = {
+            'sid':
+                'Z0FBQUFBQmlZQXFBeDlvSjRENVVYSDBFeTZ6YzVQWTRGVy1laFk2ZmJIbWdPeUhzbVJYbWo5clVPQ045MXpiSVYwS0pfZkREaVUwX2VaVU9HMk9hUktxaGR0R0dQMlRLOXVWQWVTYWJMdDFsVWZJUEItWS1NVi1WQXllNEVlYm9KMDJsSmFYU0pLYWVJeVRKZkJCYmE1T2RpWXRPM3ZmanRlMThfLUNvcnd4ZXVxcFBWdDY0M18tbXNzbjFvbGl4OFdJRTF6YTcwQ3dqNjdsRHdUa1V4ZTlZMjU3SVlXaXdSSTVJSFJJNENwand3a2pOdmV2WGFPRGZhSnZma2NkZ01ZZk1iS3hma1phcQ==',
+            'state': '80ec120d9a322e70e02503e9a99e734174c1e6cb',
+            'timestamp': 1650461312,
+            'uid': '6260077f56d8970e543aa380',
+            'grant_id': 'c636b820c0ad11ecbdd1acde48001122'}
+        _id = self.endpoint._unwrap_identity(identity)
+        assert _id["uid"] == '6260077f56d8970e543aa380'
+
     # def test_sso(self):
     #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT)
     #     _resp = self.endpoint.process_request(_pr_resp)
