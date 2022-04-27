@@ -20,11 +20,17 @@ class AccessToken(access_token.AccessToken):
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
 
+    metadata_attribute = {
+        "token_endpoint_auth_method": "",
+        "token_endpoint_auth_signing_alg": ""
+    }
+
     def __init__(self, client_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, client_get, conf=conf)
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()

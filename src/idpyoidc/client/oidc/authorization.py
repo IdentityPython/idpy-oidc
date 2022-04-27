@@ -27,6 +27,20 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
+    metadata_attribute = {
+        "request_object_signing_alg": "",
+        "request_object_encryption_alg": "",
+        "request_object_encryption_enc": "",
+        "redirect_uris": [],
+        "response_types": [],
+        "grant_types": [],
+        "sector_identifier_uri": "",
+        "initiate_login_uri": "",
+        "request_uris": [],
+        "default_max_age": 0,
+        "default_acr_values": []
+    }
+
     def __init__(self, client_get, conf=None):
         authorization.Authorization.__init__(self, client_get, conf=conf)
         self.default_request_args = {"scope": ["openid"]}

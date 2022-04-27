@@ -8,13 +8,11 @@ from typing import Optional
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.encrypter import get_crypt_config
-from idpyoidc.encrypter import init_encrypter
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
 from idpyoidc.server.session.database import NoSuchClientSession
-from idpyoidc.server.token import Token
 from idpyoidc.util import rndstr
 
 from ..token import UnknownToken

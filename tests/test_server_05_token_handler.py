@@ -1,11 +1,6 @@
-import base64
-import hashlib
-import hmac
 import os
-import secrets
 
 import pytest
-from cryptojwt.jwe.fernet import FernetEncrypter
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.server import Server

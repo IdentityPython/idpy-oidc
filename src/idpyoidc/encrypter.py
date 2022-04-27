@@ -39,7 +39,8 @@ def get_crypt_config(conf):
         else:
             _args = {"password": _pwd}
             _args["salt"] = conf.get("salt", os.urandom(16))
-            _crypt_config = {"class": "cryptojwt.jwe.fernet.FernetEncrypter", "kwargs": _args}
+            _crypt_config = {"class": "cryptojwt.jwe.fernet.FernetEncrypter",
+                             "kwargs": _args}
     return _crypt_config
 
 

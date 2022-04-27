@@ -122,7 +122,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
                 try:
                     vtyp = regreq.c_param[_pref]
                 except KeyError:
-                    # Allow non standard claims
+                    # Allow non-standard claims
                     if isinstance(vals, list):
                         _behaviour[_pref] = [v for v in vals if v in _pvals]
                     elif vals in _pvals:

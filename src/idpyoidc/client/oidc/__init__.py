@@ -72,6 +72,22 @@ class FetchException(Exception):
 
 
 class RP(oauth2.Client):
+    metadata_attributes = {
+        "contacts": [],
+        "client_name": "",
+        "logo_uri": "",
+        "client_uri": "",
+        "policy_uri": "",
+        "tos_uri": "",
+        "jwks_uri": "",
+        "jwks": "",
+        "subject_type": [],
+        "id_token_signed_response_alg": "",
+        "id_token_encrypted_response_alg": "",
+        "id_token_encrypted_response_enc": "",
+        "require_auth_time": False
+    }
+
     def __init__(
         self,
         keyjar=None,

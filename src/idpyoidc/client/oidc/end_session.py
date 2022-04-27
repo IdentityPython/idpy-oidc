@@ -20,6 +20,11 @@ class EndSession(Service):
     service_name = "end_session"
     response_body_type = "html"
 
+    metadata_attribute = {
+        "frontchannel_logout_uri": "",
+        "backchannel_logout_uri": ""
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [

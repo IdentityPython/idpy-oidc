@@ -64,6 +64,8 @@ class Service(ImpExp):
 
     init_args = ["client_get"]
 
+    metadata_attribute = {}
+
     def __init__(
         self, client_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
     ):

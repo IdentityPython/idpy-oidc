@@ -4,7 +4,6 @@ from typing import Optional
 from cryptojwt import JWT
 from cryptojwt.jws.exception import JWSException
 
-from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
 
 from ..constant import DEFAULT_TOKEN_LIFETIME
