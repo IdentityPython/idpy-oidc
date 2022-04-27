@@ -15,7 +15,9 @@ from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.hmac import HMACSigner
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import init_key_jar
+from cryptojwt.utils import as_bytes
 
+from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.time_util import epoch_in_a_while
@@ -37,10 +39,12 @@ class CookieHandler:
         keys: Optional[dict] = None,
         sign_alg: [str] = "SHA256",
         name: Optional[dict] = None,
+        crypt_config: Optional[dict] = None,
         **kwargs,
     ):
         self.sign_key = None
         self.enc_key = None
+        self.crypt = None
 
         if keys:
             key_jar = init_key_jar(**keys)
@@ -50,6 +54,10 @@ class CookieHandler:
             _keys = key_jar.get_encrypt_key(key_type="oct")
             if _keys:
                 self.enc_key = _keys[0]
+        elif crypt_config:
+            _crypt = init_encrypter(crypt_config)
+            self.crypt = _crypt["encrypter"]
+            self.crypt_config = _crypt["conf"]
         else:
             if sign_key:
                 if isinstance(sign_key, SYMKey):
@@ -134,6 +142,11 @@ class CookieHandler:
                 base64.b64encode(ctx),
                 base64.b64encode(tag),
             ]
+        elif self.crypt:
+            msg = lv_pack(timestamp, payload)
+            cookie_payload = [
+                bytes_timestamp,
+                base64.b64encode(self.crypt.encrypt(msg.encode()))]
         else:
             cookie_payload = [bytes_timestamp, bytes_load, base64.b64encode(mac)]
 
@@ -149,6 +162,15 @@ class CookieHandler:
 
         if parts is None:
             return None
+        elif len(parts) == 2:
+            t0, enc_payload = parts
+            if not self.crypt:
+                raise VerificationError("Can not decrypt")
+            msg = self.crypt.decrypt(base64.b64decode(as_bytes(enc_payload)))
+            t1, payload = lv_unpack(msg.decode("utf-8"))
+            if t0 != t1:
+                raise VerificationError('Suspicious timestamp')
+            return payload, t1
         elif len(parts) == 3:
             # verify the cookie signature
             timestamp, payload, b64_mac = parts
