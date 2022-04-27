@@ -39,13 +39,15 @@ class CookieHandler:
         name: Optional[dict] = None,
         **kwargs,
     ):
+        self.sign_key = None
+        self.enc_key = None
 
         if keys:
             key_jar = init_key_jar(**keys)
-            _keys = key_jar.get_signing_key(key_type="oct", kid="sig")
+            _keys = key_jar.get_signing_key(key_type="oct")
             if _keys:
                 self.sign_key = _keys[0]
-            _keys = key_jar.get_encrypt_key(key_type="oct", kid="enc")
+            _keys = key_jar.get_encrypt_key(key_type="oct")
             if _keys:
                 self.enc_key = _keys[0]
         else:
