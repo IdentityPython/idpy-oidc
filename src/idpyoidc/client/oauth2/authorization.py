@@ -29,6 +29,17 @@ class Authorization(Service):
     #     "endpoint": ""
     # })
 
+    metadata_attributes = {
+        "response_types": [],
+        "request_object_signing_alg": "RS256",
+        "request_object_encryption_alg": "",
+        "request_object_encryption_enc": "",
+        "default_max_age": "",
+        "default_acr_values": [],
+        "require_auth_time": False,
+        "request_uris": []
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])

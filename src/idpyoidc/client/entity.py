@@ -13,6 +13,24 @@ from src.idpyoidc.client.configure import get_configuration
 
 
 class Entity(object):
+    metadata_attributes = {
+        "grant_types": ["authorization_code", "implicit", "refresh_token"],
+        "application_type": "web",
+        "contacts": [],
+        "client_name": "",
+        "logo_uri": "",
+        "client_uri": "",
+        "policy_uri": "",
+        "tos_uri": "",
+        "jwks_uri": "",
+        "jwks": "",
+        "sector_identifier_uri": "",
+        "id_token_signed_response_alg": "RS256",
+        "id_token_encrypted_response_alg": "",
+        "id_token_encrypted_response_enc": "",
+        "initiate_login_uri": ""
+    }
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
