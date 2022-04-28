@@ -13,6 +13,9 @@ from cryptojwt.jwt import JWT
 
 from idpyoidc.server.exception import FailedAuthentication
 from idpyoidc.server.exception import ImproperlyConfigured
+from idpyoidc.server.exception import InconsistentDatabase
+from idpyoidc.server.exception import NoSuchClientSession
+from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.exception import OnlyForTestingWarning
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import instantiate
@@ -64,8 +67,8 @@ class UserAuthnMethod(object):
             return None, 0
         else:
             _info = self.cookie_info(cookie, client_id)
-            logger.debug("authenticated_as: cookie info={}".format(_info))
             if _info:
+                logger.debug("authenticated_as: cookie info={}".format(_info))
                 if "max_age" in kwargs and kwargs["max_age"] != 0:
                     _max_age = kwargs["max_age"]
                     _now = utc_time_sans_frac()
@@ -74,6 +77,9 @@ class UserAuthnMethod(object):
                             "Too old by {} seconds".format(_now - (_info["timestamp"] + _max_age))
                         )
                         return None, 0
+            else:
+                logger.info("Failed to find session based on cookie")
+
             return _info, utc_time_sans_frac()
 
     def verify(self, *args, **kwargs):
@@ -109,9 +115,18 @@ class UserAuthnMethod(object):
             for val in cookie:
                 _info = json.loads(val["value"])
                 _info["timestamp"] = int(val["timestamp"])
+
+                # verify session ID
+                try:
+                    _context.session_manager[_info["sid"]]
+                except (KeyError, ValueError, InconsistentDatabase,
+                        NoSuchClientSession, NoSuchGrant) as err:
+                    logger.info(f"Verifying session ID fail due to {err}")
+                    return {}
+
                 session_id = _context.session_manager.decrypt_session_id(_info["sid"])
                 logger.debug("cookie_info: session id={}".format(session_id))
-                # _, cid, _ = _context.session_manager.decrypt_session_id(_info["sid"])
+
                 if session_id[1] != client_id:
                     continue
                 else:
@@ -138,13 +153,13 @@ class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-        self,
-        db,
-        template_handler,
-        template="user_pass.jinja2",
-        server_get=None,
-        verify_endpoint="",
-        **kwargs,
+            self,
+            db,
+            template_handler,
+            template="user_pass.jinja2",
+            server_get=None,
+            verify_endpoint="",
+            **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(server_get=server_get)

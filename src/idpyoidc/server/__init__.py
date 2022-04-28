@@ -7,7 +7,6 @@ from typing import Union
 from cryptojwt import KeyJar
 
 from idpyoidc.impexp import ImpExp
-from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
