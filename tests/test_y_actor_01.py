@@ -6,8 +6,8 @@ from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import init_key_jar
 
-from idpyoidc.actor import CIBAClient
-from idpyoidc.actor import CIBAServer
+from idpyoidc.actor.client.oidc import CIBAClient
+from idpyoidc.actor.server.oidc import CIBAServer
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.server import OPConfiguration
@@ -108,14 +108,15 @@ def _create_client(issuer, client_id, service):
         "redirect_uris": [f"https://example.com/{client_id}/authz_cb"],
         "behaviour": {"response_types": ["code"]},
         "client_authn_methods": {
-            "client_notification_authn": "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+            "client_notification_authn":
+                "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
         },
     }
     _services = {
         "discovery": {
             "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"
         },
-        "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
+        "registration": {"class": "idpyoidc.actor.client.oidc.registration.Registration"},
     }
     _services.update(service)
 
@@ -161,13 +162,14 @@ class TestPushActor:
     def create_actor(self):
         # ============== ACTOR 1 ==============
         # Actor 1 can use Authentication Service and provides a Client Notification Endpoint
-        actor_1 = CIBAClient()
-        actor_1.client = _create_client(
+        ciba_client = CIBAClient()
+        ciba_client.client = _create_client(
             ISSUER_2,
             "actor1",
             {
                 "authentication": {
-                    "class": "idpyoidc.client.oidc.backchannel_authentication.BackChannelAuthentication"
+                    "class": "idpyoidc.client.oidc.backchannel_authentication"
+                             ".BackChannelAuthentication"
                 }
             },
         )
@@ -181,18 +183,19 @@ class TestPushActor:
         }
         extra = {
             "client_authn_methods": {
-                "client_notification_authn": "idpyoidc.server.oidc.backchannel_authentication.ClientNotificationAuthn"
+                "client_notification_authn":
+                    "idpyoidc.server.oidc.backchannel_authentication.ClientNotificationAuthn"
             }
         }
 
-        actor_1.server = _create_server(ISSUER_1, endpoint, 6000, extra_conf=extra)
+        ciba_client.server = _create_server(ISSUER_1, endpoint, 6000, extra_conf=extra)
 
-        self.actor_1 = actor_1
+        self.ciba_client = ciba_client
 
         # ============== ACTOR 2 ==============
         # Provides Authentication endpoint and can use the Client notification service
-        actor_2 = CIBAServer()
-        actor_2.client = _create_client(
+        ciba_server = CIBAServer()
+        ciba_server.client = _create_client(
             ISSUER_1,
             "actor2",
             {
@@ -201,6 +204,7 @@ class TestPushActor:
                 }
             },
         )
+
         endpoint = {
             "backchannel_authentication": {
                 "path": "authentication",
@@ -223,55 +227,55 @@ class TestPushActor:
                 "kwargs": {"db_file": "users.json"},
             },
         }
-        actor_2.server = _create_server(ISSUER_2, endpoint, 7000, extra)
+        ciba_server.server = _create_server(ISSUER_2, endpoint, 7000, extra)
 
         # register clients with servers.
-        _server_context = actor_1.server.server_get("endpoint_context")
-        _client_context = actor_2.client.client_get("service_context")
+        _server_context = ciba_client.server.server_get("endpoint_context")
+        _client_context = ciba_server.client.client_get("service_context")
         _server_context.cdb = {
             _client_context.client_id: {
                 "client_secret": _client_context.client_secret,
             },
-            actor_2.server.server_get("endpoint_context").issuer: {
+            ciba_server.server.server_get("endpoint_context").issuer: {
                 "client_secret": _client_context.client_secret
             },
         }
-        _server_context = actor_2.server.server_get("endpoint_context")
-        _client_context = actor_1.client.client_get("service_context")
+        _server_context = ciba_server.server.server_get("endpoint_context")
+        _client_context = ciba_client.client.client_get("service_context")
         _server_context.cdb = {
             _client_context.client_id: {"client_secret": _client_context.client_secret},
-            actor_1.server.server_get("endpoint_context").issuer: {
+            ciba_client.server.server_get("endpoint_context").issuer: {
                 "client_secret": _client_context.client_secret
             },
         }
 
         # Transfer provider metadata 1->2 and 2->1
-        _client_context = actor_2.client.client_get("service_context")
-        _server_context = actor_1.server.server_get("endpoint_context")
+        _client_context = ciba_server.client.client_get("service_context")
+        _server_context = ciba_client.server.server_get("endpoint_context")
         _client_context.provider_info = _server_context.provider_info
 
-        _client_context = actor_1.client.client_get("service_context")
-        _server_context = actor_2.server.server_get("endpoint_context")
+        _client_context = ciba_client.client.client_get("service_context")
+        _server_context = ciba_server.server.server_get("endpoint_context")
         _client_context.provider_info = _server_context.provider_info
 
         _server_context.parse_login_hint_token = parse_login_hint_token
 
         # keys
-        _client_keyjar = actor_2.client.client_get("service_context").keyjar
-        _server_keyjar = actor_1.server.server_get("endpoint_context").keyjar
+        _client_keyjar = ciba_server.client.client_get("service_context").keyjar
+        _server_keyjar = ciba_client.server.server_get("endpoint_context").keyjar
         _server_keyjar.import_jwks(_client_keyjar.export_jwks(), "actor2")
         _client_keyjar.import_jwks(_server_keyjar.export_jwks(), ISSUER_1)
 
-        _client_keyjar = actor_1.client.client_get("service_context").keyjar
-        _server_keyjar = actor_2.server.server_get("endpoint_context").keyjar
+        _client_keyjar = ciba_client.client.client_get("service_context").keyjar
+        _server_keyjar = ciba_server.server.server_get("endpoint_context").keyjar
         _server_keyjar.import_jwks(_client_keyjar.export_jwks(), "actor1")
         _client_keyjar.import_jwks(_server_keyjar.export_jwks(), ISSUER_2)
 
-        self.actor_1 = actor_1
-        self.actor_2 = actor_2
+        self.ciba_client = ciba_client
+        self.ciba_provider = ciba_server
 
     def _create_session(
-        self, server, user_id, auth_req, sub_type="public", sector_identifier="", authn_info=""
+            self, server, user_id, auth_req, sub_type="public", sector_identifier="", authn_info=""
     ):
         if sector_identifier:
             authz_req = auth_req.copy()
@@ -286,13 +290,13 @@ class TestPushActor:
         )
 
     def test_init(self):
-        assert self.actor_1.client
-        assert self.actor_2.client
-        assert self.actor_1.server
-        assert self.actor_2.server
+        assert self.ciba_client.client
+        assert self.ciba_provider.client
+        assert self.ciba_client.server
+        assert self.ciba_provider.server
 
     def test_query(self):
-        _req = self.actor_1.create_authentication_request(
+        _req = self.ciba_client.create_authentication_request(
             scope="openid email example-scope",
             binding_message="W4SCT",
             login_hint="mail:diana@example.org",
@@ -303,7 +307,7 @@ class TestPushActor:
         assert _req["request"]["login_hint"] == "mail:diana@example.org"
 
         # On the CIBA server side
-        _endpoint = self.actor_2.server.server_get("endpoint", "backchannel_authentication")
+        _endpoint = self.ciba_provider.server.server_get("endpoint", "backchannel_authentication")
         _request = _endpoint.parse_request(_req["request"].to_urlencoded())
         assert _request
         # If ping mode
@@ -317,7 +321,7 @@ class TestPushActor:
         # User interaction with the authentication device returns some authentication info
 
         session_id_2 = self._create_session(
-            self.actor_2.server, req_user, _request, authn_info=MOBILETWOFACTORCONTRACT
+            self.ciba_provider.server, req_user, _request, authn_info=MOBILETWOFACTORCONTRACT
         )
 
         # Create fake token response
@@ -326,7 +330,7 @@ class TestPushActor:
             "auth_req_id": _info["response_args"]["auth_req_id"],
             "client_id": "actor1",
         }
-        _token_endpoint = self.actor_2.server.server_get("endpoint", "token")
+        _token_endpoint = self.ciba_provider.server.server_get("endpoint", "token")
         _treq = _token_endpoint.parse_request(token_request)
         # Construct response to the authentication request
         _tinfo = _token_endpoint.process_request(_treq)
@@ -335,7 +339,8 @@ class TestPushActor:
         # Send the response to the client notification endpoint
 
         _tinfo["response_args"]["client_notification_token"] = _request["client_notification_token"]
-        _notification_service = self.actor_2.client.client_get("service", "client_notification")
+        _notification_service = self.ciba_provider.client.client_get("service",
+                                                                     "client_notification")
         _not_req = _notification_service.get_request_parameters(
             request_args=_tinfo["response_args"], authn_method="client_notification_authn"
         )
@@ -344,7 +349,10 @@ class TestPushActor:
 
         # The receiver of the notification
 
-        _ninfo = self.actor_1.do_client_notification(
+        _ninfo = self.ciba_client.do_client_notification(
             _not_req["body"], http_info={"headers": _not_req["headers"]}
         )
         assert _ninfo is None
+
+    def test_metadata(self):
+        _data = self.ciba_client.construct_metadata()

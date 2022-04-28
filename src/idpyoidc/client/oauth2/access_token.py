@@ -24,6 +24,11 @@ class AccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
+    metadata_attributes = {
+        "token_endpoint_auth_method": "client_secret_basic",
+        "token_endpoint_auth_signing_alg": "RS256"
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)

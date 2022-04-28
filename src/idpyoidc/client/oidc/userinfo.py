@@ -38,6 +38,12 @@ class UserInfo(Service):
     default_authn_method = "bearer_header"
     http_method = "GET"
 
+    metadata_attributes = {
+        "userinfo_signed_response_alg": "",
+        "userinfo_encrypted_response_alg": "",
+        "userinfo_encrypted_response_enc": ""
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
