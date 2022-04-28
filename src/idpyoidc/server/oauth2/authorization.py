@@ -603,21 +603,22 @@ class Authorization(Endpoint):
                         if _csi.is_active() is False:
                             identity = None
 
-        authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
         _mngr = _context.session_manager
         _session_id = ""
 
         # To authenticate or Not
         if not identity:  # No!
             logger.info("No active authentication")
-            logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
+            # logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
 
             if "prompt" in request and "none" in request["prompt"]:
                 # Need to authenticate but not allowed
                 return self._login_required_error(redirect_uri, request)
             else:
+                authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
                 return {"function": authn, "args": authn_args}
         else:
+            authn_args = authn_args_gather(request, authn_class_ref, cinfo, **kwargs)
             logger.info(f"Active authentication: {identity}")
             if re_authenticate(request, authn):
                 # demand re-authentication
@@ -994,7 +995,7 @@ class Authorization(Endpoint):
         cinfo = _context.cdb[_cid]
         # logger.debug("client {}: {}".format(_cid, cinfo))
 
-        # this apply the default optionally deny_unknown_scopes policy
+        # this applies the default optionally deny_unknown_scopes policy
         check_unknown_scopes_policy(request, _cid, _context)
 
         if http_info is None:
@@ -1004,7 +1005,11 @@ class Authorization(Endpoint):
         if _cookies:
             logger.debug("parse_cookie@process_request")
             _session_cookie_name = _context.cookie_handler.name["session"]
-            _my_cookies = _context.cookie_handler.parse_cookie(_session_cookie_name, _cookies)
+            try:
+                _my_cookies = _context.cookie_handler.parse_cookie(_session_cookie_name, _cookies)
+            except Exception as err:
+                logger.info(f"Parse cookie failed due to: {err}")
+                _my_cookies = {}
         else:
             _my_cookies = {}
 

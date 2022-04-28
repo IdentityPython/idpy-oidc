@@ -1362,6 +1362,20 @@ class TestUserAuthn(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = server.endpoint_context
+        self.session_manager = self.endpoint_context.session_manager
+        self.user_id = "diana"
+
+    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
+        if sector_identifier:
+            authz_req = auth_req.copy()
+            authz_req["sector_identifier_uri"] = sector_identifier
+        else:
+            authz_req = auth_req
+        client_id = authz_req["client_id"]
+        ae = create_authn_event(self.user_id)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
 
     def test_authenticated_as_without_cookie(self):
         authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
@@ -1375,12 +1389,12 @@ class TestUserAuthn(object):
         method = authn_item[0]["method"]
 
         authn_req = {"state": "state_identifier", "client_id": "client 12345"}
+        session_id = self._create_session(authn_req)
+
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="diana",
-            sid=self.endpoint_context.session_manager.encrypted_session_id(
-                "diana", "client 12345", "abcdefgh"
-            ),
+            sid=session_id,
             state=authn_req["state"],
             client_id=authn_req["client_id"],
         )
@@ -1392,3 +1406,51 @@ class TestUserAuthn(object):
 
         _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
         assert _info["sub"] == "diana"
+
+    def test_authenticated_as_with_unknown_user(self):
+        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
+        method = authn_item[0]["method"]
+
+        authn_req = {"state": "state_identifier", "client_id": "client 12345"}
+        session_id = self._create_session(authn_req)
+        _cookie = self.endpoint_context.new_cookie(
+            name=self.endpoint_context.cookie_handler.name["session"],
+            sub="adam",
+            sid=self.endpoint_context.session_manager.encrypted_session_id(
+                "adam", "client 12345", "0123456789"
+            ),
+            state=authn_req["state"],
+            client_id=authn_req["client_id"],
+        )
+
+        # Parsed once before setup_auth
+        kakor = self.endpoint_context.cookie_handler.parse_cookie(
+            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"]
+        )
+
+        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
+        assert _info == {}
+
+    def test_authenticated_as_with_goobledigook(self):
+        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
+        method = authn_item[0]["method"]
+
+        authn_req = {"state": "state_identifier", "client_id": "client 12345"}
+        _ = self._create_session(authn_req)
+        _cookie = self.endpoint_context.new_cookie(
+            name=self.endpoint_context.cookie_handler.name["session"],
+            sub="adam",
+            sid=self.endpoint_context.session_manager.encrypted_session_id(
+                "adam", "client 12345", "0123456789"
+            ),
+            state=authn_req["state"],
+            client_id=authn_req["client_id"],
+        )
+
+        kakor = [{
+            'value': '{"sub": "adam", "sid": "Z0FBQUFBQmlhVl", "state": "state_identifier", "client_id": "client 12345"}',
+            'type': '',
+            'timestamp': '1651070251'}]
+
+        _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
+        assert _info == {}

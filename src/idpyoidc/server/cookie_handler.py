@@ -279,15 +279,15 @@ class CookieHandler:
         LOGGER.debug("Looking for '{}' cookies".format(name))
         res = []
         for _cookie in cookies:
-            LOGGER.debug("Cookie: {}".format(_cookie))
+            LOGGER.debug(f"Cookie: {_cookie}")
             if "name" in _cookie and _cookie["name"] == name:
                 _content = self._ver_dec_content(_cookie["value"].split("|"))
                 if _content:
-                    payload, timestamp = self._ver_dec_content(_cookie["value"].split("|"))
+                    payload, timestamp = _content
                     value, typ = payload.split("::")
                     res.append({"value": value, "type": typ, "timestamp": timestamp})
                 else:
-                    LOGGER.debug(f"Could not verify {name} cookie")
+                    LOGGER.debug(f"Could not verify '{name}' cookie")
         return res
 
 
