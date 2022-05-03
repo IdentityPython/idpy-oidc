@@ -207,6 +207,7 @@ class SessionManager(Database):
     def create_exchange_grant(
         self,
         exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
         original_session_id: str,
         user_id: str,
         client_id: Optional[str] = "",
@@ -215,7 +216,7 @@ class SessionManager(Database):
         scopes: Optional[list] = None,
     ) -> str:
         """
-
+        
         :param scopes: Scopes
         :param exchange_req:
         :param user_id:
@@ -223,12 +224,13 @@ class SessionManager(Database):
         :param sub_type:
         :return:
         """
-
         grant = ExchangeGrant(
             scope=scopes,
-            original_session_id=original_session_id,
+            authentication_event=original_grant.authentication_event,
+            authorization_request=original_grant.authorization_request,
             exchange_request=exchange_request,
-            sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
+            original_session_id=original_session_id,
+            sub=original_grant.sub,
             usage_rules=token_usage_rules,
         )
         self.set([user_id, client_id, grant.id], grant)
@@ -287,6 +289,7 @@ class SessionManager(Database):
     def create_exchange_session(
         self,
         exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
         original_session_id: str,
         user_id: str,
         client_id: Optional[str] = "",
@@ -325,6 +328,7 @@ class SessionManager(Database):
 
         return self.create_exchange_grant(
             exchange_request=exchange_request,
+            original_grant=original_grant,
             original_session_id=original_session_id,
             user_id=user_id,
             client_id=client_id,

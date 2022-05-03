@@ -74,7 +74,7 @@ class TokenEndpointHelper(object):
             token_args = meth(_context, client_id, token_args)
 
         if token_args:
-            _args = {"token_args": token_args}
+            _args = token_args
         else:
             _args = {}
 
@@ -177,7 +177,6 @@ class AccessTokenHelper(TokenEndpointHelper):
         if (
             issue_refresh
             and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
@@ -269,7 +268,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
                 token_type = "DPoP"
 
         token = _grant.get_token(token_value)
-        scope = _grant.find_scope(token.based_on)
+        scope = _grant.find_scope(token)
         if "scope" in req:
             scope = req["scope"]
         access_token = self._mint_token(
@@ -442,6 +441,27 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         resp = self._enforce_policy(request, token, config)
+        if isinstance(resp, TokenErrorResponse):
+            return resp
+
+        scopes = resp.get("scope", [])
+        scopes = _context.scopes_handler.filter_scopes(scopes, client_id=resp["client_id"])
+
+        if not scopes:
+            logger.error("All requested scopes have been filtered out.")
+            return self.error_cls(
+                error="invalid_scope", error_description="Invalid requested scopes"
+            )
+
+        _requested_token_type = resp.get(
+            "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
+        )
+        _token_class = self.token_types_mapping[_requested_token_type]
+        if _token_class == "refresh_token" and "offline_access" not in scopes:
+            return TokenErrorResponse(
+                error="invalid_request",
+                error_description="Exchanging this subject token to refresh token forbidden",
+            )
 
         return resp
 
@@ -471,7 +491,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error_description="Unsupported requested token type",
             )
 
-        request_info = dict(scope=request.get("scope", []))
+        request_info = dict(scope=request.get("scope", token.scope))
         try:
             check_unknown_scopes_policy(request_info, request["client_id"], _context)
         except UnAuthorizedClientScope:
@@ -501,11 +521,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
             logger.error(f"Error while executing the {fn} policy callable: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
 
-    def token_exchange_response(self, token):
+    def token_exchange_response(self, token, issued_token_type):
         response_args = {}
         response_args["access_token"] = token.value
         response_args["scope"] = token.scope
-        response_args["issued_token_type"] = token.token_class
+        response_args["issued_token_type"] = issued_token_type
 
         if token.expires_at:
             response_args["expires_in"] = token.expires_at - utc_time_sans_frac()
@@ -535,6 +555,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Subject token invalid"
             )
 
+        grant=_session_info["grant"]
         token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
         _requested_token_type = request.get(
             "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
@@ -549,16 +570,19 @@ class TokenExchangeHelper(TokenEndpointHelper):
         if "dpop_signing_alg_values_supported" in _context.provider_info:
             if request.get("dpop_jkt"):
                 _token_type = "DPoP"
+        scopes = request.get("scope", [])
 
         if request["client_id"] != _session_info["client_id"]:
             _token_usage_rules = _context.authz.usage_rules(request["client_id"])
 
             sid = _mngr.create_exchange_session(
                 exchange_request=request,
+                original_grant=grant,
                 original_session_id=sid,
                 user_id=_session_info["user_id"],
                 client_id=request["client_id"],
                 token_usage_rules=_token_usage_rules,
+                scopes=scopes,
             )
 
             try:
@@ -575,6 +599,10 @@ class TokenExchangeHelper(TokenEndpointHelper):
         else:
             resources = request.get("audience")
 
+        _token_args = None
+        if resources:
+            _token_args={"resources": resources}
+
         try:
             new_token = self._mint_token(
                 token_class=_token_class,
@@ -582,10 +610,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 session_id=sid,
                 client_id=request["client_id"],
                 based_on=token,
-                scope=request.get("scope"),
-                token_args={"resources": resources},
+                scope=scopes,
+                token_args=_token_args,
                 token_type=_token_type,
             )
+            new_token.expires_at = token.expires_at
         except MintingNotAllowed:
             logger.error(f"Minting not allowed for {_token_class}")
             return self.error_cls(
@@ -593,7 +622,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error_description="Token Exchange not allowed with that token",
             )
 
-        return self.token_exchange_response(token=new_token)
+        return self.token_exchange_response(new_token, _requested_token_type)
 
     def _validate_configuration(self, config):
         if "requested_token_types_supported" not in config:
@@ -646,18 +675,16 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         if "offline_access" not in subject_token.scope:
             return TokenErrorResponse(
                 error="invalid_request",
-                error_description=f"Exchange {request['subject_token_type']} to refresh token "
-                f"forbbiden",
+                error_description=f"Exchange {request['subject_token_type']} to refresh token forbidden",
             )
 
-    if "scope" in request:
-        scopes = list(set(request.get("scope")).intersection(kwargs.get("scope")))
-        if scopes:
-            request["scope"] = scopes
-        else:
-            return TokenErrorResponse(
-                error="invalid_request",
-                error_description="No supported scope requested",
-            )
+    scopes = request.get("scope", subject_token.scope)
+    scopes = list(set(scopes).intersection(subject_token.scope))
+    if kwargs.get("scope"):
+        scopes = list(set(scopes).intersection(kwargs.get("scope")))
+    if scopes:
+        request["scope"] = scopes
+    else:
+        request.pop("scope")
 
     return request

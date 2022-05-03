@@ -340,8 +340,8 @@ class TestEndpoint(object):
             "issued_token_type",
         }
 
-        assert _te_resp["issued_token_type"] == list(token.keys())[0]
-        assert _te_resp["scope"] == _scope
+        assert _te_resp["issued_token_type"] == token[list(token.keys())[0]]
+        assert set(_te_resp["scope"]) == set(_scope)
 
     @pytest.mark.parametrize(
         "token",
@@ -363,17 +363,17 @@ class TestEndpoint(object):
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
             ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
                     "callable":
                         "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {"scope": ["openid"]},
+                    "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
         }
 
         resp, _state, _scope = self.process_setup(token)
-
         # ****** Token Exchange Request **********
 
         req_args = {
@@ -386,7 +386,6 @@ class TestEndpoint(object):
 
         _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
                                                           _state)
-
         assert set(_te_resp.keys()) == {
             "access_token",
             "token_type",
@@ -394,9 +393,8 @@ class TestEndpoint(object):
             "expires_in",
             "issued_token_type",
         }
-
-        assert _te_resp["issued_token_type"] == list(token.keys())[0]
-        assert _te_resp["scope"] == _scope
+        assert _te_resp["issued_token_type"] == token[list(token.keys())[0]]
+        assert set(_te_resp["scope"]) == set(_scope)
 
     def test_additional_parameters(self):
         """

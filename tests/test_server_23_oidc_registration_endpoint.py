@@ -49,6 +49,7 @@ RESPONSE_TYPES_SUPPORTED = [
 MSG = {
     "client_id": "client_id",
     "application_type": "web",
+    "client_id": "client_id",
     "redirect_uris": [
         "https://client.example.org/callback",
         "https://client.example.org/callback2",
@@ -127,7 +128,7 @@ class TestEndpoint(object):
                 "registration": {
                     "path": "registration",
                     "class": Registration,
-                    "kwargs": {"client_auth_method": None},
+                    "kwargs": {"client_authn_method": ["none"]},
                 },
                 "authorization": {
                     "path": "authorization",

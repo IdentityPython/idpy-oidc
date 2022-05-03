@@ -182,7 +182,7 @@ class UserInfo(Endpoint):
         try:
             auth_info = self.client_authentication(request, http_info, **kwargs)
         except ClientAuthenticationError as e:
-            return self.error_cls(error="invalid_token", error_description=e.args[0])
+            return self.error_cls(error="invalid_token", error_description="Invalid token")
 
         if isinstance(auth_info, ResponseMessage):
             return auth_info

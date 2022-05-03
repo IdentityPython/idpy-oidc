@@ -6,6 +6,7 @@ from idpyoidc.message import oauth2
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.token.exception import WrongTokenClass
+from idpyoidc.server.exception import ToOld
 
 LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +39,6 @@ class Introspection(Endpoint):
             return None
 
         if not token.is_active():
-            #
             return None
 
         scope = token.scope
@@ -103,7 +103,7 @@ class Introspection(Endpoint):
             _session_info = _context.session_manager.get_session_info_by_token(
                 request_token, grant=True
             )
-        except (UnknownToken, WrongTokenClass):
+        except (UnknownToken, WrongTokenClass,ToOld):
             return {"response_args": _resp}
 
         grant = _session_info["grant"]

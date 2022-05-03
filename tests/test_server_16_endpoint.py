@@ -20,7 +20,8 @@ KEYDEFS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-REQ = Message(foo="bar", hej="hopp", client_id="client_id")
+CLIENT_ID = "client_id"
+REQ = Message(foo="bar", hej="hopp", client_id=CLIENT_ID)
 
 EXAMPLE_MSG = {
     "name": "Jane Doe",
@@ -78,6 +79,7 @@ class TestEndpoint(object):
 
         server.endpoint_context.cdb["client_id"] = {}
         self.endpoint_context = server.endpoint_context
+        self.endpoint_context.cdb[CLIENT_ID] = {}
         _endpoints = do_endpoints(conf, server.server_get)
         self.endpoint = _endpoints[""]
 
