@@ -56,7 +56,7 @@ def add_redirect_uris(request_args, service=None, **kwargs):
             _uris = [v for k, v in _cbs.items() if not k.startswith("__")]
             request_args["redirect_uris"] = _uris
         else:
-            request_args["redirect_uris"] = _context.redirect_uris
+            request_args["redirect_uris"] = _context.metadata["redirect_uris"]
 
     return request_args, {}
 
@@ -65,6 +65,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
     msg_type = oidc.Message
     response_cls = oidc.ProviderConfigurationResponse
     error_msg = ResponseMessage
+    metadata_attributes = {}
 
     def __init__(self, client_get, conf=None):
         provider_info_discovery.ProviderInfoDiscovery.__init__(self, client_get, conf=conf)
@@ -91,6 +92,8 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
         :param issuer: The issuer identifier
         """
         _context = self.client_get("service_context")
+        _entity = self.client_get("entity")
+
         if not pcr:
             pcr = _context.provider_info
 
@@ -99,9 +102,15 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
         _behaviour = _context.behaviour
 
         for _pref, _prov in PREFERENCE2PROVIDER.items():
-            try:
-                vals = _context.client_preferences[_pref]
-            except KeyError:
+            if _pref in ["scope"]:
+                vals = _entity.get_usage_value(_pref)
+            else:
+                try:
+                    vals = _entity.get_metadata_value(_pref)
+                except KeyError:
+                    continue
+
+            if not vals:
                 continue
 
             try:
@@ -142,8 +151,10 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
             if _pref not in _behaviour:
                 raise ConfigurationError("OP couldn't match preference:%s" % _pref, pcr)
 
-        for key, val in _context.client_preferences.items():
+        for key, val in _entity.collect_metadata().items():
             if key in _behaviour:
+                continue
+            if key in ["jwks", "jwks_uri"]:
                 continue
 
             try:

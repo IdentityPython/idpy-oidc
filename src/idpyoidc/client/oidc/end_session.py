@@ -20,6 +20,32 @@ class EndSession(Service):
     service_name = "end_session"
     response_body_type = "html"
 
+    metadata_attributes = {
+        "post_logout_redirect_uri": None,
+        "frontchannel_logout_uri": None,
+        "frontchannel_logout_session_required": None,
+        "backchannel_logout_uri": None,
+        "backchannel_logout_session_required": None
+    }
+
+    usage_rules = {
+        "frontchannel_logout": None,
+        "backchannel_logout": None,
+        "post_logout_redirect": None
+    }
+
+    callback_path = {
+        "frontchannel_logout_uri": "fc_logout",
+        "backchannel_logout_uri": "bc_logout",
+        "post_logout_redirect_uri": "session_logout"
+    }
+
+    usage_to_uri_map = {
+        "frontchannel_logout": "frontchannel_logout_uri",
+        "backchannel_logout": "backchannel_logout_uri",
+        "post_logout_redirect": "post_logout_redirect_uri"
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [
@@ -56,16 +82,11 @@ class EndSession(Service):
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
             _context = self.client_get("service_context")
-            _uri = _context.register_args.get("post_logout_redirect_uris")
-            if _uri:
-                if isinstance(_uri, str):
-                    request_args["post_logout_redirect_uri"] = _uri
-                else:  # assume list
-                    request_args["post_logout_redirect_uri"] = _uri[0]
-            else:
-                _uri = _context.callback.get("post_logout_redirect_uris")
-                if _uri:
-                    request_args["post_logout_redirect_uri"] = _uri[0]
+            _uri = _context.get_metadata("post_logout_redirect_uris")
+            if isinstance(_uri, str):
+                request_args["post_logout_redirect_uri"] = _uri
+            else:  # assume list
+                request_args["post_logout_redirect_uri"] = _uri[0]
 
         return request_args, {}
 

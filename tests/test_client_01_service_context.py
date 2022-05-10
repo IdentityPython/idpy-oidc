@@ -11,9 +11,12 @@ KEYDEFS = [
 KEYJAR = build_keyjar(KEYDEFS)
 
 MINI_CONFIG = {
-    "base_url": "https://example.com/cli/",
+    "base_url": "https://example.com/cli",
     "key_conf": {"key_defs": KEYDEFS},
     "issuer": "https://op.example.com",
+    "metadata": {
+        "response_types": ["code"]
+    }
 }
 
 
@@ -29,10 +32,13 @@ class TestServiceContext:
         _filename = self.service_context.filename_from_webname("https://example.com/cli/jwks.json")
         assert _filename == "jwks.json"
 
-    def test_generate_redirect_uris(self):
-        _uris = self.service_context.generate_redirect_uris("callback")
+    def test_create_callback_uris(self):
+        base_url = "https://example.com/cli"
+        hex = "0123456789"
+        self.service_context.construct_redirect_uris(base_url, hex, [])
+        _uris = self.service_context.get_metadata("redirect_uris")
         assert len(_uris) == 1
-        assert _uris[0].startswith("https://example.com/cli//callback")
+        assert _uris == [f"https://example.com/cli/authz_cb/{hex}"]
 
     def test_get_sign_alg(self):
         _alg = self.service_context.get_sign_alg("id_token")

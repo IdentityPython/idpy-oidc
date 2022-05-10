@@ -105,7 +105,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         try:
             user = kwargs["user"]
         except KeyError:
-            user = service.client_get("service_context").client_id
+            user = service.client_get("service_context").get_metadata("client_id")
         return user
 
     def _get_authentication_token(self, request, service, **kwargs):
@@ -140,7 +140,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         ):
             if "client_id" not in request:
                 try:
-                    request["client_id"] = service.client_get("service_context").client_id
+                    request["client_id"] = service.client_get("service_context").get_metadata("client_id")
                 except AttributeError:
                     pass
         else:
@@ -228,7 +228,7 @@ class ClientSecretPost(ClientSecretBasic):
                     raise AuthnFailure("Missing client secret")
 
         # Set the client_id in the the request
-        request["client_id"] = _context.client_id
+        request["client_id"] = _context.get_metadata("client_id")
 
     def construct(self, request, service=None, http_args=None, **kwargs):
         """
@@ -275,9 +275,10 @@ def find_token(request, token_type, service, **kwargs):
     except KeyError:
         # I should pick the latest acquired token, this should be the right
         # order for that.
+        _state = kwargs.get("state", kwargs.get("key"))
         _arg = service.client_get("service_context").state.multiple_extend_request_args(
             {},
-            kwargs["key"],
+            _state,
             ["access_token"],
             ["auth_response", "token_response", "refresh_token_response"],
         )
@@ -457,17 +458,17 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         return signing_key
 
-    def _get_audience_and_algorithm(self, context, **kwargs):
+    def _get_audience_and_algorithm(self, context, entity, **kwargs):
         algorithm = None
 
         # audience for the signed JWT depends on which endpoint
         # we're talking to.
         if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
-            reg_resp = context.registration_response
-            if reg_resp:
-                algorithm = reg_resp["token_endpoint_auth_signing_alg"]
+            _alg = context.registration_response.get("token_endpoint_auth_signing_alg")
+            if _alg :
+                algorithm = _alg
             else:
-                algorithm = context.client_preferences.get("token_endpoint_auth_signing_alg")
+                algorithm = entity.get_metadata_value("token_endpoint_auth_signing_alg")
                 if algorithm is None:
                     _pi = context.provider_info
                     try:
@@ -493,7 +494,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def _construct_client_assertion(self, service, **kwargs):
         _context = service.client_get("service_context")
         _entity = service.client_get("entity")
-        audience, algorithm = self._get_audience_and_algorithm(_context, **kwargs)
+        audience, algorithm = self._get_audience_and_algorithm(_context, _entity, **kwargs)
 
         if "kid" in kwargs:
             signing_key = self._get_signing_key(algorithm, _context, kid=kwargs["kid"])

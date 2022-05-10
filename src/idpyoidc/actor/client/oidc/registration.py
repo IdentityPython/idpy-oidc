@@ -104,15 +104,25 @@ def _cmp(a, b):
     return a == b
 
 
-def _in_config_or_client_preferences(config, attr, val):
-    _val = config.get("client_preferences", {}).get(attr)
-    if _cmp(_val, val):
-        return True
-    _val = config.get(attr)
-    return _cmp(_val, val)
+# def _in_config_or_client_preferences(config, attr, val):
+#     _val = config.get("client_preferences", {}).get(attr)
+#     if _cmp(_val, val):
+#         return True
+#     _val = config.get(attr)
+#     return _cmp(_val, val)
+
+def check(entity, attribute, expected):
+    try:
+        _usable = entity.get_metadata_attribute(attribute)
+    except KeyError:
+        pass
+    else:
+        if _usable is expected:
+            return True
+    return False
 
 
-def add_callbacks(context, ignore: Optional[List[str]] = None):
+def add_callbacks(context, entity, ignore: Optional[List[str]] = None):
     if ignore is None:
         ignore = []
     _iss = context.get("issuer")
@@ -123,8 +133,9 @@ def add_callbacks(context, ignore: Optional[List[str]] = None):
     _cp = context.config.get("client_preferences")
 
     if "redirect_uris" not in ignore:
+        _types = entity.get_metadata_attribute("response_types")
         # code and/or implicit
-        if _in_config_or_client_preferences(context.config, "response_types", "code"):
+        if "code" in _types:
             _uris["code"] = True
         for rt in [
             "id_token",
@@ -133,30 +144,26 @@ def add_callbacks(context, ignore: Optional[List[str]] = None):
             "code idtoken",
             "code token",
         ]:
-            if _in_config_or_client_preferences(context.config, "response_types", rt):
+            if rt in _types:
                 _uris["implicit"] = True
                 break
 
     if "form_post" not in ignore:
-        if _in_config_or_client_preferences(context.config, "form_post_usable", True):
+        if entity.value_in_metadata_attribute("form_post_usable", True):
             _uris["form_post"] = True
 
     if "request_uris" not in ignore:
-        if "require_request_uri_registration" in _pi and _in_config_or_client_preferences(
-            context.config, "request_uri_usable", True
-        ):
-            _uris["request_uris"] = True
+        if "require_request_uri_registration" in _pi:
+            if entity.value_in_metadata_attribute("request_uri_usable", True):
+                _uris["request_uris"] = True
 
     if "frontchannel_logout_uri" not in ignore:
-        if "frontchannel_logout_supported" in _pi and _in_config_or_client_preferences(
-            context.config, "frontchannel_logout_usable", True
-        ):
-            _uris["frontchannel_logout_uri"] = True
+        if "frontchannel_logout_supported" in _pi:
+            if entity.value_in_metadata_attribute("frontchannel_logout_usable", True):
+                _uris["frontchannel_logout_uri"] = True
 
     if "backchannel_logout_uri" not in ignore:
-        if "backchannel_logout_supported" in _pi and _in_config_or_client_preferences(
-            context.config, "backchannel_logout_usable", True
-        ):
+        if entity.value_in_metadata_attribute("backchannel_logout_usable", True):
             _uris["backchannel_logout_uri"] = True
 
     callbacks = create_callbacks(
@@ -190,8 +197,10 @@ def add_callback_uris(request_args=None, service=None, **kwargs):
     """
 
     _context = service.client_get("service_context")
+    _entity = service.client_get("entity")
+
     _ignore = [k for k in list(request_args.keys()) if k in CALLBACK_URIS]
-    add_callbacks(_context, ignore=_ignore)
+    add_callbacks(_context, _entity, ignore=_ignore)
     for _key in CALLBACK_URIS:
         _req_val = request_args.get(_key)
         if not _req_val:
@@ -286,7 +295,7 @@ class Registration(Service):
         _context.registration_response = resp
         _client_id = resp.get("client_id")
         if _client_id:
-            _context.client_id = _client_id
+            _context.set_metadata("client_id", _client_id)
             if _client_id not in _context.keyjar:
                 _context.keyjar.import_jwks(
                     _context.keyjar.export_jwks(True, ""), issuer_id=_client_id

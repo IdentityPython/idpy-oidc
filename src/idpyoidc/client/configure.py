@@ -49,7 +49,11 @@ class RPHConfiguration(Base):
             dir_attributes=dir_attributes,
         )
 
-        self.key_conf = lower_or_upper(conf, "rp_keys") or lower_or_upper(conf, "oidc_keys")
+        for _attr in ["key_conf", "rp_keys", "oidc_keys"]:
+            _val = lower_or_upper(conf, _attr)
+            if _val:
+                self.key_conf = _val
+                break
 
         hash_seed = lower_or_upper(conf, "hash_seed")
         if not hash_seed:

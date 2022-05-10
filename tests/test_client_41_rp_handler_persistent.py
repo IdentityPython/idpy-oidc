@@ -237,7 +237,7 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.client_get("service_context")
 
-        assert _context.get("client_id") == "eeeeeeeee"
+        assert _context.get_metadata("client_id") == "eeeeeeeee"
         assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == _github_id
 
@@ -310,7 +310,7 @@ class TestRPHandler(object):
         # redo
         rph_1.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").redirect_uris = []
+        cli2.client_get("service_context").metadata["redirect_uris"] = []
         rph_1.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):
@@ -364,7 +364,7 @@ class TestRPHandler(object):
 
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_metadata("client_id")
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         idts = IdToken(**idval)
@@ -429,7 +429,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_metadata("client_id")
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -478,7 +478,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_metadata("client_id")
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -527,7 +527,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_metadata("client_id")
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")

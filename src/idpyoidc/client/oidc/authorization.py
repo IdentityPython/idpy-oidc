@@ -27,6 +27,9 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
+    usage_rules = {
+    }
+
     def __init__(self, client_get, conf=None):
         authorization.Authorization.__init__(self, client_get, conf=conf)
         self.default_request_args = {"scope": ["openid"]}
@@ -96,7 +99,11 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            request_args["scope"] = _context.behaviour.get("scope", ["openid"])
+            _scope = self.client_get("entity").get_usage_value("scope")
+            if _scope:
+                request_args["scope"] = _scope
+            else:
+                request_args["scope"] = "openid"
         elif "openid" not in request_args["scope"]:
             request_args["scope"].append("openid")
 
@@ -181,7 +188,7 @@ class Authorization(authorization.Authorization):
         # This is the issuer of the JWT, that is me !
         _issuer = kwargs.get("issuer")
         if _issuer is None:
-            kwargs["issuer"] = _srv_cntx.client_id
+            kwargs["issuer"] = _srv_cntx.get_metadata("client_id")
 
         if kwargs.get("recv") is None:
             try:
@@ -270,7 +277,7 @@ class Authorization(authorization.Authorization):
             "skew": _context.clock_skew,
         }
 
-        _client_id = _context.client_id
+        _client_id = _context.get_metadata("client_id")
         if _client_id:
             kwargs["client_id"] = _client_id
 
@@ -292,3 +299,4 @@ class Authorization(authorization.Authorization):
             kwargs.update(_verify_args)
 
         return kwargs
+

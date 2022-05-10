@@ -3,7 +3,6 @@ Implements a service context. A Service context is used to keep information that
 common between all the services that are used by OAuth2 client or OpenID Connect Relying Party.
 """
 import copy
-import hashlib
 import os
 from typing import Optional
 from typing import Union
@@ -16,10 +15,9 @@ from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.configure import Configuration
 from idpyoidc.context import OidcContext
-from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import rndstr
-
 from .configure import get_configuration
+from .service import Service
 from .state_interface import StateInterface
 
 CLI_REG_MAP = {
@@ -94,20 +92,65 @@ class ServiceContext(OidcContext):
             "clock_skew": None,
             "config": None,
             "hash_seed": b"",
-            "hash2issuer": None,
+            "iss_hash": None,
             "httpc_params": None,
             "issuer": None,
             "kid": None,
+            "metadata": None,
             "post_logout_redirect_uri": None,
             "provider_info": None,
             "redirect_uris": None,
             "requests_dir": None,
-            "register_args": None,
             "registration_response": None,
             "state": StateInterface,
             "verify_args": None,
         }
     )
+
+    metadata_attributes = {
+        "application_type": "web",
+        "contacts": None,
+        "client_name": None,
+        "client_id": None,
+        "logo_uri": None,
+        "client_uri": None,
+        "policy_uri": None,
+        "tos_uri": None,
+        "jwks_uri": None,
+        "jwks": None,
+        "sector_identifier_uri": None,
+        "grant_types": ["authorization_code", "implicit", "refresh_token"],
+        "default_max_age": None,
+        "id_token_signed_response_alg": "RS256",
+        "id_token_encrypted_response_alg": None,
+        "id_token_encrypted_response_enc": None,
+        "initiate_login_uri": None,
+        "subject_type": None,
+        "default_acr_values": None,
+        "require_auth_time": None,
+        "redirect_uris": None,
+        "request_object_signing_alg": None,
+        "request_object_encryption_alg": None,
+        "request_object_encryption_enc": None,
+        "request_uris": None,
+        "response_types": ["code"]
+    }
+
+    usage_rules = {
+        "form_post": None,
+        "jwks": None,
+        "jwks_uri": None,
+        "request_parameter_preference": None,
+        "scope": ["openid"],
+        "verify_args": None,
+    }
+
+    callback_path = {
+        "requests": "req",
+        "code": "authz_cb",
+        "implicit": "authz_im_cb",
+        "form_post": "form"
+    }
 
     def __init__(self,
                  base_url: Optional[str] = "",
@@ -117,6 +160,8 @@ class ServiceContext(OidcContext):
                  **kwargs):
         config = get_configuration(config)
         self.config = config
+        self.metadata = {}
+        self.usage = {}
 
         OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
         self.state = state or StateInterface()
@@ -129,28 +174,37 @@ class ServiceContext(OidcContext):
         self.client_preferences = {}
         self.args = {}
         self.add_on = {}
-        self.hash2issuer = {}
+        self.iss_hash = ""
         self.httpc_params = {}
-        self.client_id = ""
+        self.callback = {}
         self.client_secret = ""
         self.client_secret_expires_at = 0
         self.behaviour = {}
         self.provider_info = {}
-        self.post_logout_redirect_uri = ""
-        self.redirect_uris = []
-        self.register_args = {}
+        # self.post_logout_redirect_uri = ""
+        # self.redirect_uris = []
         self.registration_response = {}
         self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
+        self.metadata = config.conf.get("metadata", {})
         # Dynamic information
+        for param, value in self.metadata_attributes.items():
+            _val = config.get(param)
+            if _val is None:
+                _val = config.conf.get(param)
+                if _val is None:
+                    if value:
+                        _val = value
+                    else:
+                        _val = _def_value.get(param)
+            if _val:
+                self.set_metadata(param, _val)
+
         for param in [
             "client_secret",
-            "client_id",
-            "redirect_uris",
             "provider_info",
             "behaviour",
-            "callback",
             "issuer",
         ]:
             _val = config.get(param, _def_value[param])
@@ -173,21 +227,19 @@ class ServiceContext(OidcContext):
             if attr in self.parameter:
                 setattr(self, attr, val)
 
-        for attr in RegistrationRequest.c_param:
-            try:
-                self.register_args[attr] = config[attr]
-            except KeyError:
-                pass
-
         if self.requests_dir:
             # make sure the path exists. If not, then create it.
             if not os.path.isdir(self.requests_dir):
                 os.makedirs(self.requests_dir)
 
-        # # The name of the attribute used to be keys. Is now key_conf
-        # _key_conf = config.get("keys", config.get("key_conf"))
-        # if _key_conf:
-        #     self.import_keys(_key_conf)
+        for key, val in self.metadata_attributes.items():
+            if val and key not in self.metadata:
+                self.set_metadata(key, val)
+
+        self.usage = config.conf.get("usage", {})
+        for key, val in self.usage_rules.items():
+            if val and key not in self.usage:
+                self.set_usage(key, val)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -213,29 +265,6 @@ class ServiceContext(OidcContext):
             return _name[1:]
 
         return _name
-
-    def generate_redirect_uris(self, path):
-        """
-        Need to generate a redirect_uri path that is unique for a OP/RP combo
-        This is to counter the mix-up attack.
-
-        :param path: Leading path
-        :return: A list of one unique URL
-        """
-        _hash = hashlib.sha256()
-        try:
-            _hash.update(as_bytes(self.provider_info["issuer"]))
-        except KeyError:
-            _hash.update(as_bytes(self.issuer))
-        _hash.update(as_bytes(self.base_url))
-
-        if not path.startswith("/"):
-            redirs = ["{}/{}/{}".format(self.base_url, path, _hash.hexdigest())]
-        else:
-            redirs = ["{}{}/{}".format(self.base_url, path, _hash.hexdigest())]
-
-        self.set("redirect_uris", redirs)
-        return redirs
 
     def import_keys(self, keyspec):
         """
@@ -303,3 +332,54 @@ class ServiceContext(OidcContext):
 
     def set(self, key, value):
         setattr(self, key, value)
+
+    def get_metadata(self, key, default=None):
+        if key in self.metadata:
+            return self.metadata[key]
+        else:
+            return default
+
+    def get_usage(self, key, default=None):
+        if key in self.usage:
+            return self.usage[key]
+        else:
+            return default
+
+    def set_metadata(self, key, value):
+        self.metadata[key] = value
+
+    def set_usage(self, key, value):
+        self.usage[key] = value
+
+    def _callback_uris(self, base_url, hex):
+        _red = {}
+        for type in self.get_metadata("response_types", ["code"]):
+            if "code" in type:
+                _red['code'] = True
+            elif type in ["id_token", "id_token token"]:
+                _red['implicit'] = True
+
+        if "form_post" in self.usage:
+            _red["form_post"] = True
+
+        callback_uri = {}
+        for key in _red.keys():
+            _uri = Service.get_uri(base_url, self.callback_path[key], hex)
+            callback_uri[key] = _uri
+        return  callback_uri
+
+    def construct_redirect_uris(self, base_url, hex, callbacks):
+        if not callbacks:
+            callbacks = self._callback_uris(base_url, hex)
+
+        if callbacks:
+            self.set_metadata("redirect_uris", [v for k, v in callbacks.items()])
+
+        self.callback = callbacks
+
+    def construct_uris(self, base_url, hex):
+        if "request_parameter_preference" in self.usage:
+            if "request_uri" in self.usage["request_parameter_preference"]:
+                self.metadata["request_uris"] = [
+                    Service.get_uri(base_url, self.callback_path["requests"], hex)]
+

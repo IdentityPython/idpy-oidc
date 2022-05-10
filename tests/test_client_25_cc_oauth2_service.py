@@ -7,10 +7,16 @@ from idpyoidc.util import rndstr
 KEYDEF = [{"type": "EC", "crv": "P-256", "use": ["sig"]}]
 
 
+BASE_URL = "https://example.com"
+
 class TestRP:
     @pytest.fixture(autouse=True)
     def create_service(self):
-        client_config = {"client_id": "client_id", "client_secret": "another password"}
+        client_config = {
+            "client_id": "client_id",
+            "client_secret": "another password",
+            "base_url": BASE_URL
+        }
         services = {
             "token": {
                 "class": "idpyoidc.client.oauth2.client_credentials.cc_access_token.CCAccessToken"

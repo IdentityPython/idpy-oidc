@@ -44,6 +44,12 @@ class UserInfo(Service):
         "userinfo_encrypted_response_enc": ""
     }
 
+    metadata_attributes = {
+        "userinfo_signed_response_alg": None,
+        "userinfo_encrypted_response_alg": None,
+        "userinfo_encrypted_response_enc": None
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
@@ -132,7 +138,7 @@ class UserInfo(Service):
         """
         _context = self.client_get("service_context")
         kwargs = {
-            "client_id": _context.client_id,
+            "client_id": _context.get_metadata("client_id"),
             "iss": _context.issuer,
             "keyjar": _context.keyjar,
             "verify": True,
