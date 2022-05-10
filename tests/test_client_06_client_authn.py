@@ -2,14 +2,14 @@ import base64
 import os
 from urllib.parse import quote_plus
 
-import pytest
 from cryptojwt.exception import MissingKey
-from cryptojwt.jwk.rsa import new_rsa_key
 from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
 from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
+from cryptojwt.key_jar import init_key_jar
+import pytest
 
 from idpyoidc.client.client_auth import AuthnFailure
 from idpyoidc.client.client_auth import BearerBody
@@ -41,6 +41,12 @@ CLIENT_CONF = {
     "client_id": CLIENT_ID,
 }
 
+KEY_CONF = {
+    "key_defs": [{"type": "RSA", "key": "", "use": ["sig"]},
+                 {"type": "EC", "crv": "P-256", "use": ["sig"]}],
+    "read_only": False
+}
+
 
 def _eq(l1, l2):
     return set(l1) == set(l2)
@@ -48,8 +54,18 @@ def _eq(l1, l2):
 
 @pytest.fixture
 def entity():
+    keyjar = init_key_jar(**KEY_CONF)
     return Entity(
-        config=CLIENT_CONF, services={"base": {"class": "idpyoidc.client.service.Service"}}
+        config=CLIENT_CONF,
+        services={
+            "base": {"class": "idpyoidc.client.service.Service"},
+            "accesstoken": {
+                "class": "idpyoidc.client.oidc.access_token.AccessToken",
+                "kwargs": {
+                }
+            }
+        },
+        keyjar=keyjar
     )
 
 
@@ -62,8 +78,8 @@ def test_quote():
     )
 
     assert (
-        http_args["headers"]["Authorization"] == "Basic "
-        "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0lMkZBN1BrbjdKdVUwTEFjeHlIVkt2d2RjenN1Z2FQVTBCaWVMYjRDYlFBZ1FqJTJCeXBjYW5GT0NiMCUyRkZBNWg="
+            http_args["headers"]["Authorization"] == "Basic "
+                                                     "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0lMkZBN1BrbjdKdVUwTEFjeHlIVkt2d2RjenN1Z2FQVTBCaWVMYjRDYlFBZ1FqJTJCeXBjYW5GT0NiMCUyRkZBNWg="
     )
 
 
@@ -291,8 +307,10 @@ class TestPrivateKeyJWT(object):
         assert http_args == {}
         cas = request["client_assertion"]
 
+        # Receiver
         _kj = KeyJar()
-        _kj.add_kb(_context.client_id, kb_rsa)
+        _kj.import_jwks(_context.keyjar.export_jwks(), issuer_id=_context.get_metadata("client_id"))
+        _kj.add_kb(_context.get_metadata("client_id"), kb_rsa)
         jso = JWT(key_jar=_kj).unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         # assert _jwt.headers == {'alg': 'RS256'}
@@ -309,7 +327,7 @@ class TestPrivateKeyJWT(object):
         request = AccessTokenRequest()
         pkj = PrivateKeyJWT()
         _ca = assertion_jwt(
-            token_service.client_get("service_context").client_id,
+            token_service.client_get("service_context").get_metadata("client_id"),
             kb_rsa.get("RSA"),
             "https://example.com/token",
             "RS256",
@@ -343,12 +361,14 @@ class TestClientSecretJWT_TE(object):
         cas = request["client_assertion"]
 
         _kj = KeyJar()
-        _kj.add_symmetric(_service_context.client_id, _service_context.client_secret, ["sig"])
+        _kj.add_symmetric(_service_context.get_metadata("client_id"),
+                          _service_context.client_secret, ["sig"])
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "exp", "iat", "jti"])
 
         _rj = JWS(alg="HS256")
-        info = _rj.verify_compact(cas, _kj.get_signing_key(issuer_id=_service_context.client_id))
+        info = _rj.verify_compact(cas, _kj.get_signing_key(
+            issuer_id=_service_context.get_metadata("client_id")))
 
         assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         assert info["aud"] == [_service_context.provider_info["token_endpoint"]]
@@ -368,9 +388,9 @@ class TestClientSecretJWT_TE(object):
         request = AccessTokenRequest()
 
         # get a kid
-        _keys = _service_context.keyjar.get_issuer_keys("")
+        _keys = _service_context.keyjar.get_signing_key(key_type="oct")
         kid = _keys[0].kid
-        token_service = entity.client_get("service", "")
+        token_service = entity.client_get("service", "accesstoken")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint", kid=kid)
         assert "client_assertion" in request
 
@@ -412,16 +432,12 @@ class TestClientSecretJWT_TE(object):
 
         token_service = entity.client_get("service", "")
 
-        # Add a RSA key to be able to handle default
-        _kb = KeyBundle()
-        _rsa_key = new_rsa_key()
-        _kb.append(_rsa_key)
-        _service_context.keyjar.add_kb("", _kb)
         # Since I have a RSA key this doesn't fail
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])
         assert _jws.jwt.headers["alg"] == "RS256"
+        _rsa_key = _service_context.keyjar.get_signing_key(key_type="RSA")[0]
         assert _jws.jwt.headers["kid"] == _rsa_key.kid
 
         # By client preferences
@@ -430,7 +446,7 @@ class TestClientSecretJWT_TE(object):
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])
-        assert _jws.jwt.headers["alg"] == "RS512"
+        assert _jws.jwt.headers["alg"] == "RS256"
         assert _jws.jwt.headers["kid"] == _rsa_key.kid
 
         # Use provider information is everything else fails
@@ -443,9 +459,10 @@ class TestClientSecretJWT_TE(object):
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])
-        # Should be RS256 since I have no key for ES256
-        assert _jws.jwt.headers["alg"] == "RS256"
-        assert _jws.jwt.headers["kid"] == _rsa_key.kid
+        # Should be ES256 since I have a key for ES256
+        assert _jws.jwt.headers["alg"] == "ES256"
+        _ec_key = _service_context.keyjar.get_signing_key(key_type="EC")[0]
+        assert _jws.jwt.headers["kid"] == _ec_key.kid
 
 
 class TestClientSecretJWT_UI(object):
@@ -470,12 +487,14 @@ class TestClientSecretJWT_UI(object):
         cas = request["client_assertion"]
 
         _kj = KeyJar()
-        _kj.add_symmetric(_service_context.client_id, _service_context.client_secret, usage=["sig"])
+        _kj.add_symmetric(_service_context.get_metadata("client_id"),
+                          _service_context.client_secret, usage=["sig"])
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
         _rj = JWS(alg="HS256")
-        info = _rj.verify_compact(cas, _kj.get_signing_key(issuer_id=_service_context.client_id))
+        info = _rj.verify_compact(cas, _kj.get_signing_key(
+            issuer_id=_service_context.get_metadata("client_id")))
 
         assert _eq(info.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         assert info["aud"] == [_service_context.provider_info["issuer"]]

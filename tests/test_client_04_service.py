@@ -31,12 +31,15 @@ CLIENT_CONF = {
 class TestService:
     @pytest.fixture(autouse=True)
     def create_service(self):
-        self.service = Service(
-            client_get=self.client_get,
-            conf={"http_method": "POST", "msg_type": AuthorizationRequest},
+        self.entity = Entity(
+            config=CLIENT_CONF,
+            services={
+                "authz": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
+            }
         )
 
-        self.service_context = ServiceContext(config=CLIENT_CONF)
+        self.service = self.entity.get_service("authorization")
+        self.service_context = self.entity.get_service_context()
 
     def client_get(self, *args):
         if args[0] == "service_context":
@@ -48,11 +51,13 @@ class TestService:
     def test_gather_request_args(self):
         self.service.conf["request_args"] = {"response_type": "code"}
         args = self.service.gather_request_args(state="state")
-        assert args == {"response_type": "code", "state": "state"}
+        assert args == {"response_type": "code", "state": "state",
+                        'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
 
-        self.service_context.client_id = "client"
+        self.entity.set_metadata_value("client_id", "client")
         args = self.service.gather_request_args(state="state")
-        assert args == {"client_id": "client", "response_type": "code", "state": "state"}
+        assert args == {"client_id": "client", "response_type": "code", "state": "state",
+                        'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
 
         self.service.default_request_args = {"scope": ["openid"]}
         args = self.service.gather_request_args(state="state")
@@ -61,9 +66,10 @@ class TestService:
             "response_type": "code",
             "scope": ["openid"],
             "state": "state",
+            'redirect_uri': 'https://example.com/cli/authz_cb',
         }
 
-        self.service_context.behaviour = {"redirect_uri": "https://rp.example.com"}
+        self.entity.set_metadata_value("redirect_uris", ["https://rp.example.com"])
         args = self.service.gather_request_args(state="state")
         assert args == {
             "client_id": "client",

@@ -10,6 +10,7 @@ from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -162,17 +163,19 @@ class TestClient(object):
             )
 
 
+BASE_URL = "https://example.com"
+
 class TestClient2(object):
     @pytest.fixture(autouse=True)
     def create_client(self):
-        self.redirect_uri = "http://example.com/redirect"
+        self.redirect_uri = "https://example.com/redirect"
         KEYSPEC = [
             {"type": "RSA", "use": ["sig"]},
             {"type": "EC", "crv": "P-256", "use": ["sig"]},
         ]
 
         conf = {
-            "rp_keys": {
+            "key_conf": {
                 "private_path": "private/jwks.json",
                 "key_defs": KEYSPEC,
                 "public_path": "static/jwks.json",
@@ -187,7 +190,8 @@ class TestClient2(object):
             },
         }
         rp_conf = RPHConfiguration(conf)
-        self.client = Client(config=rp_conf)
+        rp_handler = RPHandler(base_url=BASE_URL,config=rp_conf)
+        self.client = rp_handler.init_client(issuer="client_1")
         assert self.client
 
     def test_keyjar(self):

@@ -36,7 +36,7 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert _context.config["client_preferences"] == {
+        assert _context.config.conf["client_preferences"] == {
             "application_type": "web",
             "application_name": "rphandler",
             "response_types": [
@@ -102,9 +102,11 @@ class TestRPHandler(object):
             "response_types",
             "scope",
             "application_type",
-            "application_name",
+            'redirect_uris',
+            'id_token_signed_response_alg',
+            'grant_types'
         }
-        assert _context.get("client_id") == "client uno"
+        assert _context.get_metadata("client_id") == "client uno"
         assert _context.get("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 

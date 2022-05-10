@@ -1,4 +1,5 @@
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -24,7 +25,10 @@ def get_state_parameter(request_args, kwargs):
 
 
 def pick_redirect_uri(
-    context, request_args: Optional[Union[Message, dict]] = None, response_type: Optional[str] = ""
+        context,
+        entity,
+        request_args: Optional[Union[Message, dict]] = None,
+        response_type: Optional[str] = "",
 ):
     if request_args is None:
         request_args = {}
@@ -32,9 +36,7 @@ def pick_redirect_uri(
     if "redirect_uri" in request_args:
         return request_args["redirect_uri"]
 
-    if context.redirect_uris:
-        redirect_uri = context.redirect_uris[0]
-    elif context.callback:
+    if context.callback:
         if not response_type:
             _conf_resp_types = context.behaviour.get("response_types", [])
             response_type = request_args.get("response_type")
@@ -55,17 +57,25 @@ def pick_redirect_uri(
             f"redirect_uri={redirect_uri}"
         )
     else:
-        logger.error("No redirect_uri")
-        raise MissingRequiredAttribute("redirect_uri")
+        redirect_uris = entity.get_metadata_value("redirect_uris", [])
+        if redirect_uris:
+            redirect_uri = redirect_uris[0]
+        else:
+            logger.error("No redirect_uri")
+            raise MissingRequiredAttribute("redirect_uri")
 
     return redirect_uri
 
 
 def pre_construct_pick_redirect_uri(
-    request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None, **kwargs
+        request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None,
+        **kwargs
 ):
     _context = service.client_get("service_context")
-    request_args["redirect_uri"] = pick_redirect_uri(_context, request_args=request_args)
+    _redirect_uris = service.client_get("entity").get_metadata_value("redirect_uris")
+    request_args["redirect_uri"] = pick_redirect_uri(_context,
+                                                     entity=service.client_get("entity"),
+                                                     request_args=request_args)
     return request_args, {}
 
 
