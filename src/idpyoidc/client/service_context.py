@@ -85,24 +85,21 @@ class ServiceContext(OidcContext):
             "base_url": None,
             "behaviour": None,
             "callback": None,
-            "client_id": None,
             "client_preferences": None,
             "client_secret": None,
             "client_secret_expires_at": 0,
             "clock_skew": None,
             "config": None,
             "hash_seed": b"",
-            "iss_hash": None,
             "httpc_params": None,
+            "iss_hash": None,
             "issuer": None,
-            "kid": None,
             "metadata": None,
-            "post_logout_redirect_uri": None,
             "provider_info": None,
-            "redirect_uris": None,
             "requests_dir": None,
             "registration_response": None,
             "state": StateInterface,
+            'usage': None,
             "verify_args": None,
         }
     )
@@ -140,7 +137,8 @@ class ServiceContext(OidcContext):
         "form_post": None,
         "jwks": None,
         "jwks_uri": None,
-        "request_parameter_preference": None,
+        "request_parameter": None,
+        "request_uri": None,
         "scope": ["openid"],
         "verify_args": None,
     }
@@ -240,6 +238,8 @@ class ServiceContext(OidcContext):
         for key, val in self.usage_rules.items():
             if val and key not in self.usage:
                 self.set_usage(key, val)
+
+        self.verify_usage_rules()
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -378,8 +378,14 @@ class ServiceContext(OidcContext):
         self.callback = callbacks
 
     def construct_uris(self, base_url, hex):
-        if "request_parameter_preference" in self.usage:
-            if "request_uri" in self.usage["request_parameter_preference"]:
+        if "request_uri" in self.usage:
+            if self.usage["request_uri"]:
                 self.metadata["request_uris"] = [
                     Service.get_uri(base_url, self.callback_path["requests"], hex)]
 
+    def verify_usage_rules(self):
+        if self.get_usage("request_parameter") and self.get_usage("request_uri"):
+            raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'.")
+        # default is jwks_uri
+        if not self.get_usage("jwks") and not self.get_usage('jwks_uri'):
+            self.set_usage('jwks_uri', True)

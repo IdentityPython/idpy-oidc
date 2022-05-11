@@ -27,7 +27,6 @@ class TestRPHandler(object):
         assert set(client.client_get("services").keys()) == {
             "registration",
             "provider_info",
-            "webfinger",
             "authorization",
             "accesstoken",
             "userinfo",

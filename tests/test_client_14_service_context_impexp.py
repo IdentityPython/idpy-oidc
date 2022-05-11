@@ -46,9 +46,9 @@ def test_set_and_get_client_secret():
 
 def test_set_and_get_client_id():
     service_context = ServiceContext(base_url=BASE_URL)
-    service_context.client_id = "myself"
+    service_context.set_metadata("client_id", "myself")
     srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
-    assert srvcnx2.client_id == "myself"
+    assert srvcnx2.get_metadata("client_id") == "myself"
 
 
 def test_client_filename():
