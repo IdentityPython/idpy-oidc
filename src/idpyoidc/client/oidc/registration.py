@@ -40,10 +40,9 @@ class Registration(Service):
             try:
                 request_args[prop] = _context.behaviour[prop]
             except KeyError:
-                try:
-                    request_args[prop] = _context.client_preferences[prop]
-                except KeyError:
-                    pass
+                _val = _context.get_metadata(prop)
+                if _val:
+                    request_args[prop] = _val
         return request_args, {}
 
     def oidc_post_construct(self, request_args=None, **kwargs):

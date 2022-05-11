@@ -107,7 +107,8 @@ class Entity(object):
             _srvs = services or DEFAULT_OAUTH2_SERVICES
 
         self._service = init_services(service_definitions=_srvs, client_get=self.client_get,
-                                      client_preferences=config.conf.get("client_preferences", {}))
+                                      metadata=config.conf.get("metadata", {}),
+                                      usage=config.conf.get("usage", {}))
 
         self.setup_client_authn_methods(config)
         set_jwks_uri_or_jwks(self, self._service_context, config, jwks_uri, _kj)

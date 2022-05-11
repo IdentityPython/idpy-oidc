@@ -85,7 +85,6 @@ class ServiceContext(OidcContext):
             "base_url": None,
             "behaviour": None,
             "callback": None,
-            "client_preferences": None,
             "client_secret": None,
             "client_secret_expires_at": 0,
             "clock_skew": None,
@@ -169,7 +168,6 @@ class ServiceContext(OidcContext):
         self.base_url = base_url or config.get("base_url", "")
         # Below so my IDE won't complain
         self.allow = {}
-        self.client_preferences = {}
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
@@ -380,8 +378,12 @@ class ServiceContext(OidcContext):
     def construct_uris(self, base_url, hex):
         if "request_uri" in self.usage:
             if self.usage["request_uri"]:
-                self.metadata["request_uris"] = [
-                    Service.get_uri(base_url, self.callback_path["requests"], hex)]
+                if self.requests_dir:
+                    self.metadata["request_uris"] = [
+                        Service.get_uri(base_url, self.requests_dir, hex)]
+                else:
+                    self.metadata["request_uris"] = [
+                        Service.get_uri(base_url, self.callback_path["requests"], hex)]
 
     def verify_usage_rules(self):
         if self.get_usage("request_parameter") and self.get_usage("request_uri"):

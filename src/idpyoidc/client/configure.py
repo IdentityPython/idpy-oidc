@@ -65,7 +65,7 @@ class RPHConfiguration(Base):
 
         self.default = lower_or_upper(conf, "default", {})
 
-        for param in ["services", "client_preferences", "add_ons"]:
+        for param in ["services", "metadata", "add_ons", "usage"]:
             _val = lower_or_upper(conf, param, {})
             if _val and param not in self.default:
                 self.default[param] = _val
@@ -73,7 +73,7 @@ class RPHConfiguration(Base):
         self.clients = lower_or_upper(conf, "clients")
         if self.clients:
             for id, client in self.clients.items():
-                for param in ["services", "client_preferences", "add_ons"]:
+                for param in ["services", "usage", "add_ons", 'metadata']:
                     if param not in client:
                         if param in self.default:
                             client[param] = self.default[param]

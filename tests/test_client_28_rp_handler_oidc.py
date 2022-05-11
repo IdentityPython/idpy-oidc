@@ -20,9 +20,8 @@ from idpyoidc.message.oidc import ProviderConfigurationResponse
 
 BASE_URL = "https://example.com/rp"
 
-CLIENT_PREFS = {
+METADATA = {
     "application_type": "web",
-    "application_name": "rphandler",
     "contacts": ["ops@example.com"],
     "response_types": [
         "code",
@@ -32,17 +31,22 @@ CLIENT_PREFS = {
         "code id_token token",
         "code token",
     ],
-    "scope": ["openid", "profile", "email", "address", "phone"],
     "token_endpoint_auth_method": "client_secret_basic",
+}
+
+USAGE = {
+    "scope": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
-    "request_parameter_preference": ["request_uri", "request"],
+    "request_uri": True
 }
 
 CLIENT_CONFIG = {
     "": {
-        "client_preferences": CLIENT_PREFS,
+        "metadata": METADATA,
+        "usage": USAGE,
         "redirect_uris": None,
         "base_url": BASE_URL,
+        "requests_dir": "requests",
         "services": {
             "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
             "discovery": {

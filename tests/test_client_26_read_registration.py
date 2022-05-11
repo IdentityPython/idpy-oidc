@@ -22,7 +22,7 @@ class TestRegistrationRead(object):
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
-            "client_preferences": {
+            "metadata": {
                 "application_type": "web",
                 "response_types": ["code"],
                 "contacts": ["ops@example.org"],

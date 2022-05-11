@@ -1,6 +1,5 @@
 import hashlib
 import logging
-from typing import List
 from typing import Optional
 
 from cryptojwt.utils import as_bytes
@@ -40,15 +39,15 @@ def response_types_to_grant_types(response_types):
 
 
 def create_callbacks(
-    issuer: str,
-    hash_seed: str,
-    base_url: str,
-    code: Optional[bool] = False,
-    implicit: Optional[bool] = False,
-    form_post: Optional[bool] = False,
-    request_uris: Optional[bool] = False,
-    backchannel_logout_uri: Optional[bool] = False,
-    frontchannel_logout_uri: Optional[bool] = False,
+        issuer: str,
+        hash_seed: str,
+        base_url: str,
+        code: Optional[bool] = False,
+        implicit: Optional[bool] = False,
+        form_post: Optional[bool] = False,
+        request_uris: Optional[bool] = False,
+        backchannel_logout_uri: Optional[bool] = False,
+        frontchannel_logout_uri: Optional[bool] = False,
 ):
     """
     To mitigate some security issues the redirect_uris should be OP/AS
@@ -104,13 +103,6 @@ def _cmp(a, b):
     return a == b
 
 
-# def _in_config_or_client_preferences(config, attr, val):
-#     _val = config.get("client_preferences", {}).get(attr)
-#     if _cmp(_val, val):
-#         return True
-#     _val = config.get(attr)
-#     return _cmp(_val, val)
-
 def check(entity, attribute, expected):
     try:
         _usable = entity.get_metadata_attribute(attribute)
@@ -120,97 +112,6 @@ def check(entity, attribute, expected):
         if _usable is expected:
             return True
     return False
-
-
-def add_callbacks(context, entity, ignore: Optional[List[str]] = None):
-    if ignore is None:
-        ignore = []
-    _iss = context.get("issuer")
-
-    _uris = {}
-
-    _pi = context.get("provider_info")
-    _cp = context.config.get("client_preferences")
-
-    if "redirect_uris" not in ignore:
-        _types = entity.get_metadata_attribute("response_types")
-        # code and/or implicit
-        if "code" in _types:
-            _uris["code"] = True
-        for rt in [
-            "id_token",
-            "id_token token",
-            "code id_token token",
-            "code idtoken",
-            "code token",
-        ]:
-            if rt in _types:
-                _uris["implicit"] = True
-                break
-
-    if "form_post" not in ignore:
-        if entity.value_in_metadata_attribute("form_post_usable", True):
-            _uris["form_post"] = True
-
-    if "request_uris" not in ignore:
-        if "require_request_uri_registration" in _pi:
-            if entity.value_in_metadata_attribute("request_uri_usable", True):
-                _uris["request_uris"] = True
-
-    if "frontchannel_logout_uri" not in ignore:
-        if "frontchannel_logout_supported" in _pi:
-            if entity.value_in_metadata_attribute("frontchannel_logout_usable", True):
-                _uris["frontchannel_logout_uri"] = True
-
-    if "backchannel_logout_uri" not in ignore:
-        if entity.value_in_metadata_attribute("backchannel_logout_usable", True):
-            _uris["backchannel_logout_uri"] = True
-
-    callbacks = create_callbacks(
-        _iss, hash_seed=context.get("hash_seed"), base_url=context.get("base_url"), **_uris
-    )
-    context.hash2issuer[callbacks["__hex"]] = _iss
-
-    if "redirect_uris" not in ignore:
-        _redirect_uris = [v for k, v in callbacks.items() if k in ["code", "implicit", "form_post"]]
-        callbacks["redirect_uris"] = _redirect_uris
-    context.set("callback", callbacks)
-
-
-CALLBACK_URIS = [
-    "post_logout_redirect_uri",
-    "backchannel_logout_uri",
-    "frontchannel_logout_uri",
-    "request_uris",
-    "redirect_uris",
-]
-
-
-def add_callback_uris(request_args=None, service=None, **kwargs):
-    """
-
-    :param request_args:
-    :param service: pointer to the :py:class:`idpyoidc.client.service.Service`
-        instance that is running this function
-    :param kwargs: parameters to the registration request
-    :return:
-    """
-
-    _context = service.client_get("service_context")
-    _entity = service.client_get("entity")
-
-    _ignore = [k for k in list(request_args.keys()) if k in CALLBACK_URIS]
-    add_callbacks(_context, _entity, ignore=_ignore)
-    for _key in CALLBACK_URIS:
-        _req_val = request_args.get(_key)
-        if not _req_val:
-            _uri = _context.register_args.get(_key)
-            if not _uri:
-                _uri = _context.callback.get(_key)
-            if _uri:
-                request_args[_key] = _uri
-
-    return request_args, {}
 
 
 def add_jwks_uri_or_jwks(request_args=None, service=None, **kwargs):
@@ -253,7 +154,7 @@ class Registration(Service):
         self.pre_construct = [
             self.add_client_behaviour_preference,
             # add_redirect_uris,
-            add_callback_uris,
+            # add_callback_uris,
             add_jwks_uri_or_jwks,
         ]
         self.post_construct = [self.oidc_post_construct]
