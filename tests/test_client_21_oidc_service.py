@@ -512,8 +512,8 @@ class TestProviderInfo(object):
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
-            "client_preferences": {
-                "application_name": "rphandler",
+            "application_name": "rphandler",
+            "usage": {
                 "scope": ["openid", "profile", "email", "address", "phone"],
             },
             "services": {
@@ -795,7 +795,7 @@ class TestProviderInfo(object):
             'token_endpoint_auth_method': 'private_key_jwt',
             'token_endpoint_auth_signing_alg': 'ES256',
             'userinfo_signed_response_alg': 'ES256',
-            'scope': ['openid']
+            'scope': ["openid", "profile", "email", "address", "phone"]
         }
 
     def test_post_parse_2(self):
@@ -839,7 +839,7 @@ class TestProviderInfo(object):
             'token_endpoint_auth_method': 'private_key_jwt',
             'token_endpoint_auth_signing_alg': 'ES256',
             'userinfo_signed_response_alg': 'ES256',
-            'scope': ['openid']
+            'scope': ["openid", "profile", "email", "address", "phone"]
         }
 
 
@@ -1209,12 +1209,12 @@ def test_authz_service_conf():
 
 def test_jwks_uri_conf():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "jwks_uri": "https://example.com/jwks/jwks.json",
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "jwks_uri": "https://example.com/jwks/jwks.json",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
@@ -1225,13 +1225,12 @@ def test_jwks_uri_conf():
 
 def test_add_jwks_uri_or_jwks():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "jwks_uri": "https://example.com/jwks/jwks.json",
-        "jwks": {"keys": []},
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "jwks_uri": "https://example.com/jwks/jwks.json",
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
@@ -1243,11 +1242,11 @@ def test_add_jwks_uri_or_jwks():
 
 def test_jwks_uri_arg():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },

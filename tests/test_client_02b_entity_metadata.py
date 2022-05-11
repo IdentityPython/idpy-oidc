@@ -8,19 +8,17 @@ CLIENT_CONFIG = {
     "base_url": "https://example.com/cli",
     "client_secret": "a longesh password",
     "issuer": ISS,
-    "client_preferences": {
-        "application_name": "rphandler",
-        "response_types": ["code"],
-        "scope": ["openid", "profile", "email", "address", "phone"],
-    },
+    "application_name": "rphandler",
     "metadata": {
-        "contacts": "support@example.com",
         "application_type": "web",
+        "contacts": "support@example.com",
+        "response_types": ["code"],
         "client_id": "client_id",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
         "request_object_signing_alg": "ES256"
     },
     "usage": {
+        "scope": ["openid", "profile", "email", "address", "phone"],
         "request_uri": True
     },
 
@@ -97,7 +95,7 @@ def test_create_client():
                                'token_endpoint_auth_signing_alg',
                                'userinfo_signed_response_alg'}
 
-    # What's in service configuration has higher priority then client_preferences.
+    # What's in service configuration has higher priority then metadata.
     assert client.get_metadata_value("contacts") == 'support@example.com'
     # Two ways of looking at things
     assert client.get_metadata_value("userinfo_signed_response_alg") == "ES256"

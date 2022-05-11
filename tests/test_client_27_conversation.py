@@ -161,16 +161,12 @@ SERVICES = {
 
 def test_conversation():
     config = {
-        "client_preferences": {
+        "metadata": {
             "application_type": "web",
-            "application_name": "rphandler",
             "contacts": ["ops@example.org"],
+            "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
             "response_types": ["code"],
             "token_endpoint_auth_method": "client_secret_basic",
-        },
-        "metadata": {
-            "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
-            # "jwks_uri": f"{RP_BASEURL}/static/jwks.json"
         },
         "usage": {
             "scope": ["openid", "profile", "email", "address", "phone"],

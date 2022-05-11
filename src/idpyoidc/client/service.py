@@ -666,7 +666,7 @@ class Service(ImpExp):
         self.metadata[key] = value
 
 
-def init_services(service_definitions, client_get, client_preferences):
+def init_services(service_definitions, client_get, metadata, usage):
     """
     Initiates a set of services
 
@@ -692,9 +692,13 @@ def init_services(service_definitions, client_get, client_preferences):
             _value_cls = qualified_name(service_configuration["class"])
             _srv = service_configuration["class"](**kwargs)
 
-        for key, val in client_preferences.items():
+        for key, val in metadata.items():
             if key in _srv.metadata_attributes and key not in _srv.metadata:
                 _srv.metadata[key] = val
+
+        for key, val in usage.items():
+            if key in _srv.usage_rules and key not in _srv.usage:
+                _srv.usage[key] = val
 
         service[_srv.service_name] = _srv
 

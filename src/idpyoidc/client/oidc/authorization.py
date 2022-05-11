@@ -177,7 +177,7 @@ class Authorization(authorization.Authorization):
         return _webname
 
     def construct_request_parameter(
-        self, req, request_param, audience=None, expires_in=0, **kwargs
+            self, req, request_param, audience=None, expires_in=0, **kwargs
     ):
         """Construct a request parameter"""
         alg = self.get_request_object_signing_alg(**kwargs)
@@ -203,7 +203,10 @@ class Authorization(authorization.Authorization):
             except KeyError:
                 kwargs["recv"] = _srv_cntx.issuer
 
-        del kwargs["service"]
+        try:
+            del kwargs["service"]
+        except KeyError:
+            pass
 
         if expires_in:
             req["exp"] = utc_time_sans_frac() + int(expires_in)
@@ -224,12 +227,7 @@ class Authorization(authorization.Authorization):
         _req = make_openid_request(req, **_mor_args)
 
         # Should the request be encrypted
-        _req = request_object_encryption(_req, _context, **kwargs)
-
-        if request_param == "request":
-            req["request"] = _req
-        else:  # MUST be request_uri
-            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        return request_object_encryption(_req, _context, **kwargs)
 
     def oidc_post_construct(self, req, **kwargs):
         """
@@ -251,15 +249,27 @@ class Authorization(authorization.Authorization):
 
         _context.state.store_item(req, "auth_request", req["state"])
 
+        # Overrides what's in the configuration
         _request_param = kwargs.get("request_param")
         if _request_param:
             del kwargs["request_param"]
-            # local_dir, base_path
-            _config = _context.get("config")
-            kwargs["local_dir"] = _config.get("local_dir", "./requests")
+        else:
+            if _context.get_usage("request_uri"):
+                _request_param = "request_uri"
+            elif _context.get_usage("request_parameter"):
+                _request_param = "request"
+
+        _req = None  # just a flag
+        if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            self.construct_request_parameter(req, _request_param, **kwargs)
-            # removed all arguments except request/request_uri and the required
+            kwargs["local_dir"] = _context.config.conf.get("requests_dir", "./requests")
+            _req = self.construct_request_parameter(req, _request_param, **kwargs)
+            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        elif _request_param == "request":
+            _req = self.construct_request_parameter(req, _request_param)
+            req["request"] = _req
+
+        if _req:
             _leave = ["request", "request_uri"]
             _leave.extend(req.required_parameters())
             _keys = [k for k in req.keys() if k not in _leave]
@@ -269,7 +279,8 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -306,4 +317,3 @@ class Authorization(authorization.Authorization):
             kwargs.update(_verify_args)
 
         return kwargs
-

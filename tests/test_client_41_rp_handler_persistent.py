@@ -12,9 +12,8 @@ from idpyoidc.message.oidc import IdToken
 
 BASE_URL = "https://example.com/rp"
 
-CLIENT_PREFS = {
+METADATA = {
     "application_type": "web",
-    "application_name": "rphandler",
     "contacts": ["ops@example.com"],
     "response_types": [
         "code",
@@ -24,14 +23,18 @@ CLIENT_PREFS = {
         "code id_token token",
         "code token",
     ],
-    "scope": ["openid", "profile", "email", "address", "phone"],
     "token_endpoint_auth_method": "client_secret_basic",
+}
+
+USAGE = {
+    "scope": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
 }
 
 CLIENT_CONFIG = {
     "": {
-        "client_preferences": CLIENT_PREFS,
+        "metadata": METADATA,
+        "usage": USAGE,
         "redirect_uris": None,
         "services": {
             "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},

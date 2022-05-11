@@ -35,19 +35,17 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert _context.config.conf["client_preferences"] == {
-            "application_type": "web",
-            "application_name": "rphandler",
-            "response_types": [
-                "code",
-                "id_token",
-                "id_token token",
-                "code id_token",
-                "code id_token token",
-                "code token",
-            ],
+        assert set(_context.config.conf["metadata"].keys()) == {
+            "application_type",
+            "grant_types",
+            "id_token_signed_response_alg",
+            "redirect_uris",
+            "response_types",
+            "token_endpoint_auth_method"
+        }
+        assert _context.config.conf["usage"] == {
             "scope": ["openid"],
-            "token_endpoint_auth_method": "client_secret_basic",
+            "jwks_uri": True
         }
 
         assert list(_context.keyjar.owners()) == ["", BASE_URL]

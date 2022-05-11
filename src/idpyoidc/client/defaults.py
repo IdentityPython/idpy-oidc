@@ -26,9 +26,8 @@ DEFAULT_OAUTH2_SERVICES = {
     },
 }
 
-DEFAULT_CLIENT_PREFS = {
+DEFAULT_CLIENT_METADATA = {
     "application_type": "web",
-    "application_name": "rphandler",
     "response_types": [
         "code",
         "id_token",
@@ -37,14 +36,19 @@ DEFAULT_CLIENT_PREFS = {
         "code id_token token",
         "code token",
     ],
-    "scope": ["openid"],
     "token_endpoint_auth_method": "client_secret_basic",
+}
+
+DEFAULT_USAGE = {
+    "jwks_uri": True,
+    "scope": ["openid"],
 }
 
 # Using PKCE is default
 DEFAULT_CLIENT_CONFIGS = {
     "": {
-        "client_preferences": DEFAULT_CLIENT_PREFS,
+        "metadata": DEFAULT_CLIENT_METADATA,
+        "usage": DEFAULT_USAGE,
         "add_ons": {
             "pkce": {
                 "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
