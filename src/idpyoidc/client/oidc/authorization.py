@@ -85,6 +85,8 @@ class Authorization(authorization.Authorization):
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
         _context = self.client_get("service_context")
+        _entity = self.client_get("entity")
+
         if request_args is None:
             request_args = {}
 
@@ -130,6 +132,11 @@ class Authorization(authorization.Authorization):
             else:
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
+        else:
+            if _entity.get_usage_value("request_uri"):
+                post_args["request_param"] = "request_uri"
+            elif _entity.get_usage_value("request_parameter"):
+                post_args["request_param"] = "request"
 
         return request_args, post_args
 

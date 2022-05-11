@@ -7,7 +7,6 @@ SERVICE_NAME = "OIC"
 CLIENT_CONFIG = {}
 
 DEFAULT_OIDC_SERVICES = {
-    "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
     "discovery": {"class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
     "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
     "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},

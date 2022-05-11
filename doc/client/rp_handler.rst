@@ -299,7 +299,7 @@ httpc_params
     Something that happens if you run in an environment where mutual TLS is
     expected.
 
-rp_keys
+key_conf
     Definition of the private keys that all RPs are going to use in the OIDC
     protocol exchange.
 
@@ -319,6 +319,10 @@ are dynamically discovered.
 Disregarding if doing everything dynamically or statically you **MAY**
 define which services the RP/Client should be able to use.
 If you don't the default set it used.
+The default set consists of the discovery, authorization, access_token and
+refresh_access_token services if we're talking OAuth2 and the discovery,
+registration, authorization, access_token, refresh_access_token and
+userinfo services if we are talking OIDC.
 
 services
     A specification of the usable services which possible changes to the

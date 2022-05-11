@@ -881,7 +881,7 @@ class TestRegistration(object):
     def test_construct(self):
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 6
+        assert len(_req) == 7
 
     def test_config_with_post_logout(self):
         self.service.client_get("service_context").set_metadata("post_logout_redirect_uri",
@@ -889,7 +889,7 @@ class TestRegistration(object):
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 7
+        assert len(_req) == 8
         assert "post_logout_redirect_uri" in _req
 
 
@@ -912,7 +912,8 @@ def test_config_with_required_request_uri():
     _req = reg_service.construct()
     assert isinstance(_req, RegistrationRequest)
     assert set(_req.keys()) == {"application_type", "response_types", "jwks",
-                                "redirect_uris", "grant_types", "id_token_signed_response_alg"}
+                                "redirect_uris", "grant_types", "id_token_signed_response_alg",
+                                "request_uris"}
 
 
 def test_config_logout_uri():

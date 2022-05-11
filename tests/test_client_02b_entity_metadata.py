@@ -21,7 +21,7 @@ CLIENT_CONFIG = {
         "request_object_signing_alg": "ES256"
     },
     "usage": {
-        "request_parameter_preference": "request_uri"
+        "request_uri": True
     },
 
     "services": {
@@ -103,7 +103,7 @@ def test_create_client():
     assert client.get_metadata_value("userinfo_signed_response_alg") == "ES256"
     assert client.value_in_metadata_attribute("userinfo_signed_response_alg", "ES256")
     # How to act
-    assert client.get_usage_value("request_parameter_preference") == "request_uri"
+    assert client.get_usage_value("request_uri") is True
 
     _conf_args = client.config_args()
     assert _conf_args
