@@ -239,7 +239,52 @@ class TestEndpoint(object):
             {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
         ],
     )
-    def test_token_exchange(self, token):
+    def test_token_exchange1(self, token):
+        """
+        Test that token exchange requests work correctly with only the required parameters
+        present
+        """
+        if list(token.keys())[0] == "refresh_token":
+            AUTH_REQ["scope"] = ["openid", "offline_access"]
+        areq = AUTH_REQ.copy()
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+        _token_value = _resp["response_args"][list(token.keys())[0]]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type=token[list(token.keys())[0]]
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzI6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+            "issued_token_type",
+        }
+
+    @pytest.mark.parametrize(
+        "token",
+        [
+            {"access_token": "urn:ietf:params:oauth:token-type:access_token"},
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
+        ],
+    )
+    def test_token_exchange2(self, token):
         """
         Test that token exchange requests work correctly
         """
