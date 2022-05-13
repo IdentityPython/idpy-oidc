@@ -354,7 +354,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
         if list(token.keys())[0] == "refresh_token":
             areq["scope"] = ["openid", "offline_access"]
-        
+
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
