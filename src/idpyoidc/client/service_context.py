@@ -149,6 +149,8 @@ class ServiceContext(OidcContext):
         "form_post": "form"
     }
 
+    callback_uris = ["redirect_uris"]
+
     def __init__(self,
                  base_url: Optional[str] = "",
                  keyjar: Optional[KeyJar] = None,

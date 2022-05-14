@@ -12,6 +12,7 @@ from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
 from idpyoidc.client.util import do_add_ons
 from idpyoidc.client.util import get_deserialization_method
+from idpyoidc.configure import Configuration
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
@@ -65,8 +66,13 @@ class Client(Entity):
 
         self.http = httplib or HTTPLib(httpc_params)
 
-        if "add_ons" in config:
-            do_add_ons(config["add_ons"], self._service)
+        if isinstance(config, Configuration):
+            _add_ons = config.conf.get("add_ons")
+        else:
+            _add_ons = config.get("add_ons")
+
+        if _add_ons:
+            do_add_ons(_add_ons, self._service)
 
         # just ignore verify_ssl until it goes away
         self.verify_ssl = self.httpc_params.get("verify", True)

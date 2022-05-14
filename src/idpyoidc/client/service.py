@@ -68,6 +68,7 @@ class Service(ImpExp):
     usage_rules = {}
     usage_to_uri_map = {}
     callback_path = {}
+    callback_uris = []
 
     def __init__(
             self,

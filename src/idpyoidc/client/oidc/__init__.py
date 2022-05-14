@@ -4,6 +4,7 @@ import logging
 from idpyoidc.client import oauth2
 from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
+from idpyoidc.configure import Configuration
 
 try:
     from json import JSONDecodeError
@@ -81,7 +82,10 @@ class RP(oauth2.Client):
         httpc_params=None,
     ):
 
-        _srvs = services or DEFAULT_OIDC_SERVICES
+        if isinstance(config, Configuration):
+            _srvs = services or config.conf.get("services", DEFAULT_OIDC_SERVICES)
+        else:
+            _srvs = services or config.get("services", DEFAULT_OIDC_SERVICES)
 
         oauth2.Client.__init__(
             self,

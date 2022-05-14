@@ -1,6 +1,5 @@
 """Configuration management for Client"""
 import copy
-import logging
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -9,7 +8,6 @@ from typing import Union
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
 from idpyoidc.message.oidc import RegistrationResponse
-
 from .util import lower_or_upper
 
 try:

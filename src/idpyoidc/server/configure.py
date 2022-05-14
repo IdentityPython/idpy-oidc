@@ -452,7 +452,7 @@ DEFAULT_EXTENDED_CONF = {
                 "post_logout_uri_path": "post_logout",
                 "signing_alg": "ES256",
                 "frontchannel_logout_supported": True,
-                "frontchannel_logout_session_supported": True,
+                "frontchannel_logout_session_required": True,
                 "backchannel_logout_supported": True,
                 "backchannel_logout_session_required": True,
                 "check_session_iframe": "check_session_iframe",

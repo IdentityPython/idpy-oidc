@@ -82,7 +82,7 @@ class Session(Endpoint):
     name = "session"
     provider_info_attributes = {
         "frontchannel_logout_supported": True,
-        "frontchannel_logout_session_supported": True,
+        "frontchannel_logout_session_required": True,
         "backchannel_logout_supported": True,
         "backchannel_logout_session_required": True,
         "check_session_iframe": None,

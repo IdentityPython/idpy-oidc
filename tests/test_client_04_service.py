@@ -1,10 +1,6 @@
 import pytest
 
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.service import Service
-from idpyoidc.client.service_context import ServiceContext
-from idpyoidc.exception import FormatError
-from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import Message
 
