@@ -45,7 +45,7 @@ class TestRPHandler(object):
         }
         assert _context.config.conf["usage"] == {
             "scope": ["openid"],
-            "jwks_uri": True
+            "jwks_uri": False
         }
 
         assert list(_context.keyjar.owners()) == ["", BASE_URL]

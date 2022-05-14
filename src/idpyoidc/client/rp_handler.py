@@ -840,7 +840,7 @@ class RPHandler(object):
         except KeyError:
             try:
                 _sid_support = _context.get("provider_info")[
-                    "frontchannel_logout_session_supported"
+                    "frontchannel_logout_session_required"
                 ]
             except:
                 _sid_support = False

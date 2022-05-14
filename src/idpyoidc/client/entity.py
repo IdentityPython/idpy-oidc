@@ -51,9 +51,12 @@ def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
     else:
         if config.get("jwks_uri"):
             entity.set_usage_value("jwks_uri", True)
+            entity.set_usage_value("jwks", False)
         elif config.get("jwks"):
             entity.set_usage_value("jwks", True)
+            entity.set_usage_value("jwks_uri", False)
         else:
+            entity.set_usage_value("jwks_uri", False)
             if config.get("key_conf"):
                 _keyjar = init_key_jar(**config.get("key_conf"))
                 entity.set_usage_value("jwks", True)
@@ -81,7 +84,7 @@ class Entity(object):
             jwks_uri: Optional[str] = "",
             httpc_params: Optional[dict] = None,
     ):
-
+        self.extra = {}
         if httpc_params:
             self.httpc_params = httpc_params
         else:
@@ -111,6 +114,8 @@ class Entity(object):
                                       usage=config.conf.get("usage", {}))
 
         self.setup_client_authn_methods(config)
+
+        jwks_uri = jwks_uri or self.get_metadata_value("jwks_uri")
         set_jwks_uri_or_jwks(self, self._service_context, config, jwks_uri, _kj)
 
         # Deal with backward compatible
@@ -163,6 +168,13 @@ class Entity(object):
         res.update(self._service_context.metadata)
         return res
 
+    def collect_usage(self):
+        res = {}
+        for service in self._service.values():
+            res.update(service.usage)
+        res.update(self._service_context.usage)
+        return res
+
     def get_metadata_value(self, attribute, default=None):
         for service in self._service.values():
             if attribute in service.metadata_attributes:
@@ -210,25 +222,27 @@ class Entity(object):
         for service in self._service.values():
             if attribute in service.metadata_attributes:
                 service.metadata[attribute] = value
-                return
+                return True
 
         if attribute in self._service_context.metadata_attributes:
             self._service_context.metadata[attribute] = value
-            return
+            return True
 
         logger.info(f"Unknown set metadata attribute: {attribute}")
+        return False
 
     def set_usage_value(self, attribute, value):
         for service in self._service.values():
             if attribute in service.usage_rules:
                 service.usage[attribute] = value
-                return
+                return True
 
         if attribute in self._service_context.usage_rules:
             self._service_context.usage[attribute] = value
-            return
+            return True
 
         logger.info(f"Unknown set usage attribute: {attribute}")
+        return False
 
     def get_usage_value(self, attribute, default=None):
         for service in self._service.values():
@@ -277,6 +291,17 @@ class Entity(object):
                     os.makedirs(_dir)
                 authz_serv.callback_path["request_uris"] = _dir
 
+        _pref = config.get("client_preferences", {})
+        for key, val in _pref.items():
+            if self.set_metadata_value(key, val) is False:
+                if self.set_usage_value(key, val) is False:
+                    setattr(self, key, val)
+
+        for key, val in config.conf.items():
+            if key not in ["port", "domain", "httpc_params", "metadata", "client_preferences",
+                           "usage", "services", "add_ons"]:
+                self.extra[key] = val
+
     def config_args(self):
         res = {}
         for id, service in self._service.items():
@@ -288,4 +313,11 @@ class Entity(object):
             "metadata": self._service_context.metadata_attributes,
             "usage": self._service_context.usage_rules
         }
+        return res
+
+    def get_callback_uris(self):
+        res = []
+        for service in self._service.values():
+            res.extend(service.callback_uris)
+        res.extend(self._service_context.callback_uris)
         return res

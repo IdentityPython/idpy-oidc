@@ -113,7 +113,7 @@ def test_create_client():
     assert len(ma) == 36
     rr = set(RegistrationRequest.c_param.keys())
     d = rr.difference(set(ma))
-    assert d == {'federation_type', 'organization_name'}
+    assert d == {'federation_type', 'organization_name', 'frontchannel_logout_session_required'}
 
 
 def test_create_client_key_conf():

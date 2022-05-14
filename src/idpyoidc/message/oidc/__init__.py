@@ -901,7 +901,7 @@ class ProviderConfigurationResponse(ResponseMessage):
             "check_session_iframe": SINGLE_OPTIONAL_STRING,
             "end_session_endpoint": SINGLE_OPTIONAL_STRING,
             "frontchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
-            "frontchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN,
+            "frontchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
             "backchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
             "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN
             # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,

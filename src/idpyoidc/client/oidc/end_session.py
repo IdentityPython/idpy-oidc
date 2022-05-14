@@ -46,6 +46,12 @@ class EndSession(Service):
         "post_logout_redirect": "post_logout_redirect_uri"
     }
 
+    callback_uris = [
+        "frontchannel_logout_uri",
+        "backchannel_logout_uri",
+        "post_logout_redirect_uri"
+    ]
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [
