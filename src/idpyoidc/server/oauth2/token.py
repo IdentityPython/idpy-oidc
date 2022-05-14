@@ -129,7 +129,13 @@ class Token(Endpoint):
         _context = self.server_get("endpoint_context")
 
         if isinstance(request, TokenExchangeRequest):
-            _handler_key = TOKEN_TYPES_MAPPING[request["requested_token_type"]]
+            requested_token_type = request.get(
+                "requested_token_type",
+                self.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config[
+                    "default_requested_token_type"
+                ],
+            )
+            _handler_key = TOKEN_TYPES_MAPPING[requested_token_type]
         else:
             _handler_key = "access_token"
 
