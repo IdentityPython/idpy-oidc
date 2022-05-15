@@ -37,15 +37,12 @@ class TestRPHandler(object):
 
         assert set(_context.config.conf["metadata"].keys()) == {
             "application_type",
-            "grant_types",
-            "id_token_signed_response_alg",
-            "redirect_uris",
             "response_types",
             "token_endpoint_auth_method"
         }
         assert _context.config.conf["usage"] == {
             "scope": ["openid"],
-            "jwks_uri": False
+            "jwks_uri": True
         }
 
         assert list(_context.keyjar.owners()) == ["", BASE_URL]

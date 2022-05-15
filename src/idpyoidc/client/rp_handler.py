@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class RPHandler(object):
     def __init__(
         self,
-        base_url,
+        base_url: Optional[str] = "",
         client_configs=None,
         services=None,
         keyjar=None,
@@ -59,7 +59,7 @@ class RPHandler(object):
 
         if config:
             if not hash_seed:
-                hash_seed = config.hash_seed
+                self.hash_seed = config.hash_seed
             if not keyjar:
                 self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
             if not client_configs:

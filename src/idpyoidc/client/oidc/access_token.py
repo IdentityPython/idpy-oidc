@@ -19,10 +19,6 @@ class AccessToken(access_token.AccessToken):
     msg_type = oidc.AccessTokenRequest
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
-    metadata_attributes = {
-        "token_endpoint_auth_method": None,
-        "token_endpoint_auth_signing_alg": None
-    }
 
     def __init__(self, client_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, client_get, conf=conf)

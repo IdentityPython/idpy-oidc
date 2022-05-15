@@ -185,19 +185,6 @@ class ServiceContext(OidcContext):
         self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
-        self.metadata = config.conf.get("metadata", {})
-        # Dynamic information
-        for param, value in self.metadata_attributes.items():
-            _val = config.get(param)
-            if _val is None:
-                _val = config.conf.get(param)
-                if _val is None:
-                    if value:
-                        _val = value
-                    else:
-                        _val = _def_value.get(param)
-            if _val:
-                self.set_metadata(param, _val)
 
         for param in [
             "client_secret",
@@ -221,7 +208,16 @@ class ServiceContext(OidcContext):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
+        if "client_secret" in config.conf:
+            self.keyjar.add_symmetric("", config.conf.get("client_secret"))
+
         for attr, val in config.conf.items():
+            if attr in self.metadata_attributes:
+                self.set_metadata(attr, val)
+
+        for attr, val in config.conf.items():
+            if attr in ["usage", "metadata"]:
+                continue
             if attr in self.parameter:
                 setattr(self, attr, val)
 
@@ -230,11 +226,11 @@ class ServiceContext(OidcContext):
             if not os.path.isdir(self.requests_dir):
                 os.makedirs(self.requests_dir)
 
+        # defaults is nothing else is given
         for key, val in self.metadata_attributes.items():
             if val and key not in self.metadata:
                 self.set_metadata(key, val)
 
-        self.usage = config.conf.get("usage", {})
         for key, val in self.usage_rules.items():
             if val and key not in self.usage:
                 self.set_usage(key, val)

@@ -29,6 +29,10 @@ class AccessToken(Service):
         "token_endpoint_auth_signing_alg": "RS256"
     }
 
+    usage_rules = {
+        "token_endpoint_auth_methods": None
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)

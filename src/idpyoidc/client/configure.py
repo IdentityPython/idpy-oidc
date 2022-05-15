@@ -88,7 +88,7 @@ class RPHConfiguration(Base):
 
 
 class Configuration(Base):
-    """A single RP Configuration"""
+    """ Configuration for a single RP """
 
     def __init__(
             self,
@@ -108,13 +108,9 @@ class Configuration(Base):
             dir_attributes=dir_attributes,
         )
 
-        _reg_keys = RegistrationResponse.c_param.keys()
         _del_key = []
         for attr, val in self.conf.items():
-            if attr in _reg_keys:
-                setattr(self, attr, val)
-                _del_key.append(attr)
-            elif attr in ["issuer", "base_url", "key_conf"]:
+            if attr in ["issuer", "base_url", "key_conf"]:
                 setattr(self, attr, val)
                 _del_key.append(attr)
 
@@ -124,8 +120,6 @@ class Configuration(Base):
         log_conf = conf.get("logging")
         if log_conf:
             self.logger = configure_logging(config=log_conf).getChild(__name__)
-        # else:
-        #     self.logger = logging.getLogger("client")
 
         self.web_conf = lower_or_upper(conf, "webserver")
 
