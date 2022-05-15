@@ -560,7 +560,7 @@ class TestProviderInfo(object):
                     "class": "idpyoidc.client.oidc.end_session.EndSession",
                     "kwargs": {
                         "metadata": {
-                            "post_logout_redirect_uri": "https://rp.example.com/post",
+                            "post_logout_redirect_uris": ["https://rp.example.com/post"],
                             "backchannel_logout_uri": "https://rp.example.com/back",
                             "backchannel_logout_session_required": True
                         }
@@ -789,7 +789,7 @@ class TestProviderInfo(object):
             'client_id': 'client_id',
             'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
             'id_token_signed_response_alg': 'RS256',
-            'post_logout_redirect_uri': 'https://rp.example.com/post',
+            'post_logout_redirect_uris': ['https://rp.example.com/post'],
             'redirect_uris': ['https://example.com/cli/authz_cb'],
             'response_types': ['code'],
             'token_endpoint_auth_method': 'private_key_jwt',
@@ -833,7 +833,7 @@ class TestProviderInfo(object):
             'client_id': 'client_id',
             'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
             'id_token_signed_response_alg': 'RS256',
-            'post_logout_redirect_uri': 'https://rp.example.com/post',
+            'post_logout_redirect_uris': ['https://rp.example.com/post'],
             'redirect_uris': ['https://example.com/cli/authz_cb'],
             'response_types': ['code'],
             'token_endpoint_auth_method': 'private_key_jwt',

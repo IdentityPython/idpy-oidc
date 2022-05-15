@@ -438,7 +438,8 @@ class TestClientSecretJWT_TE(object):
 
         # Use provider information is everything else fails
         request = AccessTokenRequest()
-        entity.set_metadata_value("token_endpoint_auth_signing_alg", None)
+        # Can't use set_metadata_value since it won't allow me to overwrite a non-default value
+        token_service.metadata["token_endpoint_auth_signing_alg"] = None
         _service_context.provider_info["token_endpoint_auth_signing_alg_values_supported"] = [
             "ES256",
             "RS256",

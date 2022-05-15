@@ -330,7 +330,7 @@ class TestRPHandler(object):
 
         cb = _srv.client_get("service_context").callback
 
-        assert set(cb.keys()) == {"code"}
+        assert set(cb.keys()) == {"code", "implicit"}
         _hash = _context.iss_hash
 
         assert cb["code"] == f"https://example.com/rp/authz_cb/{_hash}"

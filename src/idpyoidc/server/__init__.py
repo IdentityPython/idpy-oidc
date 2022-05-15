@@ -7,7 +7,6 @@ from typing import Union
 from cryptojwt import KeyJar
 
 from idpyoidc.impexp import ImpExp
-from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
@@ -37,12 +36,12 @@ class Server(ImpExp):
     parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration, ASConfiguration],
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration, ASConfiguration],
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
     ):
         ImpExp.__init__(self)
         self.conf = conf

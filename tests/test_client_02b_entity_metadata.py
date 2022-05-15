@@ -56,7 +56,7 @@ CLIENT_CONFIG = {
             "class": "idpyoidc.client.oidc.end_session.EndSession",
             "kwargs": {
                 "metadata": {
-                    "post_logout_redirect_uri": "https://rp.example.com/post",
+                    "post_logout_redirect_uris": ["https://rp.example.com/post"],
                     "backchannel_logout_uri": "https://rp.example.com/back",
                     "backchannel_logout_session_required": True
                 },
@@ -86,7 +86,7 @@ def test_create_client():
                                'contacts',
                                'grant_types',
                                'id_token_signed_response_alg',
-                               'post_logout_redirect_uri',
+                               'post_logout_redirect_uris',
                                'redirect_uris',
                                'request_object_signing_alg',
                                'request_uris',
@@ -113,7 +113,7 @@ def test_create_client():
     assert len(ma) == 36
     rr = set(RegistrationRequest.c_param.keys())
     d = rr.difference(set(ma))
-    assert d == {'federation_type', 'organization_name', 'frontchannel_logout_session_required'}
+    assert d == {'federation_type', 'organization_name', 'post_logout_redirect_uri'}
 
 
 def test_create_client_key_conf():

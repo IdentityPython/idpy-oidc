@@ -166,7 +166,6 @@ def test_conversation():
             "contacts": ["ops@example.org"],
             "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
             "response_types": ["code"],
-            "token_endpoint_auth_method": "client_secret_basic",
         },
         "usage": {
             "scope": ["openid", "profile", "email", "address", "phone"],
@@ -446,7 +445,6 @@ def test_conversation():
         "grant_types",
         'id_token_signed_response_alg',
         'jwks',
-        'post_logout_redirect_uri',
         "redirect_uris",
         "response_types",
         "token_endpoint_auth_method",

@@ -113,6 +113,13 @@ class Entity(object):
                                       metadata=config.conf.get("metadata", {}),
                                       usage=config.conf.get("usage", {}))
 
+        # MUST not overwrite service specific usage and metadata
+        for key, val in config.conf.get("usage", {}).items():
+            self.set_usage_value(key, val)
+
+        for key, val in config.conf.get("metadata", {}).items():
+            self.set_metadata_value(key, val)
+
         self.setup_client_authn_methods(config)
 
         jwks_uri = jwks_uri or self.get_metadata_value("jwks_uri")
@@ -185,6 +192,15 @@ class Entity(object):
 
         raise KeyError(f"Unknown metadata attribute: {attribute}")
 
+    def get_metadata_attributes(self):
+        attr = []
+        for service in self._service.values():
+            attr.extend(list(service.metadata_attributes.keys()))
+
+        attr.extend(list(self._service_context.metadata_attributes.keys()))
+
+        return attr
+
     def value_in_metadata_attribute(self, attribute, value):
         for service in self._service.values():
             if attribute in service.metadata_attributes.keys():
@@ -219,27 +235,58 @@ class Entity(object):
         return False
 
     def set_metadata_value(self, attribute, value):
+        """
+        Only OK to overwrite a value if the value is the default value
+        """
         for service in self._service.values():
             if attribute in service.metadata_attributes:
-                service.metadata[attribute] = value
-                return True
+                _def_val = service.metadata_attributes[attribute]
+                if _def_val is None:
+                    service.metadata[attribute] = value
+                    return True
+                else:
+                    if service.metadata.get(attribute, _def_val) == _def_val:
+                        service.metadata[attribute] = value
+                        return True
 
         if attribute in self._service_context.metadata_attributes:
-            self._service_context.metadata[attribute] = value
+            _def_val = self._service_context.metadata_attributes[attribute]
+            if _def_val is None:
+                self._service_context.metadata[attribute] = value
+                return True
+            else:
+                if self._service_context.metadata[attribute] == _def_val:
+                    self._service_context.metadata[attribute] = value
+                    return True
             return True
 
         logger.info(f"Unknown set metadata attribute: {attribute}")
         return False
 
     def set_usage_value(self, attribute, value):
+        """
+        Only OK to overwrite a value if the value is the default value
+        """
         for service in self._service.values():
             if attribute in service.usage_rules:
-                service.usage[attribute] = value
-                return True
+                _def_val = service.usage_rules[attribute]
+                if _def_val is None:
+                    service.usage[attribute] = value
+                    return True
+                else:
+                    if service.usage[attribute] == _def_val:
+                        service.usage[attribute] = value
+                        return True
 
         if attribute in self._service_context.usage_rules:
-            self._service_context.usage[attribute] = value
-            return True
+            _def_val = self._service_context.usage_rules[attribute]
+            if _def_val is None:
+                self._service_context.usage[attribute] = value
+                return True
+            else:
+                if self._service_context.usage[attribute] == _def_val:
+                    self._service_context.usage[attribute] = value
+                    return True
 
         logger.info(f"Unknown set usage attribute: {attribute}")
         return False
