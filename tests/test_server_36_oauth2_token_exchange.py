@@ -244,9 +244,9 @@ class TestEndpoint(object):
         Test that token exchange requests work correctly with only the required parameters
         present
         """
-        if list(token.keys())[0] == "refresh_token":
-            AUTH_REQ["scope"] = ["openid", "offline_access"]
         areq = AUTH_REQ.copy()
+        if list(token.keys())[0] == "refresh_token":
+            areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -288,9 +288,9 @@ class TestEndpoint(object):
         """
         Test that token exchange requests work correctly
         """
-        if list(token.keys())[0] == "refresh_token":
-            AUTH_REQ["scope"] = ["openid", "offline_access"]
         areq = AUTH_REQ.copy()
+        if list(token.keys())[0] == "refresh_token":
+            areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -342,6 +342,7 @@ class TestEndpoint(object):
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
             ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
                     "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
@@ -350,9 +351,10 @@ class TestEndpoint(object):
             },
         }
 
-        if list(token.keys())[0] == "refresh_token":
-            AUTH_REQ["scope"] = ["openid", "offline_access"]
         areq = AUTH_REQ.copy()
+        if list(token.keys())[0] == "refresh_token":
+            areq["scope"] = ["openid", "offline_access"]
+        
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -509,8 +511,8 @@ class TestEndpoint(object):
         """
         Test that requesting a refresh token with audience fails.
         """
-        AUTH_REQ["scope"] = ["openid", "offline_access"]
         areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -579,8 +581,8 @@ class TestEndpoint(object):
         """
         Test whether exchanging a refresh token to another refresh token works.
         """
-        AUTH_REQ["scope"] = ["openid", "offline_access"]
         areq = AUTH_REQ.copy()
+        areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -615,8 +617,8 @@ class TestEndpoint(object):
         ],
     )
     def test_exchange_access_token_to_refresh_token(self, scopes):
-        AUTH_REQ["scope"] = scopes
         areq = AUTH_REQ.copy()
+        areq["scope"] = scopes
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
