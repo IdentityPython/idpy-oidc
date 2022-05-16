@@ -384,10 +384,6 @@ class TokenExchangeHelper(TokenEndpointHelper):
         TokenEndpointHelper.__init__(self, endpoint=endpoint, config=config)
         if config is None:
             self.config = {
-                "subject_token_types_supported": [
-                    "urn:ietf:params:oauth:token-type:access_token",
-                    "urn:ietf:params:oauth:token-type:refresh_token",
-                ],
                 "requested_token_types_supported": [
                     "urn:ietf:params:oauth:token-type:access_token",
                     "urn:ietf:params:oauth:token-type:refresh_token",
@@ -421,6 +417,8 @@ class TokenExchangeHelper(TokenEndpointHelper):
             JWKESTException,
         ) as err:
             return self.endpoint.error_cls(error="invalid_request", error_description="%s" % err)
+
+        self._validate_configuration(config)
 
         _mngr = _context.session_manager
         try:
@@ -482,11 +480,6 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         if subject_token_type not in config["policy"]:
-            if "" not in config["policy"]:
-                raise ImproperlyConfigured(
-                    "subject_token_type {subject_token_type} missing from "
-                    "policy and no default is defined"
-                )
             subject_token_type = ""
 
         policy = config["policy"][subject_token_type]
@@ -601,6 +594,30 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         return self.token_exchange_response(token=new_token)
 
+    def _validate_configuration(self, config):
+        if "requested_token_types_supported" not in config:
+            raise ImproperlyConfigured(
+                f"Missing 'requested_token_types_supported'" "from Token Exchange configuration"
+            )
+        if "default_requested_token_type" not in config:
+            raise ImproperlyConfigured(
+                f"Missing 'default_requested_token_type'" "from Token Exchange configuration"
+            )
+        if "policy" not in config:
+            raise ImproperlyConfigured(f"Missing 'policy' from Token Exchange configuration")
+        if "" not in config["policy"]:
+            raise ImproperlyConfigured(
+                f"Default Token Exchange policy configuration is not defined"
+            )
+        if "callable" not in config["policy"][""]:
+            raise ImproperlyConfigured(
+                f"Missing 'callable' from default Token Exchange policy configuration"
+            )
+        if config["default_requested_token_type"] not in config["requested_token_types_supported"]:
+            raise ImproperlyConfigured(
+                f"Unsupported default requested_token_type {config['default_requested_token_type']}"
+            )
+        
 
 def validate_token_exchange_policy(request, context, subject_token, **kwargs):
     if "resource" in request:
