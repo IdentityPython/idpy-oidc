@@ -93,7 +93,7 @@ class Authorization(authorization.Authorization):
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.behaviour.get("response_types")
+            _response_types = _context.specs.behaviour.get("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -151,8 +151,9 @@ class Authorization(authorization.Authorization):
                 break
 
         if not alg:
+            _context = self.client_get("service_context")
             try:
-                alg = self.client_get("service_context").behaviour["request_object_signing_alg"]
+                alg = _context.specs.behaviour["request_object_signing_alg"]
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -195,7 +196,7 @@ class Authorization(authorization.Authorization):
         # This is the issuer of the JWT, that is me !
         _issuer = kwargs.get("issuer")
         if _issuer is None:
-            kwargs["issuer"] = _srv_cntx.get_metadata("client_id")
+            kwargs["issuer"] = _srv_cntx.get_client_id()
 
         if kwargs.get("recv") is None:
             try:
@@ -254,15 +255,15 @@ class Authorization(authorization.Authorization):
         if _request_param:
             del kwargs["request_param"]
         else:
-            if _context.get_usage("request_uri"):
+            if _context.specs.get_usage("request_uri"):
                 _request_param = "request_uri"
-            elif _context.get_usage("request_parameter"):
+            elif _context.specs.get_usage("request_parameter"):
                 _request_param = "request"
 
         _req = None  # just a flag
         if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            kwargs["local_dir"] = _context.config.conf.get("requests_dir", "./requests")
+            kwargs["local_dir"] = _context.specs.get("requests_dir", "./requests")
             _req = self.construct_request_parameter(req, _request_param, **kwargs)
             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
         elif _request_param == "request":
@@ -295,7 +296,7 @@ class Authorization(authorization.Authorization):
             "skew": _context.clock_skew,
         }
 
-        _client_id = _context.get_metadata("client_id")
+        _client_id = _context.get_client_id()
         if _client_id:
             kwargs["client_id"] = _client_id
 
@@ -312,7 +313,7 @@ class Authorization(authorization.Authorization):
         except KeyError:
             pass
 
-        _verify_args = _context.behaviour.get("verify_args")
+        _verify_args = _context.specs.behaviour.get("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 

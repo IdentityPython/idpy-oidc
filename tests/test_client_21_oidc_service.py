@@ -1,14 +1,14 @@
 import json
 import os
 
-import pytest
-import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
+import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -284,7 +284,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").behaviour["verify_args"] = {
+        self.service.client_get("service_context").specs.behaviour["verify_args"] = {
             "allow_sign_alg_none": allow_sign_alg_none
         }
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -773,7 +773,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").behaviour == {}
+        assert self.service.client_get("service_context").specs.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -782,7 +782,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").behaviour == {
+        assert self.service.client_get("service_context").specs.behaviour == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -817,7 +817,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").behaviour == {}
+        assert self.service.client_get("service_context").specs.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -826,7 +826,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").behaviour == {
+        assert self.service.client_get("service_context").specs.behaviour == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -884,8 +884,8 @@ class TestRegistration(object):
         assert len(_req) == 7
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").set_metadata("post_logout_redirect_uri",
-                                                                "https://example.com/post_logout")
+        self.service.client_get("service_context").specs.set_metadata(
+            "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
@@ -960,7 +960,7 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").behaviour = {
+        entity.client_get("service_context").specs.behaviour = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",

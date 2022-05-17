@@ -91,7 +91,7 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.get("behaviour").keys()) == {
+        assert set(_context.specs.behaviour.keys()) == {
             "token_endpoint_auth_method",
             "response_types",
             "scope",
@@ -100,7 +100,7 @@ class TestRPHandler(object):
             'id_token_signed_response_alg',
             'grant_types'
         }
-        assert _context.get_metadata("client_id") == "client uno"
+        assert _context.get_client_id() == "client uno"
         assert _context.get("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 

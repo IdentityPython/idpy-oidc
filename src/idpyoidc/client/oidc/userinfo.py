@@ -138,7 +138,7 @@ class UserInfo(Service):
         """
         _context = self.client_get("service_context")
         kwargs = {
-            "client_id": _context.get_metadata("client_id"),
+            "client_id": _context.get_client_id(),
             "iss": _context.issuer,
             "keyjar": _context.keyjar,
             "verify": True,

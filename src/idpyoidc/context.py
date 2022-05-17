@@ -26,7 +26,6 @@ class OidcContext(ImpExp):
         ImpExp.__init__(self)
         if config is None:
             config = {}
-        self.issuer = entity_id
         self.keyjar = self._keyjar(keyjar, conf=config, entity_id=entity_id)
 
     def _keyjar(self, keyjar=None, conf=None, entity_id=""):

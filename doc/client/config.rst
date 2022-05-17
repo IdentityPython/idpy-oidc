@@ -5,11 +5,12 @@ RP/Client Configuration
 -----------------------
 
 As you may have guessed by now a lot of the work you have to do to use this
-packages lies in the RP configuration.
+packages lies in the RP/Client configuration.
+I'll use just RP in the rest of the document but everywhere you see RP you
+can also think Client (in the OAuth2 sense).
 
-The configuration parameters fall into 2 groups, one general that is the
-same for all RP/clients and one which is specific for a specific
-OP/AS
+The configuration parameters fall into 2 groups, one with basic information
+that are independent of which OpenID Provider (OP) that RP
 
 General configuration parameters
 --------------------------------

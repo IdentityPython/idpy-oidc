@@ -99,7 +99,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
 
         regreq = oidc.RegistrationRequest
 
-        _behaviour = _context.behaviour
+        _behaviour = _context.specs.behaviour
 
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in ["scope"]:
@@ -168,5 +168,5 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
             if key not in PREFERENCE2PROVIDER:
                 _behaviour[key] = val
 
-        _context.behaviour = _behaviour
+        _context.specs.behaviour = _behaviour
         logger.debug("service_context behaviour: {}".format(_behaviour))

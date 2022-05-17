@@ -138,3 +138,15 @@ def add_path(url, path):
             return "{}{}".format(url, path)
         else:
             return "{}/{}".format(url, path)
+
+def qualified_name(cls):
+    """Does both classes and class instances
+
+    :param cls: The item, class or class instance
+    :return: fully qualified class name
+    """
+
+    try:
+        return cls.__module__ + "." + cls.name
+    except AttributeError:
+        return cls.__module__ + "." + cls.__name__

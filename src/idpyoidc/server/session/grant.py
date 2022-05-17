@@ -18,6 +18,7 @@ from . import MintingNotAllowed
 from .claims import claims_match
 from .token import Item
 from .token import SessionToken
+from ...util import qualified_name
 
 logger = logging.getLogger(__name__)
 
@@ -49,19 +50,6 @@ def find_token(issued, token_id):
         if iss.id == token_id:
             return iss
     return None
-
-
-def qualified_name(cls):
-    """Does both classes and class instances
-
-    :param cls: The item, class or class instance
-    :return: fully qualified class name
-    """
-
-    try:
-        return cls.__module__ + "." + cls.name
-    except AttributeError:
-        return cls.__module__ + "." + cls.__name__
 
 
 def issued_token_load(items: List[dict], **kwargs):
