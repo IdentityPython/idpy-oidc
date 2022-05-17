@@ -55,7 +55,7 @@ class AccessToken(access_token.AccessToken):
         except KeyError:
             pass
 
-        _verify_args = _context.behaviour.get("verify_args")
+        _verify_args = _context.specs.behaviour.get("verify_args")
         if _verify_args:
             if _verify_args:
                 kwargs.update(_verify_args)
@@ -83,7 +83,8 @@ class AccessToken(access_token.AccessToken):
         _state_interface.store_item(resp, "token_response", key)
 
     def get_authn_method(self):
+        _specs = self.client_get("service_context").specs
         try:
-            return self.client_get("service_context").behaviour["token_endpoint_auth_method"]
+            return _specs.behaviour["token_endpoint_auth_method"]
         except KeyError:
             return self.default_authn_method

@@ -476,7 +476,7 @@ def test_conversation():
 
     registration_service.update_service_context(response)
 
-    assert service_context.get_metadata("client_id") == "zls2qhN1jO6A"
+    assert service_context.get_client_id() == "zls2qhN1jO6A"
     assert service_context.client_secret == "c8434f28cf9375d9a7"
     assert set(service_context.registration_response.keys()) == {
         "client_secret_expires_at",

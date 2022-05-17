@@ -383,9 +383,9 @@ class RPHandler(object):
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
-            return req_args.get("response_type", context.get("behaviour")["response_types"][0])
+            return req_args.get("response_type", context.specs.behaviour["response_types"][0])
         else:
-            return context.get("behaviour")["response_types"][0]
+            return context.specs.behaviour["response_types"][0]
 
     def init_authorization(
         self,
@@ -422,7 +422,7 @@ class RPHandler(object):
             "redirect_uri": pick_redirect_uri(
                 _context, _entity, request_args=req_args, response_type=_response_type
             ),
-            "scope": _context.get("behaviour")["scope"],
+            "scope": _context.specs.behaviour["scope"],
             "response_type": _response_type,
             "nonce": _nonce,
         }
@@ -1050,7 +1050,7 @@ def load_registration_response(client, request_args=None):
 
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    if not client.client_get("service_context").get_metadata("client_id"):
+    if not client.client_get("service_context").get_client_id():
         try:
             response = client.do_request("registration", request_args=request_args)
         except KeyError:

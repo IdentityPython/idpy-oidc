@@ -245,7 +245,7 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert _context.get_metadata("client_id") == "eeeeeeeee"
+        assert _context.get_client_id() == "eeeeeeeee"
         assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == "https://github.com/login/oauth/authorize"
 
@@ -297,7 +297,7 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-            client.client_get("service_context").callback.get("post_logout_redirect_uris") is None
+            client.client_get("service_context").specs.callback.get("post_logout_redirect_uris") is None
         )
 
     def test_do_client_setup(self):
@@ -305,7 +305,7 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.client_get("service_context")
 
-        assert _context.get_metadata("client_id") == "eeeeeeeee"
+        assert _context.get_client_id() == "eeeeeeeee"
         assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == _github_id
 
@@ -328,7 +328,7 @@ class TestRPHandler(object):
         _context = _srv.client_get("service_context")
         # add_callbacks(_context, [])
 
-        cb = _srv.client_get("service_context").callback
+        cb = _srv.client_get("service_context").specs.callback
 
         assert set(cb.keys()) == {"code", "implicit"}
         _hash = _context.iss_hash
@@ -383,7 +383,7 @@ class TestRPHandler(object):
         # redo
         self.rph.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").metadata["redirect_uris"] = []
+        cli2.client_get("service_context").specs.metadata["redirect_uris"] = []
         self.rph.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):
@@ -423,7 +423,7 @@ class TestRPHandler(object):
 
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         idts = IdToken(**idval)
@@ -482,7 +482,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -527,7 +527,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -572,7 +572,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -630,7 +630,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {
             "nonce": _nonce,
             "sub": "EndUserSubject",
@@ -663,7 +663,7 @@ class TestRPHandlerTier2(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.get_metadata("client_id")
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")

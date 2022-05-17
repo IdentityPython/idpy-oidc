@@ -36,9 +36,9 @@ def pick_redirect_uri(
     if "redirect_uri" in request_args:
         return request_args["redirect_uri"]
 
-    if context.callback:
+    if context.specs.callback:
         if not response_type:
-            _conf_resp_types = context.behaviour.get("response_types", [])
+            _conf_resp_types = context.specs.behaviour.get("response_types", [])
             response_type = request_args.get("response_type")
             if not response_type and _conf_resp_types:
                 response_type = _conf_resp_types[0]
@@ -46,11 +46,11 @@ def pick_redirect_uri(
         _response_mode = request_args.get("response_mode")
 
         if _response_mode == "form_post" or response_type == ["form_post"]:
-            redirect_uri = context.callback["form_post"]
+            redirect_uri = context.specs.callback["form_post"]
         elif response_type == "code" or response_type == ["code"]:
-            redirect_uri = context.callback["code"]
+            redirect_uri = context.specs.callback["code"]
         else:
-            redirect_uri = context.callback["implicit"]
+            redirect_uri = context.specs.callback["implicit"]
 
         logger.debug(
             f"pick_redirect_uris: response_type={response_type}, response_mode={_response_mode}, "
@@ -71,9 +71,7 @@ def pre_construct_pick_redirect_uri(
         request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None,
         **kwargs
 ):
-    _context = service.client_get("service_context")
-    _redirect_uris = service.client_get("entity").get_metadata_value("redirect_uris")
-    request_args["redirect_uri"] = pick_redirect_uri(_context,
+    request_args["redirect_uri"] = pick_redirect_uri(service.client_get("service_context"),
                                                      entity=service.client_get("entity"),
                                                      request_args=request_args)
     return request_args, {}

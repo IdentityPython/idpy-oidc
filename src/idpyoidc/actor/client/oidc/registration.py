@@ -166,7 +166,7 @@ class Registration(Service):
                 continue
 
             try:
-                request_args[prop] = _context.behaviour[prop]
+                request_args[prop] = _context.specs.behaviour[prop]
             except KeyError:
                 try:
                     request_args[prop] = _context.client_preferences[prop]

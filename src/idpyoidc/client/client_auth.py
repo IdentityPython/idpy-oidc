@@ -105,7 +105,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         try:
             user = kwargs["user"]
         except KeyError:
-            user = service.client_get("service_context").get_metadata("client_id")
+            user = service.client_get("service_context").get_client_id()
         return user
 
     def _get_authentication_token(self, request, service, **kwargs):
@@ -140,7 +140,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         ):
             if "client_id" not in request:
                 try:
-                    request["client_id"] = service.client_get("service_context").get_metadata("client_id")
+                    request["client_id"] = service.client_get("service_context").get_client_id()
                 except AttributeError:
                     pass
         else:
@@ -228,7 +228,7 @@ class ClientSecretPost(ClientSecretBasic):
                     raise AuthnFailure("Missing client secret")
 
         # Set the client_id in the the request
-        request["client_id"] = _context.get_metadata("client_id")
+        request["client_id"] = _context.get_client_id()
 
     def construct(self, request, service=None, http_args=None, **kwargs):
         """

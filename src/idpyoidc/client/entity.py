@@ -83,6 +83,7 @@ class Entity(object):
             services: Optional[dict] = None,
             jwks_uri: Optional[str] = "",
             httpc_params: Optional[dict] = None,
+            client_type: Optional[str] = ""
     ):
         self.extra = {}
         if httpc_params:
@@ -98,7 +99,8 @@ class Entity(object):
             _kj = None
 
         self._service_context = ServiceContext(
-            keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params
+            keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params,
+            client_type=client_type
         )
 
         if config:
@@ -112,13 +114,6 @@ class Entity(object):
         self._service = init_services(service_definitions=_srvs, client_get=self.client_get,
                                       metadata=config.conf.get("metadata", {}),
                                       usage=config.conf.get("usage", {}))
-
-        # MUST not overwrite service specific usage and metadata
-        for key, val in config.conf.get("usage", {}).items():
-            self.set_usage_value(key, val)
-
-        for key, val in config.conf.get("metadata", {}).items():
-            self.set_metadata_value(key, val)
 
         self.setup_client_authn_methods(config)
 
@@ -161,7 +156,7 @@ class Entity(object):
         return self
 
     def get_client_id(self):
-        return self._service_context.get_metadata("client_id")
+        return self._service_context.get_client_id()
 
     def setup_client_authn_methods(self, config):
         self._service_context.client_authn_method = client_auth_setup(
@@ -172,14 +167,14 @@ class Entity(object):
         res = {}
         for service in self._service.values():
             res.update(service.metadata)
-        res.update(self._service_context.metadata)
+        res.update(self._service_context.specs.get_all())
         return res
 
     def collect_usage(self):
         res = {}
         for service in self._service.values():
             res.update(service.usage)
-        res.update(self._service_context.usage)
+        res.update(self._service_context.specs.usage)
         return res
 
     def get_metadata_value(self, attribute, default=None):
@@ -187,17 +182,17 @@ class Entity(object):
             if attribute in service.metadata_attributes:
                 return service.get_metadata(attribute, default)
 
-        if attribute in self._service_context.metadata_attributes:
-            return self._service_context.get_metadata(attribute, default)
+        if attribute in self._service_context.specs.attributes:
+            return self._service_context.specs.get_metadata(attribute, default)
 
-        raise KeyError(f"Unknown metadata attribute: {attribute}")
+        raise KeyError(f"Unknown specs attribute: {attribute}")
 
     def get_metadata_attributes(self):
         attr = []
         for service in self._service.values():
             attr.extend(list(service.metadata_attributes.keys()))
 
-        attr.extend(list(self._service_context.metadata_attributes.keys()))
+        attr.extend(list(self._service_context.specs.attributes.keys()))
 
         return attr
 
@@ -212,8 +207,8 @@ class Entity(object):
                     if value == _val:
                         return True
 
-        if attribute in self._service_context.metadata_attributes.keys():
-            _val = self._service_context.get_metadata(attribute)
+        if attribute in self._service_context.specs.attributes.keys():
+            _val = self._service_context.specs.get_metadata(attribute)
             if isinstance(_val, list):
                 if value in _val:
                     return True
@@ -229,8 +224,8 @@ class Entity(object):
                 if service.usage.get(attribute):
                     return True
 
-        if attribute in self._service_context.usage_rules.keys():
-            if self._service_context.usage.get(attribute):
+        if attribute in self._service_context.specs.rules.keys():
+            if self._service_context.specs.get_usage(attribute):
                 return True
         return False
 
@@ -249,18 +244,18 @@ class Entity(object):
                         service.metadata[attribute] = value
                         return True
 
-        if attribute in self._service_context.metadata_attributes:
-            _def_val = self._service_context.metadata_attributes[attribute]
+        if attribute in self._service_context.specs.attributes:
+            _def_val = self._service_context.specs.attributes[attribute]
             if _def_val is None:
-                self._service_context.metadata[attribute] = value
+                self._service_context.specs.set_metadata(attribute, value)
                 return True
             else:
-                if self._service_context.metadata[attribute] == _def_val:
-                    self._service_context.metadata[attribute] = value
+                if self._service_context.specs.get_metadata(attribute, _def_val):
+                    self._service_context.specs.set_metadata(attribute, value)
                     return True
             return True
 
-        logger.info(f"Unknown set metadata attribute: {attribute}")
+        logger.info(f"Unknown set specs attribute: {attribute}")
         return False
 
     def set_usage_value(self, attribute, value):
@@ -278,14 +273,14 @@ class Entity(object):
                         service.usage[attribute] = value
                         return True
 
-        if attribute in self._service_context.usage_rules:
-            _def_val = self._service_context.usage_rules[attribute]
+        if attribute in self._service_context.specs.rules:
+            _def_val = self._service_context.specs.rules[attribute]
             if _def_val is None:
-                self._service_context.usage[attribute] = value
+                self._service_context.specs.set_usage(attribute, value)
                 return True
             else:
-                if self._service_context.usage[attribute] == _def_val:
-                    self._service_context.usage[attribute] = value
+                if self._service_context.specs.usage[attribute] == _def_val:
+                    self._service_context.specs.set_usage(attribute, value)
                     return True
 
         logger.info(f"Unknown set usage attribute: {attribute}")
@@ -299,9 +294,10 @@ class Entity(object):
                 else:
                     return default
 
-        if attribute in self._service_context.usage_rules:
-            if attribute in self._service_context.usage:
-                return self._service_context.usage[attribute]
+        if attribute in self._service_context.specs.rules:
+            _val = self._service_context.specs.get_usage(attribute)
+            if _val:
+                return _val
             else:
                 return default
 
@@ -319,10 +315,10 @@ class Entity(object):
         for service in self._service.values():
             service.construct_uris(_base_url, _hex)
 
-        if not self._service_context.get_metadata("redirect_uris"):
-            self._service_context.construct_redirect_uris(_base_url, _hex, callback)
+        if not self._service_context.specs.get_metadata("redirect_uris"):
+            self._service_context.specs.construct_redirect_uris(_base_url, _hex, callback)
 
-        self._service_context.construct_uris(_base_url, _hex)
+        self._service_context.specs.construct_uris(_base_url, _hex)
 
     def backward_compatibility(self, config):
         _uris = config.get("redirect_uris")
@@ -357,8 +353,8 @@ class Entity(object):
                 "usage": service.usage_rules
             }
         res[""] = {
-            "metadata": self._service_context.metadata_attributes,
-            "usage": self._service_context.usage_rules
+            "metadata": self._service_context.specs.attributes,
+            "usage": self._service_context.specs.rules
         }
         return res
 
@@ -366,5 +362,5 @@ class Entity(object):
         res = []
         for service in self._service.values():
             res.extend(service.callback_uris)
-        res.extend(self._service_context.callback_uris)
+        res.extend(self._service_context.specs.callback_uris)
         return res

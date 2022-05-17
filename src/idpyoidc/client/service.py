@@ -159,7 +159,7 @@ class Service(ImpExp):
                 if not val:
                     val = self.default_request_args.get(prop)
                     if not val:
-                        val = _context.behaviour.get(prop)
+                        val = _context.specs.behaviour.get(prop)
                         if not val:
                             val = md.get(prop)
             if val:
@@ -505,7 +505,7 @@ class Service(ImpExp):
             "iss": _context.issuer,
             "keyjar": _context.keyjar,
             "verify": True,
-            "client_id": _context.get_metadata("client_id"),
+            "client_id": _context.get_client_id(),
         }
 
         if self.service_name == "provider_info":
@@ -521,7 +521,7 @@ class Service(ImpExp):
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
         _jwt = JWT(key_jar=_context.keyjar, **args)
-        _jwt.iss = _context.get_metadata("client_id")
+        _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):

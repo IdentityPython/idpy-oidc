@@ -3,7 +3,6 @@ Implements a service context. A Service context is used to keep information that
 common between all the services that are used by OAuth2 client or OpenID Connect Relying Party.
 """
 import copy
-import os
 from typing import Optional
 from typing import Union
 
@@ -14,10 +13,14 @@ from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.configure import Configuration
+from idpyoidc.client.specification.oauth2 import Specification as OAUTH2_Specs
+from idpyoidc.client.specification.oidc import Specification as OIDC_Specs
 from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
-from .service import Service
+from .specification import Specification
+from .specification import specification_dump
+from .specification import specification_load
 from .state_interface import StateInterface
 
 CLI_REG_MAP = {
@@ -64,7 +67,7 @@ DEFAULT_VALUE = {
     "provider_info": {},
     "behaviour": {},
     "callback": {},
-    "issuer": "",
+    "issuer": ""
 }
 
 
@@ -93,7 +96,7 @@ class ServiceContext(OidcContext):
             "httpc_params": None,
             "iss_hash": None,
             "issuer": None,
-            "metadata": None,
+            "specs": Specification,
             "provider_info": None,
             "requests_dir": None,
             "registration_response": None,
@@ -103,66 +106,28 @@ class ServiceContext(OidcContext):
         }
     )
 
-    metadata_attributes = {
-        "application_type": "web",
-        "contacts": None,
-        "client_name": None,
-        "client_id": None,
-        "logo_uri": None,
-        "client_uri": None,
-        "policy_uri": None,
-        "tos_uri": None,
-        "jwks_uri": None,
-        "jwks": None,
-        "sector_identifier_uri": None,
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
-        "default_max_age": None,
-        "id_token_signed_response_alg": "RS256",
-        "id_token_encrypted_response_alg": None,
-        "id_token_encrypted_response_enc": None,
-        "initiate_login_uri": None,
-        "subject_type": None,
-        "default_acr_values": None,
-        "require_auth_time": None,
-        "redirect_uris": None,
-        "request_object_signing_alg": None,
-        "request_object_encryption_alg": None,
-        "request_object_encryption_enc": None,
-        "request_uris": None,
-        "response_types": ["code"]
+    special_load_dump = {
+        "specs": {"load": specification_load, "dump": specification_dump},
     }
 
-    usage_rules = {
-        "form_post": None,
-        "jwks": None,
-        "jwks_uri": None,
-        "request_parameter": None,
-        "request_uri": None,
-        "scope": ["openid"],
-        "verify_args": None,
-    }
-
-    callback_path = {
-        "requests": "req",
-        "code": "authz_cb",
-        "implicit": "authz_im_cb",
-        "form_post": "form"
-    }
-
-    callback_uris = ["redirect_uris"]
 
     def __init__(self,
                  base_url: Optional[str] = "",
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
                  state: Optional[StateInterface] = None,
+                 client_type: Optional[str] = None,
                  **kwargs):
         config = get_configuration(config)
         self.config = config
-        self.metadata = {}
-        self.usage = {}
+        if not client_type or client_type == "oidc":
+            self.specs = OIDC_Specs()
+        elif client_type == "oauth2":
+            self.specs = OAUTH2_Specs()
+        else:
+            raise ValueError(f"Unknown client type: {client_type}")
 
-        OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
+        OidcContext.__init__(self, config, keyjar, entity_id=config.conf.get("client_id", ""))
         self.state = state or StateInterface()
 
         self.kid = {"sig": {}, "enc": {}}
@@ -173,11 +138,11 @@ class ServiceContext(OidcContext):
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
+        self.issuer = ""
         self.httpc_params = {}
         self.callback = {}
         self.client_secret = ""
         self.client_secret_expires_at = 0
-        self.behaviour = {}
         self.provider_info = {}
         # self.post_logout_redirect_uri = ""
         # self.redirect_uris = []
@@ -189,15 +154,17 @@ class ServiceContext(OidcContext):
         for param in [
             "client_secret",
             "provider_info",
-            "behaviour",
-            "issuer",
+            "behaviour"
         ]:
-            _val = config.get(param, _def_value[param])
+            _val = config.conf.get(param, _def_value[param])
             self.set(param, _val)
             if param == "client_secret" and _val:
                 self.keyjar.add_symmetric("", _val)
 
-        if not self.issuer:
+        _issuer = config.get("issuer")
+        if _issuer:
+            self.issuer = _issuer
+        else:
             self.issuer = self.provider_info.get("issuer", "")
 
         self.clock_skew = config.get("clock_skew", 15)
@@ -208,34 +175,7 @@ class ServiceContext(OidcContext):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        if "client_secret" in config.conf:
-            self.keyjar.add_symmetric("", config.conf.get("client_secret"))
-
-        for attr, val in config.conf.items():
-            if attr in self.metadata_attributes:
-                self.set_metadata(attr, val)
-
-        for attr, val in config.conf.items():
-            if attr in ["usage", "metadata"]:
-                continue
-            if attr in self.parameter:
-                setattr(self, attr, val)
-
-        if self.requests_dir:
-            # make sure the path exists. If not, then create it.
-            if not os.path.isdir(self.requests_dir):
-                os.makedirs(self.requests_dir)
-
-        # defaults is nothing else is given
-        for key, val in self.metadata_attributes.items():
-            if val and key not in self.metadata:
-                self.set_metadata(key, val)
-
-        for key, val in self.usage_rules.items():
-            if val and key not in self.usage:
-                self.set_usage(key, val)
-
-        self.verify_usage_rules()
+        self.specs.load_conf(config.conf)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -293,7 +233,7 @@ class ServiceContext(OidcContext):
         """
 
         try:
-            return self.behaviour[CLI_REG_MAP[typ]["sign"]]
+            return self.specs.behaviour[CLI_REG_MAP[typ]["sign"]]
         except KeyError:
             try:
                 return self.provider_info[PROVIDER_INFO_MAP[typ]["sign"]]
@@ -312,7 +252,7 @@ class ServiceContext(OidcContext):
         res = {}
         for attr in ["enc", "alg"]:
             try:
-                _alg = self.behaviour[CLI_REG_MAP[typ][attr]]
+                _alg = self.specs.behaviour[CLI_REG_MAP[typ][attr]]
             except KeyError:
                 try:
                     _alg = self.provider_info[PROVIDER_INFO_MAP[typ][attr]]
@@ -329,63 +269,5 @@ class ServiceContext(OidcContext):
     def set(self, key, value):
         setattr(self, key, value)
 
-    def get_metadata(self, key, default=None):
-        if key in self.metadata:
-            return self.metadata[key]
-        else:
-            return default
-
-    def get_usage(self, key, default=None):
-        if key in self.usage:
-            return self.usage[key]
-        else:
-            return default
-
-    def set_metadata(self, key, value):
-        self.metadata[key] = value
-
-    def set_usage(self, key, value):
-        self.usage[key] = value
-
-    def _callback_uris(self, base_url, hex):
-        _red = {}
-        for type in self.get_metadata("response_types", ["code"]):
-            if "code" in type:
-                _red['code'] = True
-            elif type in ["id_token", "id_token token"]:
-                _red['implicit'] = True
-
-        if "form_post" in self.usage:
-            _red["form_post"] = True
-
-        callback_uri = {}
-        for key in _red.keys():
-            _uri = Service.get_uri(base_url, self.callback_path[key], hex)
-            callback_uri[key] = _uri
-        return  callback_uri
-
-    def construct_redirect_uris(self, base_url, hex, callbacks):
-        if not callbacks:
-            callbacks = self._callback_uris(base_url, hex)
-
-        if callbacks:
-            self.set_metadata("redirect_uris", [v for k, v in callbacks.items()])
-
-        self.callback = callbacks
-
-    def construct_uris(self, base_url, hex):
-        if "request_uri" in self.usage:
-            if self.usage["request_uri"]:
-                if self.requests_dir:
-                    self.metadata["request_uris"] = [
-                        Service.get_uri(base_url, self.requests_dir, hex)]
-                else:
-                    self.metadata["request_uris"] = [
-                        Service.get_uri(base_url, self.callback_path["requests"], hex)]
-
-    def verify_usage_rules(self):
-        if self.get_usage("request_parameter") and self.get_usage("request_uri"):
-            raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'.")
-        # default is jwks_uri
-        if not self.get_usage("jwks") and not self.get_usage('jwks_uri'):
-            self.set_usage('jwks_uri', True)
+    def get_client_id(self):
+        return self.specs.get_metadata("client_id")
