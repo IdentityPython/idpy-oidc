@@ -129,12 +129,15 @@ class Token(Endpoint):
         _context = self.server_get("endpoint_context")
 
         if isinstance(request, TokenExchangeRequest):
-            requested_token_type = request.get(
-                "requested_token_type",
-                self.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config[
+            if "token_exchange" in _context.cdb[request["client_id"]]:
+                default_requested_token_type = _context.cdb[request["client_id"]]["token_exchange"][
                     "default_requested_token_type"
-                ],
-            )
+                ]
+            else:
+                default_requested_token_type = self.helper[
+                    "urn:ietf:params:oauth:grant-type:token-exchange"
+                ].config["default_requested_token_type"]
+            requested_token_type = request.get("requested_token_type", default_requested_token_type)
             _handler_key = TOKEN_TYPES_MAPPING[requested_token_type]
         else:
             _handler_key = "access_token"
