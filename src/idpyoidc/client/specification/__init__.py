@@ -180,3 +180,6 @@ class Specification(ImpExp):
 
     def set(self, key, val):
         self._local[key] = val
+
+    def construct_uris(self, *args):
+        pass

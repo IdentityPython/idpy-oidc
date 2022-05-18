@@ -95,6 +95,7 @@ class RP(oauth2.Client):
             httplib=httplib,
             services=_srvs,
             httpc_params=httpc_params,
+            client_type="oidc"
         )
 
         _context = self.get_service_context()

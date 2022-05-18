@@ -8,6 +8,7 @@ class Specification(sp.Specification):
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
+        "client_id": None,
         "client_name": None,
         "client_uri": None,
         "logo_uri": None,
