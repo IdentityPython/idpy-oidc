@@ -12,6 +12,7 @@ from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
+from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
 
@@ -109,7 +110,12 @@ class Entity(object):
             _srvs = None
 
         if not _srvs:
-            _srvs = services or DEFAULT_OAUTH2_SERVICES
+            if services:
+                _srvs = services
+            elif client_type == "oauth2":
+                _srvs = DEFAULT_OAUTH2_SERVICES
+            else:
+                _srvs = DEFAULT_OIDC_SERVICES
 
         self._service = init_services(service_definitions=_srvs, client_get=self.client_get,
                                       metadata=config.conf.get("metadata", {}),

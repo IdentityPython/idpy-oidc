@@ -41,9 +41,12 @@ class Client(Entity):
         services=None,
         jwks_uri="",
         httpc_params=None,
+        client_type: Optional[str] = ""
     ):
         """
 
+        :type client_type: str
+        :param client_type: What kind of client this is. Presently 'oauth2' or 'oidc'
         :param keyjar: A py:class:`idpyoidc.key_jar.KeyJar` instance
         :param config: Configuration information passed on to the
             :py:class:`idpyoidc.client.service_context.ServiceContext`
@@ -55,6 +58,9 @@ class Client(Entity):
         :return: Client instance
         """
 
+        if not client_type:
+            client_type = "oauth2"
+
         Entity.__init__(
             self,
             keyjar=keyjar,
@@ -62,6 +68,7 @@ class Client(Entity):
             services=services,
             jwks_uri=jwks_uri,
             httpc_params=httpc_params,
+            client_type=client_type
         )
 
         self.http = httplib or HTTPLib(httpc_params)
