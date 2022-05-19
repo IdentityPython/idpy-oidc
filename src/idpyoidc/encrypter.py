@@ -88,6 +88,8 @@ def init_encrypter(conf: Optional[dict] = None):
                         _kwargs[usage] = _key[0].key
                     else:
                         _kwargs[usage] = os.urandom(16)
+            elif "key" in _cargs:
+                _kwargs = {"key": _cargs["key"]}
             else:
                 _kwargs = {
                     usage: _cargs.get(usage, os.urandom(16)) for usage in ["password", "salt"]
