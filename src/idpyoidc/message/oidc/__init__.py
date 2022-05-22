@@ -637,7 +637,7 @@ class RegistrationRequest(Message):
         "frontchannel_logout_uri": SINGLE_OPTIONAL_STRING,
         "frontchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
         "backchannel_logout_uri": SINGLE_OPTIONAL_STRING,
-        "backchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN,
+        "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
         "federation_type": OPTIONAL_LIST_OF_STRINGS,
         "organization_name": SINGLE_OPTIONAL_STRING,
     }
@@ -901,9 +901,9 @@ class ProviderConfigurationResponse(ResponseMessage):
             "check_session_iframe": SINGLE_OPTIONAL_STRING,
             "end_session_endpoint": SINGLE_OPTIONAL_STRING,
             "frontchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
-            "frontchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN,
+            "frontchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
             "backchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
-            "backchannel_logout_session_supported": SINGLE_OPTIONAL_BOOLEAN
+            "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN
             # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
             # "x509_url": SINGLE_REQUIRED_STRING,
             # "x509_encryption_url": SINGLE_OPTIONAL_STRING,

@@ -64,13 +64,26 @@ class Service(ImpExp):
 
     init_args = ["client_get"]
 
+    metadata_attributes = {}
+    usage_rules = {}
+    usage_to_uri_map = {}
+    callback_path = {}
+    callback_uris = []
+
     def __init__(
-        self, client_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
+            self,
+            client_get: Callable,
+            conf: Optional[Union[dict, Configuration]] = None,
+            **kwargs
     ):
         ImpExp.__init__(self)
 
         self.client_get = client_get
         self.default_request_args = {}
+        self.metadata = {}
+        self.usage = {}
+        self.callback_uri = {}
+
         if conf:
             self.conf = conf
             for param in [
@@ -84,6 +97,23 @@ class Service(ImpExp):
             ]:
                 if param in conf:
                     setattr(self, param, conf[param])
+
+            md_conf = conf.get("metadata", {})
+            if md_conf:
+                for param, def_val in self.metadata_attributes.items():
+                    if param in md_conf:
+                        self.metadata[param] = md_conf[param]
+                    elif def_val is not None:
+                        self.metadata[param] = def_val
+
+            usage_conf = conf.get("usage", {})
+            if usage_conf:
+                for param, def_val in self.usage_rules.items():
+                    if param in usage_conf:
+                        self.usage[param] = usage_conf[param]
+                    elif def_val is not None:
+                        self.usage[param] = def_val
+
         else:
             self.conf = {}
 
@@ -103,6 +133,9 @@ class Service(ImpExp):
         :return: Possibly augmented set of attributes
         """
         ar_args = kwargs.copy()
+
+        _entity = self.client_get("entity")
+        md = _entity.collect_metadata()
 
         _context = self.client_get("service_context")
         # Go through the list of claims defined for the message class.
@@ -124,12 +157,11 @@ class Service(ImpExp):
                 if "request_args" in self.conf:
                     val = self.conf["request_args"].get(prop)
                 if not val:
-                    val = _context.register_args.get(prop)
+                    val = self.default_request_args.get(prop)
                     if not val:
-                        val = self.default_request_args.get(prop)
+                        val = _context.specs.behaviour.get(prop)
                         if not val:
-                            val = _context.behaviour.get(prop)
-
+                            val = md.get(prop)
             if val:
                 ar_args[prop] = val
 
@@ -292,7 +324,7 @@ class Service(ImpExp):
         return self.client_get("service_context").provider_info[self.endpoint_name]
 
     def get_authn_header(
-        self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
+            self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
     ) -> dict:
         """
         Construct an authorization specification to be sent in the
@@ -324,11 +356,11 @@ class Service(ImpExp):
         return self.default_authn_method
 
     def get_headers(
-        self,
-        request: Union[dict, Message],
-        http_method: str,
-        authn_method: Optional[str] = "",
-        **kwargs,
+            self,
+            request: Union[dict, Message],
+            http_method: str,
+            authn_method: Optional[str] = "",
+            **kwargs,
     ) -> dict:
         """
 
@@ -358,7 +390,7 @@ class Service(ImpExp):
         return _headers
 
     def get_request_parameters(
-        self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
+            self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
     ) -> dict:
         """
         Builds the request message and constructs the HTTP headers.
@@ -459,7 +491,8 @@ class Service(ImpExp):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -472,7 +505,7 @@ class Service(ImpExp):
             "iss": _context.issuer,
             "keyjar": _context.keyjar,
             "verify": True,
-            "client_id": _context.client_id,
+            "client_id": _context.get_client_id(),
         }
 
         if self.service_name == "provider_info":
@@ -488,7 +521,7 @@ class Service(ImpExp):
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
         _jwt = JWT(key_jar=_context.keyjar, **args)
-        _jwt.iss = _context.client_id
+        _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):
@@ -514,12 +547,12 @@ class Service(ImpExp):
         return resp
 
     def parse_response(
-        self,
-        info,
-        sformat: Optional[str] = "",
-        state: Optional[str] = "",
-        behaviour_args: Optional[dict] = None,
-        **kwargs,
+            self,
+            info,
+            sformat: Optional[str] = "",
+            state: Optional[str] = "",
+            behaviour_args: Optional[dict] = None,
+            **kwargs,
     ):
         """
         This the start of a pipeline that will:
@@ -606,24 +639,35 @@ class Service(ImpExp):
 
         return default
 
+    def usage_to_uri(self, usage):
+        return self.usage_to_uri_map.get(usage)
 
-# def gather_constructors(service_methods, construct):
-#     """Loads the construct methods that are defined."""
-#     try:
-#         _methods = service_methods
-#     except KeyError:
-#         pass
-#     else:
-#         for meth in _methods:
-#             try:
-#                 func = meth['function']
-#             except KeyError:
-#                 pass
-#             else:
-#                 construct.append(importer(func))
+    def get_callback_path(self, callback):
+        return self.callback_path.get(callback)
+
+    @staticmethod
+    def get_uri(base_url, path, hex):
+        return f"{base_url}/{path}/{hex}"
+
+    def construct_uris(self, base_url, hex):
+        for usage in self.usage_rules.keys():
+            if usage in self.usage:
+                uri = self.usage_to_uri_map.get(usage)
+                if uri and uri not in self.metadata:
+                    self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri],
+                                                               hex)
+
+    def get_metadata(self, attribute, default=None):
+        try:
+            return self.metadata[attribute]
+        except KeyError:
+            return default
+
+    def set_metadata(self, key, value):
+        self.metadata[key] = value
 
 
-def init_services(service_definitions, client_get):
+def init_services(service_definitions, client_get, metadata, usage):
     """
     Initiates a set of services
 
@@ -635,7 +679,7 @@ def init_services(service_definitions, client_get):
     service = DLDict()
     for service_name, service_configuration in service_definitions.items():
         try:
-            kwargs = service_configuration["kwargs"]
+            kwargs = {"conf": service_configuration["kwargs"]}
         except KeyError:
             kwargs = {}
 
@@ -649,10 +693,13 @@ def init_services(service_definitions, client_get):
             _value_cls = qualified_name(service_configuration["class"])
             _srv = service_configuration["class"](**kwargs)
 
-        # if 'post_functions' in service_configuration:
-        #     gather_constructors(service_configuration['post_functions'], _srv.post_construct)
-        # if 'pre_functions' in service_configuration:
-        #     gather_constructors(service_configuration['pre_functions'], _srv.pre_construct)
+        for key, val in metadata.items():
+            if key in _srv.metadata_attributes and key not in _srv.metadata:
+                _srv.metadata[key] = val
+
+        for key, val in usage.items():
+            if key in _srv.usage_rules and key not in _srv.usage:
+                _srv.usage[key] = val
 
         service[_srv.service_name] = _srv
 

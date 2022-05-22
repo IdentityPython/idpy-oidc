@@ -22,6 +22,8 @@ class ProviderInfoDiscovery(Service):
     service_name = "provider_info"
     http_method = "GET"
 
+    metadata_attributes = {}
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
 

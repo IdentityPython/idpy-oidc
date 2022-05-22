@@ -8,42 +8,49 @@ from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.service_context import ServiceContext
 
+BASE_URL = "https://example.com"
+
 
 def test_client_info_init():
     config = {
         "client_id": "client_id",
         "issuer": "issuer",
         "client_secret": "client_secret_wordplay",
-        "base_url": "https://example.com",
+        "base_url": BASE_URL,
         "requests_dir": "requests",
     }
     ci = ServiceContext(config=config)
 
-    srvcnx = ServiceContext().load(ci.dump())
+    srvcnx = ServiceContext(base_url=BASE_URL).load(ci.dump())
 
     for attr in config.keys():
-        try:
-            val = getattr(srvcnx, attr)
-        except AttributeError:
-            val = srvcnx.get(attr)
+        if attr == "client_id":
+            assert srvcnx.get_client_id() == config[attr]
+        elif attr == "requests_dir":
+            assert srvcnx.specs.get("requests_dir") == config[attr]
+        else:
+            try:
+                val = getattr(srvcnx, attr)
+            except AttributeError:
+                val = srvcnx.get(attr)
 
-        assert val == config[attr]
+            assert val == config[attr]
 
 
 def test_set_and_get_client_secret():
-    service_context = ServiceContext()
+    service_context = ServiceContext(base_url=BASE_URL)
     service_context.client_secret = "longenoughsupersecret"
 
-    srvcnx2 = ServiceContext().load(service_context.dump())
+    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
 
     assert srvcnx2.client_secret == "longenoughsupersecret"
 
 
 def test_set_and_get_client_id():
-    service_context = ServiceContext()
-    service_context.client_id = "myself"
-    srvcnx2 = ServiceContext().load(service_context.dump())
-    assert srvcnx2.client_id == "myself"
+    service_context = ServiceContext(base_url=BASE_URL)
+    service_context.specs.set_metadata("client_id", "myself")
+    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
+    assert srvcnx2.get_client_id() == "myself"
 
 
 def test_client_filename():
@@ -55,7 +62,7 @@ def test_client_filename():
         "requests_dir": "requests",
     }
     service_context = ServiceContext(config=config)
-    srvcnx2 = ServiceContext().load(service_context.dump())
+    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
     fname = srvcnx2.filename_from_webname("https://example.com/rq12345")
     assert fname == "rq12345"
 
@@ -101,9 +108,7 @@ class TestClientInfo(object):
         self.service_context = ServiceContext(config=config)
 
     def test_registration_userinfo_sign_enc_algs(self):
-        self.service_context.set(
-            "behaviour",
-            {
+        self.service_context.specs.behaviour = {
                 "application_type": "web",
                 "redirect_uris": [
                     "https://client.example.org/callback",
@@ -113,17 +118,17 @@ class TestClientInfo(object):
                 "jwks_uri": "https://client.example.org/my_public_keys.jwks",
                 "userinfo_encrypted_response_alg": "RSA1_5",
                 "userinfo_encrypted_response_enc": "A128CBC-HS256",
-            },
-        )
+            }
 
-        srvcntx = ServiceContext().load(
+
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
         )
         assert srvcntx.get_sign_alg("userinfo") is None
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
 
     def test_registration_request_object_sign_enc_algs(self):
-        self.service_context.behaviour = {
+        self.service_context.specs.behaviour = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -136,7 +141,7 @@ class TestClientInfo(object):
             "request_object_signing_alg": "RS384",
         }
 
-        srvcntx = ServiceContext().load(
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
         )
         res = srvcntx.get_enc_alg_enc("userinfo")
@@ -145,7 +150,7 @@ class TestClientInfo(object):
         assert srvcntx.get_sign_alg("request_object") == "RS384"
 
     def test_registration_id_token_sign_enc_algs(self):
-        self.service_context.behaviour = {
+        self.service_context.specs.behaviour = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -161,7 +166,7 @@ class TestClientInfo(object):
             "id_token_signed_response_alg": "ES384",
         }
 
-        srvcntx = ServiceContext().load(
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
         )
 
@@ -229,7 +234,7 @@ class TestClientInfo(object):
             "ui_locales_supported": ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"],
         }
 
-        srvcntx = ServiceContext().load(
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
         )
 
@@ -239,30 +244,6 @@ class TestClientInfo(object):
 
         # token_endpoint_auth_signing_alg_values_supported
         assert verify_alg_support(srvcntx, "ES256", "token_endpoint_auth", "signing_alg")
-
-    def test_verify_requests_uri(self):
-        self.service_context.provider_info = {"issuer": "https://example.com/"}
-        url_list = self.service_context.generate_redirect_uris("/leading")
-        sp = urlsplit(url_list[0])
-        p = sp.path.split("/")
-        assert p[0] == ""
-        assert p[1] == "leading"
-        assert len(p) == 3
-
-        srvcntx = ServiceContext().load(
-            self.service_context.dump(exclude_attributes=["service_context"])
-        )
-
-        # different for different OPs
-        srvcntx.provider_info = {"issuer": "https://op.example.org/"}
-        url_list = srvcntx.generate_redirect_uris("/leading")
-        sp = urlsplit(url_list[0])
-        np = sp.path.split("/")
-        assert np[0] == ""
-        assert np[1] == "leading"
-        assert len(np) == 3
-
-        assert np[2] != p[2]
 
     def test_import_keys_file(self):
         # Should only be one and that a symmetric key (client_secret) usable
@@ -274,7 +255,7 @@ class TestClientInfo(object):
         keyspec = {"file": {"rsa": [file_path]}}
         self.service_context.import_keys(keyspec)
 
-        srvcntx = ServiceContext().load(
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
         )
 
@@ -294,7 +275,7 @@ class TestClientInfo(object):
         _sc_state = self.service_context.dump(exclude_attributes=["service_context"])
         _jsc_state = json.dumps(_sc_state)
         _o_state = json.loads(_jsc_state)
-        srvcntx = ServiceContext().load(_o_state)
+        srvcntx = ServiceContext(base_url=BASE_URL).load(_o_state)
 
         # Now there should be 2, the second a RSA key for signing
         assert len(srvcntx.keyjar.get_issuer_keys("")) == 2
@@ -320,7 +301,7 @@ class TestClientInfo(object):
             self.service_context.import_keys(keyspec)
             self.service_context.keyjar.update()
 
-            srvcntx = ServiceContext().load(
+            srvcntx = ServiceContext(base_url=BASE_URL).load(
                 self.service_context.dump(exclude_attributes=["service_context"])
             )
 

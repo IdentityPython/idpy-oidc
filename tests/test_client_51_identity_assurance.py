@@ -36,7 +36,7 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://server.otherop.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").behaviour = {
+        entity.client_get("service_context").specs.behaviour = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
