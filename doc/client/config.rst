@@ -10,7 +10,8 @@ I'll use just RP in the rest of the document but everywhere you see RP you
 can also think Client (in the OAuth2 sense).
 
 The configuration parameters fall into 2 groups, one with basic information
-that are independent of which OpenID Provider (OP) that RP
+that comes with being a web services and is independent of which type of
+clien you want and who it is going to talk to.
 
 General configuration parameters
 --------------------------------
@@ -43,39 +44,110 @@ httpc_params
     Something that happens if you run in an environment where mutual TLS is
     expected.
 
-key_conf
-    Definition of the private keys that all RPs are going to use in the OIDC
-    protocol exchange.
+webserver
+    Web service specific information.
 
-There might be other parameters that you need dependent on which web framework
+There might be other parameters that you need, depending on which web framework
 you chose to use.
 
 OP/AS specific configuration parameters
 ---------------------------------------
 
-The client configuration is keyed to an OP/AS name. This name should
-be something human readable it does not have to in anyway be linked to the
-issuer ID of the OP/AS.
+The first thing you have to decide on is what kind of services the RP will use.
+The possible set is:
 
-The key **""** (the empty string) is chosen to represent all OP/ASs that
-are dynamically discovered.
+webfinger
+    Using the webfinger protocol as described in section 2 of
+    `openid discovery`_ . The original ide was that users would enter
+    a user identifier (which may look like an email address). The system
+    would then use that identifier and the webfinger protocol to figure out
+    which OP it should use to authenticate the user. In reality this didn't
+    fly. You may exist in an environment where this might work but I wouldn't bet
+    on it.
 
-Disregarding if doing everything dynamically or statically you **MAY**
-define which services the RP/Client should be able to use.
-If you don't the default set it used.
-The default set consists of the discovery, authorization, access_token and
-refresh_access_token services if we're talking OAuth2 and the discovery,
-registration, authorization, access_token, refresh_access_token and
-userinfo services if we are talking OIDC.
+discovery
+    Described in `openid discovery`_ . This is about discovering what an
+    OP/AS can do.
 
-services
-    A specification of the usable services which possible changes to the
-    default configuration of those service.
+registration
+    Described in `client registration`_ . Dynamic client registration. Not
+    normally allowed by the big providers.
+
+accesstoken
+    Described in `OIDC code`_ . How a client can exchange a authorization code
+    for an access token.
+
+refresh_token
+    Described in `OIDC code`_ . How a client can use a refresh token to get a
+    new access token.
+
+userinfo
+    Described in `OIDC code`_ . How a client can use an access token to get
+    up-to-date information about a user.
+
+end_session
+    Described in `Session management`_ , `Front channel logout`_ and
+    `Back channel logout`_ . How a user can log out of sessions created at
+    one or more OPs
+
+The default services if you have an OAuth2 client are::
+
+    "discovery": {
+        "class": "idpyoidc.client.oauth2.provider_info_discovery.ProviderInfoDiscovery"},
+    "authorization": {
+        "class": "idpyoidc.client.oauth2.authorization.Authorization"},
+    "access_token": {
+        "class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+    "refresh_access_token": {
+        "class": "idpyoidc.client.oauth2.refresh_access_token.RefreshAccessToken"}
+
+If you run an OIDC RP it's ::
+
+    "discovery": {
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
+    "registration": {
+        "class": "idpyoidc.client.oidc.registration.Registration"},
+    "authorization": {
+        "class": "idpyoidc.client.oidc.authorization.Authorization"},
+    "accesstoken": {
+        "class": "idpyoidc.client.oidc.access_token.AccessToken"},
+    "refresh_token": {
+        "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"},
+    "userinfo": {
+        "class": "idpyoidc.client.oidc.userinfo.UserInfo"},
+
+Which services you can have are of course completely dependent on the OP/AS
+your client will talk to.
+Most of the big identity services support dynamic discovery but there the
+similarities end. Among the Certified OpenID Providers, Google for instance supports:
+
+    - discovery
+    - authorization
+    - accesstoken
+    - refresh_token
+    - userinfo
+
+Microsoft only:
+
+    - discovery
+    - authorization
+
+Other identity provider like LinkedIn, Github, Facebook and such do not
+support OIDC at all but rather some OAuth2/OIDC bastard. Still if you want to use
+this software package to access non-OIDC identity provider it can be done.
+
+.. _OIDC code: https://openid.net/specs/openid-connect-core-1_0.html
+.. _openid discovery: https://openid.net/specs/openid-connect-discovery-1_0.html
+.. _client registration: https://openid.net/specs/openid-connect-registration-1_0.html
+.. _Session management: https://openid.net/specs/openid-connect-session-1_0.html
+.. _Front channel logout: https://openid.net/specs/openid-connect-frontchannel-1_0.html
+.. _Back channel logout: https://openid.net/specs/openid-connect-backchannel-1_0.html
 
 Static configuration
 ....................
 
-If you have done manual client registration you will have to fill in these:
+If you have done manual client registration with the OP administrator,
+you will have to fill in these:
 
 client_id
     The client identifier.
@@ -94,15 +166,14 @@ behaviour
     a set of attributes with values. The attributes taken from the
     `client metadata`_ specification. *behaviour* is used when the client
     has been registered statically and it is know what the client wants to
-    use and the OP supports.
+    use and what the OP supports.
 
-    Usage example::
+    Example::
 
         "behaviour": {
             "response_types": ["code"],
             "scope": ["openid", "profile", "email"],
-            "token_endpoint_auth_method": ["client_secret_basic",
-                                           'client_secret_post']
+            "token_endpoint_auth_method": "client_secret_basic"
         }
 
 
@@ -110,14 +181,40 @@ behaviour
 Dynamic Configuration
 .....................
 
-If the provider info discovery is done dynamically you need these
+If the client is expected to do dynamic registration and
+provider info discovery is also done dynamically you need these:
 
-client_preferences
-    How the RP should prefer to behave against the OP/AS. The content are the
-    same as for *behaviour*. The difference is that this is specified if the
-    RP is expected to do dynamic client registration which means that at the
+metadata
+    Information about how the RP should behave towards the OP/AS. This is
+    a set of attributes with values. The attributes taken from the
+    `client metadata`_ specification. There might be extra attributes dependent
+    on which OIDC/OAuth2 extensions that are used.
+    This is exactly what you want the client to use when registering with the
+    OP/AS.
+
+    Example::
+
+        "metadata": {
+            "application_type": "web",
+            "contacts": ["ops@example.com"],
+            "response_types": ["code"],
+            "redirect_uris": ["https://{domain}:{port}/cb"]
+        }
+
+usage
+    In some case you want to be have options on which values to register.
+    If so, the dependency is on the OP/AS since at the
     point of writing the configuration it is only known what the RP can and
     wants to do but unknown what the OP supports.
+
+    Example::
+
+        "usage": {
+            "scope": ["openid","profile","email","address","phone"],
+            "token_endpoint_auth_methods": ["client_secret_basic",
+                                            "client_secret_post"],
+            "jwks": true
+        }
 
 issuer
     The Issuer ID of the OP.
