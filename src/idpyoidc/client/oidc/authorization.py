@@ -27,6 +27,9 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
+    usage_rules = {
+    }
+
     def __init__(self, client_get, conf=None):
         authorization.Authorization.__init__(self, client_get, conf=conf)
         self.default_request_args = {"scope": ["openid"]}
@@ -82,13 +85,15 @@ class Authorization(authorization.Authorization):
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
         _context = self.client_get("service_context")
+        _entity = self.client_get("entity")
+
         if request_args is None:
             request_args = {}
 
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.behaviour.get("response_types")
+            _response_types = _context.specs.behaviour.get("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -96,7 +101,11 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            request_args["scope"] = _context.behaviour.get("scope", ["openid"])
+            _scope = self.client_get("entity").get_usage_value("scope")
+            if _scope:
+                request_args["scope"] = _scope
+            else:
+                request_args["scope"] = "openid"
         elif "openid" not in request_args["scope"]:
             request_args["scope"].append("openid")
 
@@ -123,6 +132,11 @@ class Authorization(authorization.Authorization):
             else:
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
+        else:
+            if _entity.get_usage_value("request_uri"):
+                post_args["request_param"] = "request_uri"
+            elif _entity.get_usage_value("request_parameter"):
+                post_args["request_param"] = "request"
 
         return request_args, post_args
 
@@ -137,8 +151,9 @@ class Authorization(authorization.Authorization):
                 break
 
         if not alg:
+            _context = self.client_get("service_context")
             try:
-                alg = self.client_get("service_context").behaviour["request_object_signing_alg"]
+                alg = _context.specs.behaviour["request_object_signing_alg"]
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -163,7 +178,7 @@ class Authorization(authorization.Authorization):
         return _webname
 
     def construct_request_parameter(
-        self, req, request_param, audience=None, expires_in=0, **kwargs
+            self, req, request_param, audience=None, expires_in=0, **kwargs
     ):
         """Construct a request parameter"""
         alg = self.get_request_object_signing_alg(**kwargs)
@@ -181,7 +196,7 @@ class Authorization(authorization.Authorization):
         # This is the issuer of the JWT, that is me !
         _issuer = kwargs.get("issuer")
         if _issuer is None:
-            kwargs["issuer"] = _srv_cntx.client_id
+            kwargs["issuer"] = _srv_cntx.get_client_id()
 
         if kwargs.get("recv") is None:
             try:
@@ -189,7 +204,10 @@ class Authorization(authorization.Authorization):
             except KeyError:
                 kwargs["recv"] = _srv_cntx.issuer
 
-        del kwargs["service"]
+        try:
+            del kwargs["service"]
+        except KeyError:
+            pass
 
         if expires_in:
             req["exp"] = utc_time_sans_frac() + int(expires_in)
@@ -210,12 +228,7 @@ class Authorization(authorization.Authorization):
         _req = make_openid_request(req, **_mor_args)
 
         # Should the request be encrypted
-        _req = request_object_encryption(_req, _context, **kwargs)
-
-        if request_param == "request":
-            req["request"] = _req
-        else:  # MUST be request_uri
-            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        return request_object_encryption(_req, _context, **kwargs)
 
     def oidc_post_construct(self, req, **kwargs):
         """
@@ -237,15 +250,27 @@ class Authorization(authorization.Authorization):
 
         _context.state.store_item(req, "auth_request", req["state"])
 
+        # Overrides what's in the configuration
         _request_param = kwargs.get("request_param")
         if _request_param:
             del kwargs["request_param"]
-            # local_dir, base_path
-            _config = _context.get("config")
-            kwargs["local_dir"] = _config.get("local_dir", "./requests")
+        else:
+            if _context.specs.get_usage("request_uri"):
+                _request_param = "request_uri"
+            elif _context.specs.get_usage("request_parameter"):
+                _request_param = "request"
+
+        _req = None  # just a flag
+        if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            self.construct_request_parameter(req, _request_param, **kwargs)
-            # removed all arguments except request/request_uri and the required
+            kwargs["local_dir"] = _context.specs.get("requests_dir", "./requests")
+            _req = self.construct_request_parameter(req, _request_param, **kwargs)
+            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        elif _request_param == "request":
+            _req = self.construct_request_parameter(req, _request_param)
+            req["request"] = _req
+
+        if _req:
             _leave = ["request", "request_uri"]
             _leave.extend(req.required_parameters())
             _keys = [k for k in req.keys() if k not in _leave]
@@ -255,7 +280,8 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -270,7 +296,7 @@ class Authorization(authorization.Authorization):
             "skew": _context.clock_skew,
         }
 
-        _client_id = _context.client_id
+        _client_id = _context.get_client_id()
         if _client_id:
             kwargs["client_id"] = _client_id
 
@@ -287,7 +313,7 @@ class Authorization(authorization.Authorization):
         except KeyError:
             pass
 
-        _verify_args = _context.behaviour.get("verify_args")
+        _verify_args = _context.specs.behaviour.get("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 

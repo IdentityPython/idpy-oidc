@@ -12,9 +12,8 @@ from idpyoidc.message.oidc import IdToken
 
 BASE_URL = "https://example.com/rp"
 
-CLIENT_PREFS = {
+METADATA = {
     "application_type": "web",
-    "application_name": "rphandler",
     "contacts": ["ops@example.com"],
     "response_types": [
         "code",
@@ -24,14 +23,18 @@ CLIENT_PREFS = {
         "code id_token token",
         "code token",
     ],
-    "scope": ["openid", "profile", "email", "address", "phone"],
     "token_endpoint_auth_method": "client_secret_basic",
+}
+
+USAGE = {
+    "scope": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
 }
 
 CLIENT_CONFIG = {
     "": {
-        "client_preferences": CLIENT_PREFS,
+        "metadata": METADATA,
+        "usage": USAGE,
         "redirect_uris": None,
         "services": {
             "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
@@ -237,7 +240,7 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.client_get("service_context")
 
-        assert _context.get("client_id") == "eeeeeeeee"
+        assert _context.get_client_id() == "eeeeeeeee"
         assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == _github_id
 
@@ -310,7 +313,7 @@ class TestRPHandler(object):
         # redo
         rph_1.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").redirect_uris = []
+        cli2.client_get("service_context").specs.metadata["redirect_uris"] = []
         rph_1.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):
@@ -364,7 +367,7 @@ class TestRPHandler(object):
 
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         idts = IdToken(**idval)
@@ -429,7 +432,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -478,7 +481,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
@@ -527,7 +530,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _nonce = _session["auth_request"]["nonce"]
         _iss = _session["iss"]
-        _aud = _context.client_id
+        _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")

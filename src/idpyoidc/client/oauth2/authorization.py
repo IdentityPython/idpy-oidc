@@ -24,11 +24,6 @@ class Authorization(Service):
     service_name = "authorization"
     response_body_type = "urlencoded"
 
-    # parameter = Service.parameter.copy()
-    # parameter.update({
-    #     "endpoint": ""
-    # })
-
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])
@@ -50,7 +45,9 @@ class Authorization(Service):
 
         if "redirect_uri" not in ar_args:
             try:
-                ar_args["redirect_uri"] = self.client_get("service_context").redirect_uris[0]
+                # ar_args["redirect_uri"] = self.client_get("service_context").redirect_uris[0]
+                ar_args["redirect_uri"] = self.client_get("entity").get_metadata_value(
+                    "redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")
 

@@ -1,19 +1,18 @@
 import json
 import os
 
-import pytest
-import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
+import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ParameterError
-from idpyoidc.client.oidc.registration import add_jwks_uri_or_jwks
 from idpyoidc.client.oidc.registration import response_types_to_grant_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message.oidc import AccessTokenRequest
@@ -46,14 +45,6 @@ _dirname = os.path.dirname(os.path.abspath(__file__))
 
 ISS = "https://example.com"
 
-CLI_KEY = init_key_jar(
-    public_path="{}/pub_client.jwks".format(_dirname),
-    private_path="{}/priv_client.jwks".format(_dirname),
-    key_defs=KEYSPEC,
-    issuer_id="client_id",
-    read_only=False,
-)
-
 ISS_KEY = init_key_jar(
     public_path="{}/pub_iss.jwks".format(_dirname),
     private_path="{}/priv_iss.jwks".format(_dirname),
@@ -64,7 +55,18 @@ ISS_KEY = init_key_jar(
 
 ISS_KEY.import_jwks_as_json(open("{}/pub_client.jwks".format(_dirname)).read(), "client_id")
 
-CLI_KEY.import_jwks_as_json(open("{}/pub_iss.jwks".format(_dirname)).read(), ISS)
+
+def make_keyjar():
+    _keyjar = init_key_jar(
+        public_path="{}/pub_client.jwks".format(_dirname),
+        private_path="{}/priv_client.jwks".format(_dirname),
+        key_defs=KEYSPEC,
+        issuer_id="client_id",
+        read_only=False,
+    )
+    _keyjar.import_jwks(_keyjar.export_jwks(private=True, issuer_id="client_id"), issuer_id="")
+    _keyjar.import_jwks_as_json(open("{}/pub_iss.jwks".format(_dirname)).read(), ISS)
+    return _keyjar
 
 
 class TestAuthorization(object):
@@ -75,7 +77,7 @@ class TestAuthorization(object):
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
         }
-        entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=CLI_KEY, config=client_config)
+        entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=make_keyjar(), config=client_config)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "authorization")
 
@@ -282,7 +284,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").behaviour["verify_args"] = {
+        self.service.client_get("service_context").specs.behaviour["verify_args"] = {
             "allow_sign_alg_none": allow_sign_alg_none
         }
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -305,7 +307,7 @@ class TestAuthorizationCallback(object):
                 "form_post": "https://example.com/cli/authz_fp_cb",
             },
         }
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "authorization")
 
@@ -375,7 +377,7 @@ class TestAccessTokenRequest(object):
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
         }
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "accesstoken")
 
@@ -448,6 +450,59 @@ class TestAccessTokenRequest(object):
             self.service.update_service_context(resp, key="state2")
 
 
+SERVICES = {
+    "discovery": {
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery",
+        "kwargs": {}
+    },
+    "registration": {
+        "class": "idpyoidc.client.oidc.registration.Registration",
+        "kwargs": {}
+    },
+    "authorization": {
+        "class": "idpyoidc.client.oidc.authorization.Authorization",
+        "kwargs": {
+            "metadata": {
+                "request_object_signing_alg": "ES256"
+            },
+            "usage": {
+                "request_uri": True
+            }
+        }
+    },
+    "accesstoken": {
+        "class": "idpyoidc.client.oidc.access_token.AccessToken",
+        "kwargs": {
+            "conf": {
+                "token_endpoint_auth_method": "private_key_jwt",
+                "token_endpoint_auth_signing_alg": "ES256"
+            }
+        }
+    },
+    "userinfo": {
+        "class": "idpyoidc.client.oidc.userinfo.UserInfo",
+        "kwargs": {
+            "conf": {
+                "userinfo_signed_response_alg": "ES256"
+            },
+        }
+    },
+    "end_session": {
+        "class": "idpyoidc.client.oidc.end_session.EndSession",
+        "kwargs": {
+            "conf": {
+                "post_logout_redirect_uri": "https://rp.example.com/post",
+                "backchannel_logout_uri": "https://rp.example.com/back",
+                "backchannel_logout_session_required": True
+            },
+            "usage": {
+                "backchannel_logout": True
+            }
+        }
+    }
+}
+
+
 class TestProviderInfo(object):
     @pytest.fixture(autouse=True)
     def create_service(self):
@@ -457,16 +512,63 @@ class TestProviderInfo(object):
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
-            "client_preferences": {
-                "application_type": "web",
-                "application_name": "rphandler",
-                "contacts": ["ops@example.org"],
-                "response_types": ["code"],
+            "application_name": "rphandler",
+            "usage": {
                 "scope": ["openid", "profile", "email", "address", "phone"],
-                "token_endpoint_auth_method": "client_secret_basic",
             },
+            "services": {
+                "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
+                "discovery": {
+                    "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"
+                },
+                "registration": {
+                    "class": "idpyoidc.client.oidc.registration.Registration",
+                    "kwargs": {
+                        "metadata": {
+                            "application_type": "web",
+                            "contacts": ["ops@example.org"],
+                            "response_types": ["code"]
+                        }
+                    }
+                },
+                "authorization": {
+                    "class": "idpyoidc.client.oidc.authorization.Authorization",
+                    "kwargs": {
+                        "metadata": {
+                            "request_object_signing_alg": "ES256",
+                        }
+                    }
+                },
+                "accesstoken": {
+                    "class": "idpyoidc.client.oidc.access_token.AccessToken",
+                    "kwargs": {
+                        "metadata": {
+                            "token_endpoint_auth_method": "private_key_jwt",
+                            "token_endpoint_auth_signing_alg": "ES256"
+                        }
+                    }
+                },
+                "userinfo": {
+                    "class": "idpyoidc.client.oidc.userinfo.UserInfo",
+                    "kwargs": {
+                        "metadata": {
+                            "userinfo_signed_response_alg": "ES256"
+                        },
+                    }
+                },
+                "end_session": {
+                    "class": "idpyoidc.client.oidc.end_session.EndSession",
+                    "kwargs": {
+                        "metadata": {
+                            "post_logout_redirect_uris": ["https://rp.example.com/post"],
+                            "backchannel_logout_uri": "https://rp.example.com/back",
+                            "backchannel_logout_session_required": True
+                        }
+                    }
+                }
+            }
         }
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "provider_info")
 
@@ -671,7 +773,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").behaviour == {}
+        assert self.service.client_get("service_context").specs.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -680,13 +782,20 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").behaviour == {
-            "token_endpoint_auth_method": "client_secret_basic",
-            "response_types": ["code"],
-            "application_type": "web",
-            "application_name": "rphandler",
-            "contacts": ["ops@example.org"],
-            "scope": ["openid", "profile", "email", "address", "phone"],
+        assert self.service.client_get("service_context").specs.behaviour == {
+            'application_type': 'web',
+            'backchannel_logout_session_required': True,
+            'backchannel_logout_uri': 'https://rp.example.com/back',
+            'client_id': 'client_id',
+            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
+            'id_token_signed_response_alg': 'RS256',
+            'post_logout_redirect_uris': ['https://rp.example.com/post'],
+            'redirect_uris': ['https://example.com/cli/authz_cb'],
+            'response_types': ['code'],
+            'token_endpoint_auth_method': 'private_key_jwt',
+            'token_endpoint_auth_signing_alg': 'ES256',
+            'userinfo_signed_response_alg': 'ES256',
+            'scope': ["openid", "profile", "email", "address", "phone"]
         }
 
     def test_post_parse_2(self):
@@ -708,7 +817,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").behaviour == {}
+        assert self.service.client_get("service_context").specs.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -717,13 +826,20 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").behaviour == {
-            "token_endpoint_auth_method": "client_secret_basic",
-            "response_types": ["code"],
-            "application_type": "web",
-            "application_name": "rphandler",
-            "contacts": ["ops@example.org"],
-            "scope": ["openid", "profile", "email", "address", "phone"],
+        assert self.service.client_get("service_context").specs.behaviour == {
+            'application_type': 'web',
+            'backchannel_logout_session_required': True,
+            'backchannel_logout_uri': 'https://rp.example.com/back',
+            'client_id': 'client_id',
+            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
+            'id_token_signed_response_alg': 'RS256',
+            'post_logout_redirect_uris': ['https://rp.example.com/post'],
+            'redirect_uris': ['https://example.com/cli/authz_cb'],
+            'response_types': ['code'],
+            'token_endpoint_auth_method': 'private_key_jwt',
+            'token_endpoint_auth_signing_alg': 'ES256',
+            'userinfo_signed_response_alg': 'ES256',
+            'scope': ["openid", "profile", "email", "address", "phone"]
         }
 
 
@@ -758,23 +874,22 @@ class TestRegistration(object):
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
         }
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "registration")
 
     def test_construct(self):
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 4
+        assert len(_req) == 7
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").register_args[
-            "post_logout_redirect_uri"
-        ] = "https://example.com/post_logout"
+        self.service.client_get("service_context").specs.set_metadata(
+            "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 5
+        assert len(_req) == 8
         assert "post_logout_redirect_uri" in _req
 
 
@@ -785,21 +900,20 @@ def test_config_with_required_request_uri():
         "redirect_uris": ["https://example.com/cli/authz_cb"],
         "issuer": ISS,
         "requests_dir": "requests",
-        "base_url": "https://example.com/cli/",
-        "client_preferences": {"request_uri_usable": True},
+        "base_url": "https://example.com/cli",
     }
-    entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
     entity.client_get("service_context").issuer = "https://example.com"
-    service = entity.client_get("service", "registration")
-    _context = service.client_get("service_context")
 
-    _pi = _context.provider_info
-    _pi["require_request_uri_registration"] = True
-    _context.config["client_preferences"]["request_uri_usable"] = True
-    _req = service.construct()
+    pi_service = entity.client_get("service", "provider_info")
+    pi_service.match_preferences({"require_request_uri_registration": True})
+
+    reg_service = entity.client_get("service", "registration")
+    _req = reg_service.construct()
     assert isinstance(_req, RegistrationRequest)
-    assert len(_req) == 5
-    assert "request_uris" in _req
+    assert set(_req.keys()) == {"application_type", "response_types", "jwks",
+                                "redirect_uris", "grant_types", "id_token_signed_response_alg",
+                                "request_uris"}
 
 
 def test_config_logout_uri():
@@ -810,23 +924,24 @@ def test_config_logout_uri():
         "issuer": ISS,
         "requests_dir": "requests",
         "base_url": "https://example.com/cli/",
-        "client_preferences": {"request_uri_usable": True},
+        "usage": {
+            "request_parameter_preference": "request_uri"
+        }
     }
-    entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
-    entity.client_get("service_context").issuer = "https://example.com"
-    service = entity.client_get("service", "registration")
-    _context = service.client_get("service_context")
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=SERVICES)
+    _context = entity.client_get("service_context")
+    _context.issuer = "https://example.com"
 
-    _pi = _context.provider_info
-    _pi["require_request_uri_registration"] = True
-    _pi["frontchannel_logout_supported"] = True
-    _context.config["client_preferences"]["request_uri_usable"] = True
-    _context.config["client_preferences"]["frontchannel_logout_usable"] = True
-    _req = service.construct()
+    pi_service = entity.client_get("service", "provider_info")
+    _pi = {"require_request_uri_registration": True, "backchannel_logout_supported": True}
+    pi_service.match_preferences(_pi)
+
+    reg_service = entity.client_get("service", "registration")
+    _req = reg_service.construct()
     assert isinstance(_req, RegistrationRequest)
-    assert len(_req) == 6
+    assert len(_req) == 8
     assert "request_uris" in _req
-    assert "frontchannel_logout_uri" in _req
+    assert "backchannel_logout_uri" in _req
 
 
 class TestUserInfo(object):
@@ -841,11 +956,11 @@ class TestUserInfo(object):
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
         }
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").behaviour = {
+        entity.client_get("service_context").specs.behaviour = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
@@ -859,7 +974,7 @@ class TestUserInfo(object):
         idtval = {"nonce": "KUEYfRM2VzKDaaKD", "sub": "diana", "iss": ISS, "aud": "client_id"}
         idt = create_jws(idtval)
 
-        ver_idt = IdToken().from_jwt(idt, CLI_KEY)
+        ver_idt = IdToken().from_jwt(idt, make_keyjar())
 
         token_response = AccessTokenResponse(
             access_token="access_token", id_token=idt, __verified_id_token=ver_idt
@@ -954,7 +1069,7 @@ class TestUserInfo(object):
         _kj = build_keyjar([{"type": "RSA", "use": ["enc"]}], issuer_id="")
         # Own key jar gets the private key
         self.service.client_get("service_context").keyjar.import_jwks(
-            _kj.export_jwks(private=True), issuer_id="client_id"
+            _kj.export_jwks(private=True), issuer_id=""
         )
         # opponent gets the public key
         ISS_KEY.import_jwks(_kj.export_jwks(), issuer_id="client_id")
@@ -985,7 +1100,7 @@ class TestCheckSession(object):
             "base_url": "https://example.com/cli/",
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.check_session.CheckSession"}}
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=services)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "check_session")
 
@@ -1014,7 +1129,7 @@ class TestCheckID(object):
             "base_url": "https://example.com/cli/",
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.check_id.CheckID"}}
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=services)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "check_id")
 
@@ -1041,10 +1156,12 @@ class TestEndSession(object):
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
-            "post_logout_redirect_uris": ["https://example.com/post_logout"],
+            "metadata": {
+                "post_logout_redirect_uris": ["https://example.com/post_logout"]
+            }
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.end_session.EndSession"}}
-        entity = Entity(keyjar=CLI_KEY, config=client_config, services=services)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "end_session")
 
@@ -1054,8 +1171,8 @@ class TestEndSession(object):
         )
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, EndSessionRequest)
-        assert len(_req) == 2
-        assert set(_req.keys()) == {"state", "id_token_hint"}
+        assert len(_req) == 3
+        assert set(_req.keys()) == {"state", "id_token_hint", "post_logout_redirect_uri"}
 
 
 def test_authz_service_conf():
@@ -1070,20 +1187,18 @@ def test_authz_service_conf():
         "authz": {
             "class": "idpyoidc.client.oidc.authorization.Authorization",
             "kwargs": {
-                "conf": {
-                    "request_args": {
-                        "claims": {
-                            "id_token": {
-                                "auth_time": {"essential": True},
-                                "acr": {"values": ["urn:mace:incommon:iap:silver"]},
-                            }
+                "request_args": {
+                    "claims": {
+                        "id_token": {
+                            "auth_time": {"essential": True},
+                            "acr": {"values": ["urn:mace:incommon:iap:silver"]},
                         }
                     }
                 }
             },
         }
     }
-    entity = Entity(keyjar=CLI_KEY, config=client_config, services=services)
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
     entity.client_get("service_context").issuer = "https://example.com"
     service = entity.client_get("service", "authorization")
 
@@ -1092,66 +1207,54 @@ def test_authz_service_conf():
     assert set(req["claims"].keys()) == {"id_token"}
 
 
-def test_add_jwks_uri_or_jwks_0():
+def test_jwks_uri_conf():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "jwks_uri": "https://example.com/jwks/jwks.json",
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "jwks_uri": "https://example.com/jwks/jwks.json",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
     }
-    entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
-    entity.client_get("service_context").issuer = "https://example.com"
-    service = entity.client_get("service", "registration")
-
-    req_args, post_args = add_jwks_uri_or_jwks({}, service)
-    assert req_args["jwks_uri"] == "https://example.com/jwks/jwks.json"
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
+    assert entity.will_use("jwks_uri")
 
 
-def test_add_jwks_uri_or_jwks_1():
+def test_add_jwks_uri_or_jwks():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "jwks_uri": "https://example.com/jwks/jwks.json",
-        "jwks": {"keys": []},
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "jwks_uri": "https://example.com/jwks/jwks.json",
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
     }
-    entity = Entity(keyjar=CLI_KEY, config=client_config, services=DEFAULT_OIDC_SERVICES)
-    service = entity.client_get("service", "registration")
-
-    req_args, post_args = add_jwks_uri_or_jwks({}, service)
-    assert req_args["jwks_uri"] == "https://example.com/jwks/jwks.json"
-    assert set(req_args.keys()) == {"jwks_uri"}
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
+    # jwks_uri has higher priority the jwks
+    assert entity.will_use("jwks_uri")
 
 
-def test_add_jwks_uri_or_jwks_2():
+def test_jwks_uri_arg():
     client_config = {
-        "client_id": "client_id",
         "client_secret": "a longesh password",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
         "issuer": ISS,
-        "client_preferences": {
+        "metadata": {
+            "client_id": "client_id",
+            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
     }
     entity = Entity(
-        keyjar=CLI_KEY,
+        keyjar=make_keyjar(),
         config=client_config,
         jwks_uri="https://example.com/jwks/jwks.json",
         services=DEFAULT_OIDC_SERVICES,
     )
-    service = entity.client_get("service", "registration")
-
-    req_args, post_args = add_jwks_uri_or_jwks({}, service)
-    assert req_args["jwks_uri"] == "https://example.com/jwks/jwks.json"
-    assert set(req_args.keys()) == {"jwks_uri"}
+    assert entity.will_use("jwks_uri")

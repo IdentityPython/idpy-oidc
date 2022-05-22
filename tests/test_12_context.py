@@ -49,7 +49,6 @@ class TestDumpLoad(object):
         mem = c.dump()
         c2 = OidcContext().load(mem)
         assert c2.keyjar.owners() == []
-        assert c2.issuer == "https://example.com"
 
     def test_context_with_entity_id_and_keys(self):
         conf = copy.deepcopy(self.conf)

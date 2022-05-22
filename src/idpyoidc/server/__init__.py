@@ -36,12 +36,12 @@ class Server(ImpExp):
     parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration, ASConfiguration],
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration, ASConfiguration],
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
     ):
         ImpExp.__init__(self)
         self.conf = conf

@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class RPHandler(object):
     def __init__(
         self,
-        base_url,
+        base_url: Optional[str] = "",
         client_configs=None,
         services=None,
         keyjar=None,
@@ -51,23 +51,37 @@ class RPHandler(object):
         state_db=None,
         http_lib=None,
         httpc_params=None,
+        config=None,
         **kwargs,
     ):
-
         self.base_url = base_url
-        if hash_seed:
-            self.hash_seed = as_bytes(hash_seed)
-        else:
-            self.hash_seed = as_bytes(rndstr(32))
-
         _jwks_path = kwargs.get("jwks_path")
-        if keyjar is None:
-            self.keyjar = init_key_jar(**DEFAULT_RP_KEY_DEFS, issuer_id="")
-            self.keyjar.import_jwks_as_json(self.keyjar.export_jwks_as_json(True, ""), base_url)
-            if _jwks_path is None:
-                _jwks_path = DEFAULT_RP_KEY_DEFS["public_path"]
+
+        if config:
+            if not hash_seed:
+                self.hash_seed = config.hash_seed
+            if not keyjar:
+                self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
+            if not client_configs:
+                self.client_configs = config.clients
         else:
-            self.keyjar = keyjar
+            if hash_seed:
+                self.hash_seed = as_bytes(hash_seed)
+            else:
+                self.hash_seed = as_bytes(rndstr(32))
+
+            if keyjar is None:
+                self.keyjar = init_key_jar(**DEFAULT_RP_KEY_DEFS, issuer_id="")
+                self.keyjar.import_jwks_as_json(self.keyjar.export_jwks_as_json(True, ""), base_url)
+                if _jwks_path is None:
+                    _jwks_path = DEFAULT_RP_KEY_DEFS["public_path"]
+            else:
+                self.keyjar = keyjar
+
+            if client_configs is None:
+                self.client_configs = DEFAULT_CLIENT_CONFIGS
+            else:
+                self.client_configs = client_configs
 
         if _jwks_path:
             self.jwks_uri = add_path(base_url, _jwks_path)
@@ -90,11 +104,6 @@ class RPHandler(object):
             self.services = DEFAULT_OIDC_SERVICES
         else:
             self.services = services
-
-        if client_configs is None:
-            self.client_configs = DEFAULT_CLIENT_CONFIGS
-        else:
-            self.client_configs = client_configs
 
         # keep track on which RP instance that serves which OP
         self.issuer2rp = {}
@@ -188,9 +197,11 @@ class RPHandler(object):
             raise
 
         _context = client.client_get("service_context")
+        if _context.iss_hash:
+            self.hash2issuer[_context.iss_hash] = issuer
         # If non persistent
         _context.keyjar.load(self.keyjar.dump())
-        # If persistent nothings has to be copied
+        # If persistent nothing has to be copied
 
         _context.base_url = self.base_url
         _context.jwks_uri = self.jwks_uri
@@ -372,9 +383,9 @@ class RPHandler(object):
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
-            return req_args.get("response_type", context.get("behaviour")["response_types"][0])
+            return req_args.get("response_type", context.specs.behaviour["response_types"][0])
         else:
-            return context.get("behaviour")["response_types"][0]
+            return context.specs.behaviour["response_types"][0]
 
     def init_authorization(
         self,
@@ -404,14 +415,14 @@ class RPHandler(object):
                 raise ValueError("Missing state/session key")
 
         _context = client.client_get("service_context")
-
+        _entity = client.client_get("entity")
         _nonce = rndstr(24)
         _response_type = self._get_response_type(_context, req_args)
         request_args = {
             "redirect_uri": pick_redirect_uri(
-                _context, request_args=req_args, response_type=_response_type
+                _context, _entity, request_args=req_args, response_type=_response_type
             ),
-            "scope": _context.get("behaviour")["scope"],
+            "scope": _context.specs.behaviour["scope"],
             "response_type": _response_type,
             "nonce": _nonce,
         }
@@ -825,11 +836,11 @@ class RPHandler(object):
 
         _context = client.client_get("service_context")
         try:
-            _sid_support = _context.get("provider_info")["backchannel_logout_session_supported"]
+            _sid_support = _context.get("provider_info")["backchannel_logout_session_required"]
         except KeyError:
             try:
                 _sid_support = _context.get("provider_info")[
-                    "frontchannel_logout_session_supported"
+                    "frontchannel_logout_session_required"
                 ]
             except:
                 _sid_support = False
@@ -1039,7 +1050,7 @@ def load_registration_response(client, request_args=None):
 
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    if not client.client_get("service_context").get("client_id"):
+    if not client.client_get("service_context").get_client_id():
         try:
             response = client.do_request("registration", request_args=request_args)
         except KeyError:

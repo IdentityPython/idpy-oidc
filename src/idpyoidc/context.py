@@ -26,7 +26,6 @@ class OidcContext(ImpExp):
         ImpExp.__init__(self)
         if config is None:
             config = {}
-        self.issuer = entity_id
         self.keyjar = self._keyjar(keyjar, conf=config, entity_id=entity_id)
 
     def _keyjar(self, keyjar=None, conf=None, entity_id=""):
@@ -34,7 +33,7 @@ class OidcContext(ImpExp):
             if "keys" in conf:
                 keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
                 _keyjar = init_key_jar(**keys_args)
-            elif "key_conf" in conf:
+            elif "key_conf" in conf and conf["key_conf"]:
                 keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
                 _keyjar = init_key_jar(**keys_args)
             else:

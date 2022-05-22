@@ -158,13 +158,16 @@ def get_op_identifier_by_cb_uri(url: str):
     uri = splitquery(url)[0]
     for k, v in current_app.rph.issuer2rp.items():
         _cntx = v.get_service_context()
-        for endpoint in ("redirect_uris",
-                         "post_logout_redirect_uris",
-                         "frontchannel_logout_uri",
-                         "backchannel_logout_uri"):
-            if uri in _cntx.get(endpoint, []):
+        for endpoint in v.get_callback_uris():
+            _endps = _cntx.get_metadata(endpoint)
+            if _endps is None:
+                continue
+            elif isinstance(_endps,str):
+                if _endps == uri:
+                    return k
+            elif uri in _endps:
                 return k
-
+    return None
 
 @oidc_rp_views.route('/authz_cb/<op_identifier>')
 def authz_cb(op_identifier):

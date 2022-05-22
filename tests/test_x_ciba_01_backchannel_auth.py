@@ -614,4 +614,4 @@ class TestBCAEndpointService(object):
             .client_get("service_context")
             .provider_info["client_notification_endpoint"]
         )
-        assert set(_req_param["request"].keys()) == {"auth_req_id"}
+        assert set(_req_param["request"].keys()) == {"auth_req_id", "client_notification_token"}

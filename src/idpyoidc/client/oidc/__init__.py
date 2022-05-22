@@ -4,7 +4,7 @@ import logging
 from idpyoidc.client import oauth2
 from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.oidc.registration import CALLBACK_URIS
+from idpyoidc.configure import Configuration
 
 try:
     from json import JSONDecodeError
@@ -82,7 +82,10 @@ class RP(oauth2.Client):
         httpc_params=None,
     ):
 
-        _srvs = services or DEFAULT_OIDC_SERVICES
+        if isinstance(config, Configuration):
+            _srvs = services or config.conf.get("services", DEFAULT_OIDC_SERVICES)
+        else:
+            _srvs = services or config.get("services", DEFAULT_OIDC_SERVICES)
 
         oauth2.Client.__init__(
             self,
@@ -92,16 +95,12 @@ class RP(oauth2.Client):
             httplib=httplib,
             services=_srvs,
             httpc_params=httpc_params,
+            client_type="oidc"
         )
 
         _context = self.get_service_context()
         if _context.callback is None:
             _context.callback = {}
-
-        for _cb in CALLBACK_URIS:
-            _uri = config.get(_cb)
-            if _uri:
-                _context.callback[_cb] = _uri
 
     def fetch_distributed_claims(self, userinfo, callback=None):
         """

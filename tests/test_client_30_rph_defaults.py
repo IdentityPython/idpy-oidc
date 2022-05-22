@@ -27,7 +27,6 @@ class TestRPHandler(object):
         assert set(client.client_get("services").keys()) == {
             "registration",
             "provider_info",
-            "webfinger",
             "authorization",
             "accesstoken",
             "userinfo",
@@ -36,19 +35,14 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert _context.config["client_preferences"] == {
-            "application_type": "web",
-            "application_name": "rphandler",
-            "response_types": [
-                "code",
-                "id_token",
-                "id_token token",
-                "code id_token",
-                "code id_token token",
-                "code token",
-            ],
+        assert set(_context.config.conf["metadata"].keys()) == {
+            "application_type",
+            "response_types",
+            "token_endpoint_auth_method"
+        }
+        assert _context.config.conf["usage"] == {
             "scope": ["openid"],
-            "token_endpoint_auth_method": "client_secret_basic",
+            "jwks_uri": True
         }
 
         assert list(_context.keyjar.owners()) == ["", BASE_URL]
@@ -97,14 +91,16 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.get("behaviour").keys()) == {
+        assert set(_context.specs.behaviour.keys()) == {
             "token_endpoint_auth_method",
             "response_types",
             "scope",
             "application_type",
-            "application_name",
+            'redirect_uris',
+            'id_token_signed_response_alg',
+            'grant_types'
         }
-        assert _context.get("client_id") == "client uno"
+        assert _context.get_client_id() == "client uno"
         assert _context.get("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 
