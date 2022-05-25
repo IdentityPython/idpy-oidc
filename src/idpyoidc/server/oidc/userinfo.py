@@ -156,7 +156,10 @@ class UserInfo(Endpoint):
                 _session_info["user_id"], claims_restriction=_claims_restriction
             )
             info["sub"] = _grant.sub
-            if _grant.add_acr_value("userinfo"):
+            if (
+                "authn_info" in _grant.authentication_event
+                and _grant.add_acr_value("userinfo")
+            ):
                 info["acr"] = _grant.authentication_event["authn_info"]
         else:
             info = {

@@ -228,6 +228,9 @@ class Grant(Item):
             if client_id:
                 payload.update({"client_id": client_id, "sub": self.sub})
 
+        if "scope" not in payload:
+            payload["scope"] = self.scope
+
         if item.claims:
             _claims_restriction = item.claims
         else:

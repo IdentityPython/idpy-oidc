@@ -4,7 +4,7 @@ from typing import Dict
 
 from cryptojwt.utils import b64e
 
-from idpyoidc.message.oauth2 import AuthorizationErrorResponse
+from idpyoidc.message.oauth2 import AuthorizationErrorResponse, CCAccessTokenRequest
 from idpyoidc.message.oauth2 import RefreshAccessTokenRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
@@ -93,7 +93,7 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
     """
     if isinstance(
         request,
-        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
+        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest, CCAccessTokenRequest),
     ):
         return request
 

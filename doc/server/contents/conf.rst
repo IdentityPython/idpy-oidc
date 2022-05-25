@@ -887,6 +887,12 @@ For example::
 
         return request
 
+==================
+Client Credentials
+==================
+There are two possible ways to enable Client Credentials in OIDC-OP, globally and per-client.
+For both cases the the Client Credentials handler is enabled throught the `client_credentials`
+dictionary in token's `grant_types_supported`.
 
 ==================================
 idpyoidc\.server\.configure module

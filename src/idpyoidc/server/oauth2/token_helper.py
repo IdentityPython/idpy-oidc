@@ -9,12 +9,13 @@ from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import MissingRequiredValue
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import TokenExchangeRequest
+from idpyoidc.message.oauth2 import CCAccessTokenRequest, TokenExchangeRequest
 from idpyoidc.message.oauth2 import TokenExchangeResponse
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
+from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.oauth2.authorization import check_unknown_scopes_policy
@@ -332,6 +333,103 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "client_id" not in request:  # Optional for access token request
             request["client_id"] = _auth_req["client_id"]
 
+        logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
+
+        return request
+
+
+class CCAccessTokenHelper(TokenEndpointHelper):
+    def process_request(self, req: Union[Message, dict], **kwargs):
+        """
+        :param req:
+        :param kwargs:
+        :return:
+        """
+        _context = self.endpoint.server_get("endpoint_context")
+        _mngr = _context.session_manager
+        logger.debug("Access Token")
+
+        _token_usage_rules = _context.authz.usage_rules(req["client_id"])
+        _authn_event = create_authn_event(
+            req["client_id"]
+        )
+        sid = _mngr.create_session(
+            authn_event=_authn_event,
+            auth_req=req,
+            user_id=req["client_id"],
+            client_id=req["client_id"],
+            token_usage_rules=_token_usage_rules,
+            scopes=req.get("scope", []),
+        )
+
+        try:
+            _session_info = _mngr.get_session_info(session_id=sid, grant=True)
+        except Exception:
+            logger.error("Error retrieving token exchange session information")
+            return self.error_cls(
+                error="server_error", error_description="Internal server error"
+            )
+
+        client_id = _session_info["client_id"]
+        if client_id != req["client_id"]:
+            logger.debug("{} owner of token".format(client_id))
+            logger.warning("Client using token it was not given")
+            return self.error_cls(error="invalid_grant", error_description="Wrong client")
+
+        grant = _session_info["grant"]
+        _authn_req = grant.authorization_request
+
+        # If redirect_uri was in the initial authorization request
+        # verify that the one given here is the correct one.
+        if "redirect_uri" in _authn_req:
+            if req["redirect_uri"] != _authn_req["redirect_uri"]:
+                return self.error_cls(
+                    error="invalid_request", error_description="redirect_uri mismatch"
+                )
+
+        logger.debug("All checks OK")
+
+        token_type = "Bearer"
+        # Is DPOP supported
+        if "dpop_signing_alg_values_supported" in _context.provider_info:
+            _dpop_jkt = req.get("dpop_jkt")
+            if _dpop_jkt:
+                grant.extra["dpop_jkt"] = _dpop_jkt
+                token_type = "DPoP"
+
+        _response = {
+            "token_type": token_type,
+            "scope": grant.scope,
+        }
+
+        try:
+            token = self._mint_token(
+                token_class="access_token",
+                grant=grant,
+                session_id=_session_info["session_id"],
+                client_id=_session_info["client_id"],
+                token_type=token_type
+            )
+        except MintingNotAllowed as err:
+            logger.warning(err)
+        else:
+            _response["access_token"] = token.value
+            if token.expires_at:
+                _response["expires_in"] = token.expires_at - utc_time_sans_frac()
+
+        return _response
+
+    def post_parse_request(
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+    ):
+        """
+        This is where clients come to get their access tokens
+
+        :param request: The request
+        :param client_id: Client identifier
+        :returns:
+        """
+        request = CCAccessTokenRequest(**request.to_dict())
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
 
         return request

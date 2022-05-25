@@ -187,3 +187,32 @@ This example uses a client with an HTTP Basic Authentication::
 
 
 The idpyoidc OP will return a HTTP 200 response containing an empty json.
+
+Client Credentials
+--------------
+
+Here an example about how a client can request a new access token using only its credentials::
+
+    import requests
+
+    CLIENT_ID=""
+    CLIENT_SECRET=""
+
+    data = {
+        "grant_type" : "client_credentials",
+        "client_id" : f"{CLIENT_ID}",
+        "client_secret" : f"{CLIENT_SECRET}"
+    }
+    headers = {'Content-Type': "application/x-www-form-urlencoded" }
+    response = requests.post(
+        'https://example.com/OIDC/token', verify=False, data=data, headers=headers
+    )
+
+The idpyoidc OP will return a json response like this::
+
+    {
+        "access_token": "eyJhbGciOiJFUzI1NiIsI...Bo6aQcOKEN-1U88jjKxLb-9Q",
+        "token_type": "example",
+        "expires_in": 86400
+    }
+
