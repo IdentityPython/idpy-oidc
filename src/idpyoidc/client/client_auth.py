@@ -302,11 +302,13 @@ class BearerHeader(ClientAuthnMethod):
 
         if service.service_name == "refresh_token":
             _acc_token = find_token(request, "refresh_token", service, **kwargs)
+        elif service.service_name == "token_exchange":
+            _acc_token = find_token(request, "subject_token", service, **kwargs)
         else:
             _acc_token = find_token(request, "access_token", service, **kwargs)
 
         if not _acc_token:
-            raise KeyError("No access or refresh token available")
+            raise KeyError("No bearer token available")
 
         # The authorization value starts with 'Bearer' when bearer tokens
         # are used

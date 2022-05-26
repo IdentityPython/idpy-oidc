@@ -12,14 +12,14 @@ from idpyoidc.message.oauth2 import ResponseMessage
 LOGGER = logging.getLogger(__name__)
 
 
-class ProviderInfoDiscovery(Service):
-    """The service that talks to the OAuth2 provider info discovery endpoint."""
+class ServerMetadata(Service):
+    """The service that talks to the OAuth2 server metadata endpoint."""
 
     msg_type = oauth2.Message
     response_cls = oauth2.ASConfigurationResponse
     error_msg = ResponseMessage
     synchronous = True
-    service_name = "provider_info"
+    service_name = "server_metadata"
     http_method = "GET"
 
     metadata_attributes = {}

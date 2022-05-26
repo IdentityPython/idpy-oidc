@@ -689,8 +689,9 @@ class TestEndpoint(object):
         _request = REFRESH_TOKEN_REQ.copy()
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
         _req = self.token_endpoint.parse_request(_request.to_json())
-        with pytest.raises(MintingNotAllowed):
-            self.token_endpoint.process_request(_req)
+        res = self.token_endpoint.process_request(_req)
+        assert "error" in res
+        assert res["error_description"] == 'Minting of access_token not supported'
 
     def test_do_refresh_access_token_revoked(self):
         areq = AUTH_REQ.copy()
