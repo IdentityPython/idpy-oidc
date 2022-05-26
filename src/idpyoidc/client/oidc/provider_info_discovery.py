@@ -1,7 +1,7 @@
 import logging
 
 from idpyoidc.client.exception import ConfigurationError
-from idpyoidc.client.oauth2 import provider_info_discovery
+from idpyoidc.client.oauth2 import server_metadata
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -61,14 +61,16 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     return request_args, {}
 
 
-class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
+class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     msg_type = oidc.Message
     response_cls = oidc.ProviderConfigurationResponse
     error_msg = ResponseMessage
+    service_name = "provider_info"
+
     metadata_attributes = {}
 
     def __init__(self, client_get, conf=None):
-        provider_info_discovery.ProviderInfoDiscovery.__init__(self, client_get, conf=conf)
+        server_metadata.ServerMetadata.__init__(self, client_get, conf=conf)
 
     def update_service_context(self, resp, **kwargs):
         _context = self.client_get("service_context")

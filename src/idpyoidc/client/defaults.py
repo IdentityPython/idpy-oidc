@@ -18,7 +18,7 @@ DEFAULT_OIDC_SERVICES = {
 }
 
 DEFAULT_OAUTH2_SERVICES = {
-    "discovery": {"class": "idpyoidc.client.oauth2.provider_info_discovery.ProviderInfoDiscovery"},
+    "discovery": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
     "refresh_access_token": {
