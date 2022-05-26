@@ -16,14 +16,13 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
-
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 
 __author__ = "Roland Hedberg"
 
@@ -452,6 +451,7 @@ class Service(ImpExp):
                 content_type = JSON_ENCODED
 
             _info["body"] = get_http_body(request, content_type)
+
             _headers.update({"Content-Type": content_type})
 
         if _headers:
@@ -655,7 +655,7 @@ class Service(ImpExp):
                 uri = self.usage_to_uri_map.get(usage)
                 if uri and uri not in self.metadata:
                     self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri],
-                                                               hex)
+                                                      hex)
 
     def get_metadata(self, attribute, default=None):
         try:

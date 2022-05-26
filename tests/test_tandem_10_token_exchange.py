@@ -5,6 +5,7 @@ from cryptojwt.key_jar import build_keyjar
 import pytest
 
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
@@ -156,7 +157,7 @@ class TestEndpoint(object):
                                 "expires_in": 600,
                             },
                             "refresh_token": {
-                                "supports_minting": ["access_token", "refresh_token"],
+                                "supports_minting": ["access_token"],
                                 "audience": ["https://example.com", "https://example2.com"],
                                 "expires_in": 43200,
                             },
@@ -231,6 +232,7 @@ class TestEndpoint(object):
     def do_query(self, service_type, endpoint_type, request_args, state):
         _client = self.client_1.get_service(service_type)
         req_info = _client.get_request_parameters(request_args=request_args)
+
         areq = req_info.get("request")
         headers = req_info.get("headers")
 
@@ -240,29 +242,25 @@ class TestEndpoint(object):
                 argv = {"http_info": {"headers": headers}}
             else:
                 argv = {}
+            areq.lax = True
             _pr_resp = _server.parse_request(areq.to_urlencoded(), **argv)
         else:
             _pr_resp = _server.parse_request(areq)
 
+        if is_error_message(_pr_resp):
+            return areq, _pr_resp
 
         _resp = _server.process_request(_pr_resp)
+        if is_error_message(_resp):
+            return areq, _resp
+
         _response = _server.do_response(**_resp)
 
         resp = _client.parse_response(_response["response"])
         _client.update_service_context(_resp["response_args"], key=state)
         return areq, resp
 
-    @pytest.mark.parametrize(
-        "token",
-        [
-            {"access_token": "urn:ietf:params:oauth:token-type:access_token"},
-            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
-        ],
-    )
-    def test_token_exchange(self, token):
-        """
-        Test that token exchange requests work correctly
-        """
+    def process_setup(self, token=None, scope=None):
         # ***** Discovery *********
 
         _req, _resp = self.do_query('server_metadata', 'server_metadata', {}, '')
@@ -279,10 +277,16 @@ class TestEndpoint(object):
             "nonce": _nonce,
             "state": _state
         }
-        if list(token.keys())[0] == "refresh_token":
-            req_args["scope"] = ["openid", "offline_access"]
+
+        if scope:
+            _scope = scope
         else:
-            req_args["scope"] = ["openid"]
+            _scope = ["openid"]
+
+            if token and list(token.keys())[0] == "refresh_token":
+                _scope = ["openid", "offline_access"]
+
+        req_args["scope"] = _scope
 
         areq, auth_response = self.do_query('authorization', 'authorization', req_args, _state)
 
@@ -298,6 +302,22 @@ class TestEndpoint(object):
         }
 
         _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
+
+        return resp, _state, _scope
+
+    @pytest.mark.parametrize(
+        "token",
+        [
+            {"access_token": "urn:ietf:params:oauth:token-type:access_token"},
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
+        ],
+    )
+    def test_token_exchange(self, token):
+        """
+        Test that token exchange requests work correctly
+        """
+
+        resp, _state, _scope = self.process_setup(token)
 
         # ****** Token Exchange Request **********
 
@@ -320,521 +340,350 @@ class TestEndpoint(object):
             "issued_token_type",
         }
 
-    #
-    # @pytest.mark.parametrize(
-    #     "token",
-    #     [
-    #         {"access_token": "urn:ietf:params:oauth:token-type:access_token"},
-    #         {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
-    #     ],
-    # )
-    # def test_token_exchange_per_client(self, token):
-    #     """
-    #     Test that per-client token exchange configuration works correctly
-    #     """
-    #     self.endpoint_context.cdb["client_1"]["token_exchange"] = {
-    #         "subject_token_types_supported": [
-    #             "urn:ietf:params:oauth:token-type:access_token",
-    #             "urn:ietf:params:oauth:token-type:refresh_token",
-    #         ],
-    #         "requested_token_types_supported": [
-    #             "urn:ietf:params:oauth:token-type:access_token",
-    #             "urn:ietf:params:oauth:token-type:refresh_token",
-    #         ],
-    #         "policy": {
-    #             "": {
-    #                 "callable":
-    #                     "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-    #                 "kwargs": {"scope": ["openid"]},
-    #             }
-    #         },
-    #     }
-    #
-    #     if list(token.keys())[0] == "refresh_token":
-    #         AUTH_REQ["scope"] = ["openid", "offline_access"]
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     _token_value = _resp["response_args"][list(token.keys())[0]]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type=token[list(token.keys())[0]],
-    #         requested_token_type=token[list(token.keys())[0]],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp["response_args"].keys()) == {
-    #         "access_token",
-    #         "token_type",
-    #         "scope",
-    #         "expires_in",
-    #         "issued_token_type",
-    #     }
-    #
-    # def test_additional_parameters(self):
-    #     """
-    #     Test that a token exchange with additional parameters including
-    #     scope, audience and subject_token_type works.
-    #     """
-    #     conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
-    #     conf["policy"][""]["kwargs"] = {}
-    #     conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
-    #     conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
-    #
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         requested_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         audience=["https://example.com"],
-    #         resource=["https://example.com"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp["response_args"].keys()) == {
-    #         "access_token",
-    #         "token_type",
-    #         "expires_in",
-    #         "issued_token_type",
-    #         "scope",
-    #     }
-    #     msg = self.endpoint.do_response(request=_req, **_resp)
-    #     assert isinstance(msg, dict)
-    #
-    # def test_token_exchange_fails_if_disabled(self):
-    #     """
-    #     Test that token exchange fails if it's not included in Token's
-    #     grant_types_supported (that are set in its helper attribute).
-    #     """
-    #     del self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"]
-    #
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         resource=["https://example.com/api"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert _resp["error"] == "invalid_request"
-    #     assert (
-    #             _resp["error_description"]
-    #             == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
-    #     )
-    #
-    # def test_wrong_resource(self):
-    #     """
-    #     Test that requesting a token for an unknown resource fails.
-    #     """
-    #     conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
-    #     conf["policy"][""]["kwargs"] = {}
-    #     conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         resource=["https://unknown-resource.com/api"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_target"
-    #     assert _resp["error_description"] == "Unknown resource"
-    #
-    # def test_refresh_token_audience(self):
-    #     """
-    #     Test that requesting a refresh token with audience fails.
-    #     """
-    #     AUTH_REQ["scope"] = ["openid", "offline_access"]
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["refresh_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:refresh_token",
-    #         audience=["https://example.com"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_target"
-    #     assert _resp["error_description"] == "Refresh token has single owner"
-    #
-    # def test_wrong_audience(self):
-    #     """
-    #     Test that requesting a token for an unknown audience fails.
-    #     """
-    #     conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
-    #     conf["policy"][""]["kwargs"] = {}
-    #     conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         audience=["https://unknown-audience.com/"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_target"
-    #     assert _resp["error_description"] == "Unknown audience"
-    #
-    # def test_exchange_refresh_token_to_refresh_token(self):
-    #     """
-    #     Test whether exchanging a refresh token to another refresh token works.
-    #     """
-    #     AUTH_REQ["scope"] = ["openid", "offline_access"]
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["scope"] = "openid"
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["refresh_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:refresh_token",
-    #         requested_token_type="urn:ietf:params:oauth:token-type:refresh_token",
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) != {"error", "error_description"}
-    #
-    # @pytest.mark.parametrize(
-    #     "scopes",
-    #     [
-    #         ["openid", "offline_access"],
-    #         ["openid"],
-    #     ],
-    # )
-    # def test_exchange_access_token_to_refresh_token(self, scopes):
-    #     AUTH_REQ["scope"] = scopes
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["scope"] = ["openid"]
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     _token_value = _resp["response_args"]["access_token"]
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         requested_token_type="urn:ietf:params:oauth:token-type:refresh_token",
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     if "offline_access" in scopes:
-    #         assert set(_resp.keys()) != {"error", "error_description"}
-    #     else:
-    #         assert _resp["error"] == "invalid_request"
-    #
-    # @pytest.mark.parametrize(
-    #     "missing_attribute",
-    #     [
-    #         "subject_token_type",
-    #         "subject_token",
-    #     ],
-    # )
-    # def test_missing_parameters(self, missing_attribute):
-    #     """
-    #     Test that omitting the subject_token_type fails.
-    #     """
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         audience=["https://example.com"],
-    #         resource=["https://example.com/api"],
-    #     )
-    #
-    #     del token_exchange_req[missing_attribute]
-    #
-    #     _req = self.endpoint.parse_request(
-    #         # This is to get passed the deserializing which would otherwise throw an exception
-    #         token_exchange_req,
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_request"
-    #     assert _resp["error_description"] == f"Missing required attribute '{missing_attribute}'"
-    #
-    # @pytest.mark.parametrize(
-    #     "unsupported_type",
-    #     [
-    #         "unknown",
-    #         "urn:ietf:params:oauth:token-type:id_token",
-    #         "urn:ietf:params:oauth:token-type:saml2",
-    #         "urn:ietf:params:oauth:token-type:saml1",
-    #     ],
-    # )
-    # def test_unsupported_requested_token_type(self, unsupported_type):
-    #     """
-    #     Test that requesting a token type that is unknown or unsupported fails.
-    #     """
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         requested_token_type=unsupported_type,
-    #         audience=["https://example.com"],
-    #         resource=["https://example.com/api"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_request"
-    #     assert _resp["error_description"] == "Unsupported requested token type"
-    #
-    # @pytest.mark.parametrize(
-    #     "unsupported_type",
-    #     [
-    #         "unknown",
-    #         "urn:ietf:params:oauth:token-type:id_token",
-    #         "urn:ietf:params:oauth:token-type:saml2",
-    #         "urn:ietf:params:oauth:token-type:saml1",
-    #     ],
-    # )
-    # def test_unsupported_subject_token_type(self, unsupported_type):
-    #     """
-    #     Test that providing an unsupported subject token type fails.
-    #     """
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type=unsupported_type,
-    #         audience=["https://example.com"],
-    #         resource=["https://example.com/api"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_request"
-    #     assert _resp["error_description"] == "Subject token invalid"
-    #
-    # def test_unsupported_actor_token(self):
-    #     """
-    #     Test that providing an actor token fails as it's unsupported.
-    #     """
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     _token_value = _resp["response_args"]["access_token"]
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token=_token_value,
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #         actor_token=_resp["response_args"]["access_token"],
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_request"
-    #     assert _resp["error_description"] == "Actor token not supported"
-    #
-    # def test_invalid_token(self):
-    #     """
-    #     Test that providing an invalid token fails.
-    #     """
-    #     areq = AUTH_REQ.copy()
-    #
-    #     session_id = self._create_session(areq)
-    #     grant = self.endpoint_context.authz(session_id, areq)
-    #     code = self._mint_code(grant, areq["client_id"])
-    #
-    #     _token_request = TOKEN_REQ_DICT.copy()
-    #     _token_request["code"] = code.value
-    #     _req = self.endpoint.parse_request(_token_request)
-    #     _resp = self.endpoint.process_request(request=_req)
-    #
-    #     token_exchange_req = TokenExchangeRequest(
-    #         grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
-    #         subject_token="invalid_token",
-    #         subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-    #     )
-    #
-    #     _req = self.endpoint.parse_request(
-    #         token_exchange_req.to_urlencoded(),
-    #         {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-    #     )
-    #     _resp = self.endpoint.process_request(request=_req)
-    #     assert set(_resp.keys()) == {"error", "error_description"}
-    #     assert _resp["error"] == "invalid_request"
-    #     assert _resp["error_description"] == "Subject token invalid"
+        assert _te_resp["issued_token_type"] == list(token.keys())[0]
+        assert _te_resp["scope"] == _scope
+
+    @pytest.mark.parametrize(
+        "token",
+        [
+            {"access_token": "urn:ietf:params:oauth:token-type:access_token"},
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"},
+        ],
+    )
+    def test_token_exchange_per_client(self, token):
+        """
+        Test that per-client token exchange configuration works correctly
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "policy": {
+                "": {
+                    "callable":
+                        "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {"scope": ["openid"]},
+                }
+            },
+        }
+
+        resp, _state, _scope = self.process_setup(token)
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "requested_token_type": token[list(token.keys())[0]],
+            "subject_token": resp["access_token"],
+            "subject_token_type": 'urn:ietf:params:oauth:token-type:access_token',
+            "state": _state
+        }
+
+        _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
+                                                          _state)
+
+        assert set(_te_resp.keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+            "issued_token_type",
+        }
+
+        assert _te_resp["issued_token_type"] == list(token.keys())[0]
+        assert _te_resp["scope"] == _scope
+
+    def test_additional_parameters(self):
+        """
+        Test that a token exchange with additional parameters including
+        scope, audience and subject_token_type works.
+        """
+        endp = self.server.get_endpoint("token")
+        conf = endp.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf["policy"][""]["kwargs"] = {}
+        conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
+        conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
+
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "audience": ["https://example.com"],
+            "resource": ["https://example.com"],
+        }
+
+        _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
+                                                          _state)
+
+        assert set(_te_resp.keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "issued_token_type",
+            "scope",
+        }
+
+    def test_token_exchange_fails_if_disabled(self):
+        """
+        Test that token exchange fails if it's not included in Token's
+        grant_types_supported (that are set in its helper attribute).
+        """
+        endpoint = self.server.get_endpoint("token")
+        del endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"]
+
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "resource": ["https://example.com/api"]
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert _te_resp["error"] == "invalid_request"
+        assert (
+                _te_resp["error_description"]
+                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+        )
+
+    def test_wrong_resource(self):
+        """
+        Test that requesting a token for an unknown resource fails.
+        """
+        endpoint = self.server.get_endpoint("token")
+
+        conf = endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf["policy"][""]["kwargs"] = {}
+        conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
+
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "resource": ["https://unknown-resource.com/api"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_target"
+        assert _te_resp["error_description"] == "Unknown resource"
+
+    def test_refresh_token_audience(self):
+        """
+        Test that requesting a refresh token with audience fails.
+        """
+
+        resp, _state, _scope = self.process_setup(
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"})
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["refresh_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:refresh_token",
+            "audience": ["https://example.com"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_target"
+        assert _te_resp["error_description"] == "Refresh token has single owner"
+
+    def test_wrong_audience(self):
+        """
+        Test that requesting a token for an unknown audience fails.
+        """
+        endpoint = self.server.get_endpoint("token")
+        conf = endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf["policy"][""]["kwargs"] = {}
+        conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
+
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "audience": ["https://unknown-audience.com/"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_target"
+        assert _te_resp["error_description"] == "Unknown audience"
+
+    def test_exchange_refresh_token_to_refresh_token(self):
+        """
+        Test whether exchanging a refresh token to another refresh token works.
+        """
+        resp, _state, _scope = self.process_setup(
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"})
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["refresh_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:refresh_token",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:refresh_token",
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+
+    @pytest.mark.parametrize(
+        "scopes",
+        [
+            ["openid", "offline_access"],
+            ["openid"],
+        ],
+    )
+    def test_exchange_access_token_to_refresh_token(self, scopes):
+
+        resp, _state, _scope = self.process_setup(scope=scopes)
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:refresh_token",
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        if "offline_access" in scopes:
+            assert set(_te_resp.keys()) != {"error", "error_description"}
+        else:
+            assert _te_resp["error"] == "invalid_request"
+
+    @pytest.mark.parametrize(
+        "unsupported_type",
+        [
+            "unknown",
+            "urn:ietf:params:oauth:token-type:id_token",
+            "urn:ietf:params:oauth:token-type:saml2",
+            "urn:ietf:params:oauth:token-type:saml1",
+        ],
+    )
+    def test_unsupported_requested_token_type(self, unsupported_type):
+        """
+        Test that requesting a token type that is unknown or unsupported fails.
+        """
+
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "requested_token_type": unsupported_type,
+            "audience": ["https://example.com"],
+            "resource": ["https://example.com/api"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_request"
+        assert _te_resp["error_description"] == "Unsupported requested token type"
+
+    @pytest.mark.parametrize(
+        "unsupported_type",
+        [
+            "unknown",
+            "urn:ietf:params:oauth:token-type:id_token",
+            "urn:ietf:params:oauth:token-type:saml2",
+            "urn:ietf:params:oauth:token-type:saml1",
+        ],
+    )
+    def test_unsupported_subject_token_type(self, unsupported_type):
+        """
+        Test that providing an unsupported subject token type fails.
+        """
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": unsupported_type,
+            "audience": ["https://example.com"],
+            "resource": ["https://example.com/api"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_request"
+        assert _te_resp["error_description"] == "Subject token invalid"
+
+    def test_unsupported_actor_token(self):
+        """
+        Test that providing an actor token fails as it's unsupported.
+        """
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": resp["access_token"],
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "actor_token": resp["access_token"],
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_request"
+        assert _te_resp["error_description"] == "Actor token not supported"
+
+    def test_invalid_token(self):
+        """
+        Test that providing an invalid token fails.
+        """
+        resp, _state, _scope = self.process_setup()
+
+        # ****** Token Exchange Request **********
+
+        req_args = {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": "invalid_token",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        }
+
+        _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
+
+        assert set(_te_resp.keys()) == {"error", "error_description"}
+        assert _te_resp["error"] == "invalid_request"
+        assert _te_resp["error_description"] == "Subject token invalid"

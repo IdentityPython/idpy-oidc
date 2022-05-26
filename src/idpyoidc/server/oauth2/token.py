@@ -13,6 +13,7 @@ from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
+from idpyoidc.server.session import MintingNotAllowed
 from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
 
@@ -120,6 +121,8 @@ class Token(Endpoint):
                     error_description=f"Unsupported grant_type: {request['grant_type']}",
                 )
         except JWEException as err:
+            return self.error_cls(error="invalid_request", error_description="%s" % err)
+        except MintingNotAllowed as err:
             return self.error_cls(error="invalid_request", error_description="%s" % err)
 
         if isinstance(response_args, ResponseMessage):

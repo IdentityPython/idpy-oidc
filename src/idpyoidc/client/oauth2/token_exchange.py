@@ -3,6 +3,8 @@ import logging
 
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
+from idpyoidc.exception import MissingParameter
+from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.time_util import time_sans_frac
@@ -45,7 +47,11 @@ class TokenExchange(Service):
             request_args = {}
 
         if 'subject_token' not in request_args:
-            _key = get_state_parameter(request_args, kwargs)
+            try:
+                _key = get_state_parameter(request_args, kwargs)
+            except MissingParameter:
+                raise MissingRequiredAttribute("subject_token")
+
             parameters = {'access_token', 'scope'}
 
             _state = self.client_get("service_context").state
