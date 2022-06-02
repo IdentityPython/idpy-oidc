@@ -104,11 +104,11 @@ def basic_authn(authorization_token: str):
     _tok = as_bytes(authorization_token[6:])
     # Will raise ValueError type exception if not base64 encoded
     _tok = base64.b64decode(_tok)
-    part = [unquote_plus(p) for p in as_unicode(_tok).split(":")]
-    if len(part) == 2:
-        return dict(zip(["id", "secret"], part))
-    else:
+    part = as_unicode(_tok).split(":", 1)
+    if len(part) != 2:
         raise ValueError("Illegal token")
+
+    return dict(zip(["id", "secret"], part))
 
 
 class NoneAuthn(ClientAuthnMethod):
