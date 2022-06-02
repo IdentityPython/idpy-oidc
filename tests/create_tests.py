@@ -10,7 +10,7 @@ def test_{name}():
 
     with open(_filename, "r") as fp:
         _info = json.loads(fp.read())
-        vc = VerifiedClaims(**_info)
+        vc = VerifiedClaim(**_info)
         
     assert vc        
 """
@@ -20,7 +20,7 @@ def create(typ):
     doc = [
         "import json",
         "import os",
-        "from idpyoidc.message.oidc.identity_assurance import VerifiedClaims",
+        "from idpyoidc.message.oidc.identity_assurance import VerifiedClaim",
         "_dirname = os.path.dirname(os.path.abspath(__file__))",
     ]
 

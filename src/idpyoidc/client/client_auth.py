@@ -113,7 +113,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         Return authentication Token.
 
         The credential is username and password concatenated with a ':'
-        in between and then base 64 encoded becomes the authentication token.
+        in between and then base64 encoded becomes the authentication token.
         :param request: The request
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         :param kwargs: Extra key word arguments
