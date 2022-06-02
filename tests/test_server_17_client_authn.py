@@ -459,11 +459,6 @@ def test_basic_auth_wrong_label():
 
 
 def test_basic_auth_wrong_token():
-    _token = "{}:{}:foo".format(client_id, client_secret)
-    token = as_unicode(base64.b64encode(as_bytes(_token)))
-    with pytest.raises(ValueError):
-        basic_authn("Basic {}".format(token))
-
     _token = "{}:{}".format(client_id, client_secret)
     with pytest.raises(ValueError):
         basic_authn("Basic {}".format(_token))
