@@ -351,7 +351,10 @@ DEFAULT_EXTENDED_CONF = {
             "refresh_token",
         ],
     },
-    "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
+    },
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
