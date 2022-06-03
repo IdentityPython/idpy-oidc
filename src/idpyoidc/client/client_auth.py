@@ -123,7 +123,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         user = self._get_user(service, **kwargs)
 
         credentials = f"{user}:{passwd}"
-        return base64.urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
+        return base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
 
     @staticmethod
     def _with_or_without_client_id(request, service):
