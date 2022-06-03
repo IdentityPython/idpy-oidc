@@ -45,7 +45,6 @@ from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.message.oidc import address_deser
 from idpyoidc.message.oidc import claims_deser
-from idpyoidc.message.oidc import claims_match
 from idpyoidc.message.oidc import claims_ser
 from idpyoidc.message.oidc import dict_deser
 from idpyoidc.message.oidc import factory
@@ -57,6 +56,7 @@ from idpyoidc.message.oidc import msg_ser_json
 from idpyoidc.message.oidc import registration_request_deser
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.message.oidc import verify_id_token
+from idpyoidc.server.session.claims import claims_match
 from idpyoidc.time_util import utc_time_sans_frac
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))

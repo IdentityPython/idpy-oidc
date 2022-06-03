@@ -6,6 +6,7 @@ import json
 from cryptojwt.utils import importer
 
 from idpyoidc.exception import MissingRequiredAttribute
+from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import OPTIONAL_LIST_OF_MESSAGES
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
@@ -939,3 +940,4 @@ class ExtendedAddressClaim(AddressClaim):
     c_param.update({
         "country_code": SINGLE_OPTIONAL_STRING
     })
+
