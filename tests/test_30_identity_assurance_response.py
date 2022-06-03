@@ -2,6 +2,7 @@ from idpyoidc.message.oidc.identity_assurance import Attachment
 from idpyoidc.message.oidc.identity_assurance import Document
 from idpyoidc.message.oidc.identity_assurance import DocumentDetails
 from idpyoidc.message.oidc.identity_assurance import ElectronicRecord
+from idpyoidc.message.oidc.identity_assurance import EndUser
 from idpyoidc.message.oidc.identity_assurance import ExternalAttachment
 from idpyoidc.message.oidc.identity_assurance import VerifiedClaim
 from idpyoidc.message.oidc.identity_assurance import Vouch
@@ -1037,11 +1038,10 @@ def test_8_17():
         }
     }
 
-    vc = VerifiedClaim(**msg["verified_claims"])
-    vc.verify()
-    assert vc
-    assert isinstance(vc["verification"]["evidence"][0], Document)
-    _document = vc["verification"]["evidence"][0]
+    user = EndUser(**msg)
+    user.verify()
+    assert user
+    assert user["verification"]["trust_framework"] == "trust_framework_example"
 
 
 def test_8_18():
