@@ -61,7 +61,7 @@ def test_quote():
 
     assert (
         http_args["headers"]["Authorization"] == "Basic "
-        "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0lMkZBN1BrbjdKdVUwTEFjeHlIVkt2d2RjenN1Z2FQVTBCaWVMYjRDYlFBZ1FqJTJCeXBjYW5GT0NiMCUyRkZBNWg="
+                                                 'Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg='
     )
 
 
@@ -73,7 +73,7 @@ class TestClientSecretBasic(object):
         csb = ClientSecretBasic()
         http_args = csb.construct(request, _token_service)
 
-        credentials = "{}:{}".format(quote_plus("A"), quote_plus("white boarding pass"))
+        credentials = "{}:{}".format("A", "white boarding pass")
 
         assert http_args == {
             "headers": {

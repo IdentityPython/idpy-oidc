@@ -40,7 +40,7 @@ class TestRP:
         assert _info["url"] == "https://example.com/token"
         assert _info["body"] == "grant_type=client_credentials"
         assert _info["headers"] == {
-            "Authorization": "Basic Y2xpZW50X2lkOmFub3RoZXIrcGFzc3dvcmQ=",
+            "Authorization": "Basic Y2xpZW50X2lkOmFub3RoZXIgcGFzc3dvcmQ=",
             "Content-Type": "application/x-www-form-urlencoded",
         }
 

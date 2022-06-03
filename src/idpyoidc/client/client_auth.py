@@ -122,7 +122,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         passwd = self._get_passwd(request, service, **kwargs)
         user = self._get_user(service, **kwargs)
 
-        credentials = "{}:{}".format(quote_plus(user), quote_plus(passwd))
+        credentials = f"{user}:{passwd}"
         return base64.urlsafe_b64encode(credentials.encode("utf-8")).decode("utf-8")
 
     @staticmethod
@@ -191,7 +191,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
         _token = self._get_authentication_token(request, service, **kwargs)
 
-        http_args["headers"]["Authorization"] = "Basic {}".format(_token)
+        http_args["headers"]["Authorization"] = f"Basic {_token}"
 
         self.modify_request(request, service)
 
