@@ -1,8 +1,14 @@
+import json
 import logging
+from typing import Callable
 from typing import Optional
 from typing import Union
 
+from cryptojwt.key_jar import KeyJar
+import requests
+
 from idpyoidc.client.oauth2.utils import get_state_parameter
+from idpyoidc.client.oidc import FetchException
 from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
@@ -39,12 +45,6 @@ class UserInfo(Service):
     http_method = "GET"
 
     metadata_attributes = {
-        "userinfo_signed_response_alg": "",
-        "userinfo_encrypted_response_alg": "",
-        "userinfo_encrypted_response_enc": ""
-    }
-
-    metadata_attributes = {
         "userinfo_signed_response_alg": None,
         "userinfo_encrypted_response_alg": None,
         "userinfo_encrypted_response_enc": None
@@ -53,6 +53,7 @@ class UserInfo(Service):
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
+        self.claim_sources_collect = collect_claim_sources
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
         if request_args is None:
@@ -93,33 +94,8 @@ class UserInfo(Service):
         except KeyError:
             pass
         else:
-            for csrc, spec in _csrc.items():
-                if "JWT" in spec:
-                    try:
-                        aggregated_claims = Message().from_jwt(
-                            spec["JWT"].encode("utf-8"), keyjar=_context.keyjar
-                        )
-                    except MissingSigningKey as err:
-                        logger.warning(
-                            "Error encountered while unpacking aggregated " "claims".format(err)
-                        )
-                    else:
-                        claims = [
-                            value for value, src in response["_claim_names"].items() if src == csrc
-                        ]
-
-                        for key in claims:
-                            response[key] = aggregated_claims[key]
-                elif "endpoint" in spec:
-                    _info = {
-                        "headers": self.get_authn_header(
-                            {},
-                            self.default_authn_method,
-                            authn_endpoint=self.endpoint_name,
-                            key=kwargs["state"],
-                        ),
-                        "url": spec["endpoint"],
-                    }
+            self.claim_sources_collect(_csrc, response, self.response_cls,
+                                       _context.keyjar, httpc=None, **kwargs)
 
         # Extension point
         for meth in self.post_parse_process:
@@ -129,7 +105,8 @@ class UserInfo(Service):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -159,3 +136,85 @@ class UserInfo(Service):
             pass
 
         return kwargs
+
+
+def _collect_claims_by_url(spec: Message,
+                           httpc: type,
+                           callback: Optional[Callable] = None):
+    if "access_token" in spec:
+        _bearer = "Bearer {}".format(spec["access_token"])
+        http_args = {"headers": {"Authorization": _bearer}}
+        _resp = httpc("GET", spec["endpoint"], **http_args)
+    else:
+        if callback:
+            _bearer = "Bearer {}".format(callback(spec["endpoint"]))
+            http_args = {"headers": {"Authorization": _bearer}}
+            _resp = httpc("GET", spec["endpoint"], **http_args)
+        else:
+            _resp = httpc("GET", spec["endpoint"])
+
+    if _resp.status_code == 200:
+        _uinfo = json.loads(_resp.text)
+    else:  # There shouldn't be any redirect
+        raise FetchException(
+            "HTTP error {}: {}".format(_resp.status_code, _resp.reason)
+        )
+
+    return _uinfo
+
+
+def aggregate_claim(item: Message, ava: Message, claim_source: str):
+    claims = [value for value, src in item["_claim_names"].items() if claim_source in src]
+    for key in claims:
+        if isinstance(item.c_param[key][0], list):
+            _list = True
+        else:
+            _list = False
+
+        if key in item:
+            if _list:
+                if isinstance(item[key], list):
+                    item[key].append(ava[key])
+                else:
+                    item.set(key, [item[key], ava[key]])
+            else:  # overwrite ??
+                item.set(key, ava[key])
+        else:
+            if _list:
+                if isinstance(ava[key], list):
+                    item.set(key, ava[key])
+                else:
+                    item.set(key, [ava[key]])
+            else:
+                item.set(key, ava[key])
+    return item
+
+
+def collect_claim_sources(claim_sources: dict,
+                          response: Message,
+                          user_class: object,
+                          keyjar: KeyJar,
+                          httpc: Optional[Callable] = None,
+                          **kwargs):
+    """
+
+    """
+    if httpc is None:
+        httpc = requests.request
+
+    _aggregate = {}
+    for csrc, spec in claim_sources.items():
+        if "JWT" in spec:
+            try:
+                _ava = user_class().from_jwt(spec["JWT"].encode("utf-8"), keyjar=keyjar)
+            except MissingSigningKey as err:
+                logger.warning(
+                    f"Error '{err}' encountered while unpacking claims from claims source")
+            else:
+                _ava.verify()
+                response = aggregate_claim(response, ava=_ava, claim_source=csrc)
+        elif "endpoint" in spec:
+            _ava = user_class(**_collect_claims_by_url(spec, httpc))
+            _ava.verify()
+            response = aggregate_claim(response, ava=_ava, claim_source=csrc)
+    return response

@@ -6,7 +6,6 @@ import json
 from cryptojwt.utils import importer
 
 from idpyoidc.exception import MissingRequiredAttribute
-from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import OPTIONAL_LIST_OF_MESSAGES
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
@@ -15,7 +14,6 @@ from idpyoidc.message import SINGLE_OPTIONAL_INT
 from idpyoidc.message import SINGLE_OPTIONAL_JSON
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import msg_deser
 from idpyoidc.message import msg_list_ser
 from idpyoidc.message import msg_ser
 from idpyoidc.message.oauth2 import error_chars
@@ -25,19 +23,30 @@ from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import claims_request_deser
 from idpyoidc.message.oidc import deserialize_from_one_of
 from idpyoidc.message.oidc import msg_ser_json
+from idpyoidc.util import claims_match
 
 
-def type_compare(type, v1, v2):
-    if type == SINGLE_OPTIONAL_STRING:
-        return v1 == v2
-    elif type == SINGLE_REQUIRED_STRING:
-        return v1 == v2
-    elif type in [REQURIED_TIME_STAMP, OPTIONAL_TIME_STAMP]:
-        return v1 == v2
-    elif type in [REQURIED_DATE, OPTIONAL_DATE]:
-        return v1 == v2
+def type_compare(typ, request, response):
+    if isinstance(typ, abc.ABCMeta):
+        return response.match_request(request)
+    elif isinstance(typ, list):
+        _list = []
+        if isinstance(typ[0], abc.ABCMeta):
+            for _req in request:
+                for _resp in response:
+                    _res = _resp.match_request(_req)
+                    if _res:
+                        _list.append(_res)
+        else:
+            for _req in request:
+                for _resp in response:
+                    _res = type_compare(typ[0], _resp, _req)
+                    if _res:
+                        _list.append(_res)
+        return _list
     else:
-        return v1 == v2
+        if claims_match(response, request):
+            return response
 
 
 class IAMessage(Message):
@@ -49,20 +58,31 @@ class IAMessage(Message):
             else:
                 return False
 
-    def intersection(self, *other):
+    def match_request(self, request: dict):
         """
         Return a new set with elements common to the set and all others.
         """
-        _common = {v: True for v in self.keys()}
+        _matches = {}
         for attr, val in self.items():
-            for o in other:
-                _v = o.get(attr)
-                if _v and type_compare(self.c_param[attr], _v, val):
-                    continue
+            try:
+                _v = request[attr]
+            except KeyError:
+                pass
+            else:
+                if _v is None:
+                    _matches[attr] = val
                 else:
-                    _common[attr] = False
-        _common_attrs = {a: v for a, v in _common if v is True}
-        return self.__class__(**_common_attrs)
+                    if _v:
+                        _comp = type_compare(self.c_param[attr][0], _v, val)
+                        if _comp:
+                            _matches[attr] = _comp
+        if _matches:
+            _res = self.__class__()
+            for k, v in _matches.items():
+                _res.set(k, v)
+            return _res
+        else:
+            return None
 
 
 class PlaceOfBirth(IAMessage):
@@ -198,11 +218,26 @@ REQURIED_DATE = (str, True, date_ser, date_deser, False)
 OPTIONAL_DATE = (str, False, date_ser, date_deser, False)
 
 
-class IdentityAssuranceClaims(OpenIDSchema, IAMessage):
+class Place(IAMessage):
+    c_param = {
+        "country": OPTIONAL_LIST_OF_STRINGS,
+        "region": SINGLE_OPTIONAL_STRING,
+        "locality": SINGLE_REQUIRED_STRING
+    }
+
+
+def place_deser(val, sformat="json", lev=0):
+    return deserialize_from_one_of(val, Place, sformat)
+
+
+SINGLE_OPTIONAL_PLACE = (Place, False, msg_ser, place_deser, False)
+
+
+class IdentityAssuranceClaims(IAMessage, OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
     c_param.update({
-        "place_of_birth": SINGLE_OPTIONAL_JSON,
-        "nationalities": SINGLE_OPTIONAL_STRING,
+        "place_of_birth": SINGLE_OPTIONAL_PLACE,
+        "nationalities": OPTIONAL_LIST_OF_STRINGS,
         "birth_family_name": SINGLE_OPTIONAL_STRING,
         "birth_given_name": SINGLE_OPTIONAL_STRING,
         "birth_middle_name": SINGLE_OPTIONAL_STRING,
@@ -211,7 +246,18 @@ class IdentityAssuranceClaims(OpenIDSchema, IAMessage):
     })
 
 
-OPTIONAL_IDA_CLAIMS = (IdentityAssuranceClaims, False, msg_ser, msg_deser, False)
+def identity_assurance_claims_deser(val, sformat="urlencoded"):
+    if isinstance(val, Message):
+        return val
+    elif sformat in ["dict", "json"]:
+        if not isinstance(val, str):
+            val = json.dumps(val)
+            sformat = "json"
+    return IdentityAssuranceClaims().deserialize(val, sformat)
+
+
+OPTIONAL_IDA_CLAIMS = (
+    IdentityAssuranceClaims, False, msg_ser, identity_assurance_claims_deser, False)
 
 
 class Verifier(IAMessage):
@@ -753,8 +799,15 @@ def verified_claim_element_deser(val, sformat="json"):
     return VerifiedClaim().deserialize(val, sformat)
 
 
+def verified_claim_element_list_deser(val, sformat="json"):
+    if isinstance(val, list):
+        return [verified_claim_element_deser(v, sformat) for v in val]
+    else:
+        return [verified_claim_element_deser(val, sformat)]
+
+
 OPTIONAL_LIST_OF_VERIFIED_CLAIMS = (
-    [VerifiedClaim], False, msg_ser_json, verified_claim_element_deser, False)
+    [VerifiedClaim], False, msg_list_ser, verified_claim_element_list_deser, False)
 
 
 def _correct_value_type(val, value_type):
@@ -940,4 +993,3 @@ class ExtendedAddressClaim(AddressClaim):
     c_param.update({
         "country_code": SINGLE_OPTIONAL_STRING
     })
-

@@ -82,7 +82,7 @@ class ServiceContext(OidcContext):
     parameter = OidcContext.parameter.copy()
     parameter.update(
         {
-            "add_on": None,
+            "add_ons": None,
             "allow": None,
             "args": None,
             "base_url": None,

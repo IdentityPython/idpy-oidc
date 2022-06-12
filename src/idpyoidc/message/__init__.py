@@ -647,6 +647,9 @@ class Message(MutableMapping):
         except KeyError:
             return default
 
+    def set(self, item, value):
+        self._dict[item] = value
+
     def items(self):
         """
         Return a list of tuples (key, value) representing all parameters
@@ -959,8 +962,11 @@ def msg_list_deser(val, sformat="urlencoded", lev=0):
 
 def msg_list_ser(val, sformat="urlencoded", lev=0):
     _res = []
-    for v in val:
-        _res.append(msg_ser(v, sformat))
+    if isinstance(val, list):
+        for v in val:
+            _res.append(msg_ser(v, sformat))
+    else:
+        _res.append(msg_ser(val, sformat))
     return _res
 
 

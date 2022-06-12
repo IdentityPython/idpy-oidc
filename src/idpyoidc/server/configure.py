@@ -143,7 +143,7 @@ class EntityConfiguration(Base):
     default_config = AS_DEFAULT_CONFIG
     uris = ["issuer", "base_url"]
     parameter = {
-        "add_on": None,
+        "add_ons": None,
         "authz": None,
         "authentication": None,
         "base_url": "",
@@ -280,7 +280,7 @@ class ASConfiguration(EntityConfiguration):
 
 
 DEFAULT_EXTENDED_CONF = {
-    "add_on": {
+    "add_ons": {
         "pkce": {
             "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
             "kwargs": {"essential": False, "code_challenge_method": "S256 S384 S512"},

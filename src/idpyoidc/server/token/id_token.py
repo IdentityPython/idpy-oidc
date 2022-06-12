@@ -9,7 +9,7 @@ from cryptojwt.jwt import JWT
 
 from idpyoidc.server.construct import construct_provider_info
 from idpyoidc.server.exception import ToOld
-from idpyoidc.server.session.claims import claims_match
+from idpyoidc.util import claims_match
 
 from . import Token
 from . import UnknownToken

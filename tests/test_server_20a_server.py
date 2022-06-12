@@ -73,7 +73,7 @@ CONF = {
         }
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
-    "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
+    "add_ons": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
     "login_hint_lookup": {"class": LoginHintLookup, "kwargs": {}},
     "session_params": SESSION_PARAMS,

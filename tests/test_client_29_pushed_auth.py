@@ -1,9 +1,9 @@
 import json
 import os
 
+from cryptojwt.key_jar import init_key_jar
 import pytest
 import responses
-from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.oauth2 import Client

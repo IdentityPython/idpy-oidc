@@ -149,7 +149,7 @@ def conf():
             }
         },
         "template_dir": "template",
-        "add_on": {
+        "add_ons": {
             "pkce": {
                 "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
                 "kwargs": {"essential": True},
@@ -225,7 +225,7 @@ class TestEndpoint(object):
         self.token_endpoint = server.server_get("endpoint", "token")
 
     def test_unsupported_code_challenge_methods(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["dada"]
+        conf["add_ons"]["pkce"]["kwargs"]["code_challenge_methods"] = ["dada"]
 
         with pytest.raises(ValueError) as exc:
             create_server(conf)
@@ -283,7 +283,7 @@ class TestEndpoint(object):
         assert _pr_resp["error_description"] == "Missing required code_challenge"
 
     def test_not_essential(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["essential"] = False
+        conf["add_ons"]["pkce"]["kwargs"]["essential"] = False
         server = create_server(conf)
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
@@ -301,7 +301,7 @@ class TestEndpoint(object):
         assert isinstance(_req, Message)
 
     def test_essential_per_client(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["essential"] = False
+        conf["add_ons"]["pkce"]["kwargs"]["essential"] = False
         server = create_server(conf)
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
@@ -316,7 +316,7 @@ class TestEndpoint(object):
         assert _pr_resp["error_description"] == "Missing required code_challenge"
 
     def test_not_essential_per_client(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["essential"] = True
+        conf["add_ons"]["pkce"]["kwargs"]["essential"] = True
         server = create_server(conf)
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
@@ -349,7 +349,7 @@ class TestEndpoint(object):
         )
 
     def test_unsupported_code_challenge_method(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["plain"]
+        conf["add_ons"]["pkce"]["kwargs"]["code_challenge_methods"] = ["plain"]
         server = create_server(conf)
         authn_endpoint = server.server_get("endpoint", "authorization")
 

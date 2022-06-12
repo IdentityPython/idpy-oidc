@@ -1,3 +1,12 @@
+import json
+
+from cryptojwt.jwt import JWT
+from cryptojwt.key_jar import init_key_jar
+import requests
+import responses
+
+from idpyoidc.client.oidc.add_on.identity_assurance import map_request
+from idpyoidc.client.oidc.userinfo import collect_claim_sources
 from idpyoidc.message.oidc.identity_assurance import Attachment
 from idpyoidc.message.oidc.identity_assurance import Document
 from idpyoidc.message.oidc.identity_assurance import DocumentDetails
@@ -1005,6 +1014,34 @@ def test_8_16():
 
 
 def test_8_17():
+    KEYSPEC = [
+        {"type": "RSA", "use": ["sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    keyjar = init_key_jar(
+        key_defs=KEYSPEC,
+        issuer_id="s6BhdRkqt3",
+    )
+
+    other_msg = {
+        "iss": "https://server.otherop.com",
+        "sub": "e8148603-8934-4245-825b-c108b8b6b945",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "ial_example_gold"
+            },
+            "claims": {
+                "given_name": "Max",
+                "family_name": "Meier",
+                "birthdate": "1956-01-28"
+            }
+        }
+    }
+
+    _jwt = JWT(key_jar=keyjar, iss="s6BhdRkqt3")
+    _jws = _jwt.pack(other_msg)
+
     # Claims provided by the OP and external sources
     msg = {
         "iss": "https://server.example.com",
@@ -1022,30 +1059,73 @@ def test_8_17():
         },
         "_claim_names": {
             "verified_claims": [
-                "src1",
-                "src2"
+                "src1"
+                # "src2"
             ]
         },
         "_claim_sources": {
             "src1": {
-                "JWT": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"
-                       ".eyJpc3MiOiJodHRwczovL3NlcnZlci5vdGhlcm9wLmNvbSIsInN1YiI6ImU4MTQ4NjAzLTg5MzQtNDI0NS04MjViLWMxMDhiOGI2Yjk0NSIsInZlcmlmaWVkX2NsYWltcyI6eyJ2ZXJpZmljYXRpb24iOnsidHJ1c3RfZnJhbWV3b3JrIjoiaWFsX2V4YW1wbGVfZ29sZCJ9LCJjbGFpbXMiOnsiZ2l2ZW5fbmFtZSI6Ik1heCIsImZhbWlseV9uYW1lIjoiTWVpZXIiLCJiaXJ0aGRhdGUiOiIxOTU2LTAxLTI4In19fQ.FArlPUtUVn95HCExePlWJQ6ctVfVpQyeSbe3xkH9MH1QJjnk5GVbBW0qe1b7R3lE-8iVv__0mhRTUI5lcFhLjoGjDS8zgWSarVsEEjwBK7WD3r9cEw6ZAhfEkhHL9eqAaED2rhhDbHD5dZWXkJCuXIcn65g6rryiBanxlXK0ZmcK4fD9HV9MFduk0LRG_p4yocMaFvVkqawat5NV9QQ3ij7UBr3G7A4FojcKEkoJKScdGoozir8m5XD83Sn45_79nCcgWSnCX2QTukL8NywIItu_K48cjHiAGXXSzydDm_ccGCe0sY-Ai2-iFFuQo2PtfuK2SqPPmAZJxEFrFoLY4g"
-            },
-            "src2": {
-                "endpoint": "https://server.yetanotherop.com/claim_source",
-                "access_token": "ksj3n283dkeafb76cdef"
+                "JWT": _jws
             }
+            # "src2": {
+            #     "endpoint": "https://server.yetanotherop.com/claim_source",
+            #     "access_token": "ksj3n283dkeafb76cdef"
+            # }
         }
     }
 
     user = EndUser(**msg)
     user.verify()
+    user = collect_claim_sources(user["_claim_sources"], user, EndUser, keyjar, requests.request)
     assert user
-    assert user["verification"]["trust_framework"] == "trust_framework_example"
+    assert len(user["verified_claims"]) == 2
 
 
 def test_8_18():
-    # *********
+    # Self-Issued OpenID Connect Provider and External Claims
+    KEYSPEC = [
+        {"type": "RSA", "use": ["sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    keyjar = init_key_jar(
+        key_defs=KEYSPEC,
+        issuer_id="s6BhdRkqt3",
+    )
+
+    other_msg = {
+        "iss": "https://server.otherop.com",
+        "sub": "e8148603-8934-4245-825b-c108b8b6b945",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "ial_example_gold"
+            },
+            "claims": {
+                "given_name": "Max",
+                "family_name": "Meier",
+                "birthdate": "1956-01-28"
+            }
+        }
+    }
+
+    _jwt = JWT(key_jar=keyjar, iss="s6BhdRkqt3")
+    _jws = _jwt.pack(other_msg)
+
+    url_msg = {
+        "iss": "https://server.yetanotherop.com",
+        "sub": "abcdefghijklmn",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "de_aml"
+            },
+            "claims": {
+                "given_name": "Maximillian",
+                "family_name": "Meier",
+                "place_of_birth": {"locality": "Ruhpolding"}
+            }
+        }
+    }
+
     msg = {
         "iss": "https://self-issued.me",
         "sub": "248289761001",
@@ -1057,10 +1137,7 @@ def test_8_18():
             ]
         },
         "_claim_sources": {
-            "src1": {
-                "JWT": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"
-                       ".eyJpc3MiOiJodHRwczovL3NlcnZlci5vdGhlcm9wLmNvbSIsInN1YiI6ImU4MTQ4NjAzLTg5MzQtNDI0NS04MjViLWMxMDhiOGI2Yjk0NSIsInZlcmlmaWVkX2NsYWltcyI6eyJ2ZXJpZmljYXRpb24iOnsidHJ1c3RfZnJhbWV3b3JrIjoiaWFsX2V4YW1wbGVfZ29sZCJ9LCJjbGFpbXMiOnsiZ2l2ZW5fbmFtZSI6Ik1heCIsImZhbWlseV9uYW1lIjoiTWVpZXIiLCJiaXJ0aGRhdGUiOiIxOTU2LTAxLTI4In19fQ.FArlPUtUVn95HCExePlWJQ6ctVfVpQyeSbe3xkH9MH1QJjnk5GVbBW0qe1b7R3lE-8iVv__0mhRTUI5lcFhLjoGjDS8zgWSarVsEEjwBK7WD3r9cEw6ZAhfEkhHL9eqAaED2rhhDbHD5dZWXkJCuXIcn65g6rryiBanxlXK0ZmcK4fD9HV9MFduk0LRG_p4yocMaFvVkqawat5NV9QQ3ij7UBr3G7A4FojcKEkoJKScdGoozir8m5XD83Sn45_79nCcgWSnCX2QTukL8NywIItu_K48cjHiAGXXSzydDm_ccGCe0sY-Ai2-iFFuQo2PtfuK2SqPPmAZJxEFrFoLY4g"
-            },
+            "src1": {"JWT": _jws},
             "src2": {
                 "endpoint": "https://op.mymno.com/claim_source",
                 "access_token": "ksj3n283dkeafb76cdef"
@@ -1068,8 +1145,244 @@ def test_8_18():
         }
     }
 
-    vc = VerifiedClaim(**msg["verified_claims"])
-    vc.verify()
-    assert vc
-    assert isinstance(vc["verification"]["evidence"][0], Document)
-    _document = vc["verification"]["evidence"][0]
+    user = EndUser(**msg)
+    user.verify()
+    with responses.RequestsMock() as rsps:
+        rsps.add("GET", "https://op.mymno.com/claim_source", body=json.dumps(url_msg), status=200)
+
+        user = collect_claim_sources(user["_claim_sources"], user, EndUser, keyjar,
+                                     requests.request)
+
+    assert user
+    assert len(user["verified_claims"]) == 2
+    assert user["verified_claims"][0]["verification"]["trust_framework"] == "ial_example_gold"
+    assert user["verified_claims"][1]["verification"]["trust_framework"] == "de_aml"
+
+
+def test_8_16_2():
+    claims_request = {
+        "id_token": {
+            "email": None,
+            "preferred_username": None,
+            "picture": None,
+            "verified_claims": {
+                "verification": {
+                    "trust_framework": None,
+                    "time": None,
+                    "verification_process": None,
+                    "evidence": [
+                        {
+                            "type": {
+                                "value": "document"
+                            },
+                            "method": None,
+                            "time": None,
+                            "document_details": {
+                                "type": None,
+                                "issuer": {
+                                    "name": None,
+                                    "country": None
+                                },
+                                "document_number": None,
+                                "date_of_issuance": None,
+                                "date_of_expiry": None
+                            }
+                        }
+                    ]
+                },
+                "claims": {
+                    "given_name": None,
+                    "family_name": None,
+                    "birthdate": None
+                }
+            }
+        }
+    }
+
+    # ID Token
+    msg = {
+        "iss": "https://server.example.com",
+        "sub": "24400320",
+        "aud": "s6BhdRkqt3",
+        "nonce": "n-0S6_WzA2Mj",
+        "exp": 1311281970,
+        "iat": 1311280970,
+        "auth_time": 1311280969,
+        "acr": "urn:mace:incommon:iap:silver",
+        "email": "janedoe@example.com",
+        "preferred_username": "j.doe",
+        "picture": "http://example.com/janedoe/me.jpg",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "de_aml",
+                "time": "2012-04-23T18:25Z",
+                "verification_process": "f24c6f-6d3f-4ec5-973e-b0d8506f3bc7",
+                "evidence": [
+                    {
+                        "type": "document",
+                        "method": "pipp",
+                        "time": "2012-04-22T11:30Z",
+                        "document_details": {
+                            "type": "idcard",
+                            "issuer": {
+                                "name": "Stadt Augsburg",
+                                "country": "DE"
+                            },
+                            "document_number": "53554554",
+                            "date_of_issuance": "2010-03-23",
+                            "date_of_expiry": "2020-03-22"
+                        }
+                    }
+                ]
+            },
+            "claims": {
+                "given_name": "Max",
+                "family_name": "Meier",
+                "birthdate": "1956-01-28"
+            }
+        }
+    }
+
+    vc = do_verified_claims(msg)
+    assert len(vc) == 1
+    vc[0].verify()
+    res = vc[0].match_request(claims_request["id_token"]["verified_claims"])
+    assert res
+
+
+def test_8_17_claims_requests():
+    KEYSPEC = [
+        {"type": "RSA", "use": ["sig"]},
+        {"type": "EC", "crv": "P-256", "use": ["sig"]},
+    ]
+
+    keyjar = init_key_jar(
+        key_defs=KEYSPEC,
+        issuer_id="s6BhdRkqt3",
+    )
+
+    other_msg = {
+        "iss": "https://server.otherop.com",
+        "sub": "e8148603-8934-4245-825b-c108b8b6b945",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "ial_example_gold"
+            },
+            "claims": {
+                "given_name": "Maximillian",
+                "family_name": "Meier",
+                "birthdate": "1956-01-28"
+            }
+        }
+    }
+
+    _jwt = JWT(key_jar=keyjar, iss="s6BhdRkqt3")
+    _jws = _jwt.pack(other_msg)
+
+    url_msg = {
+        "iss": "https://server.yetanotherop.com",
+        "sub": "abcdefghijklmn",
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "de_aml"
+            },
+            "claims": {
+                "given_name": "Maximillian",
+                "family_name": "Meier",
+                "place_of_birth": {"locality": "Ruhpolding"}
+            }
+        }
+    }
+
+    # Claims provided by the OP and external sources
+    msg = {
+        "iss": "https://server.example.com",
+        "sub": "248289761001",
+        "email": "janedoe@example.com",
+        "email_verified": True,
+        "verified_claims": {
+            "verification": {
+                "trust_framework": "trust_framework_example"
+            },
+            "claims": {
+                "given_name": "Max",
+                "family_name": "Meier"
+            }
+        },
+        "_claim_names": {
+            "verified_claims": ["src1", "src2"]
+        },
+        "_claim_sources": {
+            "src1": {
+                "JWT": _jws
+            },
+            "src2": {
+                "endpoint": "https://server.yetanotherop.com/claim_source",
+                "access_token": "ksj3n283dkeafb76cdef"
+            }
+        }
+    }
+
+    user = EndUser(**msg)
+    user.verify()
+
+    with responses.RequestsMock() as rsps:
+        rsps.add("GET", "https://server.yetanotherop.com/claim_source", body=json.dumps(url_msg),
+                 status=200)
+
+        user = collect_claim_sources(user["_claim_sources"], user, EndUser, keyjar,
+                                     requests.request)
+
+    assert user
+    assert len(user["verified_claims"]) == 3
+
+    claims_request = [
+        {
+            "userinfo": {
+                "verified_claims": {
+                    "verification": {
+                        "trust_framework": {"value": "trust_framework_example"}
+                    },
+                    "claims": {
+                        "given_name": None,
+                        "family_name": None
+                    }
+                }
+            }
+        }, {
+            "userinfo": {
+                "verified_claims": {
+                    "verification": {
+                        "trust_framework": {"value": "ial_example_gold"}
+                    },
+                    "claims": {
+                        "given_name": None,
+                        "family_name": None,
+                        "birthdate": None
+                    }
+                }
+            }
+        }, {
+            "userinfo": {
+                "verified_claims": {
+                    "verification": {
+                        "trust_framework": {"value": "de_aml"}
+                    },
+                    "claims": {
+                        "given_name": None,
+                        "family_name": None,
+                        "place_of_birth": None
+                    }
+                }
+            }
+        }
+    ]
+
+    res = []
+    for vc in user["verified_claims"]:
+        for cr in claims_request:
+            _res = map_request(cr, vc, "userinfo")
+            if _res:
+                res.append(_res)
+
+    assert len(res) == 3

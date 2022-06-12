@@ -120,9 +120,9 @@ def test_server_configure():
     assert set(id_token_conf.keys()) == {"kwargs", "class"}
 
     with pytest.raises(KeyError):
-        _ = configuration["add_on"]
+        _ = configuration["add_ons"]
 
-    assert configuration.get("add_on", {}) == {}
+    assert configuration.get("add_ons", {}) == {}
 
     userinfo_conf = op_conf.get("userinfo")
     assert userinfo_conf["kwargs"]["db_file"].startswith(BASEDIR)

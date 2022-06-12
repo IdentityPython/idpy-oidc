@@ -1,12 +1,12 @@
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import init_key_jar
+import pytest
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.entity import Entity
+from idpyoidc.client.oauth2 import Client
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 
@@ -28,11 +28,20 @@ class TestUserInfo(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "base_url": "https://example.com/cli/",
+            "add_ons": {
+                "identity_assurance": {
+                    "function": "idpyoidc.client.oidc.add_on.identity_assurance.add_support",
+                    "kwargs": {
+                        'trust_frameworks_supported': ['ial_example_gold',],
+                        'evidence_supported': ['document']
+                    }
+                }
+            }
         }
 
         KEYS = init_key_jar(key_defs=KEYSPEC)
 
-        entity = Entity(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
+        entity = Client(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
         entity.client_get("service_context").issuer = "https://server.otherop.com"
         self.service = entity.client_get("service", "userinfo")
 
@@ -61,7 +70,7 @@ class TestUserInfo(object):
         _state_interface.store_item(auth_request, "auth_request", _state)
 
         auth_response = AuthorizationResponse(code="access_code").to_json()
-        _state_interface.store_item(auth_response, "auth_response", "abcde")
+        _state_interface.store_item(auth_response, "auth_response", _state)
 
         _distributed_respone = {
             "iss": "https://server.otherop.com",
@@ -84,8 +93,8 @@ class TestUserInfo(object):
             "_claim_sources": {"src1": {"JWT": _jws}},
         }
 
-        _resp = self.service.parse_response(json.dumps(resp), state="abcde")
-        _resp = self.service.post_parse_response(_resp, state="abcde")
+        _resp = self.service.parse_response(json.dumps(resp), state=_state)
+        # _resp = self.service.post_parse_response(_resp, state=_state)
         assert set(_resp.keys()) == {
             "sub",
             "iss",

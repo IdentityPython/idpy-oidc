@@ -994,6 +994,7 @@ class TestUserInfo(object):
 
     def test_unpack_aggregated_response(self):
         claims = {
+            "sub": "a_subject_identifier",
             "address": {
                 "street_address": "1234 Hollywood Blvd.",
                 "locality": "Los Angeles",

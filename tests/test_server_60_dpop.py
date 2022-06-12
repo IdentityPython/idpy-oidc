@@ -122,7 +122,7 @@ class TestEndpoint(object):
             "issuer": ISSUER,
             "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": CAPABILITIES,
-            "add_on": {
+            "add_ons": {
                 "dpop": {
                     "function": "idpyoidc.server.oauth2.add_on.dpop.add_support",
                     "kwargs": {"dpop_signing_alg_values_supported": ["ES256"]},

@@ -76,7 +76,7 @@ class TestEndpoint(object):
             "issuer": ISSUER,
             "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": CAPABILITIES,
-            "add_on": {
+            "add_ons": {
                 "extra_args": {
                     "function": "idpyoidc.server.oauth2.add_on.extra_args.add_support",
                     "kwargs": {"authorization": {"iss": "issuer"}},
