@@ -443,7 +443,7 @@ class Message(MutableMapping):
         _dict = json.loads(txt)
         return self.from_dict(_dict)
 
-    def to_jwt(self, key=None, algorithm="", lev=0, lifetime=0):
+    def to_jwt(self, key=None, algorithm="", lev=0, lifetime=0, jwt_type=""):
         """
         Create a signed JWT representation of the class instance
 
@@ -455,7 +455,12 @@ class Message(MutableMapping):
         """
 
         _jws = JWS(self.to_json(lev), alg=algorithm)
-        return _jws.sign_compact(key)
+        if jwt_type:
+            kwargs = {"typ": jwt_type}
+        else:
+            kwargs = {}
+
+        return _jws.sign_compact(key, **kwargs)
 
     def _gather_keys(self, keyjar, jwt, header, **kwargs):
         key = []
