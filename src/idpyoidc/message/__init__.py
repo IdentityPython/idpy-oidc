@@ -451,6 +451,7 @@ class Message(MutableMapping):
         :param algorithm: The signature algorithm to use
         :param lev:
         :param lifetime: The lifetime of the JWS
+        :param jwt_type: What type the JWT is. To support explicit typing.
         :return: A signed JWT
         """
 

@@ -174,9 +174,16 @@ def aggregate_claim(item: Message, ava: Message, claim_source: str):
         if key in item:
             if _list:
                 if isinstance(item[key], list):
-                    item[key].append(ava[key])
+                    if isinstance(ava[key], list):
+                        item[key].extend(ava[key])
+                    else:
+                        item[key].append(ava[key])
                 else:
-                    item.set(key, [item[key], ava[key]])
+                    if isinstance(ava[key], list):
+                        ava[key].append(item[key])
+                        item.set(key, ava[key])
+                    else:
+                        item.set(key, [item[key], ava[key]])
             else:  # overwrite ??
                 item.set(key, ava[key])
         else:
