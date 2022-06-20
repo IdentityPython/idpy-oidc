@@ -159,3 +159,31 @@ The [RFC-8693](https://datatracker.ietf.org/doc/html/rfc8693) describes the `aud
 defines the authorized targets of a token exchange request.
 If `subject_token = urn:ietf:params:oauth:token-type:refresh_token` then `audience` should not be
 included in the token exchange request.
+
+Revocation endpoint
+----------------------
+
+Here an example about how to use a idpyoidc OP revocation endpoint.
+This example uses a client with an HTTP Basic Authentication::
+
+    import base64
+    import requests
+
+    TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IlQwZGZTM1ZVYUcxS1ZubG9VVTQwUXpJMlMyMHpjSHBRYlMxdGIzZ3hZVWhCYzNGaFZWTlpTbWhMTUEifQ.eyJzY29wZSI6IFsib3BlbmlkIiwgInByb2ZpbGUiLCAiZW1haWwiLCAiYWRkcmVzcyIsICJwaG9uZSJdLCAiYXVkIjogWyJvTHlSajdzSkozWHZBWWplRENlOHJRIl0sICJqdGkiOiAiOWQzMjkzYjZiYmNjMTFlYmEzMmU5ODU0MWIwNzE1ZWQiLCAiY2xpZW50X2lkIjogIm9MeVJqN3NKSjNYdkFZamVEQ2U4clEiLCAic3ViIjogIm9MeVJqN3NKSjNYdkFZamVEQ2U4clEiLCAic2lkIjogIlowRkJRVUZCUW1keGJIVlpkRVJKYkZaUFkxQldaa0pQVUVGc1pHOUtWWFZ3VFdkZmVEY3diMVprYmpSamRrNXRMVzB4YTNnelExOHlRbHBHYTNRNVRHZEdUUzF1UW1sMlkzVnhjRE5sUm01dFRFSmxabGRXYVhJeFpFdHVSV2xtUzBKcExWTmFaRzV3VjJodU0yNXlSbTU0U1ZWVWRrWTRRM2x2UWs1TlpVUk9SazlGVlVsRWRteGhjWGx2UWxWRFdubG9WbTFvZGpORlVUSnBkaTFaUTFCcFptZFRabWRDVWt0YVNuaGtOalZCWVhkcGJFNXpaV2xOTTFCMk0yaE1jMDV0ZGxsUlRFc3dObWxsYUcxa1lrTkhkemhuU25OaWFWZE1kVUZzZDBwWFdWbzFiRWhEZFhGTFFXWTBPVzl5VjJOUk4zaGtPRDA9IiwgInR0eXBlIjogIlQiLCAiaXNzIjogImh0dHBzOi8vMTI3LjAuMC4xOjgwMDAiLCAiaWF0IjogMTYyMTc3NzMwNSwgImV4cCI6IDE2MjE3ODA5MDV9.pVqxUNznsoZu9ND18IEMJIHDOT6_HxzoFiTLsniNdbAdXTuOoiaKeRTqtDyjT9WuUPszdHkVjt5xxeFX8gQMuA"
+
+    data = {
+     'token': TOKEN,
+     'token_type_hint': 'access_token'
+    }
+
+    _basic_secret = base64.b64encode(
+        f'{"oLyRj7sJJ3XvAYjeDCe8rQ"}:{"53fb49f2a6501ec775355c89750dc416744a3253138d5a04e409b313"}'.encode()
+    )
+    headers = {
+        'Authorization': f"Basic {_basic_secret.decode()}"
+    }
+
+    requests.post('https://127.0.0.1:8000/revoke', verify=False, data=data, headers=headers)
+
+
+The idpyoidc OP will return a HTTP 200 response containing an empty json.
