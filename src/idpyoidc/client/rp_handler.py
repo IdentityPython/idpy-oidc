@@ -427,15 +427,6 @@ class RPHandler(object):
             "nonce": _nonce,
         }
 
-        _req_args = _context.config.get("request_args")
-        if _req_args:
-            if "claims" in _req_args:
-                _req_args["claims"] = Claims(**_req_args["claims"])
-            request_args.update(_req_args)
-
-        if req_args is not None:
-            request_args.update(req_args)
-
         # Need a new state for a new authorization request
         _state = _context.state.create_state(_context.get("issuer"))
         request_args["state"] = _state
@@ -443,10 +434,17 @@ class RPHandler(object):
 
         logger.debug("Authorization request args: {}".format(request_args))
 
-        # if behaviour_args and "request_param" not in behaviour_args:
-        #     _pi = _context.get("provider_info")
-
         _srv = client.get_service("authorization")
+        _conf = _context.config.get('conf')
+        if _conf:
+            _req_args = _conf.get("request_args")
+            if _req_args:
+                if "claims" in _req_args:
+                    _req_args["claims"] = Claims(**_req_args["claims"])
+                request_args.update(_req_args)
+            if req_args is not None:
+                request_args.update(req_args)
+
         _info = _srv.get_request_parameters(
             request_args=request_args, behaviour_args=behaviour_args
         )

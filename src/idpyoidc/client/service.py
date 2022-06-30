@@ -143,6 +143,9 @@ class Service(ImpExp):
         # 1. A keyword argument
         # 2. configured set of default attribute values
         # 3. default attribute values defined in the OIDC standard document
+
+        _special_req_args = self.conf.get("request_args", {})
+
         for prop in self.msg_type.c_param:
             if prop in ar_args:
                 continue
@@ -153,8 +156,8 @@ class Service(ImpExp):
                 val = ""
 
             if not val:
-                if "request_args" in self.conf:
-                    val = self.conf["request_args"].get(prop)
+                val = _special_req_args.get(prop)
+
                 if not val:
                     val = self.default_request_args.get(prop)
                     if not val:
@@ -163,6 +166,10 @@ class Service(ImpExp):
                             val = md.get(prop)
             if val:
                 ar_args[prop] = val
+
+        for attr, val in _special_req_args.items():
+            if attr not in self.msg_type.c_param:
+                ar_args[attr] = val
 
         return ar_args
 

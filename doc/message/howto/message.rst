@@ -63,7 +63,7 @@ in an environment where information are to be sent over a wire it must be
 possible to serialize the information in such an instance to a format that
 can be transmitted over-the-wire.
 
-Because of this a number of method has been added to support serialization to
+Because of this, a number of method has been added to support serialization to
 and deserialization from a number of representations that are used in the
 OAuth2 and OIDC protocol exchange.
 
@@ -116,6 +116,14 @@ simple symmetric one:
     >>> recv = Message().from_jwt(jws, key=keys)
     >>> print(recv)
     {'another': 2, 'key': 'value'}
+
+If you want to add the type of payload the JWT contains you can do:
+
+    >>> msg.to_jwt(keys, algorithm="HS256", jwt_type="application/entity-statement+jwt")
+    >>> recv = Message().from_jwt(jws, key=keys)
+    >>> print(recv,jws_header['typ'])
+    application/entity-statement+jwt
+
 
 Verifying the message content
 -----------------------------

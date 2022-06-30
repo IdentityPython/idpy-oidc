@@ -6,7 +6,6 @@ import time
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
-import pytest
 from cryptojwt.exception import BadSignature
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws.exception import SignerAlgError
@@ -14,6 +13,7 @@ from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
+import pytest
 
 from idpyoidc import proper_path
 from idpyoidc import time_util
@@ -21,9 +21,8 @@ from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotAllowedValue
 from idpyoidc.exception import OidcMsgError
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import ROPCAccessTokenRequest
-from idpyoidc.message.oidc import JRD
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AddressClaim
@@ -38,6 +37,7 @@ from idpyoidc.message.oidc import DiscoveryRequest
 from idpyoidc.message.oidc import EXPError
 from idpyoidc.message.oidc import IATError
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
@@ -98,6 +98,7 @@ def test_openidschema():
         '{"middle_name":true, "updated_at":"20170328081544", "sub":"abc"}',
         '{"middle_name":"fo", "updated_at":false, "sub":"abc"}',
         '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":true}',
+        '{"middle_name":"fo", "updated_at":"20170328081544Z", "sub":true, "address":""}',
     ],
 )
 def test_openidschema_from_json(json_param):
@@ -110,8 +111,7 @@ def test_openidschema_from_json(json_param):
     [
         '{"email_verified":false, "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":true, "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":false, "phone_number":"+1 555 200000", ' '"sub":"abc"}',
-        '{"phone_number_verified":true, "phone_number":"+1 555 20000", ' '"sub":"abc"}',
+        '{"phone_number_verified":false, "phone_number":"+1 555 200000", "sub":"abc"}',
     ],
 )
 def test_claim_booleans(json_param):
@@ -123,13 +123,23 @@ def test_claim_booleans(json_param):
     [
         '{"email_verified":"Not", "email":"foo@example.com", "sub":"abc"}',
         '{"email_verified":"Sure", "email":"foo@example.com", "sub":"abc"}',
-        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", ' '"sub":"abc"}',
-        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", ' '"sub":"abc"}',
+        '{"phone_number_verified":"Not", "phone_number":"+1 555 200000", "sub":"abc"}',
+        '{"phone_number_verified":"Sure", "phone_number":"+1 555 20000", "sub":"abc"}',
     ],
 )
 def test_claim_not_booleans(json_param):
     with pytest.raises(ValueError):
         OpenIDSchema().from_json(json_param)
+
+
+def test_address():
+    ois = OpenIDSchema(
+        phone_number_verified=True,
+        phone_number="+1 555 20000",
+        sub="abc",
+        address={"street_address": "Kasamark 114", "locality": "Umea", "country": "Sweden"})
+    assert ois.verify()
+    assert ois.to_json()
 
 
 def test_claims_deser():
@@ -661,7 +671,7 @@ class TestRegistrationResponse(object):
             "client_secret_expires_at": 1577858400,
             "registration_access_token": "this.is.an.access.token.value.ffx83",
             "registration_client_uri": "https://server.example.com/connect/register?client_id"
-            "=s6BhdRkqt3",
+                                       "=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
             "application_type": "web",
             "redirect_uris": [
