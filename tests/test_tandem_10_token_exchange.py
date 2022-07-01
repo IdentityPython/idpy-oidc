@@ -363,6 +363,7 @@ class TestEndpoint(object):
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
             ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
                     "callable":
