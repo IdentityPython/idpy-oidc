@@ -9,6 +9,7 @@ from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
+from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
@@ -133,13 +134,24 @@ class Token(Endpoint):
 
         if isinstance(request, TokenExchangeRequest):
             if "token_exchange" in _context.cdb[request["client_id"]]:
-                default_requested_token_type = _context.cdb[request["client_id"]]["token_exchange"][
-                    "default_requested_token_type"
-                ]
+                try:
+                    default_requested_token_type = _context.cdb[request["client_id"]][
+                        "token_exchange"]["default_requested_token_type"]
+                except KeyError:
+                    try:
+                        default_requested_token_type = self.helper[
+                            "urn:ietf:params:oauth:grant-type:token-exchange"
+                        ].config["default_requested_token_type"]
+                    except:
+                        default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
             else:
-                default_requested_token_type = self.helper[
-                    "urn:ietf:params:oauth:grant-type:token-exchange"
-                ].config["default_requested_token_type"]
+                try:
+                    default_requested_token_type = self.helper[
+                        "urn:ietf:params:oauth:grant-type:token-exchange"
+                    ].config["default_requested_token_type"]
+                except KeyError:
+                    default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
+
             requested_token_type = request.get("requested_token_type", default_requested_token_type)
             _handler_key = TOKEN_TYPES_MAPPING[requested_token_type]
         else:

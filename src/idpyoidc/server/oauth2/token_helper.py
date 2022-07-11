@@ -13,6 +13,7 @@ from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oauth2 import TokenExchangeResponse
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.message.oidc import TokenErrorResponse
+from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
@@ -597,11 +598,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def _validate_configuration(self, config):
         if "requested_token_types_supported" not in config:
             raise ImproperlyConfigured(
-                f"Missing 'requested_token_types_supported'" "from Token Exchange configuration"
-            )
-        if "default_requested_token_type" not in config:
-            raise ImproperlyConfigured(
-                f"Missing 'default_requested_token_type'" "from Token Exchange configuration"
+                f"Missing 'requested_token_types_supported' from Token Exchange configuration"
             )
         if "policy" not in config:
             raise ImproperlyConfigured(f"Missing 'policy' from Token Exchange configuration")
@@ -613,11 +610,14 @@ class TokenExchangeHelper(TokenEndpointHelper):
             raise ImproperlyConfigured(
                 f"Missing 'callable' from default Token Exchange policy configuration"
             )
-        if config["default_requested_token_type"] not in config["requested_token_types_supported"]:
+
+        _default_requested_token_type = config.get("default_requested_token_type",
+                                                   DEFAULT_REQUESTED_TOKEN_TYPE)
+        if _default_requested_token_type not in config["requested_token_types_supported"]:
             raise ImproperlyConfigured(
-                f"Unsupported default requested_token_type {config['default_requested_token_type']}"
+                f"Unsupported default requested_token_type {_default_requested_token_type}"
             )
-        
+
 
 def validate_token_exchange_policy(request, context, subject_token, **kwargs):
     if "resource" in request:
