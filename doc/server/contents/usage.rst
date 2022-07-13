@@ -159,3 +159,31 @@ The [RFC-8693](https://datatracker.ietf.org/doc/html/rfc8693) describes the `aud
 defines the authorized targets of a token exchange request.
 If `subject_token = urn:ietf:params:oauth:token-type:refresh_token` then `audience` should not be
 included in the token exchange request.
+
+Client Credentials
+--------------
+
+Here an example about how a client can request a new access token using only its credentials::
+
+    import requests
+
+    CLIENT_ID=""
+    CLIENT_SECRET=""
+
+    data = {
+        "grant_type" : "client_credentials",
+        "client_id" : f"{CLIENT_ID}",
+        "client_secret" : f"{CLIENT_SECRET}"
+    }
+    headers = {'Content-Type': "application/x-www-form-urlencoded" }
+    response = requests.post(
+        'https://example.com/OIDC/token', verify=False, data=data, headers=headers
+    )
+
+The idpyoidc OP will return a json response like this::
+
+    {
+        "access_token": "eyJhbGciOiJFUzI1NiIsI...Bo6aQcOKEN-1U88jjKxLb-9Q",
+        "token_type": "example",
+        "expires_in": 86400
+    }
