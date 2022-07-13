@@ -32,7 +32,7 @@ class Authorization(authorization.Authorization):
 
     def __init__(self, client_get, conf=None):
         authorization.Authorization.__init__(self, client_get, conf=conf)
-        self.default_request_args = {"scope": ["openid"]}
+        self.default_request_args.update({"scope": ["openid"]})
         self.pre_construct = [
             self.set_state,
             pre_construct_pick_redirect_uri,
