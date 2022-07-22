@@ -6,6 +6,7 @@ from typing import Union
 
 from cryptojwt import KeyJar
 
+from idpyoidc.constant import DEFAULT_CREATE_SESSION_MANAGER_FUNCTION
 from idpyoidc.impexp import ImpExp
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
@@ -63,12 +64,15 @@ class Server(ImpExp):
         self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
-        self.endpoint_context.session_manager = create_session_manager(
+        _create_session_manager = self._get_session_init_function(self.conf)
+
+        self.endpoint_context.session_manager = _create_session_manager(
             self.server_get,
             self.endpoint_context.th_args,
-            sub_func=self.endpoint_context._sub_func,
             conf=self.conf,
+            sub_func=self.endpoint_context._sub_func,
         )
+
         self.endpoint_context.do_userinfo()
         # Must be done after userinfo
         self.setup_login_hint_lookup()
@@ -153,3 +157,7 @@ class Server(ImpExp):
         self.endpoint_context.client_authn_method = client_auth_setup(
             self.server_get, self.conf.get("client_authn_methods")
         )
+
+    def _get_session_init_function(self, conf):
+        _sparam = conf.get("session_params")
+        return _sparam.get("function", DEFAULT_CREATE_SESSION_MANAGER_FUNCTION)

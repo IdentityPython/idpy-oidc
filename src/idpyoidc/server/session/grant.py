@@ -235,9 +235,10 @@ class Grant(Item):
                 secondary_identifier=secondary_identifier,
             )
 
-        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
-        payload.update(user_info)
+        if "user" in endpoint_context.session_manager.node_map:
+            user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
+            user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
+            payload.update(user_info)
 
         # Should I add the acr value
         if self.add_acr_value(claims_release_point):
@@ -486,7 +487,7 @@ class ExchangeGrant(Grant):
         issued_token: Optional[list] = None,
         usage_rules: Optional[dict] = None,
         exchange_request: Optional[TokenExchangeRequest] = None,
-        original_session_id: str = "",
+        original_branch_id: str = "",
         issued_at: int = 0,
         expires_in: int = 0,
         expires_at: int = 0,
@@ -516,4 +517,4 @@ class ExchangeGrant(Grant):
             "access_token": {"supports_minting": ["access_token"], "expires_in": 60}
         }
         self.exchange_request = exchange_request
-        self.original_session_id = original_session_id
+        self.original_branch_id = original_branch_id

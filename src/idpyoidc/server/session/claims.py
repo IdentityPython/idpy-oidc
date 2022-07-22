@@ -160,9 +160,9 @@ class ClaimsInterface:
         :return: Claims specification as a dictionary.
         """
         _context = self.server_get("endpoint_context")
-        session_info = _context.session_manager.get_session_info(session_id, grant=True)
-        client_id = session_info["client_id"]
-        grant = session_info["grant"]
+        _branch_info = _context.session_manager.branch_info(session_id, "grant", "client")
+        client_id = _branch_info["client_id"]
+        grant = _branch_info["grant"]
 
         if grant.authorization_request:
             auth_req = grant.authorization_request

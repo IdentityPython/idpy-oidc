@@ -41,9 +41,6 @@ class TestSessionManager:
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "token_expires_in": 600,
-            "grant_expires_in": 300,
-            "refresh_token_expires_in": 86400,
             "keys": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
             "jwks_uri": "https://example.com/jwks.json",
             "token_handler_args": {
