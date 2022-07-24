@@ -35,7 +35,7 @@ class GrantManager(Database):
         self.conf = conf or {
             "session_params": {
                 "encrypter": default_crypt_config(),
-                "node_map": ["client", "grant"]
+                "node_type": ["client", "grant"]
             }
         }
 
@@ -43,7 +43,7 @@ class GrantManager(Database):
         _crypt_config = get_crypt_config(session_params)
         super(GrantManager, self).__init__(_crypt_config)
 
-        self.node_map = session_params.get("node_map", {"client": 0, "grant": 1})
+        self.node_type = session_params.get("node_type", {"client": 0, "grant": 1})
         self.token_handler = handler
         self.remember_token = remember_token
         self.remove_inactive_token = remove_inactive_token
@@ -154,21 +154,21 @@ class GrantManager(Database):
         return self.encrypted_branch_id(*_id)
 
     def get_node_info(self, branch_id: str, level: Optional[int] = None,
-                      node_id: Optional[str] = None) -> (str, SessionInfo):
+                      node_type: Optional[str] = None) -> (str, SessionInfo):
         """
         Return session information for a specific node in the grant path.
 
         :param branch_id: Session identifier
         :param level:
-        :param node_id: Identifier for a node, MUST appear in the node_map
+        :param node_type: Type of a node, MUST appear in the node_type
         :return: SessionInfo instance
         """
         _path = self.decrypt_branch_id(branch_id)
         if level is None:
-            if node_id:
-                level = self.node_map.index(node_id)
+            if node_type:
+                level = self.node_type.index(node_type)
             else:
-                raise ValueError("One of level or node_id MUST be defined")
+                raise ValueError("One of level or node_type MUST be defined")
 
         return _path[level], self.get(_path[0:level + 1])
 
@@ -183,26 +183,14 @@ class GrantManager(Database):
         _nodes = self._get_nodes(_path)
 
         _res = {}
-        for i in range(len(self.node_map)):
-            if args and self.node_map[i] not in args:
+        for i in range(len(self.node_type)):
+            if args and self.node_type[i] not in args:
                 continue
-            _res[self.node_map[i]] = _nodes[i]
-            _res[f"{self.node_map[i]}_id"] = _path[i]
+            _res[self.node_type[i]] = _nodes[i]
+            _res[f"{self.node_type[i]}_id"] = _path[i]
         return _res
 
-    def get_grant(self, branch_id: str) -> Grant:
-        """
-        Return client connected information for a user session.
-
-        :param branch_id: Session identifier
-        :return: ClientSessionInfo instance
-        """
-        return self.get(self.decrypt_branch_id(branch_id))
-
-    def get_subordinates(
-            self,
-            path: List[str],
-            session_info: Optional[SessionInfo] = None) -> List[Union[SessionInfo, Grant]]:
+    def get_subordinates(self, path: List[str]) -> List[Union[SessionInfo, Grant]]:
         """
         Return all subordinates to a specific node
 
@@ -210,48 +198,42 @@ class GrantManager(Database):
         :param session_info:
         :return:
         """
-        if session_info is None:
-            session_info = self.get(path)
-
-        _subs = []
-        for gid in session_info.subordinate:
-            _tmp = path[:]
-            _tmp.append(gid)
-            _subs.append(self.get(_tmp))
-
-        return _subs
+        session_info = self.get(path)
+        return [self.db[gid] for gid in session_info.subordinate]
 
     def get_grant_argument(self, branch_id: str, arg: str):
-        grant = self.get_grant(branch_id=branch_id)
+        grant = self[branch_id]
         return getattr(grant, arg)
 
-    def get_info_by_argument(
-            self,
-            arg: str,
-            branch_id: Optional[str] = "",
-            path: Optional[List[str]] = None,
-    ) -> list:
-        """
-        Return the authentication events that exists for a user/client combination.
-
-        :param path:
-        :param branch_id: A session identifier
-        :return: None if no authentication event could be found or an AuthnEvent instance.
-        """
-        if branch_id:
-            _id = self.decrypt_branch_id(branch_id)
-        elif path:
-            _id = path
-        else:
-            raise AttributeError("Must have branch_id or user_id and client_id")
-
-        _grants = self.get_subordinates(_id)
-        return [getattr(g, arg) for g in _grants]
+    # def get_info_by_argument(
+    #         self,
+    #         arg: str,
+    #         branch_id: Optional[str] = "",
+    #         path: Optional[List[str]] = None,
+    # ) -> list:
+    #     """
+    #     Return the authentication events that exists for a user/client combination.
+    #
+    #     :param path:
+    #     :param branch_id: A session identifier
+    #     :return: None if no authentication event could be found or an AuthnEvent instance.
+    #     """
+    #     if branch_id:
+    #         _id = self.decrypt_branch_id(branch_id)
+    #     elif path:
+    #         _id = path
+    #     else:
+    #         raise AttributeError("Must have branch_id or user_id and client_id")
+    #
+    #     _grants = self.get_subordinates(_id)
+    #     return [getattr(g, arg) for g in _grants]
 
     def _revoke_tree(self, node):
         node.revoke()
-        for _sub in node.subordinate:
-            self._revoke_tree(_sub)
+        if isinstance(node, SessionInfo):
+            for _sub in node.subordinate:
+                _sub_node = self.db[_sub]
+                self._revoke_tree(_sub_node)
 
     def revoke_sub_tree(self, branch_id: str, level: Optional[int] = None):
         """
@@ -266,11 +248,8 @@ class GrantManager(Database):
         else:
             if level > len(_path):
                 raise ValueError("Looking for level beyond what is available")
-            _node = self.get(_path[0:level])
+            _node = self.get(_path[0:level + 1])
         self._revoke_tree(_node)
-
-    def revoke_grant(self, branch_id: str):
-        self.revoke_sub_tree(branch_id=branch_id)
 
     def grants(
             self,
@@ -289,7 +268,7 @@ class GrantManager(Database):
         elif path:
             _path = path[:]
         else:
-            raise AttributeError("Must have branch_id or user_id and client_id")
+            raise AttributeError("Must have branch_id or branch path")
 
         return [s for s in self.get_subordinates(_path) if isinstance(s, Grant)]
 

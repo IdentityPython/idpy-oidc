@@ -18,6 +18,7 @@ from .database import Database
 from .grant import ExchangeGrant
 from .grant import Grant
 from .grant import SessionToken
+from .grant_manager import GrantManager
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
 from ..token import UnknownToken
@@ -79,7 +80,7 @@ def ephemeral_id(*args, **kwargs):
     return uuid.uuid4().hex
 
 
-class SessionManager(Database):
+class SessionManager(GrantManager):
     parameter = Database.parameter.copy()
     # parameter.update({"salt": ""})
     init_args = ["handler"]
@@ -88,19 +89,15 @@ class SessionManager(Database):
             self,
             handler: TokenHandler,
             conf: Optional[dict] = None,
-            sub_func: Optional[dict] = None,
             remember_token: Optional[Callable] = None,
             remove_inactive_token: Optional[bool] = False,
+            sub_func: Optional[dict] = None
     ):
-        self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
+        super(SessionManager, self).__init__(handler=handler, conf=conf,
+                                             remember_token=remember_token,
+                                             remove_inactive_token=remove_inactive_token)
 
-        session_params = self.conf.get("session_params") or {}
-        _crypt_config = get_crypt_config(session_params)
-        super(SessionManager, self).__init__(_crypt_config)
-
-        self.token_handler = handler
-        self.remember_token = remember_token
-        self.remove_inactive_token = remove_inactive_token
+        self.node_type = ["user", "client", "grant"]
 
         # this allows the subject identifier minters to be defined by someone
         # else then me.

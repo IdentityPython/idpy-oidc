@@ -113,44 +113,16 @@ class Database(ImpExp):
         for i in range(0, len(path)):
             _key = self.branch_key(*path[0:_len - i])
             if _key in self.db:
-                _info = self.db[_key]
-                if _sub and _sub in _info.subordinate:
-                    _info.subordinate.remove(_sub)
+                _node = self.db[_key]
+                if _sub and _sub in _node.subordinate:
+                    _node.subordinate.remove(_sub)
+                    if _node.subordinate == []:
+                        self.db.__delitem__(_key)
+                    else:
+                        return
                 else:
                     self.db.__delitem__(_key)
             _sub = _key
-
-        # _user_info = self.db[uid]
-        # skey_uid_client = self.branch_key(uid, client_id)
-        # skey_uid_client_grant = self.branch_key(uid, client_id, grant_id or "")
-        #
-        # if client_id not in _user_info.subordinate:
-        #     self.db.__delitem__(client_id)
-        #     return
-        #
-        # elif skey_uid_client in self.db:
-        #     _client_info = self.db[skey_uid_client]
-        #     if grant_id:
-        #         if skey_uid_client_grant in self.db:
-        #             self.db.__delitem__(skey_uid_client_grant)
-        #         if grant_id in _client_info.subordinate:
-        #             _client_info.subordinate.remove(grant_id)
-        #     else:
-        #         for grant_id in _client_info.subordinate:
-        #             if skey_uid_client_grant in self.db:
-        #                 self.db.__delitem__(skey_uid_client_grant)
-        #         _client_info.subordinate = []
-        #
-        #     if len(_client_info.subordinate) == 0:
-        #         self.db.__delitem__(skey_uid_client)
-        #         _user_info.subordinate.remove(client_id)
-        #     else:
-        #         self.db[client_id] = _client_info
-        #
-        # if len(_user_info.subordinate) == 0:
-        #     self.db.__delitem__(uid)
-        # else:
-        #     self.db[uid] = _user_info
 
     def update(self, path: List[str], new_info: dict):
         _info = self.get(path)
