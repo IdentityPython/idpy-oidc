@@ -1,5 +1,8 @@
 from cryptojwt.key_jar import build_keyjar
 import pytest
+from idpyoidc.server.session.info import SessionInfo
+
+from idpyoidc.server.session.info import ClientSessionInfo
 
 from idpyoidc.server import EndpointContext
 from idpyoidc.server.session.grant import Grant
@@ -106,23 +109,44 @@ class TestGrantManager:
         )
 
     @pytest.mark.parametrize(
-        "path",
-        [[CLI1], ["foo", CLI1], [CLI1, "foo", "bar"]],
+        "path, node_type, node_info_class",
+        [([CLI1],
+          ["client", "grant"],
+          {"client": ClientSessionInfo, "grant": Grant}),
+         (["foo", CLI1],
+          ["subject", "client", "grant"],
+          {"subject": SessionInfo, "client": ClientSessionInfo, "grant": Grant}),
+         ([CLI1, "foo", "bar"],
+          ["subject", "other", "client", "grant"],
+          {"subject": SessionInfo,
+           "other": SessionInfo,
+           "client": ClientSessionInfo,
+           "grant": Grant})
+         ],
     )
-    def test_grant(self, path):
+    def test_grant(self, path, node_type, node_info_class):
+        self.grant_manager.node_type = node_type
+        self.grant_manager.node_info_class = node_info_class
         grant_id = self._create_grant(path, scope=["foo"])
         grant = self.grant_manager[grant_id]
         assert grant
 
     @pytest.mark.parametrize(
-        "path, node_type",
-        [([CLI1], ["client", "grant"]),
-         (["foo", CLI1], ["high", "client", "grant"]),
-         ([CLI1, "foo", "bar"], ["client", "high", "hat", "grant"])
+        "path, node_type, node_info_class",
+        [([CLI1],
+          ["client", "grant"],
+          {"client": ClientSessionInfo, "grant": Grant}),
+         (["foo", CLI1],
+          ["high", "client", "grant"],
+          {"high": SessionInfo, "client": ClientSessionInfo, "grant": Grant}),
+         ([CLI1, "foo", "bar"],
+          ["client", "high", "hat", "grant"],
+          {"client": ClientSessionInfo, "high": SessionInfo, "hat": SessionInfo, "grant": Grant})
          ],
     )
-    def test_check_leaf(self, path, node_type):
+    def test_check_leaf(self, path, node_type, node_info_class):
         self.grant_manager.node_type = node_type
+        self.grant_manager.node_info_class = node_info_class
         grant_id = self.grant_manager.add_grant(
             path=path,
             scope=["openid", "phoe"],
@@ -138,14 +162,26 @@ class TestGrantManager:
         assert _grant.scope == ["openid", "phoe"]
 
     @pytest.mark.parametrize(
-        "path, node_type",
-        [([CLI1], ["client", "grant"]),
-         (["foo", CLI1], ["high", "client", "grant"]),
-         ([CLI1, "foo", "bar"], ["client", "high", "hat", "grant"])
+        "path, node_type, node_info_class",
+        [([CLI1],
+          ["client", "grant"],
+          {"client": ClientSessionInfo, "grant": Grant}),
+         (["foo", CLI1],
+          ["subject", "client", "grant"],
+          {"subject": SessionInfo, "client": ClientSessionInfo, "grant": Grant}),
+         ([CLI1, "foo", "bar"],
+          ["client", "subject", "object", "grant"],
+          {
+              "subject": SessionInfo,
+              "object": SessionInfo,
+              "client": ClientSessionInfo,
+              "grant": Grant
+          })
          ],
     )
-    def test_branch_info(self, path, node_type):
+    def test_branch_info(self, path, node_type, node_info_class):
         self.grant_manager.node_type = node_type
+        self.grant_manager.node_info_class = node_info_class
         grant_id = self.grant_manager.add_grant(
             path=path,
             scope=["openid", "phoe"],
@@ -160,6 +196,7 @@ class TestGrantManager:
 
     def test_get_grant_argument(self):
         self.grant_manager.node_type = ["client", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo, "grant": Grant}
         grant_id = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
@@ -171,6 +208,7 @@ class TestGrantManager:
 
     def test_get_node_info(self):
         self.grant_manager.node_type = ["client", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo, "grant": Grant}
         grant_id = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
@@ -183,6 +221,7 @@ class TestGrantManager:
 
     def test_get_subordinates(self):
         self.grant_manager.node_type = ["client", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo, "grant": Grant}
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
@@ -201,6 +240,9 @@ class TestGrantManager:
 
     def test_get_grants(self):
         self.grant_manager.node_type = ["client", "intermediate", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo,
+                                              "intermediate": SessionInfo,
+                                              "grant": Grant}
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],
@@ -219,6 +261,9 @@ class TestGrantManager:
 
     def test_revoke_sub_tree(self):
         self.grant_manager.node_type = ["client", "intermediate", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo,
+                                              "intermediate": SessionInfo,
+                                              "grant": Grant}
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],
@@ -231,7 +276,7 @@ class TestGrantManager:
 
         self.grant_manager.revoke_sub_tree(branch_id=grant_id_1)
 
-        grant_1 =self.grant_manager[grant_id_1]
+        grant_1 = self.grant_manager[grant_id_1]
         assert grant_1.revoked is True
         grant_2 = self.grant_manager[grant_id_2]
         assert grant_2.revoked is False
@@ -239,7 +284,7 @@ class TestGrantManager:
         grant_1.revoked = False
         self.grant_manager.revoke_sub_tree(branch_id=grant_id_1, level=1)
 
-        grant_1 =self.grant_manager[grant_id_1]
+        grant_1 = self.grant_manager[grant_id_1]
         assert grant_1.revoked is True
         grant_2 = self.grant_manager[grant_id_2]
         assert grant_2.revoked is True
@@ -249,6 +294,9 @@ class TestGrantManager:
 
     def test_remove_branch(self):
         self.grant_manager.node_type = ["client", "intermediate", "grant"]
+        self.grant_manager.node_info_class = {"client": ClientSessionInfo,
+                                              "intermediate": SessionInfo,
+                                              "grant": Grant}
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],

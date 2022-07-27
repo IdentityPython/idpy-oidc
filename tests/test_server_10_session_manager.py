@@ -111,21 +111,21 @@ class TestSessionManager:
         self.authn_event = AuthnEvent(
             uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref"
         )
-        self.dummy_session_id = self.session_manager.encrypted_session_id(
+        self.dummy_branch_id = self.session_manager.encrypted_branch_id(
             "user_id", "client_id", "grant.id"
         )
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
+    def _create_session(self, authorization_request, sub_type="public", sector_identifier=""):
         if sector_identifier:
-            authz_req = auth_req.copy()
+            authz_req = authorization_request.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
-            authz_req = auth_req
+            authz_req = authorization_request
 
         client_id = authz_req["client_id"]
         ae = create_authn_event(USER_ID)
         return self.server.endpoint_context.session_manager.create_session(
-            ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
+            ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type, scope=["openid"]
         )
 
     @pytest.mark.parametrize(
@@ -139,15 +139,15 @@ class TestSessionManager:
             authz_req["sector_identifier_uri"] = sector_identifier
 
         session_key_1 = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=authz_req,
+            authentication_event=self.authn_event,
+            authorization_request=authz_req,
             user_id="diana",
             client_id="client_1",
-            sub_type=sub_type,
+            sub_type=sub_type
         )
 
-        _user_info_1 = self.session_manager.get_user_session_info(session_key_1)
-        assert _user_info_1.subordinate == ["client_1"]
+        _user_info_1 = self.session_manager.get_user_info(session_key_1)
+        assert _user_info_1.subordinate == ['diana;;client_1']
         _client_info_1 = self.session_manager.get_client_session_info(session_key_1)
         assert len(_client_info_1.subordinate) == 1
         # grant = self.session_manager.get_grant(session_key_1)
@@ -159,15 +159,15 @@ class TestSessionManager:
             authn_req["sector_identifier_uri"] = sector_identifier
 
         session_key_2 = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=authn_req,
+            authentication_event=self.authn_event,
+            authorization_request=authn_req,
             user_id="diana",
             client_id="client_2",
             sub_type=sub_type,
         )
 
-        _user_info_2 = self.session_manager.get_user_session_info(session_key_2)
-        assert _user_info_2.subordinate == ["client_1", "client_2"]
+        _user_info_2 = self.session_manager.get_user_info(session_key_2)
+        assert _user_info_2.subordinate == ['diana;;client_1', "diana;;client_2"]
 
         grant_1 = self.session_manager.get_grant(session_key_1)
         grant_2 = self.session_manager.get_grant(session_key_2)
@@ -184,8 +184,8 @@ class TestSessionManager:
             authn_req["sector_identifier_uri"] = sector_identifier
 
         session_key_3 = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=authn_req,
+            authentication_event=self.authn_event,
+            authorization_request=authn_req,
             user_id="diana",
             client_id="client_3",
             sub_type=sub_type,
@@ -212,28 +212,27 @@ class TestSessionManager:
         assert grant_1.authorization_request != grant_3.authorization_request
         assert grant_3.authorization_request != grant_2.authorization_request
 
-    def _mint_token(self, token_class, grant, session_id, based_on=None):
+    def _mint_token(self, token_class, grant, branch_id, based_on=None):
         # Constructing an authorization code is now done
         return grant.mint_token(
-            session_id=session_id,
+            branch_id=branch_id,
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
             based_on=based_on,
+            scope=["openid"]
         )
 
     def test_code_usage(self):
-        session_id = self._create_session(AUTH_REQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
-        grant = session_info["grant"]
+        branch_id = self._create_session(AUTH_REQ)
+        branch_info = self.endpoint_context.session_manager.branch_info(branch_id, "grant")
+        grant = branch_info["grant"]
 
         assert grant.issued_token == []
         assert grant.is_active() is True
 
-        code = self._mint_token("authorization_code", grant, session_id)
+        code = self._mint_token("authorization_code", grant, branch_id)
         assert isinstance(code, AuthorizationCode)
         assert code.is_active()
         assert len(grant.issued_token) == 1
@@ -243,12 +242,12 @@ class TestSessionManager:
             "refresh_token",
             "id_token",
         ]
-        access_token = self._mint_token("access_token", grant, session_id, code)
+        access_token = self._mint_token("access_token", grant, branch_id, code)
         assert isinstance(access_token, AccessToken)
         assert access_token.is_active()
         assert len(grant.issued_token) == 2
 
-        refresh_token = self._mint_token("refresh_token", grant, session_id, code)
+        refresh_token = self._mint_token("refresh_token", grant, branch_id, code)
         assert isinstance(refresh_token, RefreshToken)
         assert refresh_token.is_active()
         assert len(grant.issued_token) == 3
@@ -257,7 +256,7 @@ class TestSessionManager:
         assert code.max_usage_reached() is True
 
         with pytest.raises(MintingNotAllowed):
-            self._mint_token("access_token", grant, self.dummy_session_id, code)
+            self._mint_token("access_token", grant, self.dummy_branch_id, code)
 
         grant.revoke_token(based_on=code.value)
 
@@ -265,16 +264,16 @@ class TestSessionManager:
         assert refresh_token.revoked is True
 
     def test_check_grant(self):
-        session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
-            scopes=["openid", "phoe"],
+            scope=["openid", "phoe"],
         )
 
-        _session_info = self.session_manager.get_session_info(session_id=session_id, grant=True)
-        grant = _session_info["grant"]
+        _branch_info = self.session_manager.branch_info(branch_id, "grant")
+        grant = _branch_info["grant"]
         assert grant.scope == ["openid", "phoe"]
 
         _grant = self.session_manager.get(["diana", "client_1", grant.id])
@@ -282,130 +281,133 @@ class TestSessionManager:
         assert _grant.scope == ["openid", "phoe"]
 
     def test_find_token(self):
-        session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
 
-        _info = self.session_manager.get_session_info(session_id=session_id, grant=True)
+        _info = self.session_manager.branch_info(branch_id, "grant")
         grant = _info["grant"]
 
-        code = self._mint_token("authorization_code", grant, session_id)
-        access_token = self._mint_token("access_token", grant, session_id, code)
+        code = self._mint_token("authorization_code", grant, branch_id)
+        access_token = self._mint_token("access_token", grant, branch_id, code)
 
-        _session_id = self.session_manager.encrypted_session_id("diana", "client_1", grant.id)
-        _token = self.session_manager.find_token(_session_id, access_token.value)
+        _branch_id = self.session_manager.encrypted_branch_id("diana", "client_1", grant.id)
+        _token = self.session_manager.find_token(_branch_id, access_token.value)
 
         assert _token.token_class == "access_token"
         assert _token.id == access_token.id
 
     def test_get_authentication_event(self):
-        session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             # test taking the client_id from the authn request
             # client_id="client_1",
         )
 
-        _info = self.session_manager.get_session_info(session_id, authentication_event=True)
-        authn_event = _info["authentication_event"]
+        _info = self.session_manager.branch_info(branch_id, "grant")
+        authn_event = _info["grant"].authentication_event
 
         assert isinstance(authn_event, AuthnEvent)
         assert authn_event["uid"] == "uid"
         assert authn_event["authn_info"] == "authn_class_ref"
 
         # cover the remaining one ...
-        _info = self.session_manager.get_session_info(session_id, authorization_request=True)
+        _info = self.session_manager.branch_info(branch_id, "grant")
+        _ = _info["grant"].authorization_request
 
-    def test_get_client_session_info(self):
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+    def test_get_client_branch_info(self):
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
 
-        csi = self.session_manager.get_client_session_info(_session_id)
+        _info = self.session_manager.branch_info(_branch_id, "client")
 
-        assert isinstance(csi, ClientSessionInfo)
+        assert isinstance(_info["client"], ClientSessionInfo)
 
-    def test_get_general_session_info(self):
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+    def test_get_general_branch_info(self):
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
 
-        _session_info = self.session_manager.get_session_info(_session_id)
+        _branch_info = self.session_manager.branch_info(_branch_id)
 
-        assert set(_session_info.keys()) == {
+        assert set(_branch_info.keys()) == {
             "client_id",
             "grant_id",
-            "session_id",
             "user_id",
+            "user",
+            "client",
+            "grant"
         }
-        assert _session_info["user_id"] == "diana"
-        assert _session_info["client_id"] == "client_1"
+        assert _branch_info["user_id"] == "diana"
+        assert _branch_info["client_id"] == "client_1"
 
-    def test_get_session_info_by_token(self):
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+    def test_get_branch_info_by_token(self):
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
 
-        grant = self.session_manager.get_grant(_session_id)
-        code = self._mint_token("authorization_code", grant, _session_id)
-        _session_info = self.session_manager.get_session_info_by_token(
-            code.value, handler_key="authorization_code"
-        )
+        grant = self.session_manager.get_grant(_branch_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
+        _branch_info = self.session_manager.get_branch_info_by_token(code.value)
 
-        assert set(_session_info.keys()) == {
+        assert set(_branch_info.keys()) == {
             "client_id",
-            "session_id",
             "grant_id",
             "user_id",
+            "user",
+            "client",
+            "grant"
         }
-        assert _session_info["user_id"] == "diana"
-        assert _session_info["client_id"] == "client_1"
+        assert _branch_info["user_id"] == "diana"
+        assert _branch_info["client_id"] == "client_1"
 
     def test_token_usage_default(self):
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
 
-        code = self._mint_token("authorization_code", grant, _session_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
 
         assert code.usage_rules == {
             "max_usage": 1,
             "supports_minting": ["access_token", "refresh_token", "id_token"],
         }
 
-        token = self._mint_token("access_token", grant, _session_id, code)
+        token = self._mint_token("access_token", grant, _branch_id, code)
 
         assert token.usage_rules == {}
 
-        refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
+        refresh_token = self._mint_token("refresh_token", grant, _branch_id, code)
 
         assert refresh_token.usage_rules == {"supports_minting": ["access_token", "refresh_token"]}
 
     def test_token_usage_grant(self):
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
         grant.usage_rules = {
             "authorization_code": {
                 "max_usage": 1,
@@ -416,17 +418,17 @@ class TestSessionManager:
             "refresh_token": {"supports_minting": ["access_token", "refresh_token", "id_token"]},
         }
 
-        code = self._mint_token("authorization_code", grant, _session_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
         assert code.usage_rules == {
             "max_usage": 1,
             "supports_minting": ["access_token", "refresh_token", "id_token"],
             "expires_in": 300,
         }
 
-        token = self._mint_token("access_token", grant, _session_id, code)
+        token = self._mint_token("access_token", grant, _branch_id, code)
         assert token.usage_rules == {"expires_in": 3600}
 
-        refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
+        refresh_token = self._mint_token("refresh_token", grant, _branch_id, code)
         assert refresh_token.usage_rules == {
             "supports_minting": ["access_token", "refresh_token", "id_token"]
         }
@@ -452,28 +454,28 @@ class TestSessionManager:
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
 
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
 
-        code = self._mint_token("authorization_code", grant, _session_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
         assert code.usage_rules == {
             "max_usage": 1,
             "supports_minting": ["access_token"],
             "expires_in": 120,
         }
 
-        token = self._mint_token("access_token", grant, _session_id, code)
+        token = self._mint_token("access_token", grant, _branch_id, code)
         assert token.usage_rules == {"expires_in": 600}
 
         # Only allowed to mint access_tokens using the authorization_code
         with pytest.raises(MintingNotAllowed):
-            self._mint_token("refresh_token", grant, _session_id, code)
+            self._mint_token("refresh_token", grant, _branch_id, code)
 
     def test_token_usage_client_config(self):
         grant_config = {
@@ -507,26 +509,26 @@ class TestSessionManager:
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
 
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
 
-        code = self._mint_token("authorization_code", grant, _session_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
         assert code.usage_rules == {
             "max_usage": 1,
             "supports_minting": ["access_token", "refresh_token"],
             "expires_in": 600,
         }
 
-        token = self._mint_token("access_token", grant, _session_id, code)
+        token = self._mint_token("access_token", grant, _branch_id, code)
         assert token.usage_rules == {"expires_in": 600}
 
-        refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
+        refresh_token = self._mint_token("refresh_token", grant, _branch_id, code)
         assert refresh_token.usage_rules == {"supports_minting": ["access_token"]}
 
         # Test with another client
@@ -535,32 +537,32 @@ class TestSessionManager:
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_2")
 
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_2",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
-        code = self._mint_token("authorization_code", grant, _session_id)
+        grant = self.session_manager[_branch_id]
+        code = self._mint_token("authorization_code", grant, _branch_id)
         # Not allowed to mint refresh token for this client
         with pytest.raises(MintingNotAllowed):
-            self._mint_token("refresh_token", grant, _session_id, code)
+            self._mint_token("refresh_token", grant, _branch_id, code)
 
         # test revoke token
-        self.session_manager.revoke_token(_session_id, code.value, recursive=1)
+        self.session_manager.revoke_token(_branch_id, code.value, recursive=1)
 
     def test_authentication_events(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        res = self.session_manager.get_authentication_events(_session_id)
+        res = self.session_manager.get_authentication_events(_branch_id)
 
         assert isinstance(res[0], AuthnEvent)
 
@@ -579,9 +581,9 @@ class TestSessionManager:
 
     def test_user_info(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
@@ -590,40 +592,40 @@ class TestSessionManager:
 
     def test_revoke_client_session(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        self.session_manager.revoke_client_session(_session_id)
+        self.session_manager.revoke_client_session(_branch_id)
 
     def test_revoke_grant(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
-        self.session_manager.revoke_grant(_session_id)
+        grant = self.session_manager[_branch_id]
+        self.session_manager.revoke_grant(_branch_id)
 
     def test_revoke_dependent(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
 
-        code = self._mint_token("authorization_code", grant, _session_id)
-        token = self._mint_token("access_token", grant, _session_id, code)
+        code = self._mint_token("authorization_code", grant, _branch_id)
+        token = self._mint_token("access_token", grant, _branch_id, code)
 
         grant.remove_inactive_token = True
         grant.revoke_token(value=token.value)
@@ -632,14 +634,14 @@ class TestSessionManager:
 
     def test_grants(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        res = self.session_manager.grants(_session_id)
+        res = self.session_manager.grants(_branch_id)
 
         assert isinstance(res, list)
 
@@ -657,7 +659,7 @@ class TestSessionManager:
             raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
         # and now cove add_grant
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
         grant_kwargs = grant.parameter
         for i in ("not_before", "used"):
             grant_kwargs.pop(i)
@@ -665,33 +667,33 @@ class TestSessionManager:
 
     def test_find_latest_idtoken(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
-        _session_id = self.session_manager.create_session(
-            authn_event=self.authn_event,
-            auth_req=AUTH_REQ,
+        _branch_id = self.session_manager.create_session(
+            authentication_event=self.authn_event,
+            authorization_request=AUTH_REQ,
             user_id="diana",
             client_id="client_1",
             token_usage_rules=token_usage_rules,
         )
-        grant = self.session_manager[_session_id]
+        grant = self.session_manager[_branch_id]
 
-        code = self._mint_token("authorization_code", grant, _session_id)
-        id_token_1 = self._mint_token("id_token", grant, _session_id)
+        code = self._mint_token("authorization_code", grant, _branch_id)
+        id_token_1 = self._mint_token("id_token", grant, _branch_id)
 
-        refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
-        id_token_2 = self._mint_token("id_token", grant, _session_id, code)
+        refresh_token = self._mint_token("refresh_token", grant, _branch_id, code)
+        id_token_2 = self._mint_token("id_token", grant, _branch_id, code)
 
         _jwt1 = factory(id_token_1.value)
         _jwt2 = factory(id_token_2.value)
         assert _jwt1.jwt.payload()["sid"] == _jwt2.jwt.payload()["sid"]
 
-        assert id_token_1.session_id == id_token_2.session_id
+        assert id_token_1.branch_id == id_token_2.branch_id
 
         idt = grant.last_issued_token_of_type("id_token")
 
-        assert idt.session_id == id_token_2.session_id
+        assert idt.branch_id == id_token_2.branch_id
 
-        id_token_3 = self._mint_token("id_token", grant, _session_id, refresh_token)
+        id_token_3 = self._mint_token("id_token", grant, _branch_id, refresh_token)
 
         idt = grant.last_issued_token_of_type("id_token")
 
-        assert idt.session_id == id_token_3.session_id
+        assert idt.branch_id == id_token_3.branch_id

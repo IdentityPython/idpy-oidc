@@ -181,8 +181,8 @@ class Grant(Item):
 
     def payload_arguments(
         self,
-        session_id: str,
-        endpoint_context,
+        branch_id: str,
+        endpoint_context: object,
         item: SessionToken,
         claims_release_point: str,
         extra_payload: Optional[dict] = None,
@@ -190,7 +190,7 @@ class Grant(Item):
     ) -> dict:
         """
 
-        :param session_id: Session ID
+        :param branch_id: Session ID
         :param endpoint_context: EndPoint Context
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
         :param scope: scope from the request
@@ -229,14 +229,14 @@ class Grant(Item):
             _claims_restriction = item.claims
         else:
             _claims_restriction = endpoint_context.claims_interface.get_claims(
-                session_id,
+                branch_id,
                 scopes=payload["scope"],
                 claims_release_point=claims_release_point,
                 secondary_identifier=secondary_identifier,
             )
 
-        if "user" in endpoint_context.session_manager.node_map:
-            user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
+        if "user" in endpoint_context.session_manager.node_info_class:
+            user_id, _, _ = endpoint_context.session_manager.decrypt_branch_id(branch_id)
             user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
             payload.update(user_info)
 
@@ -250,7 +250,7 @@ class Grant(Item):
 
     def mint_token(
         self,
-        session_id: str,
+        branch_id: str,
         endpoint_context: object,
         token_class: str,
         token_handler: TokenHandler = None,
@@ -265,7 +265,7 @@ class Grant(Item):
     ) -> Optional[SessionToken]:
         """
 
-        :param session_id:
+        :param branch_id:
         :param endpoint_context:
         :param token_type:
         :param token_handler:
@@ -353,10 +353,10 @@ class Grant(Item):
             )
 
             if token_class == "id_token":
-                item.session_id = session_id
+                item.branch_id = branch_id
 
             token_payload = self.payload_arguments(
-                session_id,
+                branch_id,
                 endpoint_context,
                 item=item,
                 claims_release_point=claims_release_point,
@@ -367,7 +367,7 @@ class Grant(Item):
             logger.debug(f"token_payload: {token_payload}")
 
             item.value = token_handler(
-                session_id=session_id, usage_rules=usage_rules, **token_payload
+                branch_id=branch_id, usage_rules=usage_rules, **token_payload
             )
 
         else:

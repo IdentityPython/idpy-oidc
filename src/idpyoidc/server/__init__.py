@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.utils import importer
 
 from idpyoidc.constant import DEFAULT_CREATE_SESSION_MANAGER_FUNCTION
 from idpyoidc.impexp import ImpExp
@@ -70,7 +71,7 @@ class Server(ImpExp):
             self.server_get,
             self.endpoint_context.th_args,
             conf=self.conf,
-            sub_func=self.endpoint_context._sub_func,
+            sub_func=self.endpoint_context._sub_func
         )
 
         self.endpoint_context.do_userinfo()
@@ -160,4 +161,4 @@ class Server(ImpExp):
 
     def _get_session_init_function(self, conf):
         _sparam = conf.get("session_params")
-        return _sparam.get("function", DEFAULT_CREATE_SESSION_MANAGER_FUNCTION)
+        return importer(_sparam.get("function", DEFAULT_CREATE_SESSION_MANAGER_FUNCTION))

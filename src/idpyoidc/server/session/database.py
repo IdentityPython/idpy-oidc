@@ -86,8 +86,9 @@ class Database(ImpExp):
                     _info = SessionInfo()
 
             if _superior:
-                if _key not in _superior.subordinate:
-                    _superior.add_subordinate(_key)
+                if hasattr(_superior, "subordinate"):
+                    if _key not in _superior.subordinate:
+                        _superior.add_subordinate(_key)
 
             self.db[_key] = _info
             _superior = _info

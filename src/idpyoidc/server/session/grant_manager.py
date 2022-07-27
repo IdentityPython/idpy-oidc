@@ -8,6 +8,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from idpyoidc.server.session.info import ClientSessionInfo
+
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.encrypter import get_crypt_config
 from idpyoidc.message.oauth2 import TokenExchangeRequest
@@ -35,7 +37,8 @@ class GrantManager(Database):
         self.conf = conf or {
             "session_params": {
                 "encrypter": default_crypt_config(),
-                "node_type": ["client", "grant"]
+                "node_type": ["client", "grant"],
+                "node_info_class": {"client": ClientSessionInfo, "grant": Grant}
             }
         }
 
@@ -43,7 +46,9 @@ class GrantManager(Database):
         _crypt_config = get_crypt_config(session_params)
         super(GrantManager, self).__init__(_crypt_config)
 
-        self.node_type = session_params.get("node_type", {"client": 0, "grant": 1})
+        self.node_type = session_params.get("node_type", ["client", "grant"])
+        self.node_info_class = session_params.get("node_info_class", {"client": ClientSessionInfo,
+                                                                      "grant": Grant})
         self.token_handler = handler
         self.remember_token = remember_token
         self.remove_inactive_token = remove_inactive_token
@@ -72,7 +77,8 @@ class GrantManager(Database):
             try:
                 _si = self.get(_id)
             except KeyError:
-                _si = SessionInfo()
+                _info_class = self.node_info_class[self.node_type[i]]
+                _si = _info_class()
                 self.set(_id, _si)
 
     def _get_nodes(self, path):
@@ -160,7 +166,7 @@ class GrantManager(Database):
 
         :param branch_id: Session identifier
         :param level:
-        :param node_type: Type of a node, MUST appear in the node_type
+        :param node_type: Type of node, MUST appear in the node_type
         :return: SessionInfo instance
         """
         _path = self.decrypt_branch_id(branch_id)
@@ -195,7 +201,6 @@ class GrantManager(Database):
         Return all subordinates to a specific node
 
         :param path:
-        :param session_info:
         :return:
         """
         session_info = self.get(path)
@@ -204,29 +209,6 @@ class GrantManager(Database):
     def get_grant_argument(self, branch_id: str, arg: str):
         grant = self[branch_id]
         return getattr(grant, arg)
-
-    # def get_info_by_argument(
-    #         self,
-    #         arg: str,
-    #         branch_id: Optional[str] = "",
-    #         path: Optional[List[str]] = None,
-    # ) -> list:
-    #     """
-    #     Return the authentication events that exists for a user/client combination.
-    #
-    #     :param path:
-    #     :param branch_id: A session identifier
-    #     :return: None if no authentication event could be found or an AuthnEvent instance.
-    #     """
-    #     if branch_id:
-    #         _id = self.decrypt_branch_id(branch_id)
-    #     elif path:
-    #         _id = path
-    #     else:
-    #         raise AttributeError("Must have branch_id or user_id and client_id")
-    #
-    #     _grants = self.get_subordinates(_id)
-    #     return [getattr(g, arg) for g in _grants]
 
     def _revoke_tree(self, node):
         node.revoke()

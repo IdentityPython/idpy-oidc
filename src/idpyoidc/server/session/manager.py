@@ -6,13 +6,12 @@ from typing import List
 from typing import Optional
 import uuid
 
-from idpyoidc.encrypter import default_crypt_config
-from idpyoidc.encrypter import get_crypt_config
+from idpyoidc.server.exception import NoSuchClientSession
+
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
-from idpyoidc.server.session.database import NoSuchClientSession
 from idpyoidc.util import rndstr
 from .database import Database
 from .grant import ExchangeGrant
@@ -98,7 +97,9 @@ class SessionManager(GrantManager):
                                              remove_inactive_token=remove_inactive_token)
 
         self.node_type = ["user", "client", "grant"]
-
+        self.node_info_class = {"user": UserSessionInfo,
+                                "client": ClientSessionInfo,
+                                "grant": Grant}
         # this allows the subject identifier minters to be defined by someone
         # else then me.
         if sub_func is None:
@@ -118,134 +119,37 @@ class SessionManager(GrantManager):
 
         self.auth_req_id_map = {}
 
-    def get_salt(self):
-        """returns the original salt assigned in init"""
-        return self.crypt_config["kwargs"]["salt"]
-
-    def __setattr__(self, key, value):
-        if key in ("_key", "_salt"):
-            if hasattr(self, key):
-                # not first time we configure it!
-                raise AttributeError(f"{key} is a ReadOnly attribute that can't be overwritten!")
-        super().__setattr__(key, value)
-
-    def get_user_info(self, uid: str) -> UserSessionInfo:
-        usi = self.get([uid])
-        if isinstance(usi, UserSessionInfo):
-            return usi
-        else:  # pragma: no cover
-            raise ValueError("Not UserSessionInfo")
-
-    def find_token(self, session_id: str, token_value: str) -> Optional[SessionToken]:
+    def find_token(self, branch_id: str, token_value: str) -> Optional[SessionToken]:
         """
 
-        :param session_id: Based on 3-tuple, user_id, client_id and grant_id
+        :param branch_id: Based on 3-tuple, user_id, client_id and grant_id
         :param token_value:
         :return:
         """
-        user_id, client_id, grant_id = self.decrypt_session_id(session_id)
-        grant = self.get([user_id, client_id, grant_id])
+        grant = self.get(self.decrypt_branch_id(branch_id))
         for token in grant.issued_token:
             if token.value == token_value:
                 return token
 
         return None  # pragma: no cover
 
-    def create_grant(
-            self,
-            authn_event: AuthnEvent,
-            auth_req: AuthorizationRequest,
-            user_id: str,
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
-    ) -> str:
-        """
-
-        :param scopes: Scopes
-        :param authn_event: AuthnEvent instance
-        :param auth_req:
-        :param user_id:
-        :param client_id:
-        :param sub_type:
-        :param token_usage_rules:
-        :return:
-        """
-        if auth_req:
-            sector_identifier = auth_req.get("sector_identifier_uri", "")
-            _claims = auth_req.get("claims", {})
-            if scopes is None:
-                scopes = auth_req.get("scope")
-        else:
-            sector_identifier = ""
-            _claims = {}
-
-        grant = Grant(
-            authorization_request=auth_req,
-            authentication_event=authn_event,
-            sub=self.sub_func[sub_type](
-                user_id, salt=self.get_salt(), sector_identifier=sector_identifier
-            ),
-            usage_rules=token_usage_rules,
-            scope=scopes,
-            claims=_claims,
-            remember_token=self.remember_token,
-            remove_inactive_token=self.remove_inactive_token,
-        )
-
-        self.set([user_id, client_id, grant.id], grant)
-
-        return self.encrypted_session_id(user_id, client_id, grant.id)
-
-    def create_exchange_grant(
-            self,
-            exchange_request: TokenExchangeRequest,
-            original_session_id: str,
-            user_id: str,
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
-    ) -> str:
-        """
-
-        :param scopes: Scopes
-        :param exchange_req:
-        :param user_id:
-        :param client_id:
-        :param sub_type:
-        :return:
-        """
-
-        grant = ExchangeGrant(
-            scope=scopes,
-            original_session_id=original_session_id,
-            exchange_request=exchange_request,
-            sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
-            usage_rules=token_usage_rules,
-        )
-        self.set([user_id, client_id, grant.id], grant)
-
-        return self.encrypted_session_id(user_id, client_id, grant.id)
-
     def create_session(
             self,
-            authn_event: AuthnEvent,
-            auth_req: AuthorizationRequest,
+            authentication_event: AuthnEvent,
+            authorization_request: AuthorizationRequest,
             user_id: str,
             client_id: Optional[str] = "",
             sub_type: Optional[str] = "public",
             token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+            scope: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
         information and a grant.
 
-        :param scopes:
-        :param authn_event: Authentication Event information
-        :param auth_req: Authorization Request
+        :param scope:
+        :param authentication_event: Authentication Event information
+        :param authorization_request: Authorization Request
         :param client_id: Client ID
         :param user_id: User ID
         :param sub_type: What kind of subject will be assigned
@@ -253,46 +157,37 @@ class SessionManager(GrantManager):
         :return: Session key
         """
 
-        try:
-            _usi = self.get([user_id])
-        except KeyError:
-            _usi = UserSessionInfo(user_id=user_id)
-            self.set([user_id], _usi)
+        if authorization_request:
+            sector_identifier = authorization_request.get("sector_identifier_uri", "")
+        else:
+            sector_identifier = ""
+        sub=self.sub_func[sub_type](user_id, salt=self.get_salt(),
+                                    sector_identifier=sector_identifier),
 
-        if not client_id:
-            client_id = auth_req["client_id"]
-
-        try:
-            self.get([user_id, client_id])
-        except (NoSuchClientSession, ValueError):
-            client_info = ClientSessionInfo(client_id=client_id)
-            self.set([user_id, client_id], client_info)
-
-        return self.create_grant(
-            auth_req=auth_req,
-            authn_event=authn_event,
-            user_id=user_id,
-            client_id=client_id,
-            sub_type=sub_type,
+        return self.add_grant(
+            path=[user_id, client_id],
             token_usage_rules=token_usage_rules,
-            scopes=scopes,
+            scope=scope,
+            authorization_request=authorization_request,
+            authentication_event=authentication_event,
+            sub=sub
         )
 
     def create_exchange_session(
             self,
             exchange_request: TokenExchangeRequest,
-            original_session_id: str,
+            original_branch_id: str,
             user_id: str,
             client_id: Optional[str] = "",
             sub_type: Optional[str] = "public",
             token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+            scope: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
         information and a grant.
 
-        :param scopes:
+        :param scope:
         :param authn_event: Authentication Event information
         :param auth_req: Authorization Request
         :param client_id: Client ID
@@ -317,248 +212,93 @@ class SessionManager(GrantManager):
             client_info = ClientSessionInfo(client_id=client_id)
             self.set([user_id, client_id], client_info)
 
-        return self.create_exchange_grant(
+        return self.add_exchange_grant(
             exchange_request=exchange_request,
-            original_session_id=original_session_id,
-            user_id=user_id,
-            client_id=client_id,
-            sub_type=sub_type,
+            original_branch_id=original_branch_id,
+            path=[user_id, client_id],
             token_usage_rules=token_usage_rules,
-            scopes=scopes,
+            sub_type=sub_type,
+            scope=scope,
         )
 
-    def __getitem__(self, session_id: str):
-        return self.get(self.decrypt_session_id(session_id))
-
-    def __setitem__(self, session_id: str, value):
-        return self.set(self.decrypt_session_id(session_id), value)
-
-    def get_client_session_info(self, session_id: str) -> ClientSessionInfo:
+    def get_user_info(self, branch_id: str) -> UserSessionInfo:
         """
-        Return client connected information for a user session.
+        Return user connected information for a session.
 
-        :param session_id: Session identifier
+        :param branch_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        csi = self.get([_user_id, _client_id])
-        if isinstance(csi, ClientSessionInfo):
-            return csi
-        else:  # pragma: no cover
-            raise ValueError("Wrong type of session info")
+        return self.get_node_info(branch_id, node_type="user")[1]
 
-    def get_user_session_info(self, session_id: str) -> UserSessionInfo:
+    def get_client_session_info(self, branch_id: str) -> ClientSessionInfo:
         """
-        Return client connected information for a user session.
+        Return client connected information for a session.
 
-        :param session_id: Session identifier
+        :param branch_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        usi = self.get([_user_id])
-        if isinstance(usi, UserSessionInfo):
-            return usi
-        else:  # pragma: no cover
-            raise ValueError("Wrong type of session info")
+        return self.get_node_info(branch_id, node_type="client")[1]
 
-    def get_grant(self, session_id: str) -> Grant:
+    def get_grant(self, branch_id: str) -> Grant:
         """
-        Return client connected information for a user session.
+        Return client connected information for a session.
 
-        :param session_id: Session identifier
+        :param branch_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        grant = self.get([_user_id, _client_id, _grant_id])
-        if isinstance(grant, Grant):
-            return grant
-        else:  # pragma: no cover
-            raise ValueError("Wrong type of item")
+        return self.get_node_info(branch_id, node_type="grant")[1]
 
-    def revoke_token(self, session_id: str, token_value: str, recursive: bool = False):
-        """
-        Revoke a specific token that belongs to a specific user session.
-
-        :param session_id: Session identifier
-        :param token_value: SessionToken value
-        :param recursive: Revoke all tokens that was minted using this token or
-            tokens minted by this token. Recursively.
-        """
-        token = self.find_token(session_id, token_value)
-        if token is None:  # pragma: no cover
-            raise UnknownToken()
-
-        token.revoked = True
-        if recursive:  # TODO: not covered yet!
-            grant = self[session_id]
-            grant.revoke_token(value=token.value)
-
-    def get_authentication_events(
-            self,
-            session_id: Optional[str] = "",
-            user_id: Optional[str] = "",
-            client_id: Optional[str] = "",
-    ) -> List[AuthnEvent]:
+    def get_authentication_events(self, branch_id: Optional[str] = "") -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
 
-        :param client_id:
-        :param user_id:
-        :param session_id: A session identifier
+        :param path:
+        :param branch_id: A session identifier
         :return: None if no authentication event could be found or an AuthnEvent instance.
         """
-        if session_id:
-            user_id, client_id, _ = self.decrypt_session_id(session_id)
-        elif user_id and client_id:
-            pass
-        else:
-            raise AttributeError("Must have session_id or user_id and client_id")
+        _path = self.decrypt_branch_id(branch_id)
 
-        c_info = self.get([user_id, client_id])
+        c_info = self.get(_path[0:2])
 
-        _grants = [self.get([user_id, client_id, gid]) for gid in c_info.subordinate]
+        _grants = [self.get(gid) for gid in c_info.subordinate]
         return [g.authentication_event for g in _grants]
 
-    def get_authorization_request(self, session_id):
-        res = self.get_session_info(session_id=session_id, authorization_request=True)
-        return res["authorization_request"]
+    def get_authorization_request(self, branch_id):
+        _grant = self.get(self.decrypt_branch_id(branch_id))
+        return _grant.authorization_request
 
-    def get_authentication_event(self, session_id):
-        res = self.get_session_info(session_id=session_id, authentication_event=True)
-        return res["authentication_event"]
+    def get_authentication_event(self, branch_id):
+        _grant = self.get(self.decrypt_branch_id(branch_id))
+        return _grant.authentication_event
 
-    def revoke_client_session(self, session_id: str):
+    def revoke_client_session(self, branch_id: str):
         """
         Revokes a client session
 
-        :param session_id: Session identifier
+        :param branch_id: Session identifier
         """
-        parts = self.decrypt_session_id(session_id)
-        if len(parts) == 2:
-            _user_id, _client_id = parts
-        elif len(parts) == 3:
-            _user_id, _client_id, _ = parts
-        else:
-            raise ValueError("Invalid session ID")
+        _path = self.decrypt_branch_id(branch_id)
+        _info = self.get(_path[0:2])
+        logger.debug(f"revoke_client_session: {_path[0]}:{_path[1]}")
+        # revoke client session and all grants
+        self._revoke_tree(_info)
 
-        _info = self.get([_user_id, _client_id])
-        logger.debug(f"revoke_client_session: {_user_id}:{_client_id}")
-        self.set([_user_id, _client_id], _info.revoke())
-
-        # revoked all grants
-        for gid in _info.subordinate:
-            _grant = self.get([_user_id, _client_id, gid])
-            _grant.revoke()
-
-    def client_session_is_revoked(self, session_id: str):
-        _user_id, _client_id, _ = self.decrypt_session_id(session_id)
-        _client_inst = self.get([_user_id, _client_id])
+    def client_session_is_revoked(self, branch_id: str):
+        _path = self.decrypt_branch_id(branch_id)
+        _client_inst = self.get(_path[0:2])
         return _client_inst.revoked
 
-    def revoke_grant(self, session_id: str):
+    def revoke_grant(self, branch_id: str):
         """
         Revokes the grant pointed to by a session identifier.
 
-        :param session_id: A session identifier
+        :param branch_id: A session identifier
         """
-        _path = self.decrypt_session_id(session_id)
-        _info = self.get(_path)
-        _info.revoke()
-        self.set(_path, _info)
+        self.revoke_sub_tree(branch_id)
 
-    def grants(
-            self,
-            session_id: Optional[str] = "",
-            user_id: Optional[str] = "",
-            client_id: Optional[str] = "",
-    ) -> List[Grant]:
-        """
-        Find all grant connected to a user session
-
-        :param client_id:
-        :param user_id:
-        :param session_id: A session identifier
-        :return: A list of grants
-        """
-        if session_id:
-            user_id, client_id, _ = self.decrypt_session_id(session_id)
-        elif user_id and client_id:
-            pass
-        else:
-            raise AttributeError("Must have session_id or user_id and client_id")
-
-        _csi = self.get([user_id, client_id])
-        return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
-
-    def get_session_info(
-            self,
-            session_id: str,
-            user_session_info: bool = False,
-            client_session_info: bool = False,
-            grant: bool = False,
-            authentication_event: bool = False,
-            authorization_request: bool = False,
-    ) -> dict:
-        """
-        Returns information connected to a session.
-
-        :param session_id: The identifier of the session
-        :param user_session_info: Whether user session info should part of the response
-        :param client_session_info: Whether client session info should part of the response
-        :param grant: Whether the grant should part of the response
-        :param authentication_event: Whether the authentication event information should part of
-            the response
-        :param authorization_request: Whether the authorization_request should part of the response
-        :return: A dictionary with session information
-        """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        _grant = None
-        res = {
-            "session_id": session_id,
-            "user_id": _user_id,
-            "client_id": _client_id,
-            "grant_id": _grant_id,
-        }
-        if user_session_info:
-            res["user_session_info"] = self.get([_user_id])
-        if client_session_info:
-            res["client_session_info"] = self.get([_user_id, _client_id])
-        if grant:
-            res["grant"] = self.get([_user_id, _client_id, _grant_id])
-
-        if authentication_event:
-            if grant:
-                res["authentication_event"] = res["grant"]["authentication_event"]
-            else:
-                _grant = self.get([_user_id, _client_id, _grant_id])
-                res["authentication_event"] = _grant.authentication_event
-
-        if authorization_request:
-            if grant:
-                res["authorization_request"] = res["grant"].authorization_request
-            elif _grant:
-                res["authorization_request"] = _grant.authorization_request
-            else:
-                _grant = self.get([_user_id, _client_id, _grant_id])
-                res["authorization_request"] = _grant.authorization_request
-
-        return res
-
-    def _compatible_sid(self, sid):
-        # To be backward compatible is this an old time sid
-        p = self.unpack_session_key(sid)
-        if len(p) == 3:
-            sid = self.encrypted_session_id(*p)
-        return sid
-
-    def get_session_info_by_token(
+    def get_branch_info_by_token(
             self,
             token_value: str,
-            user_session_info: Optional[bool] = False,
-            client_session_info: Optional[bool] = False,
-            grant: Optional[bool] = False,
-            authentication_event: Optional[bool] = False,
-            authorization_request: Optional[bool] = False,
             handler_key: Optional[str] = "",
     ) -> dict:
         if handler_key:
@@ -575,43 +315,12 @@ class SessionManager(GrantManager):
         # To be backward compatible is this an old time sid
         sid = self._compatible_sid(sid)
 
-        return self.get_session_info(
-            sid,
-            user_session_info=user_session_info,
-            client_session_info=client_session_info,
-            grant=grant,
-            authentication_event=authentication_event,
-            authorization_request=authorization_request,
-        )
+        return self.branch_info(sid, *self.node_type)
 
-    def get_session_id_by_token(self, token_value: str) -> str:
+    def get_branch_id_by_token(self, token_value: str) -> str:
         _token_info = self.token_handler.info(token_value)
         sid = _token_info.get("sid")
         return self._compatible_sid(sid)
-
-    def add_grant(self, user_id: str, client_id: str, **kwargs) -> Grant:
-        """
-        Creates and adds a grant to a user session.
-
-        :param user_id: User identifier
-        :param client_id: Client identifier
-        :param kwargs: Keyword arguments to the Grant class initialization
-        :return: A Grant instance
-        """
-        args = {k: v for k, v in kwargs.items() if k in Grant.parameter}
-        _grant = Grant(**args)
-        self.set([user_id, client_id, _grant.id], _grant)
-        _client_session_info = self.get([user_id, client_id])
-        _client_session_info.subordinate.append(_grant.id)
-        self.set([user_id, client_id], _client_session_info)
-        return _grant
-
-    def remove_session(self, session_id: str):
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        self.delete([_user_id, _client_id, _grant_id])
-
-    def flush(self):
-        super().flush()
 
 
 def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
