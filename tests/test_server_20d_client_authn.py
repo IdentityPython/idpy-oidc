@@ -292,7 +292,7 @@ class TestBearerBody:
 
     def test_bearer_body(self):
         request = {"access_token": "1234567890"}
-        assert self.method.verify(request) == {"token": "1234567890", "method": "bearer_body"}
+        assert self.method.verify(request, get_client_id_from_token=get_client_id_from_token) == {"token": "1234567890", "method": "bearer_body"}
 
     def test_bearer_body_no_token(self):
         request = {}
@@ -457,14 +457,13 @@ class TestVerify:
         )
         assert res == {"method": "public", "client_id": client_id}
 
-        with pytest.raises(ClientAuthenticationError) as e:
-            verify_client(
-                self.endpoint_context,
-                request,
-                endpoint=self.server.server_get("endpoint", "token"),
-            )
-        assert e.value.args[0] == "Failed to verify client"
-
+        res = verify_client(
+            self.endpoint_context,
+            request,
+            endpoint=self.server.server_get("endpoint", "token"),
+        )
+        assert res == {}
+        
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
             self.endpoint_context,

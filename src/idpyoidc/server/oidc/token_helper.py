@@ -122,7 +122,6 @@ class AccessTokenHelper(TokenEndpointHelper):
         if (
             issue_refresh
             and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
@@ -237,7 +236,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
                 token_type = "DPoP"
 
         token = _grant.get_token(token_value)
-        scope = _grant.find_scope(token.based_on)
+        scope = _grant.find_scope(token)
         if "scope" in req:
             scope = req["scope"]
         access_token = self._mint_token(

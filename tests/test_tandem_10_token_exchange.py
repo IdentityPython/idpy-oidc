@@ -340,8 +340,8 @@ class TestEndpoint(object):
             "issued_token_type",
         }
 
-        assert _te_resp["issued_token_type"] == list(token.keys())[0]
-        assert _te_resp["scope"] == _scope
+        assert _te_resp["issued_token_type"] == token[list(token.keys())[0]]
+        assert set(_te_resp["scope"]) == set(_scope)
 
     @pytest.mark.parametrize(
         "token",
@@ -367,7 +367,7 @@ class TestEndpoint(object):
                 "": {
                     "callable":
                         "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {"scope": ["openid"]},
+                    "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
         }
@@ -395,8 +395,8 @@ class TestEndpoint(object):
             "issued_token_type",
         }
 
-        assert _te_resp["issued_token_type"] == list(token.keys())[0]
-        assert _te_resp["scope"] == _scope
+        assert _te_resp["issued_token_type"] == token[list(token.keys())[0]]
+        assert set(_te_resp["scope"]) == set(_scope)
 
     def test_additional_parameters(self):
         """

@@ -132,6 +132,9 @@ class Endpoint(object):
                 kwargs[self.auth_method_attribute] = _methods
         elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
             self.client_authn_method = ["none"]  # Ignore default value
+        elif self.default_capabilities:
+            self.client_authn_method = self.default_capabilities.get("client_authn_method")
+        self.endpoint_info = construct_provider_info(self.default_capabilities, **kwargs)
         return kwargs
 
     def get_provider_info_attributes(self):
@@ -248,6 +251,8 @@ class Endpoint(object):
         LOGGER.debug("authn_info: %s", authn_info)
         if authn_info == {} and self.client_authn_method and len(self.client_authn_method):
             LOGGER.debug("client_authn_method: %s", self.client_authn_method)
+            raise UnAuthorizedClient("Authorization failed")
+        if "client_id" not in authn_info and authn_info.get("method") != "none":
             raise UnAuthorizedClient("Authorization failed")
 
         return authn_info
