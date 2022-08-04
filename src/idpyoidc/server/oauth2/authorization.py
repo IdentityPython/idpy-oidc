@@ -331,10 +331,10 @@ class Authorization(Endpoint):
         # Is the asked for response_type among those that are permitted
         return set(request["response_type"]) in _registered
 
-    def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
+    def mint_token(self, session_id, token_class, grant, based_on=None, **kwargs):
         usage_rules = grant.usage_rules.get(token_class, {})
         token = grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.server_get("endpoint_context"),
             token_class=token_class,
             based_on=based_on,
@@ -349,7 +349,7 @@ class Authorization(Endpoint):
             token.expires_at = utc_time_sans_frac() + _exp_in
 
         _mngr = self.server_get("endpoint_context").session_manager
-        _mngr.set(_mngr.unpack_session_key(session_id), grant)
+        _mngr.set(_mngr.unpack_branch_key(session_id), grant)
 
         return token
 
@@ -501,11 +501,11 @@ class Authorization(Endpoint):
 
         _token_usage_rules = _context.authz.usage_rules(request["client_id"])
         return _mngr.create_session(
-            authn_event=authn_event,
-            auth_req=request,
+            authentication_event=authn_event,
+            authorization_request=request,
             user_id=user_id,
             client_id=request["client_id"],
-            token_usage_rules=_token_usage_rules,
+            token_usage_rules=_token_usage_rules
         )
 
     def _login_required_error(self, redirect_uri, request):
@@ -638,7 +638,7 @@ class Authorization(Endpoint):
                     _session_id = identity["sid"]
 
                     # make sure the client is the same
-                    _uid, _cid, _gid = _mngr.decrypt_session_id(_session_id)
+                    _uid, _cid, _gid = _mngr.decrypt_branch_id(_session_id)
                     if request["client_id"] != _cid:
                         return {"function": authn, "args": authn_args}
 
@@ -646,26 +646,25 @@ class Authorization(Endpoint):
                     if grant.is_active() is False:
                         return {"function": authn, "args": authn_args}
                     elif request != grant.authorization_request:
-                        authn_event = _mngr.get_authentication_event(session_id=_session_id)
+                        authn_event = _mngr.get_authentication_event(_session_id)
                         if authn_event.is_valid() is False:  # if not valid, do new login
                             return {"function": authn, "args": authn_args}
 
                         # create new grant
-                        _session_id = _mngr.create_grant(
-                            authn_event=authn_event,
-                            auth_req=request,
-                            user_id=user,
-                            client_id=request["client_id"],
+                        _session_id = _mngr.add_grant(
+                            path = [user, request["client_id"]],
+                            authentication_event=authn_event,
+                            authorization_request=request,
                         )
 
         if _session_id:
-            authn_event = _mngr.get_authentication_event(session_id=_session_id)
+            authn_event = _mngr.get_authentication_event(_session_id)
             if authn_event.is_valid() is False:  # if not valid, do new login
                 return {"function": authn, "args": authn_args}
         else:
             _session_id = self.create_session(request, identity["uid"], authn_class_ref, _ts, authn)
 
-        return {"session_id": _session_id, "identity": identity, "user": user}
+        return {"branch_id": _session_id, "identity": identity, "user": user}
 
     def aresp_check(self, aresp, request):
         return ""
@@ -748,7 +747,7 @@ class Authorization(Endpoint):
         else:
             _context = self.server_get("endpoint_context")
             _mngr = _context.session_manager
-            _sinfo = _mngr.get_session_info(sid, grant=True)
+            _sinfo = _mngr.branch_info(sid)
 
             if request.get("scope"):
                 aresp["scope"] = _context.scopes_handler.filter_scopes(
@@ -766,9 +765,9 @@ class Authorization(Endpoint):
 
             if "code" in request["response_type"]:
                 _code = self.mint_token(
+                    sid,
                     token_class="authorization_code",
-                    grant=grant,
-                    session_id=_sinfo["session_id"],
+                    grant=grant
                 )
                 aresp["code"] = _code.value
                 handled_response_type.append("code")
@@ -777,9 +776,9 @@ class Authorization(Endpoint):
 
             if "token" in rtype:
                 _access_token = self.mint_token(
+                    sid,
                     token_class="access_token",
-                    grant=grant,
-                    session_id=_sinfo["session_id"],
+                    grant=grant
                 )
                 aresp["access_token"] = _access_token.value
                 aresp["token_type"] = "Bearer"
@@ -803,9 +802,9 @@ class Authorization(Endpoint):
 
                 try:
                     id_token = self.mint_token(
+                        sid,
                         token_class="id_token",
                         grant=grant,
-                        session_id=_sinfo["session_id"],
                         scope=request["scope"],
                         **kwargs,
                     )
@@ -855,7 +854,7 @@ class Authorization(Endpoint):
         if grant.is_active() is False:
             return self.error_response(response_info, request, "server_error", "Grant not usable")
 
-        user_id, client_id, grant_id = _mngr.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _mngr.decrypt_branch_id(session_id)
         try:
             _mngr.set([user_id, client_id, grant_id], grant)
         except Exception as err:
@@ -901,17 +900,17 @@ class Authorization(Endpoint):
 
         return response_info
 
-    def authz_part2(self, request, session_id, **kwargs):
+    def authz_part2(self, request, branch_id, **kwargs):
         """
         After the authentication this is where you should end up
 
         :param request: The Authorization Request
-        :param session_id: Session identifier
+        :param branch_id: Session identifier
         :param kwargs: possible other parameters
         :return: A redirect to the redirect_uri of the client
         """
         try:
-            resp_info = self.post_authentication(request, session_id, **kwargs)
+            resp_info = self.post_authentication(request, branch_id, **kwargs)
         except Exception as err:
             return self.error_by_response_mode({}, request, "server_error", err)
 
@@ -922,7 +921,7 @@ class Authorization(Endpoint):
         if "check_session_iframe" in _context.provider_info:
             salt = rndstr()
             try:
-                authn_event = _context.session_manager.get_authentication_event(session_id)
+                authn_event = _context.session_manager.get_authentication_event(branch_id)
             except KeyError:
                 return self.error_by_response_mode({}, request, "server_error", "No such session")
             else:

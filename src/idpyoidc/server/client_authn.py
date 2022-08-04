@@ -235,12 +235,16 @@ class BearerHeader(ClientSecretBasic):
         **kwargs,
     ):
         token = authorization_token.split(" ", 1)[1]
+
         try:
             client_id = get_client_id_from_token(endpoint_context, token, request)
         except ToOld:
             raise BearerTokenAuthenticationError("Expired token")
         except KeyError:
             raise BearerTokenAuthenticationError("Unknown token")
+        except InvalidToken:
+            raise
+
         return {"token": token, "client_id": client_id}
 
 
@@ -502,6 +506,8 @@ def verify_client(
             break
         except (BearerTokenAuthenticationError, ClientAuthenticationError):
             raise
+        except InvalidToken:
+            logger.info(f"Verifying auth using {_method.tag} failed: Invalid Token")
         except Exception as err:
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
 

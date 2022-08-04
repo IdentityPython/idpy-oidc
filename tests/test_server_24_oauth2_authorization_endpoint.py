@@ -512,7 +512,7 @@ class TestEndpoint(object):
         )
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
-        assert set(res.keys()) == {"session_id", "identity", "user"}
+        assert set(res.keys()) == {"branch_id", "identity", "user"}
 
     def test_setup_auth_error(self):
         request = AuthorizationRequest(
@@ -596,7 +596,7 @@ class TestEndpoint(object):
         item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-        assert set(res.keys()) == {"session_id", "identity", "user"}
+        assert set(res.keys()) == {"branch_id", "identity", "user"}
         assert res["identity"]["uid"] == "krall"
 
     def test_setup_auth_session_revoked(self):

@@ -259,18 +259,16 @@ class TestEndpoint(object):
         )
 
         self.session_manager[index].set(
-            self.session_manager[index].decrypt_session_id(session_id), grant
+            self.session_manager[index].decrypt_branch_id(session_id), grant
         )
 
         return _code
 
     def _mint_access_token(self, grant, session_id, token_ref=None, index=1):
-        _session_info = self.session_manager[index].get_session_info(
-            session_id, client_session_info=True
-        )
+        _session_info = self.session_manager[index].branch_info(session_id)
 
         _token = grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint[index].server_get("endpoint_context"),
             token_class="access_token",
             token_handler=self.session_manager[index].token_handler["access_token"],
@@ -439,7 +437,7 @@ class TestEndpoint(object):
 
         self._dump_restore(1, 2)
 
-        self.session_manager[2].set(self.session_manager[2].decrypt_session_id(session_id), grant)
+        self.session_manager[2].set(self.session_manager[2].decrypt_branch_id(session_id), grant)
 
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)

@@ -443,7 +443,7 @@ class TestBCAEndpoint(object):
         _info = self.endpoint.process_request(req)
         assert _info
         sid = self.session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
-        _user_id, _client_id, _grant_id = self.session_manager.decrypt_session_id(sid)
+        _user_id, _client_id, _grant_id = self.session_manager.decrypt_branch_id(sid)
         # Some time passes and the client authentication is successfully performed
         session_id_2 = self._create_session(_user_id, req)
 
@@ -589,7 +589,7 @@ class TestBCAEndpointService(object):
 
         _session_manager = self.ciba["server"].endpoint_context.session_manager
         sid = _session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
-        _user_id, _client_id, _grant_id = _session_manager.decrypt_session_id(sid)
+        _user_id, _client_id, _grant_id = _session_manager.decrypt_branch_id(sid)
 
         # Some time passes and the client authentication is successfully performed
         # The interaction with the authentication device is not shown

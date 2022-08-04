@@ -12,9 +12,6 @@ from idpyoidc.encrypter import init_encrypter
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.server.constant import DIVIDER
-from idpyoidc.server.exception import InconsistentDatabase
-from idpyoidc.server.exception import NoSuchClientSession
-from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.util import rndstr
@@ -41,10 +38,12 @@ class Database(ImpExp):
         self.crypt = _crypt["encrypter"]
         self.crypt_config = _crypt["conf"]
 
-    def branch_key(self, *args):
+    @staticmethod
+    def branch_key(*args):
         return DIVIDER.join(args)
 
-    def unpack_branch_key(self, key):
+    @staticmethod
+    def unpack_branch_key(key):
         return key.split(DIVIDER)
 
     def encrypted_branch_id(self, *args) -> str:
@@ -84,6 +83,9 @@ class Database(ImpExp):
                     _info = value
                 else:
                     _info = SessionInfo()
+            else:
+                if i == _len - 1:
+                    _info = value  # overwrite old value
 
             if _superior:
                 if hasattr(_superior, "subordinate"):
@@ -97,11 +99,34 @@ class Database(ImpExp):
         _key = self.branch_key(*path)
         return self.db[_key]
 
+    def delete_sub_tree(self, key: str):
+        """
+        Removes all a node and all its subordinates
+
+        @param path:
+        @return:
+        """
+        _node = self.db[key]
+        if hasattr(_node, "subordinate"):
+            for _sub in _node.subordinate:
+                self.delete_sub_tree(_sub)
+
+        self.db.__delitem__(key)
+
+
     def delete(self, path: List[str]):
+        """
+        Deletes a branch all the way from the root to the leaf. If a node in the branch has a
+        subordinate that is not listed in the path then it and the nodes above are not
+        removed.
+
+        @param path:
+        @return:
+        """
         if path[0] not in self.db:
             return
 
-        if len(path) == 0:
+        if len(path) == 1:
             self.db.__delitem__(path[0])
             return
 
@@ -115,13 +140,17 @@ class Database(ImpExp):
             _key = self.branch_key(*path[0:_len - i])
             if _key in self.db:
                 _node = self.db[_key]
-                if _sub and _sub in _node.subordinate:
-                    _node.subordinate.remove(_sub)
-                    if _node.subordinate == []:
-                        self.db.__delitem__(_key)
-                    else:
-                        return
+                if _sub:
+                    if _sub in _node.subordinate:
+                        _node.subordinate.remove(_sub)
+                        if _node.subordinate == []:
+                            self.db.__delitem__(_key)
+                        else:
+                            return
                 else:
+                    if isinstance(_node, SessionInfo) and _node.subordinate:
+                        for _s in _node.subordinate:
+                            self.delete_sub_tree(_s)
                     self.db.__delitem__(_key)
             _sub = _key
 

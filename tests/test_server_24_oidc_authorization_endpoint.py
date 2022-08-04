@@ -658,7 +658,7 @@ class TestEndpoint(object):
         )
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)
-        assert set(res.keys()) == {"session_id", "identity", "user"}
+        assert set(res.keys()) == {"branch_id", "identity", "user"}
 
     def test_setup_auth_error(self):
         request = AuthorizationRequest(
@@ -1246,13 +1246,11 @@ class TestACR(object):
         cinfo = _context.cdb["client_1"]
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-        _session_info = self.session_manager.get_session_info(
-            session_id=res["session_id"], grant=True
-        )
+        _session_info = self.session_manager.branch_info(res["branch_id"], "grant")
         _grant = _session_info["grant"]
         assert _grant.authentication_event["authn_info"] == "https://refeds.org/profile/mfa"
 
-        id_token = self.endpoint.mint_token("id_token", _grant, res["session_id"])
+        id_token = self.endpoint.mint_token(res["branch_id"], "id_token", _grant)
         assert id_token
         _jws = factory(id_token.value)
         _payload = _jws.jwt.payload()
@@ -1416,7 +1414,7 @@ class TestUserAuthn(object):
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="adam",
-            sid=self.endpoint_context.session_manager.encrypted_session_id(
+            sid=self.endpoint_context.session_manager.encrypted_branch_id(
                 "adam", "client 12345", "0123456789"
             ),
             state=authn_req["state"],
@@ -1440,7 +1438,7 @@ class TestUserAuthn(object):
         _cookie = self.endpoint_context.new_cookie(
             name=self.endpoint_context.cookie_handler.name["session"],
             sub="adam",
-            sid=self.endpoint_context.session_manager.encrypted_session_id(
+            sid=self.endpoint_context.session_manager.encrypted_branch_id(
                 "adam", "client 12345", "0123456789"
             ),
             state=authn_req["state"],

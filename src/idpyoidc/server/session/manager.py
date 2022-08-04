@@ -20,6 +20,8 @@ from .grant import SessionToken
 from .grant_manager import GrantManager
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
+from ..exception import InvalidBranchID
+from ..exception import InvalidToken
 from ..token import UnknownToken
 from ..token import WrongTokenClass
 from ..token import handler
@@ -159,10 +161,12 @@ class SessionManager(GrantManager):
 
         if authorization_request:
             sector_identifier = authorization_request.get("sector_identifier_uri", "")
+            if not scope:
+                scope = authorization_request.get("scope", [])
         else:
             sector_identifier = ""
         sub=self.sub_func[sub_type](user_id, salt=self.get_salt(),
-                                    sector_identifier=sector_identifier),
+                                    sector_identifier=sector_identifier)
 
         return self.add_grant(
             path=[user_id, client_id],
@@ -208,7 +212,7 @@ class SessionManager(GrantManager):
 
         try:
             self.get([user_id, client_id])
-        except (NoSuchClientSession, ValueError):
+        except (NoSuchClientSession, ValueError, KeyError):
             client_info = ClientSessionInfo(client_id=client_id)
             self.set([user_id, client_id], client_info)
 
@@ -260,7 +264,7 @@ class SessionManager(GrantManager):
 
         c_info = self.get(_path[0:2])
 
-        _grants = [self.get(gid) for gid in c_info.subordinate]
+        _grants = [self.get(self.unpack_branch_key(gid)) for gid in c_info.subordinate]
         return [g.authentication_event for g in _grants]
 
     def get_authorization_request(self, branch_id):
@@ -278,10 +282,10 @@ class SessionManager(GrantManager):
         :param branch_id: Session identifier
         """
         _path = self.decrypt_branch_id(branch_id)
-        _info = self.get(_path[0:2])
+        _client_session_info = self.get(_path[0:2])
         logger.debug(f"revoke_client_session: {_path[0]}:{_path[1]}")
         # revoke client session and all grants
-        self._revoke_tree(_info)
+        self._revoke_tree(_client_session_info)
 
     def client_session_is_revoked(self, branch_id: str):
         _path = self.decrypt_branch_id(branch_id)
@@ -300,6 +304,7 @@ class SessionManager(GrantManager):
             self,
             token_value: str,
             handler_key: Optional[str] = "",
+            *args
     ) -> dict:
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
@@ -315,13 +320,48 @@ class SessionManager(GrantManager):
         # To be backward compatible is this an old time sid
         sid = self._compatible_sid(sid)
 
-        return self.branch_info(sid, *self.node_type)
+        if not args:
+            args = self.node_type
+
+        try:
+            _res = self.branch_info(sid, *args)
+        except InvalidBranchID:
+            raise InvalidToken()
+
+        _res["branch_id"] = sid
+        return _res
 
     def get_branch_id_by_token(self, token_value: str) -> str:
         _token_info = self.token_handler.info(token_value)
         sid = _token_info.get("sid")
         return self._compatible_sid(sid)
 
+    def find_token(self, branch_id: str, token_value: str) -> Optional[SessionToken]:
+        """
+
+        :param branch_id: A n-tuple
+        :param token_value:
+        :return: A SessionToken instance
+        """
+        return self.get_grant(branch_id).get_token(token_value)
+
+    def revoke_token(self, branch_id: str, token_value: str, recursive: bool = False):
+        """
+        Revoke a specific token that belongs to a specific Grant.
+
+        :param branch_id: Branch identifier
+        :param token_value: SessionToken value
+        :param recursive: Revoke all tokens that was minted using this token or
+            tokens minted by this token. Recursively.
+        """
+        _grant = self.get_grant(branch_id)
+        token = _grant.get_token(token_value)
+        if token is None:  # pragma: no cover
+            raise UnknownToken()
+
+        token.revoked = True
+        if recursive:  # TODO: not covered yet!
+            _grant.revoke_token(value=token.value)
 
 def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
     _token_handler = handler.factory(server_get, **token_handler_args)

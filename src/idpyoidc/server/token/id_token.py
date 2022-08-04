@@ -152,8 +152,8 @@ class IDToken(Token):
 
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        session_information = _mngr.get_session_info(session_id, grant=True)
-        grant = session_information["grant"]
+        _information = _mngr.branch_info(session_id, "user", "grant")
+        grant = _information["grant"]
         _args = {"sub": grant.sub, "sid": session_id}
         if grant.authentication_event:
             for claim, attr in {"authn_time": "auth_time", "authn_info": "acr"}.items():
@@ -167,7 +167,7 @@ class IDToken(Token):
                 user_info = None
             else:
                 user_info = _context.claims_interface.get_user_claims(
-                    user_id=session_information["user_id"],
+                    user_id=_information["user_id"],
                     claims_restriction=_claims_restriction,
                 )
                 if _claims_restriction and "acr" in _claims_restriction and "acr" in _args:
@@ -261,7 +261,7 @@ class IDToken(Token):
 
     def __call__(
         self,
-        session_id: Optional[str] = "",
+        branch_id: Optional[str] = "",
         ttype: Optional[str] = "",
         encrypt=False,
         code=None,
@@ -271,21 +271,21 @@ class IDToken(Token):
     ) -> str:
         _context = self.server_get("endpoint_context")
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = _context.session_manager.decrypt_branch_id(branch_id)
 
         # Should I add session ID. This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
             _context, client_id, "front"
         ):
 
-            xargs = {"sid": session_id}
+            xargs = {"sid": branch_id}
         else:
             xargs = {}
 
         lifetime = self.lifetime
 
         id_token = self.sign_encrypt(
-            session_id,
+            branch_id,
             client_id,
             sign=True,
             lifetime=lifetime,

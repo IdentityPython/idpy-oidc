@@ -30,9 +30,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         except KeyError:  # Missing code parameter - absolutely fatal
             return self.error_cls(error="invalid_request", error_description="Missing code")
 
-        _session_info = session_manager.get_session_info_by_token(
-            _access_code, grant=True, handler_key="authorization_code"
-        )
+        _session_info = session_manager.get_branch_info_by_token(_access_code)
         logger.debug(f"Session info: {_session_info}")
         return _session_info, _access_code
 
@@ -105,9 +103,9 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "access_token" in _supports_minting:
             try:
                 token = self._mint_token(
+                    _session_info["branch_id"],
                     token_class="access_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                     token_type=token_type,
@@ -120,15 +118,15 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if (
-            issue_refresh
-            and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
+                issue_refresh
+                and "refresh_token" in _supports_minting
+                and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
+                    _session_info["branch_id"],
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                 )
@@ -138,15 +136,15 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
             if "id_token" in _based_on.usage_rules.get("supports_minting"):
                 try:
                     _idtoken = self._mint_token(
+                        _session_info["branch_id"],
                         token_class="id_token",
                         grant=grant,
-                        session_id=_session_info["session_id"],
                         client_id=_session_info["client_id"],
                         based_on=_based_on,
                     )
@@ -165,7 +163,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens
@@ -177,9 +175,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _mngr = self.endpoint.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(
-                request["code"], grant=True, handler_key="authorization_code"
-            )
+            _session_info = _mngr.get_branch_info_by_token(request["code"], "authorization_code")
         except (KeyError, UnknownToken):
             logger.error("Access Code invalid")
             return self.error_cls(error="invalid_grant", error_description="Unknown code")
@@ -217,9 +213,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         token_value = req["refresh_token"]
 
-        _session_info = _mngr.get_session_info_by_token(
-            token_value, handler_key="refresh_token", grant=True
-        )
+        _session_info = _mngr.get_branch_info_by_token(token_value, handler_key="refresh_token")
         if _session_info["client_id"] != req["client_id"]:
             logger.debug("{} owner of token".format(_session_info["client_id"]))
             logger.warning("{} using token it was not given".format(req["client_id"]))
@@ -241,9 +235,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "scope" in req:
             scope = req["scope"]
         access_token = self._mint_token(
+            _session_info["branch_id"],
             token_class="access_token",
             grant=_grant,
-            session_id=_session_info["session_id"],
             client_id=_session_info["client_id"],
             based_on=token,
             scope=scope,
@@ -268,9 +262,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
+                _session_info["branch_id"],
                 token_class="refresh_token",
                 grant=_grant,
-                session_id=_session_info["session_id"],
                 client_id=_session_info["client_id"],
                 based_on=token,
                 scope=scope,
@@ -281,9 +275,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "id_token" in _mints and "openid" in scope:
             try:
                 _idtoken = self._mint_token(
+                    _session_info["branch_id"],
                     token_class="id_token",
                     grant=_grant,
-                    session_id=_session_info["session_id"],
                     client_id=_session_info["client_id"],
                     based_on=token,
                     scope=scope,
@@ -301,9 +295,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-            "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+                "client_id" in req
+                and req["client_id"] in _context.cdb
+                and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
@@ -315,7 +309,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -336,9 +330,8 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         _mngr = _context.session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(
-                request["refresh_token"], handler_key="refresh_token", grant=True
-            )
+            _session_info = _mngr.get_branch_info_by_token(request["refresh_token"],
+                                                           "refresh_token")
         except (KeyError, UnknownToken, BadSyntax):
             logger.error("Refresh token invalid")
             return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")

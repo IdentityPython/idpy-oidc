@@ -4,8 +4,6 @@ import pytest
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.session.database import Database
-from idpyoidc.server.session.database import NoSuchClientSession
-from idpyoidc.server.session.database import NoSuchGrant
 from idpyoidc.server.session.grant import Grant
 from idpyoidc.server.session.info import ClientSessionInfo
 from idpyoidc.server.session.info import UserSessionInfo
@@ -43,7 +41,7 @@ class TestDB:
         self.db.set(["diana", "client_1"], client_info)
 
         stored_user_info = self.db.get(["diana"])
-        assert stored_user_info.subordinate == ["client_1"]
+        assert len(stored_user_info.subordinate) == 1
         stored_client_info = self.db.get(["diana", "client_1"])
         assert stored_client_info.client_id == "client_1"
 
@@ -54,7 +52,7 @@ class TestDB:
         self.db.set(["diana", "client_1"], client_info)
 
         user_info = self.db.get(["diana"])
-        assert user_info.subordinate == ["client_1"]
+        assert len(user_info.subordinate) == 1
         client_info = self.db.get(["diana", "client_1"])
         assert client_info.client_id == "client_1"
         assert client_info.extra_args["falling"] == "snow"
@@ -72,7 +70,7 @@ class TestDB:
         self.db.set(["diana", "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[self.db.session_key("diana", "client_1")]
+        del self.db.db[self.db.branch_key("diana", "client_1")]
 
         client_info = ClientSessionInfo(client_id="client_1", extra="ice")
         self.db.set(["diana", "client_1"], client_info)
@@ -87,7 +85,7 @@ class TestDB:
         self.db.set(["diana", "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[self.db.session_key("diana", "client_1")]
+        del self.db.db[self.db.branch_key("diana", "client_1")]
 
         authn_event = create_authn_event(uid="diana", expires_in=10, authn_info="authn_class_ref")
 
@@ -102,7 +100,7 @@ class TestDB:
             "subordinate",
             "revoked",
             "type",
-            "client_id",
+            # "client_id",  Not set by default
             "extra_args",
         }
 
@@ -117,9 +115,9 @@ class TestDB:
         self.db.set(["diana", "client_1", "G1"], grant)
 
         user_info = self.db.get(["diana"])
-        assert user_info.subordinate == ["client_1"]
+        assert len(user_info.subordinate) == 1
         client_info = self.db.get(["diana", "client_1"])
-        assert client_info.subordinate == ["G1"]
+        assert len(client_info.subordinate) == 1
         grant_info = self.db.get(["diana", "client_1", "G1"])
         assert grant_info.issued_at
         assert len(grant_info.issued_token) == 1
@@ -135,7 +133,7 @@ class TestDB:
         self.db.set(["diana", "client_1", "G1"], grant)
 
         # The reference is there but not the value
-        del self.db.db[self.db.session_key("diana", "client_1", "G1")]
+        del self.db.db[self.db.branch_key("diana", "client_1", "G1")]
 
         grant = Grant()
         access_code = SessionToken("access_code", value="aaaaaaaaa")
@@ -207,9 +205,9 @@ class TestDB:
         self.db.set(["diana", "client_1"], client_info)
 
         # The reference is there but not the value
-        del self.db.db[self.db.session_key("diana", "client_1")]
+        del self.db.db[self.db.branch_key("diana", "client_1")]
 
-        with pytest.raises(NoSuchClientSession):
+        with pytest.raises(KeyError):
             self.db.get(["diana", "client_1"])
 
     def test_grant_info(self):
@@ -218,7 +216,7 @@ class TestDB:
         client_info = ClientSessionInfo(sid="abcdef")
         self.db.set(["diana", "client_1"], client_info)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(KeyError):
             self.db.get(["diana", "client_1", "G1"])
 
         grant = Grant()
@@ -228,9 +226,9 @@ class TestDB:
         self.db.set(["diana", "client_1", "G1"], grant)
 
         # removed value
-        del self.db.db[self.db.session_key("diana", "client_1", "G1")]
+        del self.db.db[self.db.branch_key("diana", "client_1", "G1")]
 
-        with pytest.raises(NoSuchGrant):
+        with pytest.raises(KeyError):
             self.db.get(["diana", "client_1", "G1"])
 
     def test_delete_non_existent_info(self):

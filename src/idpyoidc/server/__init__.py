@@ -161,4 +161,7 @@ class Server(ImpExp):
 
     def _get_session_init_function(self, conf):
         _sparam = conf.get("session_params")
-        return importer(_sparam.get("function", DEFAULT_CREATE_SESSION_MANAGER_FUNCTION))
+        if _sparam:
+            return importer(_sparam.get("function", DEFAULT_CREATE_SESSION_MANAGER_FUNCTION))
+        else:
+            return importer(DEFAULT_CREATE_SESSION_MANAGER_FUNCTION)

@@ -97,10 +97,10 @@ class TestGrantManager:
     def _create_grant(self, path, scope):
         return self.grant_manager.add_grant(path=path, scope=scope)
 
-    def _mint_token(self, token_class, grant, grant_id, based_on=None):
+    def _mint_token(self, grant_id, token_class, grant, based_on=None):
         # Constructing an authorization code is now done
         return grant.mint_token(
-            session_id=grant_id,
+            grant_id,
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.grant_manager.token_handler.handler[token_class],
@@ -191,6 +191,7 @@ class TestGrantManager:
         _keys = node_type[:]
         _id_keys = [f"{k}_id" for k in _keys]
         _keys.extend(_id_keys)
+        _keys.append("branch_id")
 
         assert set(_branch_info.keys()) == set(_keys)
 
@@ -200,11 +201,11 @@ class TestGrantManager:
         grant_id = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
-            foo="bar"
+            extra={"foo":"bar"}
         )
 
-        _val = self.grant_manager.get_grant_argument(grant_id, "foo")
-        assert _val == "bar"
+        _val = self.grant_manager.get_grant_argument(grant_id, "extra")
+        assert _val == {"foo":"bar"}
 
     def test_get_node_info(self):
         self.grant_manager.node_type = ["client", "grant"]
@@ -212,7 +213,6 @@ class TestGrantManager:
         grant_id = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
-            foo="bar"
         )
 
         _info_a = self.grant_manager.get_node_info(grant_id, level=0)
@@ -225,7 +225,6 @@ class TestGrantManager:
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1"],
             scope=["openid", "phoe"],
-            foo="bar"
         )
         grant_id_2 = self.grant_manager.add_grant(
             path=["client_1"],
@@ -246,7 +245,6 @@ class TestGrantManager:
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],
-            foo="bar"
         )
         grant_id_2 = self.grant_manager.add_grant(
             path=["client_1", "other"],
@@ -267,7 +265,6 @@ class TestGrantManager:
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],
-            foo="bar"
         )
         grant_id_2 = self.grant_manager.add_grant(
             path=["client_1", "other"],
@@ -300,7 +297,6 @@ class TestGrantManager:
         grant_id_1 = self.grant_manager.add_grant(
             path=["client_1", "other"],
             scope=["openid", "phoe"],
-            foo="bar"
         )
         grant_id_2 = self.grant_manager.add_grant(
             path=["client_1", "other"],

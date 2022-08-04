@@ -14,6 +14,8 @@ from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
+from idpyoidc.server.exception import InvalidToken
+from idpyoidc.server.session.claims import claims_match
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
 
 logger = logging.getLogger(__name__)
@@ -48,9 +50,7 @@ class UserInfo(Endpoint):
         self.allowed_targets.append("")
 
     def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(
-            token, handler_key="access_token"
-        )
+        _info = endpoint_context.session_manager.get_branch_info_by_token(token, "access_token")
         return _info["client_id"]
 
     def do_response(
@@ -115,9 +115,7 @@ class UserInfo(Endpoint):
     def process_request(self, request=None, **kwargs):
         _mngr = self.server_get("endpoint_context").session_manager
         try:
-            _session_info = _mngr.get_session_info_by_token(
-                request["access_token"], grant=True, handler_key="access_token"
-            )
+            _session_info = _mngr.get_branch_info_by_token(request["access_token"], "access_token")
         except (KeyError, ValueError):
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
@@ -150,7 +148,7 @@ class UserInfo(Endpoint):
         if allowed:
             _cntxt = self.server_get("endpoint_context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
-                _session_info["session_id"], scopes=token.scope, claims_release_point="userinfo"
+                _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )
             info = _cntxt.claims_interface.get_user_claims(
                 _session_info["user_id"], claims_restriction=_claims_restriction
@@ -158,6 +156,10 @@ class UserInfo(Endpoint):
             info["sub"] = _grant.sub
             if _grant.add_acr_value("userinfo"):
                 info["acr"] = _grant.authentication_event["authn_info"]
+            elif "acr" in _claims_restriction:
+                if claims_match(_grant.authentication_event["authn_info"],
+                                _claims_restriction["acr"]):
+                    info["acr"] = _grant.authentication_event["authn_info"]
         else:
             info = {
                 "error": "invalid_request",
@@ -181,6 +183,8 @@ class UserInfo(Endpoint):
         # Verify that the client is allowed to do this
         try:
             auth_info = self.client_authentication(request, http_info, **kwargs)
+        except InvalidToken:
+            return self.error_cls(error="invalid_token")
         except ClientAuthenticationError as e:
             return self.error_cls(error="invalid_token", error_description=e.args[0])
 

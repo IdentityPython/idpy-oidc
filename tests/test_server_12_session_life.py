@@ -96,7 +96,7 @@ class TestSession:
         # Constructing an authorization code is now done by
 
         code = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
@@ -104,9 +104,7 @@ class TestSession:
         )
 
         # get user info
-        user_info = self.session_manager.get_user_info(
-            uid=user_id,
-        )
+        user_info = self.session_manager.get_user_info(branch_id)
         return grant.id, code
 
     def test_code_flow(self):
@@ -144,7 +142,7 @@ class TestSession:
         grant = self.session_manager[branch_id]
 
         grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
@@ -155,7 +153,7 @@ class TestSession:
         assert tok.supports_minting("refresh_token")
 
         refresh_token = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
@@ -181,7 +179,7 @@ class TestSession:
         assert reftok.supports_minting("access_token")
 
         access_token_2 = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
@@ -329,7 +327,7 @@ class TestSessionJWTToken:
         branch_id = self.session_manager.encrypted_branch_id(user_id, client_id, grant.id)
         # Constructing an authorization code is now done by
         code = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
@@ -377,7 +375,7 @@ class TestSessionJWTToken:
         grant = self.session_manager[branch_id]
 
         grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
@@ -389,7 +387,7 @@ class TestSessionJWTToken:
         # assert tok.supports_minting("refresh_token")
 
         refresh_token = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
@@ -423,7 +421,7 @@ class TestSessionJWTToken:
         )
 
         access_token_2 = grant.mint_token(
-            branch_id=branch_id,
+            branch_id,
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],

@@ -93,7 +93,7 @@ class DefaultToken(Token):
         self.token_type = token_type
 
     def __call__(
-        self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
+        self, branch_id: Optional[str] = "", token_class: Optional[str] = "", **payload
     ) -> str:
         """
         Return a token.
@@ -117,7 +117,7 @@ class DefaultToken(Token):
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
+            self.crypt.encrypt(lv_pack(rnd, token_class, branch_id, exp).encode())
         ).decode("utf-8")
 
     def split_token(self, token):

@@ -43,7 +43,7 @@ def test_dump_load(
         scope=["openid", "foo", "bar"],
         claims={"userinfo": {"given_name": None}},
         resources=["https://api.example.com"],
-    ),
+    )
 ):
     code = cls(**kwargs)
 

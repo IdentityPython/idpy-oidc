@@ -353,7 +353,7 @@ class Grant(Item):
             )
 
             if token_class == "id_token":
-                item.branch_id = branch_id
+                item.session_id = branch_id
 
             token_payload = self.payload_arguments(
                 branch_id,
@@ -366,10 +366,7 @@ class Grant(Item):
 
             logger.debug(f"token_payload: {token_payload}")
 
-            item.value = token_handler(
-                branch_id=branch_id, usage_rules=usage_rules, **token_payload
-            )
-
+            item.value = token_handler(branch_id, usage_rules=usage_rules, **token_payload)
         else:
             raise ValueError("Can not mint that kind of token")
 

@@ -114,9 +114,14 @@ class JWTToken(Token):
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")
+
+        _sid = _payload.get("sid")
+        if not _sid:
+            _sid = _payload["branch_id"]
+
         # All the token metadata
         _res = {
-            "sid": _payload["sid"],
+            "sid": _sid,
             "token_class": _payload["token_class"],
             "exp": _payload["exp"],
             "handler": self,

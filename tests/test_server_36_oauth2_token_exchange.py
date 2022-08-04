@@ -212,13 +212,13 @@ class TestEndpoint(object):
         )
 
     def _mint_code(self, grant, client_id):
-        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
+        session_id = self.session_manager.encrypted_branch_id(self.user_id, client_id, grant.id)
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
         # Constructing an authorization code is now done
         _code = grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint.server_get("endpoint_context"),
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],

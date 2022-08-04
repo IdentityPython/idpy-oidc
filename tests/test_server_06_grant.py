@@ -127,9 +127,7 @@ class TestGrant:
 
     def test_mint_token(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
+        session_info = self.endpoint_context.session_manager.branch_info(session_id, "grant")
         grant = session_info["grant"]
 
         code = grant.mint_token(
@@ -152,8 +150,8 @@ class TestGrant:
 
     def test_grant(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -184,9 +182,7 @@ class TestGrant:
 
     def test_get_token(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
+        session_info = self.endpoint_context.session_manager.branch_info(session_id, "grant")
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
@@ -213,8 +209,8 @@ class TestGrant:
 
     def test_grant_revoked_based_on(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -250,8 +246,8 @@ class TestGrant:
 
     def test_revoke(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -289,8 +285,8 @@ class TestGrant:
 
     def test_json_conversion(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -325,8 +321,8 @@ class TestGrant:
 
     def test_json_no_token_map(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         grant.token_map = {}
@@ -340,8 +336,8 @@ class TestGrant:
 
     def test_json_custom_token_map(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
 
@@ -393,8 +389,8 @@ class TestGrant:
 
     def test_get_spec(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
 
@@ -427,8 +423,8 @@ class TestGrant:
 
     def test_get_usage_rules(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
 
@@ -446,8 +442,8 @@ class TestGrant:
 
     def test_assigned_scope(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -471,8 +467,8 @@ class TestGrant:
 
     def test_assigned_scope_2nd(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -516,8 +512,8 @@ class TestGrant:
 
     def test_grant_remove_based_on_code(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(
@@ -548,8 +544,8 @@ class TestGrant:
 
     def test_grant_remove_one_by_one(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
-            session_id=session_id, grant=True
+        session_info = self.endpoint_context.session_manager.branch_info(
+            session_id, "grant"
         )
         grant = session_info["grant"]
         code = grant.mint_token(

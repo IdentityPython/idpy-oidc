@@ -16,6 +16,7 @@ from idpyoidc.message.oidc import verify_id_token
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
+from idpyoidc.server.exception import InvalidBranchID
 from idpyoidc.server.exception import RedirectURIError
 from idpyoidc.server.oauth2.authorization import join_query
 from idpyoidc.server.oidc import userinfo
@@ -283,7 +284,7 @@ class TestEndpoint(object):
 
     def _mint_token(self, token_class, grant, session_id, token_ref=None):
         return grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler[token_class],
@@ -294,10 +295,10 @@ class TestEndpoint(object):
     def test_end_session_endpoint_with_cookie(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _code, handler_key="authorization_code"
         )
-        cookie = self._create_cookie(_session_info["session_id"])
+        cookie = self._create_cookie(_session_info["branch_id"])
         http_info = {"cookie": [cookie]}
         resp = self.session_endpoint.process_request({"state": "foo"}, http_info=http_info)
 
@@ -308,7 +309,7 @@ class TestEndpoint(object):
         qs = parse_qs(p.query)
         jwt_info = self.session_endpoint.unpack_signed_jwt(qs["sjwt"][0])
 
-        assert jwt_info["sid"] == _session_info["session_id"]
+        assert jwt_info["sid"] == _session_info["branch_id"]
         assert jwt_info["redirect_uri"] == "https://example.com/post_logout"
 
     def test_end_session_endpoint_with_cookie_and_unknown_sid(self):
@@ -316,8 +317,8 @@ class TestEndpoint(object):
         resp_args, _session_id = self._auth_with_id_token("1234567")
         id_token = resp_args["id_token"]
 
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_id)
-        cookie = self._create_cookie(self.session_manager.session_key(_uid, "client_66", _gid))
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(_session_id)
+        cookie = self._create_cookie(self.session_manager.branch_key(_uid, "client_66", _gid))
         http_info = {"cookie": [cookie]}
 
         with pytest.raises(ValueError):
@@ -328,8 +329,8 @@ class TestEndpoint(object):
         resp_args, _session_id = self._auth_with_id_token("1234567")
         id_token = resp_args["id_token"]
 
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_id)
-        cookie = self._create_cookie(self.session_manager.session_key(_uid, "client_66", _gid))
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(_session_id)
+        cookie = self._create_cookie(self.session_manager.branch_key(_uid, "client_66", _gid))
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
@@ -344,10 +345,10 @@ class TestEndpoint(object):
         _resp = self._code_auth("1234567")
         self._code_auth2("abcdefg")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _code, handler_key="authorization_code"
         )
-        cookie = self._create_cookie(_session_info["session_id"])
+        cookie = self._create_cookie(_session_info["branch_id"])
         http_info = {"cookie": [cookie]}
 
         resp = self.session_endpoint.process_request({"state": "abcde"}, http_info=http_info)
@@ -359,17 +360,17 @@ class TestEndpoint(object):
         qs = parse_qs(p.query)
         jwt_info = self.session_endpoint.unpack_signed_jwt(qs["sjwt"][0])
 
-        assert jwt_info["sid"] == _session_info["session_id"]
+        assert jwt_info["sid"] == _session_info["branch_id"]
         assert jwt_info["redirect_uri"] == "https://example.com/post_logout"
 
     def test_end_session_endpoint_with_post_logout_redirect_uri(self):
         _resp = self._code_auth("1234567")
         self._code_auth2("abcdefg")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _code, handler_key="authorization_code"
         )
-        cookie = self._create_cookie(_session_info["session_id"])
+        cookie = self._create_cookie(_session_info["branch_id"])
         http_info = {"cookie": [cookie]}
 
         post_logout_redirect_uri = join_query(
@@ -482,9 +483,7 @@ class TestEndpoint(object):
     def test_logout_from_client_bc(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True, handler_key="authorization_code"
-        )
+        _session_info = self.session_manager.get_branch_info_by_token(_code)
 
         self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
             "backchannel_logout_uri"
@@ -493,7 +492,7 @@ class TestEndpoint(object):
             "client_id"
         ] = "client_1"
 
-        res = self.session_endpoint.logout_from_client(_session_info["session_id"])
+        res = self.session_endpoint.logout_from_client(_session_info["branch_id"])
         assert set(res.keys()) == {"blu"}
         assert set(res["blu"].keys()) == {"client_1"}
         _spec = res["blu"]["client_1"]
@@ -504,15 +503,13 @@ class TestEndpoint(object):
         assert _jwt["aud"] == ["client_1"]
         assert "sid" in _jwt  # This session ID is not the same as the session_id mentioned above
 
-        assert _jwt["sid"] == _session_info["session_id"]
-        assert _session_info["client_session_info"].is_revoked()
+        assert _jwt["sid"] == _session_info["branch_id"]
+        assert _session_info["client"].is_revoked()
 
     def test_logout_from_client_fc(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True, handler_key="authorization_code"
-        )
+        _session_info = self.session_manager.get_branch_info_by_token(_code)
 
         # del self.session_endpoint.server_get("endpoint_context").cdb['client_1'][
         # 'backchannel_logout_uri']
@@ -523,33 +520,29 @@ class TestEndpoint(object):
             "client_id"
         ] = "client_1"
 
-        res = self.session_endpoint.logout_from_client(_session_info["session_id"])
+        res = self.session_endpoint.logout_from_client(_session_info["branch_id"])
         assert set(res.keys()) == {"flu"}
         assert set(res["flu"].keys()) == {"client_1"}
         _spec = res["flu"]["client_1"]
         assert _spec == '<iframe src="https://example.com/fc_logout">'
 
-        assert _session_info["client_session_info"].is_revoked()
+        assert _session_info["client"].is_revoked()
 
     def test_logout_from_client(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
-            _code, client_session_info=True, grant=True, handler_key="authorization_code"
-        )
-        _grant_code = self.session_manager.find_token(_session_info["session_id"], _code)
+        _session_info = self.session_manager.get_branch_info_by_token(_code)
+        _grant_code = self.session_manager.find_token(_session_info["branch_id"], _code)
         id_token1 = self._mint_token(
-            "id_token", _session_info["grant"], _session_info["session_id"], _grant_code
+            "id_token", _session_info["grant"], _session_info["branch_id"], _grant_code
         )
 
         _resp2 = self._code_auth2("abcdefg")
         _code2 = _resp2["response_args"]["code"]
-        _session_info2 = self.session_manager.get_session_info_by_token(
-            _code2, client_session_info=True, grant=True, handler_key="authorization_code"
-        )
-        _grant_code2 = self.session_manager.find_token(_session_info2["session_id"], _code2)
+        _session_info2 = self.session_manager.get_branch_info_by_token(_code2)
+        _grant_code2 = self.session_manager.find_token(_session_info2["branch_id"], _code2)
         id_token2 = self._mint_token(
-            "id_token", _session_info2["grant"], _session_info2["session_id"], _grant_code2
+            "id_token", _session_info2["grant"], _session_info2["branch_id"], _grant_code2
         )
 
         # client0
@@ -566,7 +559,7 @@ class TestEndpoint(object):
             "client_id"
         ] = "client_2"
 
-        res = self.session_endpoint.logout_all_clients(_session_info["session_id"])
+        res = self.session_endpoint.logout_all_clients(_session_info["branch_id"])
 
         assert res
         assert set(res.keys()) == {"blu", "flu"}
@@ -587,9 +580,9 @@ class TestEndpoint(object):
         assert _id_token["sid"] == _jwt["sid"]
 
         # both should be revoked
-        assert _session_info["client_session_info"].is_revoked()
+        assert _session_info["client"].is_revoked()
         _cinfo = self.session_manager[
-            self.session_manager.encrypted_session_id(self.user_id, "client_2")
+            self.session_manager.encrypted_branch_id(self.user_id, "client_2")
         ]
         assert _cinfo.is_revoked()
 
@@ -599,33 +592,33 @@ class TestEndpoint(object):
 
             _resp = self._code_auth("1234567")
             _code = _resp["response_args"]["code"]
-            _session_info = self.session_manager.get_session_info_by_token(
+            _session_info = self.session_manager.get_branch_info_by_token(
                 _code, handler_key="authorization_code"
             )
             _cdb = self.session_endpoint.server_get("endpoint_context").cdb
             _cdb["client_1"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
             _cdb["client_1"]["client_id"] = "client_1"
 
-            res = self.session_endpoint.do_verified_logout(_session_info["session_id"])
+            res = self.session_endpoint.do_verified_logout(_session_info["branch_id"])
             assert res == []
 
     def test_logout_from_client_unknow_sid(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _code, handler_key="authorization_code"
         )
         self._code_auth2("abcdefg")
 
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
-        _sid = self.session_manager.encrypted_session_id("babs", _cid, _gid)
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(_session_info["branch_id"])
+        _sid = self.session_manager.encrypted_branch_id("babs", _cid, _gid)
         with pytest.raises(KeyError):
             res = self.session_endpoint.logout_all_clients(_sid)
 
     def test_logout_from_client_no_session(self):
         _resp = self._code_auth("1234567")
         _code = _resp["response_args"]["code"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _code, handler_key="authorization_code"
         )
         self._code_auth2("abcdefg")
@@ -644,11 +637,11 @@ class TestEndpoint(object):
             "client_id"
         ] = "client_2"
 
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(_session_info["branch_id"])
         self.session_endpoint.server_get("endpoint_context").session_manager.delete([_uid, _cid])
 
-        with pytest.raises(ValueError):
-            self.session_endpoint.logout_all_clients(_session_info["session_id"])
+        with pytest.raises(InvalidBranchID):
+            self.session_endpoint.logout_all_clients(_session_info["branch_id"])
 
     def test_kill_cookies(self):
         _info = self.session_endpoint.kill_cookies()

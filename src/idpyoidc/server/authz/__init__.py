@@ -57,14 +57,14 @@ class AuthzHandling(object):
 
     def __call__(
         self,
-        session_id: str,
+        branch_id: str,
         request: Union[dict, Message],
         resources: Optional[list] = None,
     ) -> Grant:
-        session_info = self.server_get("endpoint_context").session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
-        grant = session_info["grant"]
+        branch_info = self.server_get("endpoint_context").session_manager.branch_info(
+            branch_id, "grant", "client")
+
+        grant = branch_info["grant"]
 
         args = self.grant_config.copy()
 
@@ -77,7 +77,7 @@ class AuthzHandling(object):
                 setattr(grant, key, val)
 
         if resources is None:
-            grant.resources = [session_info["client_id"]]
+            grant.resources = [branch_info["client_id"]]
         else:
             grant.resources = resources
 
@@ -87,8 +87,7 @@ class AuthzHandling(object):
             scopes = request.get("scope", [])
             grant.scope = scopes
         grant.claims = self.server_get("endpoint_context").claims_interface.get_claims_all_usage(
-            session_id=session_id, scopes=scopes
-        )
+            branch_id, scopes=scopes)
 
         return grant
 

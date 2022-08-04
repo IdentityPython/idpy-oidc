@@ -194,7 +194,7 @@ class TestEndpoint(object):
     def _mint_code(self, grant, session_id):
         # Constructing an authorization code is now done
         return grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
@@ -203,7 +203,7 @@ class TestEndpoint(object):
 
     def _mint_access_token(self, grant, session_id, token_ref):
         access_token = grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
@@ -214,7 +214,7 @@ class TestEndpoint(object):
 
     def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
         return grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint_context,
             token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],

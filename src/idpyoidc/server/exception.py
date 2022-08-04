@@ -124,3 +124,7 @@ class CapabilitiesMisMatch(OidcEndpointError):
 
 class MultipleCodeUsage(OidcEndpointError):
     pass
+
+
+class InvalidBranchID(KeyError):
+    pass

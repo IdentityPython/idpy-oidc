@@ -124,7 +124,7 @@ class UserAuthnMethod(object):
                     logger.info(f"Verifying session ID fail due to {err}")
                     return {}
 
-                session_id = _context.session_manager.decrypt_session_id(_info["sid"])
+                session_id = _context.session_manager.decrypt_branch_id(_info["sid"])
                 logger.debug("cookie_info: session id={}".format(session_id))
 
                 if session_id[1] != client_id:

@@ -261,7 +261,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(session_id)
 
         _userinfo_restriction = self.claims_interface.get_claims(
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
@@ -287,7 +287,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(session_id)
 
         _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
@@ -308,7 +308,7 @@ class TestCollectUserInfo:
         del _req["claims"]
 
         session_id = self._create_session(_req)
-        _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
+        _uid, _cid, _gid = self.session_manager.decrypt_branch_id(session_id)
 
         _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False

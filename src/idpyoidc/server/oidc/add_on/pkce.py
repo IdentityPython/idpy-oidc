@@ -98,9 +98,8 @@ def post_token_parse(request, client_id, endpoint_context, **kwargs):
         return request
 
     try:
-        _session_info = endpoint_context.session_manager.get_session_info_by_token(
-            request["code"], grant=True, handler_key="authorization_code"
-        )
+        _session_info = endpoint_context.session_manager.get_branch_info_by_token(
+            request["code"], "authorization_code")
     except KeyError:
         return TokenErrorResponse(error="invalid_grant", error_description="Unknown access grant")
 

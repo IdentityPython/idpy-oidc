@@ -26,6 +26,7 @@ from idpyoidc.message.oidc.session import BACK_CHANNEL_LOGOUT_EVENT
 from idpyoidc.message.oidc.session import EndSessionRequest
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.oauth2.authorization import verify_uri
+from idpyoidc.server.session.database import Database
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
 
@@ -149,9 +150,7 @@ class Session(Endpoint):
     def logout_all_clients(self, sid):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        _session_info = _mngr.get_session_info(
-            sid, user_session_info=True, client_session_info=True, grant=True
-        )
+        _session_info = _mngr.branch_info(sid)
 
         # Front-/Backchannel logout ?
         _cdb = _context.cdb
@@ -165,12 +164,15 @@ class Session(Endpoint):
         bc_logouts = {}
         fc_iframes = {}
         _rel_sid = []
-        for _client_id in _session_info["user_session_info"].subordinate:
+        for _id in _session_info["user"].subordinate:
+            _path = Database.unpack_branch_key(_id)
+            _client_id = _path[-1]
             # I prefer back-channel. Should it be configurable ?
             if "backchannel_logout_uri" in _cdb[_client_id]:
-                _cli = _mngr.get([_user_id, _client_id])
-                for gid in _cli.subordinate:
-                    grant = _mngr.get([_user_id, _client_id, gid])
+                _csi = _mngr.get(_path)
+                for gid in _csi.subordinate:
+                    _grant_path = Database.unpack_branch_key(gid)
+                    grant = _mngr.get(_grant_path)
                     # Has to be connected to an authentication event
                     if not grant.authentication_event:
                         continue
@@ -182,9 +184,10 @@ class Session(Endpoint):
                             bc_logouts[_client_id] = _spec
                         break
             elif "frontchannel_logout_uri" in _cdb[_client_id]:
-                _cli = _mngr.get([_user_id, _client_id])
-                for gid in _cli.subordinate:
-                    grant = _mngr.get([_user_id, _client_id, gid])
+                _csi = _mngr.get(_path)
+                for gid in _csi.subordinate:
+                    _grant_path = Database.unpack_branch_key(gid)
+                    grant = _mngr.get(_grant_path)
                     # Has to be connected to an authentication event
                     if not grant.authentication_event:
                         continue
@@ -225,7 +228,7 @@ class Session(Endpoint):
     def logout_from_client(self, sid):
         _context = self.server_get("endpoint_context")
         _cdb = _context.cdb
-        _session_information = _context.session_manager.get_session_info(sid, grant=True)
+        _session_information = _context.session_manager.branch_info(sid)
         _client_id = _session_information["client_id"]
 
         res = {}
@@ -280,7 +283,7 @@ class Session(Endpoint):
                 _cookie_info = json.loads(_cookie_infos[0]["value"])
                 logger.debug("process_request: cookie_info={}".format(_cookie_info))
                 try:
-                    _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
+                    _session_info = _mngr.branch_info(_cookie_info["sid"])
                 except KeyError:
                     raise ValueError("Can't find any corresponding session")
 
@@ -324,7 +327,7 @@ class Session(Endpoint):
             )
 
         payload = {
-            "sid": _session_info["session_id"],
+            "sid": _session_info["branch_id"],
         }
 
         # redirect user to OP logout verification page

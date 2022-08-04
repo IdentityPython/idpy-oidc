@@ -195,13 +195,13 @@ class TestEndpoint(object):
         )
 
     def _mint_code(self, grant, client_id):
-        session_id = self.session_manager.encrypted_session_id(self.user_id, client_id, grant.id)
+        session_id = self.session_manager.encrypted_branch_id(self.user_id, client_id, grant.id)
         usage_rules = grant.usage_rules.get("authorization_code", {})
         _exp_in = usage_rules.get("expires_in")
 
         # Constructing an authorization code is now done
         _code = grant.mint_token(
-            session_id=session_id,
+            session_id,
             endpoint_context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
@@ -353,10 +353,10 @@ class TestEndpoint(object):
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
@@ -411,10 +411,10 @@ class TestEndpoint(object):
 
         # Make sure ID Tokens can also be used by this refesh token
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = [
             "access_token",
             "refresh_token",
@@ -582,12 +582,12 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -658,12 +658,12 @@ class TestEndpoint(object):
         }
 
         _token_value = _resp["response_args"]["access_token"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -761,10 +761,10 @@ class TestEndpoint(object):
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
-        _session_info = self.session_manager.get_session_info_by_token(
+        _session_info = self.session_manager.get_branch_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())

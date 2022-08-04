@@ -18,6 +18,7 @@ from .database import Database
 from .grant import ExchangeGrant
 from .grant import Grant
 from .info import SessionInfo
+from ..exception import InvalidBranchID
 from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class GrantManager(Database):
             path: List[str],
             token_usage_rules: Optional[dict] = None,
             scope: Optional[list] = None,
-            **grant_args
+            **kwargs
     ) -> str:
         """
         Creates a Grant instance and adds it as a leaf to a branch
@@ -106,16 +107,18 @@ class GrantManager(Database):
 
         self._setup_branch(path)
 
+        grant_args = {k:v for k,v  in kwargs.items() if k in Grant.parameter}
         grant = Grant(
             usage_rules=token_usage_rules,
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
-            scope=scope
+            scope=scope,
+            **grant_args
         )
 
-        if grant_args:
-            for key, val in grant_args.items():
-                setattr(grant, key, val)
+        # if grant_args:
+        #     for key, val in grant_args.items():
+        #         setattr(grant, key, val)
 
         _id = path[:]
         _id.append(grant.id)
@@ -186,9 +189,12 @@ class GrantManager(Database):
         :return: dict with node identifiers as keys and SessionInfo instances as values
         """
         _path = self.decrypt_branch_id(branch_id)
-        _nodes = self._get_nodes(_path)
+        try:
+            _nodes = self._get_nodes(_path)
+        except KeyError:
+            raise InvalidBranchID(branch_id)
 
-        _res = {}
+        _res = {"branch_id": branch_id}
         for i in range(len(self.node_type)):
             if args and self.node_type[i] not in args:
                 continue
@@ -247,10 +253,14 @@ class GrantManager(Database):
         """
         if branch_id:
             _path = self.decrypt_branch_id(branch_id)
+            if len(_path) == len(self.node_type):
+                # take one step back
+                _path = _path[0:-1]
         elif path:
             _path = path[:]
         else:
             raise AttributeError("Must have branch_id or branch path")
+
 
         return [s for s in self.get_subordinates(_path) if isinstance(s, Grant)]
 
@@ -273,32 +283,6 @@ class GrantManager(Database):
     #     sid = _token_info.get("sid")
     #     return self._compatible_sid(sid)
     #
-    # def find_token(self, branch_id: str, token_value: str) -> Optional[SessionToken]:
-    #     """
-    #
-    #     :param branch_id: A n-tuple
-    #     :param token_value:
-    #     :return: A SessionToken instance
-    #     """
-    #     return self.get_grant(branch_id).get_token(token_value)
-    #
-    # def revoke_token(self, branch_id: str, token_value: str, recursive: bool = False):
-    #     """
-    #     Revoke a specific token that belongs to a specific Grant.
-    #
-    #     :param branch_id: Branch identifier
-    #     :param token_value: SessionToken value
-    #     :param recursive: Revoke all tokens that was minted using this token or
-    #         tokens minted by this token. Recursively.
-    #     """
-    #     _grant = self.get_grant(branch_id)
-    #     token = _grant.get_token(token_value)
-    #     if token is None:  # pragma: no cover
-    #         raise UnknownToken()
-    #
-    #     token.revoked = True
-    #     if recursive:  # TODO: not covered yet!
-    #         _grant.revoke_token(value=token.value)
 
 
 def create_grant_manager(server_get, token_handler_args, conf=None, **kwargs):
