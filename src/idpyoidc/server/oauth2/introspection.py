@@ -124,7 +124,7 @@ class Introspection(Endpoint):
         _resp.weed()
 
         _claims_restriction = _context.claims_interface.get_claims(
-            _session_info["session_id"], scopes=_token.scope, claims_release_point="introspection"
+            _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"
         )
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(

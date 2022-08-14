@@ -12,17 +12,11 @@ from idpyoidc.encrypter import init_encrypter
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.server.constant import DIVIDER
-from idpyoidc.server.exception import InconsistentDatabase
-from idpyoidc.server.exception import NoSuchClientSession
-from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.util import rndstr
-
 from .grant import Grant
-from .info import ClientSessionInfo
 from .info import SessionInfo
-from .info import UserSessionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -44,143 +38,25 @@ class Database(ImpExp):
         self.crypt = _crypt["encrypter"]
         self.crypt_config = _crypt["conf"]
 
+        session_params = kwargs.get("session_params", {})
+        self.node_type = session_params.get("node_type")
+        self.node_info_class = session_params.get("node_info_class")
+
     @staticmethod
-    def _eval_path(path: List[str]):
-        uid = path[0]
-        client_id = None
-        grant_id = None
-        if len(path) > 1:
-            client_id = path[1]
-            if len(path) > 2:
-                grant_id = path[2]
-
-        return uid, client_id, grant_id
-
-    def set(self, path: List[str], value: Union[SessionInfo, Grant]):
-        """
-
-        :param path: a list of identifiers
-        :param value: Class instance to be stored
-        """
-
-        uid, client_id, grant_id = self._eval_path(path)
-
-        if grant_id:
-            gid_key = self.session_key(uid, client_id, grant_id)
-            self.db[gid_key] = value
-
-        if client_id:
-            cid_key = self.session_key(uid, client_id)
-            cid_info = self.db.get(cid_key, ClientSessionInfo())
-            if not grant_id:
-                self.db[cid_key] = value
-            elif grant_id not in cid_info.subordinate:
-                cid_info.add_subordinate(grant_id)
-                self.db[cid_key] = cid_info
-
-        userinfo = self.db.get(uid, UserSessionInfo())
-        if client_id is None:
-            self.db[uid] = value
-        if client_id and client_id not in userinfo.subordinate:
-            userinfo.add_subordinate(client_id)
-            self.db[uid] = userinfo
-
-    def get(self, path: List[str]) -> Union[SessionInfo, Grant]:
-        uid, client_id, grant_id = self._eval_path(path)
-        try:
-            user_info = self.db[uid]
-        except KeyError:
-            raise KeyError("No such UserID")
-        except TypeError:
-            raise InconsistentDatabase("Missing session db")
-        else:
-            if user_info is None:
-                raise KeyError("No such UserID")
-
-        if client_id is None:
-            return user_info
-
-        if client_id not in user_info.subordinate:
-            raise ValueError("No session from that client for that user")
-
-        try:
-            skey = self.session_key(uid, client_id)
-            client_session_info = self.db[skey]
-        except KeyError:
-            raise NoSuchClientSession(client_id)
-
-        if grant_id is None:
-            return client_session_info
-
-        if grant_id not in client_session_info.subordinate:
-            raise ValueError("No such grant for that user and client")
-        else:
-            try:
-                skey = self.session_key(uid, client_id, grant_id)
-                return self.db[skey]
-            except KeyError:
-                raise NoSuchGrant(grant_id)
-
-    def delete(self, path: List[str]):
-        uid, client_id, grant_id = self._eval_path(path)
-
-        if uid not in self.db:
-            return
-        elif not client_id:
-            self.db.__delitem__(uid)
-            return
-
-        _user_info = self.db[uid]
-        skey_uid_client = self.session_key(uid, client_id)
-        skey_uid_client_grant = self.session_key(uid, client_id, grant_id or "")
-
-        if client_id not in _user_info.subordinate:
-            self.db.__delitem__(client_id)
-            return
-
-        elif skey_uid_client in self.db:
-            _client_info = self.db[skey_uid_client]
-            if grant_id:
-                if skey_uid_client_grant in self.db:
-                    self.db.__delitem__(skey_uid_client_grant)
-                if grant_id in _client_info.subordinate:
-                    _client_info.subordinate.remove(grant_id)
-            else:
-                for grant_id in _client_info.subordinate:
-                    if skey_uid_client_grant in self.db:
-                        self.db.__delitem__(skey_uid_client_grant)
-                _client_info.subordinate = []
-
-            if len(_client_info.subordinate) == 0:
-                self.db.__delitem__(skey_uid_client)
-                _user_info.subordinate.remove(client_id)
-            else:
-                self.db[client_id] = _client_info
-
-        if len(_user_info.subordinate) == 0:
-            self.db.__delitem__(uid)
-        else:
-            self.db[uid] = _user_info
-
-    def update(self, path: List[str], new_info: dict):
-        _info = self.get(path)
-        for key, val in new_info.items():
-            setattr(_info, key, val)
-        self.set(path, _info)
-
-    def session_key(self, *args):
+    def branch_key(*args):
         return DIVIDER.join(args)
 
-    def unpack_session_key(self, key):
+    @staticmethod
+    def unpack_branch_key(key):
         return key.split(DIVIDER)
 
-    def encrypted_session_id(self, *args) -> str:
+    def encrypted_branch_id(self, *args) -> str:
         rnd = rndstr(32)
         return base64.b64encode(
-            self.crypt.encrypt(lv_pack(rnd, self.session_key(*args)).encode())
+            self.crypt.encrypt(lv_pack(rnd, self.branch_key(*args)).encode())
         ).decode("utf-8")
 
-    def decrypt_session_id(self, key: str) -> List[str]:
+    def decrypt_branch_id(self, key: str) -> List[str]:
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
         except cryptography.fernet.InvalidToken as err:
@@ -189,7 +65,110 @@ class Database(ImpExp):
         except Exception as err:
             raise ValueError(err)
         # order: rnd, type, sid
-        return self.unpack_session_key(lv_unpack(as_unicode(plain))[1])
+        return self.unpack_branch_key(lv_unpack(as_unicode(plain))[1])
+
+    def set(self, path: List[str], value: Union[SessionInfo, Grant]):
+        """
+
+        :param path: a list of identifiers. root -> .. -> leaf
+        :param value: Class instance to be stored
+        """
+
+        _len = len(path)
+
+        _superior = None
+        for i in range(_len):
+            _key = self.branch_key(*path[0:i+1])
+            # _key = path[i]
+            _info = self.db.get(_key)
+            if _info is None:
+                if i == _len - 1:
+                    _info = value
+                else:
+                    if self.node_type:
+                        try:
+                            _cls = self.node_info_class[self.node_type[i]]
+                        except KeyError:
+                            raise ValueError("Missing node info class definition")
+                    else:
+                        _cls = SessionInfo
+                    _info = _cls(path[i])
+            else:
+                if i == _len - 1:
+                    _info = value  # overwrite old value
+
+            if _superior:
+                if hasattr(_superior, "subordinate"):
+                    if _key not in _superior.subordinate:
+                        _superior.add_subordinate(_key)
+
+            self.db[_key] = _info
+            _superior = _info
+
+    def get(self, path: List[str]) -> Union[SessionInfo, Grant]:
+        _key = self.branch_key(*path)
+        return self.db[_key]
+
+    def delete_sub_tree(self, key: str):
+        """
+        Removes all a node and all its subordinates
+
+        @param path:
+        @return:
+        """
+        _node = self.db[key]
+        if hasattr(_node, "subordinate"):
+            for _sub in _node.subordinate:
+                self.delete_sub_tree(_sub)
+
+        self.db.__delitem__(key)
+
+
+    def delete(self, path: List[str]):
+        """
+        Deletes a branch all the way from the root to the leaf. If a node in the branch has a
+        subordinate that is not listed in the path then it and the nodes above are not
+        removed.
+
+        @param path:
+        @return:
+        """
+        if path[0] not in self.db:
+            return
+
+        if len(path) == 1:
+            self.db.__delitem__(path[0])
+            return
+
+        # start at leaf and work our way upwards
+        _inv_path = path[:]
+        _inv_path.reverse()
+        _len = len(path)
+
+        _sub = None
+        for i in range(0, len(path)):
+            _key = self.branch_key(*path[0:_len - i])
+            if _key in self.db:
+                _node = self.db[_key]
+                if _sub:
+                    if _sub in _node.subordinate:
+                        _node.subordinate.remove(_sub)
+                        if _node.subordinate == []:
+                            self.db.__delitem__(_key)
+                        else:
+                            return
+                else:
+                    if isinstance(_node, SessionInfo) and _node.subordinate:
+                        for _s in _node.subordinate:
+                            self.delete_sub_tree(_s)
+                    self.db.__delitem__(_key)
+            _sub = _key
+
+    def update(self, path: List[str], new_info: dict):
+        _info = self.get(path)
+        for key, val in new_info.items():
+            setattr(_info, key, val)
+        self.set(path, _info)
 
     def flush(self):
         self.db = DLDict()

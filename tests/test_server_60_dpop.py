@@ -273,5 +273,5 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             access_token, handler_key="access_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], access_token)
+        _token = self.session_manager.find_token(_session_info["branch_id"], access_token)
         assert _token.token_type == "DPoP"

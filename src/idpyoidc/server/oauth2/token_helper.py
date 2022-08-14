@@ -163,7 +163,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 token = self._mint_token(
                     token_class="access_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                 )
@@ -183,7 +183,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                 )
@@ -193,7 +193,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         _based_on.register_usage()
 
@@ -275,7 +275,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
-            session_id=_session_info["session_id"],
+            session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=token,
             scope=scope,
@@ -297,7 +297,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
             refresh_token = self._mint_token(
                 token_class="refresh_token",
                 grant=_grant,
-                session_id=_session_info["session_id"],
+                session_id=_session_info["branch_id"],
                 client_id=_session_info["client_id"],
                 based_on=token,
                 scope=scope,
@@ -435,7 +435,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         # Find the token instance based on the token value
-        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        token = _mngr.find_token(_session_info["branch_id"], request["subject_token"])
         if token.is_active() is False:
             return self.error_cls(
                 error="invalid_request", error_description="Subject token inactive"
@@ -535,14 +535,14 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Subject token invalid"
             )
 
-        token = _mngr.find_token(_session_info["session_id"], request["subject_token"])
+        token = _mngr.find_token(_session_info["branch_id"], request["subject_token"])
         _requested_token_type = request.get(
             "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
         )
 
         _token_class = self.token_types_mapping[_requested_token_type]
 
-        sid = _session_info["session_id"]
+        sid = _session_info["branch_id"]
 
         _token_type = "Bearer"
         # Is DPOP supported

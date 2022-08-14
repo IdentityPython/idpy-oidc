@@ -256,9 +256,9 @@ class TestUserAuthn(object):
         )
         assert len(user_session_info.subordinate) == 3
         assert set(user_session_info.subordinate) == {
-            "client_1",
-            "client_2",
-            "client_3",
+            "diana;;client_1",
+            "diana;;client_2",
+            "diana;;client_3",
         }
 
         # Should be one grant for each of client_2 and client_3 and

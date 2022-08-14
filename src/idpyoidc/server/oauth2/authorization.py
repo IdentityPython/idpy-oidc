@@ -768,7 +768,7 @@ class Authorization(Endpoint):
                 _code = self.mint_token(
                     token_class="authorization_code",
                     grant=grant,
-                    session_id=_sinfo["session_id"],
+                    session_id=_sinfo["branch_id"],
                 )
                 aresp["code"] = _code.value
                 handled_response_type.append("code")
@@ -779,7 +779,7 @@ class Authorization(Endpoint):
                 _access_token = self.mint_token(
                     token_class="access_token",
                     grant=grant,
-                    session_id=_sinfo["session_id"],
+                    session_id=_sinfo["branch_id"],
                 )
                 aresp["access_token"] = _access_token.value
                 aresp["token_type"] = "Bearer"
@@ -805,7 +805,7 @@ class Authorization(Endpoint):
                     id_token = self.mint_token(
                         token_class="id_token",
                         grant=grant,
-                        session_id=_sinfo["session_id"],
+                        session_id=_sinfo["branch_id"],
                         scope=request["scope"],
                         **kwargs,
                     )
@@ -995,7 +995,7 @@ class Authorization(Endpoint):
         cinfo = _context.cdb[_cid]
         # logger.debug("client {}: {}".format(_cid, cinfo))
 
-        # this applies the default optionally deny_unknown_scopes policy
+        # this applies the default option deny_unknown_scopes policy
         check_unknown_scopes_policy(request, _cid, _context)
 
         if http_info is None:
