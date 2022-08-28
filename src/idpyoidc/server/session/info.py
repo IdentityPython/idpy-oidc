@@ -4,7 +4,7 @@ from typing import Optional
 from idpyoidc.impexp import ImpExp
 
 
-class SessionInfo(ImpExp):
+class NodeInfo(ImpExp):
     parameter = {"subordinate": [], "revoked": bool, "type": "", "extra_args": {}, "id": ""}
 
     def __init__(
@@ -22,16 +22,16 @@ class SessionInfo(ImpExp):
         self.type = type
         self.extra_args = {}
 
-    def add_subordinate(self, value: str) -> "SessionInfo":
+    def add_subordinate(self, value: str) -> "NodeInfo":
         if value not in self.subordinate:
             self.subordinate.append(value)
         return self
 
-    def remove_subordinate(self, value: str) -> "SessionInfo":
+    def remove_subordinate(self, value: str) -> "NodeInfo":
         self.subordinate.remove(value)
         return self
 
-    def revoke(self) -> "SessionInfo":
+    def revoke(self) -> "NodeInfo":
         self.revoked = True
         return self
 
@@ -42,16 +42,16 @@ class SessionInfo(ImpExp):
         return self.parameter.keys()
 
 
-class UserSessionInfo(SessionInfo):
+class UserSessionInfo(NodeInfo):
     def __init__(self, id: Optional[str] = "", **kwargs):
-        SessionInfo.__init__(self, id, **kwargs)
+        NodeInfo.__init__(self, id, **kwargs)
         self.type = "UserSessionInfo"
         self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
 
 
-class ClientSessionInfo(SessionInfo):
+class ClientSessionInfo(NodeInfo):
     def __init__(self, id: Optional[str] = "", **kwargs):
-        SessionInfo.__init__(self, id, **kwargs)
+        NodeInfo.__init__(self, id, **kwargs)
         self.type = "ClientSessionInfo"
         self.extra_args = {k: v for k, v in kwargs.items() if k not in self.parameter}
 

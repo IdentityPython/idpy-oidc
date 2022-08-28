@@ -149,11 +149,18 @@ class SessionManager(GrantManager):
 
         return None  # pragma: no cover
 
+    def make_path(self, **kwargs):
+        _path = []
+        for typ in self.node_type[:-1]:
+            _id_type = f"{typ}_id"
+            _path.append(kwargs[_id_type])
+        return _path
+
     def create_grant(
             self,
             authn_event: AuthnEvent,
             auth_req: AuthorizationRequest,
-            user_id: str,
+            user_id: Optional[str] = "",
             client_id: Optional[str] = "",
             sub_type: Optional[str] = "public",
             token_usage_rules: Optional[dict] = None,
@@ -179,18 +186,24 @@ class SessionManager(GrantManager):
             sector_identifier = ""
             _claims = {}
 
+        if self.node_type[0] == "user":
+            kwargs = {
+                "sub": self.sub_func[sub_type](
+                    user_id, salt=self.get_salt(), sector_identifier=sector_identifier)
+            }
+        else:
+            kwargs = {}
+
         return self.add_grant(
-            path=[user_id, client_id],
+            path=self.make_path(user_id=user_id, client_id=client_id),
             token_usage_rules=token_usage_rules,
             authorization_request=auth_req,
             authentication_event=authn_event,
-            sub=self.sub_func[sub_type](
-                user_id, salt=self.get_salt(), sector_identifier=sector_identifier
-            ),
             scope=scopes,
             claims=_claims,
             remember_token=self.remember_token,
-            remove_inactive_token=self.remove_inactive_token
+            remove_inactive_token=self.remove_inactive_token,
+            **kwargs
         )
 
     def create_exchange_grant(
@@ -216,7 +229,7 @@ class SessionManager(GrantManager):
         return self.add_exchange_grant(
             exchange_request=exchange_request,
             original_branch_id=original_session_id,
-            path=[user_id, client_id],
+            path=self.make_path(user_id=user_id, client_id=client_id),
             token_usage_rules=token_usage_rules,
             sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
             scope=scopes
@@ -226,7 +239,7 @@ class SessionManager(GrantManager):
             self,
             authn_event: AuthnEvent,
             auth_req: AuthorizationRequest,
-            user_id: str,
+            user_id: Optional[str] = "",
             client_id: Optional[str] = "",
             sub_type: Optional[str] = "public",
             token_usage_rules: Optional[dict] = None,

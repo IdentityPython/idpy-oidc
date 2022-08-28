@@ -16,7 +16,7 @@ from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.util import rndstr
 from .grant import Grant
-from .info import SessionInfo
+from .info import NodeInfo
 
 logger = logging.getLogger(__name__)
 
@@ -44,19 +44,26 @@ class Database(ImpExp):
 
     @staticmethod
     def branch_key(*args):
+        """ Construct a key using a list of names """
         return DIVIDER.join(args)
 
     @staticmethod
     def unpack_branch_key(key):
+        """ Translate a key into an ordered list of names """
         return key.split(DIVIDER)
 
     def encrypted_branch_id(self, *args) -> str:
+        """ Provided an ordered list of names construct a key and then encrypt it. """
         rnd = rndstr(32)
         return base64.b64encode(
             self.crypt.encrypt(lv_pack(rnd, self.branch_key(*args)).encode())
         ).decode("utf-8")
 
     def decrypt_branch_id(self, key: str) -> List[str]:
+        """
+            Given an encrypted key, decrypt it and then unpack the key to return an ordered list
+            of names.
+        """
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
         except cryptography.fernet.InvalidToken as err:
@@ -67,8 +74,10 @@ class Database(ImpExp):
         # order: rnd, type, sid
         return self.unpack_branch_key(lv_unpack(as_unicode(plain))[1])
 
-    def set(self, path: List[str], value: Union[SessionInfo, Grant]):
+    def set(self, path: List[str], value: Union[NodeInfo, Grant]):
         """
+        Assign a value to an node in the database.
+        As a side effect create a list of nodes (the branch) leading up to the leaf node.
 
         :param path: a list of identifiers. root -> .. -> leaf
         :param value: Class instance to be stored
@@ -78,7 +87,7 @@ class Database(ImpExp):
 
         _superior = None
         for i in range(_len):
-            _key = self.branch_key(*path[0:i+1])
+            _key = self.branch_key(*path[0:i + 1])
             # _key = path[i]
             _info = self.db.get(_key)
             if _info is None:
@@ -91,7 +100,7 @@ class Database(ImpExp):
                         except KeyError:
                             raise ValueError("Missing node info class definition")
                     else:
-                        _cls = SessionInfo
+                        _cls = NodeInfo
                     _info = _cls(path[i])
             else:
                 if i == _len - 1:
@@ -105,7 +114,8 @@ class Database(ImpExp):
             self.db[_key] = _info
             _superior = _info
 
-    def get(self, path: List[str]) -> Union[SessionInfo, Grant]:
+    def get(self, path: List[str]) -> Union[NodeInfo, Grant]:
+        """ Given a path return the node that matches the path. """
         _key = self.branch_key(*path)
         return self.db[_key]
 
@@ -122,7 +132,6 @@ class Database(ImpExp):
                 self.delete_sub_tree(_sub)
 
         self.db.__delitem__(key)
-
 
     def delete(self, path: List[str]):
         """
@@ -158,7 +167,7 @@ class Database(ImpExp):
                         else:
                             return
                 else:
-                    if isinstance(_node, SessionInfo) and _node.subordinate:
+                    if isinstance(_node, NodeInfo) and _node.subordinate:
                         for _s in _node.subordinate:
                             self.delete_sub_tree(_s)
                     self.db.__delitem__(_key)

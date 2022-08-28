@@ -1,6 +1,6 @@
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.session.info import ClientSessionInfo
-from idpyoidc.server.session.info import SessionInfo
+from idpyoidc.server.session.info import NodeInfo
 from idpyoidc.server.session.info import UserSessionInfo
 
 AUTH_REQ = AuthorizationRequest(
@@ -13,7 +13,7 @@ AUTH_REQ = AuthorizationRequest(
 
 
 def test_session_info_subordinate():
-    si = SessionInfo()
+    si = NodeInfo()
     si.add_subordinate("subordinate_1")
     si.add_subordinate("subordinate_2")
     assert set(si.subordinate) == {"subordinate_1", "subordinate_2"}
@@ -28,7 +28,7 @@ def test_session_info_subordinate():
 
 
 def test_session_info_no_subordinate():
-    si = SessionInfo()
+    si = NodeInfo()
     assert si.subordinate == []
 
 

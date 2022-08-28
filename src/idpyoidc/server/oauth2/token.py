@@ -14,6 +14,7 @@ from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
+from idpyoidc.server.oauth2.token_helper import TokenExchangeHelper
 from idpyoidc.server.session import MintingNotAllowed
 from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
@@ -132,28 +133,8 @@ class Token(Endpoint):
         _access_token = response_args["access_token"]
         _context = self.server_get("endpoint_context")
 
-        if isinstance(request, TokenExchangeRequest):
-            if "token_exchange" in _context.cdb[request["client_id"]]:
-                try:
-                    default_requested_token_type = _context.cdb[request["client_id"]][
-                        "token_exchange"]["default_requested_token_type"]
-                except KeyError:
-                    try:
-                        default_requested_token_type = self.helper[
-                            "urn:ietf:params:oauth:grant-type:token-exchange"
-                        ].config["default_requested_token_type"]
-                    except:
-                        default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
-            else:
-                try:
-                    default_requested_token_type = self.helper[
-                        "urn:ietf:params:oauth:grant-type:token-exchange"
-                    ].config["default_requested_token_type"]
-                except KeyError:
-                    default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
-
-            requested_token_type = request.get("requested_token_type", default_requested_token_type)
-            _handler_key = TOKEN_TYPES_MAPPING[requested_token_type]
+        if isinstance(_helper, TokenExchangeHelper):
+            _handler_key = _helper.get_handler_key(request, _context)
         else:
             _handler_key = "access_token"
 
