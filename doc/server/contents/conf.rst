@@ -1,6 +1,10 @@
-========================
-Configuration directives
-========================
+*************
+Configuration
+*************
+
+================================
+General Configuration directives
+================================
 
 ------
 issuer
@@ -715,11 +719,15 @@ the following::
         }
     }
 
-==============
+================================
+Special Configuration directives
+================================
+
+--------------
 Token exchange
-==============
+--------------
 There are two possible ways to configure Token Exchange in OIDC-OP, globally and per-client.
-For the first case the configuration is passed in the Token Exchange handler throught the
+For the first case the configuration is passed in the Token Exchange handler through the
 `urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
 
 If present, the token exchange configuration should contain a `policy` dictionary
@@ -837,4 +845,14 @@ For example::
             )
 
         return request
+
+
+==================================
+idpyoidc\.server\.configure module
+==================================
+
+.. automodule:: idpyoidc.server.configure
+    :members:
+    :undoc-members:
+    :show-inheritance:
 

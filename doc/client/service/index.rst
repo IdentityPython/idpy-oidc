@@ -12,14 +12,6 @@ service support
 Submodules
 ----------
 
-idpyoidc\.server\.configure module
-----------------------------------
-
-.. automodule:: idpyoidc.server.configure
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 idpyoidc\.server\.endpoint module
 ---------------------------------
 

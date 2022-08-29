@@ -79,8 +79,11 @@ with what frequency.
 You have this sequence of classes::
 
 1. Server
+
 2. EndpointContext
+
 3. SessionManager
+
 4. Grant
 
 Which gets more and more detailed.
@@ -89,6 +92,95 @@ anyone to do often. Probably only after initiating everything at start up and
 just before taking down a server.
 Dumping a Grant instance on the other hand should probably be done everytime
 something has changed in the Grant instance. Like issuing a new Access Token.
+
+Dump/load is, by design, not supposed to touch information in an instance
+that comes from configuration information. Dump/load is only supposed to
+deal with information that is created/modified/deleted due to server activity.
+
+ImpExp Class hierarchy
+----------------------
+
+Here you can see which of the classes that are subclasses of ImpExp or
+are subclasses of classes that are subclasses of ImpExp and so on..
+
+This means that the smallest amount of data you can dump to persistent storage
+it was is kept in an instance of either of these classes.
+
+This doesn't tell you what is contained in what.
+For instance a SessionManager instance contains NodeInfo and Grant instances.
+So you can chose to dump a whole SessionManager instance or just the
+affected NodeInfo or Grant instances.
+
+ *   ImpExp
+
+     +   TokenHandler
+
+     +   Item
+
+         -   SessionToken
+
+             -   IDToken
+
+             -   AuthorizationCode
+
+             -   RefreshToken
+
+         -   Grant
+
+             -   ExchangeGrant
+
+     +   Database
+
+         -   GrantManager
+
+             -   SessionManager
+
+     +   GrantMessage
+
+     +   NodeInfo
+
+         -   UserSessionInfo
+
+         -   ClientSessionInfo
+
+     +   OidcContext
+
+         -   EndpointContext
+
+         -   ServiceContext
+
+     +   Service
+
+         -   ServerMetadata
+
+         -   Registration
+
+         -   UserInfo
+
+         -   BackChannelAuthentication
+
+         -   ClientNotification
+
+         -   RegistrationRead
+
+         -   TokenExchange
+
+         -   CCRefreshAccessToken
+
+         -   CCAccessToken
+
+         -   EndSession
+
+         -   CheckID
+
+         -   WebFinger
+
+         -   CheckSession
+
+     +   StateInterface
+
+     +   DLDict
+
 
 module
 ======

@@ -46,9 +46,6 @@ class GrantManager(Database):
         _crypt_config = get_crypt_config(session_params)
         super(GrantManager, self).__init__(_crypt_config, **self.conf)
 
-        # self.node_type = session_params.get("node_type", ["client", "grant"])
-        # self.node_info_class = session_params.get("node_info_class", {"client": ClientSessionInfo,
-        #                                                               "grant": Grant})
         self.token_handler = handler
         self.remember_token = remember_token
         self.remove_inactive_token = remove_inactive_token

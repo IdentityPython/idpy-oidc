@@ -15,11 +15,3 @@ OIDC Provider Endpoints
     token.rst
     token_helper.rst
     userinfo.rst
-
-idpyoidc\.server\.endpoint module
----------------------------------
-
-.. automodule:: idpyoidc.server.endpoint
-    :members:
-    :undoc-members:
-    :show-inheritance:

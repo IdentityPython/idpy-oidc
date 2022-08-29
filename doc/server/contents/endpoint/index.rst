@@ -9,11 +9,11 @@ Server Endpoints
     oauth2/index.rst
     oidc/index.rst
 
-==================
+
 Endpoint behaviour
 ==================
 
-All the endpoint behave in a similar manner.
+All the endpoints behave in a similar manner.
 
 When an endpoint receives a request it has to do a number of things:
 
@@ -79,7 +79,6 @@ response_placement
 redirect_location
     Where to send a redirect
 
-=======
 Example
 =======
 
@@ -206,16 +205,8 @@ The end result then is something like this::
 
 As you can see the response is a JSON string.
 
-Submodules
-----------
-
-idpyoidc\.server\.configure module
-----------------------------------
-
-.. automodule:: idpyoidc.server.configure
-    :members:
-    :undoc-members:
-    :show-inheritance:
+modules
+=======
 
 idpyoidc\.server\.scopes module
 -------------------------------
