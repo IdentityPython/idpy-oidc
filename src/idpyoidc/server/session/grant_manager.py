@@ -75,7 +75,7 @@ class GrantManager(Database):
                 _si = self.get(_id)
             except KeyError:
                 _info_class = self.node_info_class[self.node_type[i]]
-                _si = _info_class()
+                _si = _info_class(id=_id[i])
                 self.set(_id, _si)
 
     def _get_nodes(self, path):

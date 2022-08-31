@@ -59,7 +59,8 @@ def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
         else:
             entity.set_usage_value("jwks_uri", False)
             if config.get("key_conf"):
-                _keyjar = init_key_jar(**config.get("key_conf"))
+                keys_args = {k: v for k, v in config.get("key_conf").items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
                 entity.set_usage_value("jwks", True)
                 entity.set_metadata_value("jwks", _keyjar.export_jwks())
                 return
