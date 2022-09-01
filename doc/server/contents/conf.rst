@@ -91,6 +91,34 @@ simply map it to an empty list. E.g.::
 
 *Note*: For OIDC the `openid` scope must be present in this mapping.
 
+The default set is::
+
+    {
+        "openid": ["sub"],
+        "profile": [
+            "name",
+            "given_name",
+            "family_name",
+            "middle_name",
+            "nickname",
+            "profile",
+            "picture",
+            "website",
+            "gender",
+            "birthdate",
+            "zoneinfo",
+            "locale",
+            "updated_at",
+            "preferred_username",
+        ],
+        "email": ["email", "email_verified"],
+        "address": ["address"],
+        "phone": ["phone_number", "phone_number_verified"],
+        "offline_access": [],
+    }
+
+*Note*: If you define `scopes_to_claims` in the configuration you MUST list
+ALL the mappings you want. Not just the changes you want to make to the default.
 
 --------------
 allowed_scopes
