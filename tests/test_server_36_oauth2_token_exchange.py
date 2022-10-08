@@ -219,7 +219,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint.server_get("endpoint_context"),
+            endpoint_context=self.endpoint.server_get("context"),
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,

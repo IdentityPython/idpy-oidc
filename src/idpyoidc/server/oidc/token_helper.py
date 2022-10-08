@@ -40,7 +40,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
 
         _mngr = _context.session_manager
         logger.debug("OIDC Access Token")
@@ -172,7 +172,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("endpoint_context").session_manager
+        _mngr = self.endpoint.server_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
         except (KeyError, UnknownToken):
@@ -204,7 +204,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
 
         if req["grant_type"] != "refresh_token":
@@ -318,7 +318,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         try:
             keyjar = _context.keyjar
         except AttributeError:

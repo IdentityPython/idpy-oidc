@@ -27,8 +27,8 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
-    def __init__(self, client_get, conf=None):
-        authorization.Authorization.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        authorization.Authorization.__init__(self, superior_get, conf=conf)
         self.default_request_args = {"scope": ["openid"]}
         self.pre_construct = [
             self.set_state,
@@ -46,19 +46,19 @@ class Authorization(authorization.Authorization):
             except KeyError:
                 _state = ""
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         request_args["state"] = _context.state.create_state(_context.issuer, _state)
         return request_args, {}
 
     def update_service_context(self, resp, key="", **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
 
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
         _context.state.store_item(resp.to_json(), "auth_response", key)
 
     def get_request_from_response(self, response):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         return _context.state.get_item(
             oauth2.AuthorizationRequest, "auth_request", response["state"]
         )
@@ -81,7 +81,7 @@ class Authorization(authorization.Authorization):
         return response
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if request_args is None:
             request_args = {}
 
@@ -138,7 +138,7 @@ class Authorization(authorization.Authorization):
 
         if not alg:
             try:
-                alg = self.client_get("service_context").behaviour["request_object_signing_alg"]
+                alg = self.superior_get("context").behaviour["request_object_signing_alg"]
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -150,7 +150,7 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: The URL the OP should use to access the file
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         try:
             _webname = _context.registration_response["request_uris"][0]
             filename = _context.filename_from_webname(_webname)
@@ -169,7 +169,7 @@ class Authorization(authorization.Authorization):
         alg = self.get_request_object_signing_alg(**kwargs)
         kwargs["request_object_signing_alg"] = alg
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if "keys" not in kwargs and alg and alg != "none":
             kwargs["keys"] = _context.keyjar
 
@@ -225,7 +225,7 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: A possibly modified request.
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if "openid" in req["scope"]:
             _response_type = req["response_type"][0]
             if "id_token" in _response_type or "code" in _response_type:
@@ -262,7 +262,7 @@ class Authorization(authorization.Authorization):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         kwargs = {
             "iss": _context.issuer,
             "keyjar": _context.keyjar,

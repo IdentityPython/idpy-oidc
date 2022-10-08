@@ -80,6 +80,7 @@ class RP(oauth2.Client):
         httplib=None,
         services=None,
         httpc_params=None,
+        **kwargs
     ):
 
         _srvs = services or DEFAULT_OIDC_SERVICES
@@ -92,6 +93,7 @@ class RP(oauth2.Client):
             httplib=httplib,
             services=_srvs,
             httpc_params=httpc_params,
+            **kwargs
         )
 
         _context = self.get_service_context()
@@ -121,7 +123,7 @@ class RP(oauth2.Client):
                     if "access_token" in spec:
                         cauth = BearerHeader()
                         httpc_params = cauth.construct(
-                            service=self.client_get("service", "userinfo"),
+                            service=self.superior_get("service", "userinfo"),
                             access_token=spec["access_token"],
                         )
                         _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
@@ -130,7 +132,7 @@ class RP(oauth2.Client):
                             token = callback(spec["endpoint"])
                             cauth = BearerHeader()
                             httpc_params = cauth.construct(
-                                service=self.client_get("service", "userinfo"), access_token=token
+                                service=self.superior_get("service", "userinfo"), access_token=token
                             )
                             _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
                         else:

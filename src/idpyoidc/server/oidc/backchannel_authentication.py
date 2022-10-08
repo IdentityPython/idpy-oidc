@@ -59,11 +59,11 @@ class BackChannelAuthentication(Endpoint):
         elif request.get("login_hint"):
             _login_hint = request.get("login_hint")
             if _login_hint:
-                _context = self.server_get("endpoint_context")
+                _context = self.server_get("context")
                 if _context.login_hint_lookup:
                     _request_user = _context.login_hint_lookup(_login_hint)
         elif request.get("login_hint_token"):
-            _context = self.server_get("endpoint_context")
+            _context = self.server_get("context")
             _request_user = execute(
                 self.parse_login_hint_token,
                 keyjar=_context.keyjar,
@@ -78,7 +78,7 @@ class BackChannelAuthentication(Endpoint):
         The OP MUST accept its Issuer Identifier, Token Endpoint URL, or Backchannel
         Authentication Endpoint URL as values that identify it as an intended audience.
         """
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         res = [_context.issuer]
         res.append(self.full_path)
         res.append(self.server_get("endpoint", "token").full_path)
@@ -100,7 +100,7 @@ class BackChannelAuthentication(Endpoint):
             return _error_msg
 
         if request_user:  # Got a request for a legitimate user, create a session
-            _context = self.server_get("endpoint_context")
+            _context = self.server_get("context")
             _sid = _context.session_manager.create_session(
                 None, request, request_user, client_id=request["client_id"]
             )
@@ -138,7 +138,7 @@ class CIBATokenHelper(AccessTokenHelper):
     def post_parse_request(
         self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         _session_id = _mngr.auth_req_id_map[request["auth_req_id"]]
         _info = _mngr.get_session_info(_session_id)
@@ -179,7 +179,7 @@ class CIBATokenHelper(AccessTokenHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
 
         _mngr = _context.session_manager
         logger.debug("OIDC Access Token")

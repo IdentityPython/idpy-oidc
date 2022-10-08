@@ -433,7 +433,7 @@ class TestVerify:
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        self.endpoint_context = self.server.server_get("endpoint_context")
+        self.endpoint_context = self.server.server_get("context")
 
     def test_verify_per_client(self):
         self.server.endpoint_context.cdb[client_id]["client_authn_method"] = ["public"]
@@ -571,7 +571,7 @@ class TestVerify2:
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        self.endpoint_context = self.server.server_get("endpoint_context")
+        self.endpoint_context = self.server.server_get("context")
 
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()

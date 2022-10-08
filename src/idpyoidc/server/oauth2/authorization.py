@@ -336,7 +336,7 @@ class Authorization(Endpoint):
         usage_rules = grant.usage_rules.get(token_class, {})
         token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.server_get("endpoint_context"),
+            endpoint_context=self.server_get("context"),
             token_class=token_class,
             based_on=based_on,
             usage_rules=usage_rules,
@@ -349,7 +349,7 @@ class Authorization(Endpoint):
         if _exp_in:
             token.expires_at = utc_time_sans_frac() + _exp_in
 
-        _mngr = self.server_get("endpoint_context").session_manager
+        _mngr = self.server_get("context").session_manager
         _mngr.set(_mngr.unpack_session_key(session_id), grant)
 
         return token
@@ -465,7 +465,7 @@ class Authorization(Endpoint):
         return request
 
     def pick_authn_method(self, request, redirect_uri, acr=None, **kwargs):
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         auth_id = kwargs.get("auth_method_id")
         if auth_id:
             return _context.authn_broker[auth_id]
@@ -489,7 +489,7 @@ class Authorization(Endpoint):
             }
 
     def create_session(self, request, user_id, acr, time_stamp, authn_method):
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         _mngr = _context.session_manager
         authn_event = create_authn_event(
             user_id,
@@ -558,7 +558,7 @@ class Authorization(Endpoint):
         authn_class_ref = res["acr"]
 
         client_id = request.get("client_id")
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         try:
             _auth_info = kwargs.get("authn", "")
             if "upm_answer" in request and request["upm_answer"] == "true":
@@ -737,7 +737,7 @@ class Authorization(Endpoint):
         if "response_type" in request and request["response_type"] == ["none"]:
             fragment_enc = False
         else:
-            _context = self.server_get("endpoint_context")
+            _context = self.server_get("context")
             _mngr = _context.session_manager
             _sinfo = _mngr.get_session_info(sid, grant=True)
 
@@ -837,7 +837,7 @@ class Authorization(Endpoint):
         """
 
         response_info = {}
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         _mngr = _context.session_manager
 
         # Do the authorization
@@ -906,7 +906,7 @@ class Authorization(Endpoint):
         except Exception as err:
             return self.error_by_response_mode({}, request, "server_error", err)
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         logger.debug(f"resp_info: {resp_info}")
 
@@ -982,7 +982,7 @@ class Authorization(Endpoint):
             return request
 
         _cid = request["client_id"]
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         cinfo = _context.cdb[_cid]
         # logger.debug("client {}: {}".format(_cid, cinfo))
 

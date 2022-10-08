@@ -162,7 +162,7 @@ class Endpoint(object):
         LOGGER.debug("- {} -".format(self.endpoint_name))
         LOGGER.info("Request: %s" % sanitize(request))
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         if http_info is None:
             http_info = {}
@@ -176,7 +176,7 @@ class Endpoint(object):
                     req = _cls_inst.deserialize(
                         request,
                         "jwt",
-                        keyjar=_context.keyjar,
+                        keyjar=self.server_get("keyjar"),
                         verify=_context.httpc_params["verify"],
                         **kwargs
                     )
@@ -198,7 +198,7 @@ class Endpoint(object):
         else:
             _client_id = req.get("client_id")
 
-        keyjar = _context.keyjar
+        keyjar = self.server_get("keyjar")
 
         # verify that the request message is correct
         try:
@@ -239,7 +239,7 @@ class Endpoint(object):
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
         authn_info = verify_client(
-            endpoint_context=self.server_get("endpoint_context"),
+            endpoint_context=self.server_get("context"),
             request=request,
             http_info=http_info,
             **kwargs
@@ -255,7 +255,7 @@ class Endpoint(object):
     def do_post_parse_request(
         self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
@@ -265,7 +265,7 @@ class Endpoint(object):
     def do_pre_construct(
         self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         for meth in self.pre_construct:
             response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
 
@@ -277,7 +277,7 @@ class Endpoint(object):
         request: Optional[Union[Message, dict]] = None,
         **kwargs
     ) -> dict:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         for meth in self.post_construct:
             response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
 
@@ -436,7 +436,7 @@ class Endpoint(object):
 
     def allowed_target_uris(self):
         res = []
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         for t in self.allowed_targets:
             if t == "":
                 res.append(_context.issuer)

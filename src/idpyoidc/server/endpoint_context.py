@@ -119,8 +119,10 @@ class EndpointContext(OidcContext):
         cwd: Optional[str] = "",
         cookie_handler: Optional[Any] = None,
         httpc: Optional[Any] = None,
+        entity_id: Optional[str] = ""
     ):
-        OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
+        entity_id = entity_id or conf.get("issuer", "")
+        OidcContext.__init__(self, config=conf, keyjar=keyjar, entity_id=entity_id)
         self.conf = conf
         self.server_get = server_get
 
@@ -234,7 +236,9 @@ class EndpointContext(OidcContext):
 
         self.set_scopes_handler()
         self.dev_auth_db = None
-        self.claims_interface = init_service(conf["claims_interface"], self.server_get)
+        _interface = conf.get("claims_interface")
+        if _interface:
+            self.claims_interface = init_service(_interface, self.server_get)
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(

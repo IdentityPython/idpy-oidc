@@ -18,12 +18,12 @@ class CheckSession(Service):
     synchronous = True
     service_name = "check_session"
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
-        request_args = self.client_get("service_context").state.multiple_extend_request_args(
+        request_args = self.superior_get("context").state.multiple_extend_request_args(
             request_args,
             kwargs["state"],
             ["id_token"],

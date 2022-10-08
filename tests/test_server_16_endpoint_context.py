@@ -108,7 +108,7 @@ class TestEndpointContext:
         )
 
     def server_get(self, *args):
-        if args[0] == "endpoint_context":
+        if args[0] == "context":
             return self.endpoint_context
 
     def test(self):

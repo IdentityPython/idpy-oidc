@@ -193,7 +193,7 @@ class TestClientSecretJWT:
     def test_client_secret_jwt(self):
         client_keyjar = KeyJar()
         client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
+        # The only own key the client has at this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
@@ -480,7 +480,7 @@ class TestVerify:
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server.endpoint = do_endpoints(CONF, self.server.server_get)
-        self.endpoint_context = self.server.server_get("endpoint_context")
+        self.endpoint_context = self.server.server_get("context")
 
     def test_verify_per_client(self):
         self.server.endpoint_context.cdb[client_id]["client_authn_method"] = ["public"]
@@ -618,7 +618,7 @@ class TestVerify2:
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server.endpoint = do_endpoints(CONF, self.server.server_get)
-        self.endpoint_context = self.server.server_get("endpoint_context")
+        self.endpoint_context = self.server.server_get("context")
 
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()

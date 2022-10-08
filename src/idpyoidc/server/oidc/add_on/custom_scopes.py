@@ -18,7 +18,7 @@ def add_custom_scopes(endpoint, **kwargs):
 
     _scopes2claims = SCOPE2CLAIMS.copy()
     _scopes2claims.update(kwargs)
-    _context = _endpoint.server_get("endpoint_context")
+    _context = _endpoint.server_get("context")
     _context.scopes_handler.set_scopes_mapping(_scopes2claims)
 
     pi = _context.provider_info

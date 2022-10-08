@@ -37,7 +37,7 @@ class ClientConfiguration(RegistrationResponse):
         RegistrationResponse.verify(self, **kwargs)
         _server_get = kwargs.get("server_get")
         if _server_get:
-            _endpoint_context = _server_get("endpoint_context")
+            _endpoint_context = _server_get("context")
         else:
             _endpoint_context = None
 

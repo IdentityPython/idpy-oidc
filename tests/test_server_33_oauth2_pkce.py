@@ -306,7 +306,7 @@ class TestEndpoint(object):
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.server_get("endpoint_context")
+        endpoint_context = server.server_get("context")
         endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = True
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -321,7 +321,7 @@ class TestEndpoint(object):
         authn_endpoint = server.server_get("endpoint", "authorization")
         token_endpoint = server.server_get("endpoint", "token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.server_get("endpoint_context")
+        endpoint_context = server.server_get("context")
         endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = False
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -419,7 +419,7 @@ def test_missing_authz_endpoint():
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 
-    assert "pkce" not in server.server_get("endpoint_context").args
+    assert "pkce" not in server.server_get("context").args
 
 
 def test_missing_token_endpoint():
@@ -444,4 +444,4 @@ def test_missing_token_endpoint():
     server = Server(configuration)
     add_pkce_support(server.server_get("endpoints"))
 
-    assert "pkce" not in server.server_get("endpoint_context").args
+    assert "pkce" not in server.server_get("context").args

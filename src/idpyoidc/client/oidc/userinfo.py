@@ -38,8 +38,8 @@ class UserInfo(Service):
     default_authn_method = "bearer_header"
     http_method = "GET"
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
@@ -49,7 +49,7 @@ class UserInfo(Service):
         if "access_token" in request_args:
             pass
         else:
-            request_args = self.client_get("service_context").state.multiple_extend_request_args(
+            request_args = self.superior_get("context").state.multiple_extend_request_args(
                 request_args,
                 kwargs["state"],
                 ["access_token"],
@@ -59,7 +59,7 @@ class UserInfo(Service):
         return request_args, {}
 
     def post_parse_response(self, response, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         _state_interface = _context.state
         _args = _state_interface.multiple_extend_request_args(
             {},
@@ -124,7 +124,7 @@ class UserInfo(Service):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         kwargs = {
             "client_id": _context.client_id,
             "iss": _context.issuer,

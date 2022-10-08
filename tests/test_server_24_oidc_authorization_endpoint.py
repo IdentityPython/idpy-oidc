@@ -420,7 +420,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         idt = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
+            keyjar=self.endpoint.server_get("context").keyjar,
         )
         assert idt
         # from config
@@ -431,7 +431,7 @@ class TestEndpoint(object):
 
     def test_re_authenticate(self):
         request = {"prompt": "login"}
-        authn = UserAuthnMethod(self.endpoint.server_get("endpoint_context"))
+        authn = UserAuthnMethod(self.endpoint.server_get("context"))
         assert re_authenticate(request, authn)
 
     def test_id_token_acr(self):
@@ -445,7 +445,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.server_get("endpoint_context").keyjar,
+            keyjar=self.endpoint.server_get("context").keyjar,
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]
@@ -454,24 +454,24 @@ class TestEndpoint(object):
     def test_verify_uri_unknown_client(self):
         request = {"redirect_uri": "https://rp.example.com/cb"}
         with pytest.raises(UnknownClient):
-            verify_uri(self.endpoint.server_get("endpoint_context"), request, "redirect_uri")
+            verify_uri(self.endpoint.server_get("context"), request, "redirect_uri")
 
     def test_verify_uri_fragment(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uri": ["https://rp.example.com/auth_cb"]}
         request = {"redirect_uri": "https://rp.example.com/cb#foobar"}
         with pytest.raises(URIError):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_noregistered(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         request = {"redirect_uri": "https://rp.example.com/cb"}
 
         with pytest.raises(KeyError):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_unregistered(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/auth_cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb"}
@@ -480,7 +480,7 @@ class TestEndpoint(object):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_match(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"]})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bar"}
@@ -488,7 +488,7 @@ class TestEndpoint(object):
         verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_mismatch(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"]})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
@@ -508,7 +508,7 @@ class TestEndpoint(object):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_missing(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"], "state": ["low"]})]
         }
@@ -518,7 +518,7 @@ class TestEndpoint(object):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_missing_val(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar", "low"]})]
         }
@@ -528,7 +528,7 @@ class TestEndpoint(object):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_no_registered_qp(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
@@ -536,7 +536,7 @@ class TestEndpoint(object):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_get_uri(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {
@@ -547,7 +547,7 @@ class TestEndpoint(object):
         assert get_uri(_ec, request, "redirect_uri") == "https://rp.example.com/cb"
 
     def test_get_uri_no_redirect_uri(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"client_id": "client_id"}
@@ -555,7 +555,7 @@ class TestEndpoint(object):
         assert get_uri(_ec, request, "redirect_uri") == "https://rp.example.com/cb"
 
     def test_get_uri_no_registered(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"client_id": "client_id"}
@@ -564,7 +564,7 @@ class TestEndpoint(object):
             get_uri(_ec, request, "post_logout_redirect_uri")
 
     def test_get_uri_more_then_one_registered(self):
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {
             "redirect_uris": [
                 ("https://rp.example.com/cb", {}),
@@ -587,7 +587,7 @@ class TestEndpoint(object):
             scope=["openid", "profile"],
         )
 
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
@@ -614,7 +614,7 @@ class TestEndpoint(object):
             scope=["openid"],
         )
 
-        _ec = self.endpoint.server_get("endpoint_context")
+        _ec = self.endpoint.server_get("context")
         _ec.cdb["client_id"] = {
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],

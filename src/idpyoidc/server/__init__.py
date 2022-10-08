@@ -1,6 +1,7 @@
 # Server specific defaults and a basic Server class
 import logging
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -34,15 +35,16 @@ def do_endpoints(conf, server_get):
 
 
 class Server(ImpExp):
-    parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
+    parameter = {"endpoint": [Endpoint], "context": EndpointContext}
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration, ASConfiguration],
-        keyjar: Optional[KeyJar] = None,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
+            self,
+            conf: Union[dict, OPConfiguration, ASConfiguration],
+            keyjar: Optional[KeyJar] = None,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            parent_get: Optional[Callable] = None
     ):
         ImpExp.__init__(self)
         self.conf = conf
@@ -54,6 +56,7 @@ class Server(ImpExp):
             cookie_handler=cookie_handler,
             httpc=httpc,
         )
+        self.parent_get = parent_get
         self.endpoint_context.authz = self.setup_authz()
 
         self.setup_authentication(self.endpoint_context)
@@ -110,6 +113,9 @@ class Server(ImpExp):
 
     def get_endpoint_context(self, *arg):
         return self.endpoint_context
+
+    def get_server(self, *args):
+        return self
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")

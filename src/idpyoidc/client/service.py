@@ -62,14 +62,14 @@ class Service(ImpExp):
         "response_cls": object,
     }
 
-    init_args = ["client_get"]
+    init_args = ["superior_get"]
 
     def __init__(
-        self, client_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
+        self, superior_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
     ):
         ImpExp.__init__(self)
 
-        self.client_get = client_get
+        self.superior_get = superior_get
         self.default_request_args = {}
         if conf:
             self.conf = conf
@@ -104,7 +104,7 @@ class Service(ImpExp):
         """
         ar_args = kwargs.copy()
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         # Go through the list of claims defined for the message class.
         # There are a couple of places where information can be found.
         # Access them in the order of priority
@@ -253,7 +253,7 @@ class Service(ImpExp):
 
         if authn_method:
             LOGGER.debug("Client authn method: %s", authn_method)
-            _context = self.client_get("service_context")
+            _context = self.superior_get("context")
             try:
                 _func = _context.client_authn_method[authn_method]
             except KeyError:  # not one of the common
@@ -289,7 +289,7 @@ class Service(ImpExp):
         if self.endpoint:
             return self.endpoint
 
-        return self.client_get("service_context").provider_info[self.endpoint_name]
+        return self.superior_get("context").provider_info[self.endpoint_name]
 
     def get_authn_header(
         self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
@@ -346,7 +346,7 @@ class Service(ImpExp):
 
         for meth in self.construct_extra_headers:
             _headers = meth(
-                self.client_get("service_context"),
+                self.superior_get("context"),
                 headers=_headers,
                 request=request,
                 authn_method=authn_method,
@@ -393,7 +393,7 @@ class Service(ImpExp):
         _info = {"method": method, "request": request}
 
         _args = kwargs.copy()
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if _context.issuer:
             _args["iss"] = _context.issuer
 
@@ -467,7 +467,7 @@ class Service(ImpExp):
         :return: dictionary with arguments to the verify call
         """
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         kwargs = {
             "iss": _context.issuer,
             "keyjar": _context.keyjar,
@@ -482,7 +482,7 @@ class Service(ImpExp):
         return kwargs
 
     def _do_jwt(self, info):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         args = {"allowed_sign_algs": _context.get_sign_alg(self.service_name)}
         enc_algs = _context.get_enc_alg_enc(self.service_name)
         args["allowed_enc_algs"] = enc_algs["alg"]
@@ -492,7 +492,7 @@ class Service(ImpExp):
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
 
         try:
             resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
@@ -623,12 +623,12 @@ class Service(ImpExp):
 #                 construct.append(importer(func))
 
 
-def init_services(service_definitions, client_get):
+def init_services(service_definitions, superior_get):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
-    :param client_get: A function that returns different things from the base entity.
+    :param superior_get: A function that returns different things from the base entity.
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
@@ -639,7 +639,7 @@ def init_services(service_definitions, client_get):
         except KeyError:
             kwargs = {}
 
-        kwargs.update({"client_get": client_get})
+        kwargs.update({"superior_get": superior_get})
 
         if isinstance(service_configuration["class"], str):
             _value_cls = service_configuration["class"]

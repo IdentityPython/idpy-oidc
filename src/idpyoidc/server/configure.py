@@ -2,6 +2,7 @@
 import copy
 import logging
 import os
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -171,6 +172,7 @@ class EntityConfiguration(Base):
         port: Optional[int] = 0,
         file_attributes: Optional[List[str]] = None,
         dir_attributes: Optional[List[str]] = None,
+        superior_get: Optional[Callable] = None
     ):
 
         conf = copy.deepcopy(conf)

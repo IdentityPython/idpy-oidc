@@ -169,7 +169,7 @@ def factory(
 
     key_defs = []
     read_only = False
-    cwd = server_get("endpoint_context").cwd
+    cwd = server_get("context").cwd
     if kwargs.get("jwks_def"):
         defs = kwargs["jwks_def"]
         if not jwks_file:

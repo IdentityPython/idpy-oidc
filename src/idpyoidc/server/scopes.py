@@ -65,7 +65,7 @@ class Scopes:
         """
         allowed_scopes = self.allowed_scopes
         if client_id:
-            client = self.server_get("endpoint_context").cdb.get(client_id)
+            client = self.server_get("context").cdb.get(client_id)
             if client is not None:
                 if "allowed_scopes" in client:
                     allowed_scopes = client.get("allowed_scopes")
@@ -83,7 +83,7 @@ class Scopes:
         """
         scopes_to_claims = self._scopes_to_claims
         if client_id:
-            client = self.server_get("endpoint_context").cdb.get(client_id)
+            client = self.server_get("context").cdb.get(client_id)
             if client is not None:
                 scopes_to_claims = client.get("scopes_to_claims", scopes_to_claims)
         return scopes_to_claims

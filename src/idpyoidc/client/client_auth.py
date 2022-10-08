@@ -97,7 +97,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             try:
                 passwd = request["client_secret"]
             except KeyError:
-                passwd = service.client_get("service_context").client_secret
+                passwd = service.superior_get("context").client_secret
         return passwd
 
     @staticmethod
@@ -105,7 +105,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         try:
             user = kwargs["user"]
         except KeyError:
-            user = service.client_get("service_context").client_id
+            user = service.superior_get("context").client_id
         return user
 
     def _get_authentication_token(self, request, service, **kwargs):
@@ -140,7 +140,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         ):
             if "client_id" not in request:
                 try:
-                    request["client_id"] = service.client_get("service_context").client_id
+                    request["client_id"] = service.superior_get("context").client_id
                 except AttributeError:
                     pass
         else:
@@ -217,7 +217,7 @@ class ClientSecretPost(ClientSecretBasic):
         :param request: The request
         :param service: The service that is using this authentication method
         """
-        _context = service.client_get("service_context")
+        _context = service.superior_get("context")
         if "client_secret" not in request:
             try:
                 request["client_secret"] = kwargs["client_secret"]
@@ -275,7 +275,7 @@ def find_token(request, token_type, service, **kwargs):
     except KeyError:
         # I should pick the latest acquired token, this should be the right
         # order for that.
-        _arg = service.client_get("service_context").state.multiple_extend_request_args(
+        _arg = service.superior_get("context").state.multiple_extend_request_args(
             {},
             kwargs["key"],
             ["access_token"],
@@ -491,8 +491,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return audience, algorithm
 
     def _construct_client_assertion(self, service, **kwargs):
-        _context = service.client_get("service_context")
-        _entity = service.client_get("entity")
+        _context = service.superior_get("context")
+        _entity = service.superior_get("entity")
         audience, algorithm = self._get_audience_and_algorithm(_context, **kwargs)
 
         if "kid" in kwargs:

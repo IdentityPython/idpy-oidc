@@ -72,7 +72,7 @@ class ClientAuthnMethod(object):
         :return:
         """
         res = self._verify(
-            self.server_get("endpoint_context"),
+            self.server_get("context"),
             request=request,
             authorization_token=authorization_token,
             endpoint=endpoint,

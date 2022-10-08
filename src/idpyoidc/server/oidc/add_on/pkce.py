@@ -147,4 +147,4 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
             raise ValueError("Unsupported method: {}".format(method))
         kwargs["code_challenge_methods"][method] = CC_METHOD[method]
 
-    authn_endpoint.server_get("endpoint_context").args["pkce"] = kwargs
+    authn_endpoint.server_get("context").args["pkce"] = kwargs

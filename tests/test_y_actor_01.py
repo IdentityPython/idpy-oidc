@@ -226,44 +226,44 @@ class TestPushActor:
         actor_2.server = _create_server(ISSUER_2, endpoint, 7000, extra)
 
         # register clients with servers.
-        _server_context = actor_1.server.server_get("endpoint_context")
+        _server_context = actor_1.server.server_get("context")
         _client_context = actor_2.client.client_get("service_context")
         _server_context.cdb = {
             _client_context.client_id: {
                 "client_secret": _client_context.client_secret,
             },
-            actor_2.server.server_get("endpoint_context").issuer: {
+            actor_2.server.server_get("context").issuer: {
                 "client_secret": _client_context.client_secret
             },
         }
-        _server_context = actor_2.server.server_get("endpoint_context")
+        _server_context = actor_2.server.server_get("context")
         _client_context = actor_1.client.client_get("service_context")
         _server_context.cdb = {
             _client_context.client_id: {"client_secret": _client_context.client_secret},
-            actor_1.server.server_get("endpoint_context").issuer: {
+            actor_1.server.server_get("context").issuer: {
                 "client_secret": _client_context.client_secret
             },
         }
 
         # Transfer provider metadata 1->2 and 2->1
         _client_context = actor_2.client.client_get("service_context")
-        _server_context = actor_1.server.server_get("endpoint_context")
+        _server_context = actor_1.server.server_get("context")
         _client_context.provider_info = _server_context.provider_info
 
         _client_context = actor_1.client.client_get("service_context")
-        _server_context = actor_2.server.server_get("endpoint_context")
+        _server_context = actor_2.server.server_get("context")
         _client_context.provider_info = _server_context.provider_info
 
         _server_context.parse_login_hint_token = parse_login_hint_token
 
         # keys
         _client_keyjar = actor_2.client.client_get("service_context").keyjar
-        _server_keyjar = actor_1.server.server_get("endpoint_context").keyjar
+        _server_keyjar = actor_1.server.server_get("context").keyjar
         _server_keyjar.import_jwks(_client_keyjar.export_jwks(), "actor2")
         _client_keyjar.import_jwks(_server_keyjar.export_jwks(), ISSUER_1)
 
         _client_keyjar = actor_1.client.client_get("service_context").keyjar
-        _server_keyjar = actor_2.server.server_get("endpoint_context").keyjar
+        _server_keyjar = actor_2.server.server_get("context").keyjar
         _server_keyjar.import_jwks(_client_keyjar.export_jwks(), "actor1")
         _client_keyjar.import_jwks(_server_keyjar.export_jwks(), ISSUER_2)
 

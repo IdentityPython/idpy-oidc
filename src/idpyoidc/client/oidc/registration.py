@@ -189,7 +189,7 @@ def add_callback_uris(request_args=None, service=None, **kwargs):
     :return:
     """
 
-    _context = service.client_get("service_context")
+    _context = service.superior_get("context")
     _ignore = [k for k in list(request_args.keys()) if k in CALLBACK_URIS]
     add_callbacks(_context, ignore=_ignore)
     for _key in CALLBACK_URIS:
@@ -213,13 +213,13 @@ def add_jwks_uri_or_jwks(request_args=None, service=None, **kwargs):
         return request_args, {}
 
     for attr in ["jwks_uri", "jwks"]:
-        _val = getattr(service.client_get("service_context"), attr, 0)
+        _val = getattr(service.superior_get("context"), attr, 0)
         if _val:
             request_args[attr] = _val
             break
         else:
             try:
-                _val = service.client_get("service_context").config[attr]
+                _val = service.superior_get("context").config[attr]
             except KeyError:
                 pass
             else:
@@ -239,8 +239,8 @@ class Registration(Service):
     request_body_type = "json"
     http_method = "POST"
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [
             self.add_client_behaviour_preference,
             # add_redirect_uris,
@@ -250,7 +250,7 @@ class Registration(Service):
         self.post_construct = [self.oidc_post_construct]
 
     def add_client_behaviour_preference(self, request_args=None, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         for prop in self.msg_type.c_param.keys():
             if prop in request_args:
                 continue
@@ -282,7 +282,7 @@ class Registration(Service):
         if "token_endpoint_auth_method" not in resp:
             resp["token_endpoint_auth_method"] = "client_secret_basic"
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         _context.registration_response = resp
         _client_id = resp.get("client_id")
         if _client_id:

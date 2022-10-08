@@ -20,7 +20,7 @@ class CIBAClient(ImpExp):
         self.context = {}
 
     def create_authentication_request(self, scope, binding_message, login_hint):
-        _service = self.client.client_get("service", "backchannel_authentication")
+        _service = self.client.superior_get("service", "backchannel_authentication")
 
         client_notification_token = uuid4().hex
 
@@ -36,7 +36,7 @@ class CIBAClient(ImpExp):
 
         self.context[client_notification_token] = {
             "authentication_request": request,
-            "client_id": _service.client_get("service_context").issuer,
+            "client_id": _service.superior_get("context").issuer,
         }
         return request
 

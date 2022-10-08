@@ -31,7 +31,7 @@ class JWTToken(Token):
         self.lifetime = lifetime
 
         self.kwargs = kwargs
-        _context = server_get("endpoint_context")
+        _context = server_get("context")
         # self.key_jar = keyjar or _context.keyjar
         self.issuer = issuer or _context.issuer
         self.cdb = _context.cdb
@@ -69,7 +69,7 @@ class JWTToken(Token):
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         if usage_rules and "expires_in" in usage_rules:
             lifetime = usage_rules.get("expires_in")
         else:
@@ -84,7 +84,7 @@ class JWTToken(Token):
         return signer.pack(payload)
 
     def get_payload(self, token):
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
         try:
             _payload = verifier.unpack(token)

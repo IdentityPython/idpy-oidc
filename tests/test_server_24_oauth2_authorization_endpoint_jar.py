@@ -187,7 +187,7 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            aud=self.endpoint.server_get("context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -205,7 +205,7 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("endpoint_context").provider_info["issuer"],
+            aud=self.endpoint.server_get("context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"

@@ -47,5 +47,5 @@ def add_support(endpoint, **kwargs):
         _endp.pre_construct.append(pre_construct)
 
         if _added is False:
-            _endp.server_get("endpoint_context").add_on["extra_args"] = kwargs
+            _endp.server_get("context").add_on["extra_args"] = kwargs
             _added = True

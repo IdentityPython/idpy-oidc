@@ -1,8 +1,11 @@
 import copy
+from typing import Optional
+from typing import Union
 from urllib.parse import quote_plus
 
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
+from idpyoidc.configure import Configuration
 
 from idpyoidc.impexp import ImpExp
 
@@ -22,11 +25,19 @@ def add_issuer(conf, issuer):
 class OidcContext(ImpExp):
     parameter = {"keyjar": KeyJar, "issuer": None}
 
-    def __init__(self, config=None, keyjar=None, entity_id=""):
+    def __init__(self,
+                 keyjar: Optional[KeyJar] = None,
+                 config: Optional[Union[dict, Configuration]] = None,
+                 entity_id: Optional[str] = "",
+                 **kwargs):
         ImpExp.__init__(self)
         if config is None:
             config = {}
-        self.issuer = entity_id
+
+        if not entity_id:
+            entity_id = config.get("entity_id", "")
+
+        self.issuer = self.entity_id = entity_id
         self.keyjar = self._keyjar(keyjar, conf=config, entity_id=entity_id)
 
     def _keyjar(self, keyjar=None, conf=None, entity_id=""):

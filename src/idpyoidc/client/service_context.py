@@ -109,7 +109,8 @@ class ServiceContext(OidcContext):
             config = {}
         self.config = config
 
-        OidcContext.__init__(self, config, keyjar, entity_id=config.get("client_id", ""))
+        OidcContext.__init__(self, keyjar=keyjar, config=config,
+                             entity_id=config.get("client_id", ""))
         self.state = state or StateInterface()
 
         self.kid = {"sig": {}, "enc": {}}

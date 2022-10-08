@@ -33,4 +33,4 @@ class ProviderConfiguration(Endpoint):
         return request
 
     def process_request(self, request=None, **kwargs):
-        return {"response_args": self.server_get("endpoint_context").provider_info}
+        return {"response_args": self.server_get("context").provider_info}

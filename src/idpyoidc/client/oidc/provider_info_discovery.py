@@ -46,7 +46,7 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     :param kwargs: Possible extra keyword arguments
     :return: A possibly augmented set of request arguments.
     """
-    _context = service.client_get("service_context")
+    _context = service.superior_get("context")
     if "redirect_uris" not in request_args:
         # Callbacks is a dictionary with callback type 'code', 'implicit',
         # 'form_post' as keys.
@@ -66,11 +66,11 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
     response_cls = oidc.ProviderConfigurationResponse
     error_msg = ResponseMessage
 
-    def __init__(self, client_get, conf=None):
-        provider_info_discovery.ProviderInfoDiscovery.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        provider_info_discovery.ProviderInfoDiscovery.__init__(self, superior_get, conf=conf)
 
     def update_service_context(self, resp, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         self._update_service_context(resp)
         self.match_preferences(resp, _context.issuer)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
@@ -90,7 +90,7 @@ class ProviderInfoDiscovery(provider_info_discovery.ProviderInfoDiscovery):
         :param pcr: Provider configuration response if available
         :param issuer: The issuer identifier
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if not pcr:
             pcr = _context.provider_info
 

@@ -233,7 +233,7 @@ class TestEndpoint(object):
             _ = self.session_endpoint.process_request("", http_info=http_info)
 
     def _create_cookie(self, session_id):
-        ec = self.session_endpoint.server_get("endpoint_context")
+        ec = self.session_endpoint.server_get("context")
         return ec.new_cookie(
             name=ec.cookie_handler.name["session"],
             sid=session_id,
@@ -273,7 +273,7 @@ class TestEndpoint(object):
         _pr_resp = self.authn_endpoint.parse_request(req.to_dict())
         _resp = self.authn_endpoint.process_request(_pr_resp)
 
-        _info = self.session_endpoint.server_get("endpoint_context").cookie_handler.parse_cookie(
+        _info = self.session_endpoint.server_get("context").cookie_handler.parse_cookie(
             "oidc_op", _resp["cookie"]
         )
         # value is a JSON document
@@ -331,7 +331,7 @@ class TestEndpoint(object):
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.server_get("endpoint_context").keyjar)
+        verify_id_token(msg, keyjar=self.session_endpoint.server_get("context").keyjar)
 
         msg2 = Message(id_token_hint=id_token)
         msg2[verified_claim_name("id_token_hint")] = msg[verified_claim_name("id_token")]
@@ -367,7 +367,7 @@ class TestEndpoint(object):
         http_info = {"cookie": [cookie]}
 
         post_logout_redirect_uri = join_query(
-            *self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+            *self.session_endpoint.server_get("context").cdb["client_1"][
                 "post_logout_redirect_uri"
             ]
         )
@@ -394,7 +394,7 @@ class TestEndpoint(object):
         post_logout_redirect_uri = "https://demo.example.com/log_out"
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.server_get("endpoint_context").keyjar)
+        verify_id_token(msg, keyjar=self.session_endpoint.server_get("context").keyjar)
 
         with pytest.raises(RedirectURIError):
             self.session_endpoint.process_request(
@@ -411,14 +411,14 @@ class TestEndpoint(object):
         info = self._code_auth("1234567")
 
         res = self.session_endpoint.do_back_channel_logout(
-            self.session_endpoint.server_get("endpoint_context").cdb["client_1"], info["session_id"]
+            self.session_endpoint.server_get("context").cdb["client_1"], info["session_id"]
         )
         assert res is None
 
     def test_back_channel_logout(self):
         info = self._code_auth("1234567")
 
-        _cdb = copy.copy(self.session_endpoint.server_get("endpoint_context").cdb["client_1"])
+        _cdb = copy.copy(self.session_endpoint.server_get("context").cdb["client_1"])
         _cdb["backchannel_logout_uri"] = "https://example.com/bc_logout"
         _cdb["client_id"] = "client_1"
         res = self.session_endpoint.do_back_channel_logout(_cdb, info["session_id"])
@@ -433,7 +433,7 @@ class TestEndpoint(object):
     def test_front_channel_logout(self):
         self._code_auth("1234567")
 
-        _cdb = copy.copy(self.session_endpoint.server_get("endpoint_context").cdb["client_1"])
+        _cdb = copy.copy(self.session_endpoint.server_get("context").cdb["client_1"])
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         _cdb["client_id"] = "client_1"
         res = do_front_channel_logout_iframe(_cdb, ISS, "_sid_")
@@ -442,7 +442,7 @@ class TestEndpoint(object):
     def test_front_channel_logout_session_required(self):
         self._code_auth("1234567")
 
-        _cdb = copy.copy(self.session_endpoint.server_get("endpoint_context").cdb["client_1"])
+        _cdb = copy.copy(self.session_endpoint.server_get("context").cdb["client_1"])
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout"
         _cdb["frontchannel_logout_session_required"] = True
         _cdb["client_id"] = "client_1"
@@ -458,7 +458,7 @@ class TestEndpoint(object):
     def test_front_channel_logout_with_query(self):
         self._code_auth("1234567")
 
-        _cdb = copy.copy(self.session_endpoint.server_get("endpoint_context").cdb["client_1"])
+        _cdb = copy.copy(self.session_endpoint.server_get("context").cdb["client_1"])
         _cdb["frontchannel_logout_uri"] = "https://example.com/fc_logout?entity_id=foo"
         _cdb["frontchannel_logout_session_required"] = True
         _cdb["client_id"] = "client_1"
@@ -480,10 +480,10 @@ class TestEndpoint(object):
             _code, client_session_info=True
         )
 
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "client_id"
         ] = "client_1"
 
@@ -508,12 +508,12 @@ class TestEndpoint(object):
             _code, client_session_info=True
         )
 
-        # del self.session_endpoint.server_get("endpoint_context").cdb['client_1'][
+        # del self.session_endpoint.server_get("context").cdb['client_1'][
         # 'backchannel_logout_uri']
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "client_id"
         ] = "client_1"
 
@@ -547,16 +547,16 @@ class TestEndpoint(object):
         )
 
         # client0
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "client_id"
         ] = "client_1"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+        self.session_endpoint.server_get("context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+        self.session_endpoint.server_get("context").cdb["client_2"][
             "client_id"
         ] = "client_2"
 
@@ -594,7 +594,7 @@ class TestEndpoint(object):
             _resp = self._code_auth("1234567")
             _code = _resp["response_args"]["code"]
             _session_info = self.session_manager.get_session_info_by_token(_code)
-            _cdb = self.session_endpoint.server_get("endpoint_context").cdb
+            _cdb = self.session_endpoint.server_get("context").cdb
             _cdb["client_1"]["backchannel_logout_uri"] = "https://example.com/bc_logout"
             _cdb["client_1"]["client_id"] = "client_1"
 
@@ -619,21 +619,21 @@ class TestEndpoint(object):
         self._code_auth2("abcdefg")
 
         # client0
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.session_endpoint.server_get("context").cdb["client_1"][
             "client_id"
         ] = "client_1"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+        self.session_endpoint.server_get("context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.server_get("endpoint_context").cdb["client_2"][
+        self.session_endpoint.server_get("context").cdb["client_2"][
             "client_id"
         ] = "client_2"
 
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["session_id"])
-        self.session_endpoint.server_get("endpoint_context").session_manager.delete([_uid, _cid])
+        self.session_endpoint.server_get("context").session_manager.delete([_uid, _cid])
 
         with pytest.raises(ValueError):
             self.session_endpoint.logout_all_clients(_session_info["session_id"])

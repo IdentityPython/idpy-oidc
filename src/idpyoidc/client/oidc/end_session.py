@@ -20,8 +20,8 @@ class EndSession(Service):
     service_name = "end_session"
     response_body_type = "html"
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [
             self.get_id_token_hint,
             self.add_post_logout_redirect_uri,
@@ -36,7 +36,7 @@ class EndSession(Service):
         :param kwargs:
         :return:
         """
-        request_args = self.client_get("service_context").state.multiple_extend_request_args(
+        request_args = self.superior_get("context").state.multiple_extend_request_args(
             request_args,
             kwargs["state"],
             ["id_token"],
@@ -55,7 +55,7 @@ class EndSession(Service):
 
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
-            _context = self.client_get("service_context")
+            _context = self.superior_get("context")
             _uri = _context.register_args.get("post_logout_redirect_uris")
             if _uri:
                 if isinstance(_uri, str):
@@ -74,7 +74,7 @@ class EndSession(Service):
             request_args["state"] = rndstr(32)
 
         # As a side effect bind logout state to session state
-        self.client_get("service_context").state.store_logout_state2state(
+        self.superior_get("context").state.store_logout_state2state(
             request_args["state"], kwargs["state"]
         )
 

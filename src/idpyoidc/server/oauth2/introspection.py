@@ -51,7 +51,7 @@ class Introspection(Endpoint):
         if not aud:
             aud = grant.resources
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         ret = {
             "active": True,
             "scope": " ".join(scope),
@@ -97,7 +97,7 @@ class Introspection(Endpoint):
 
         request_token = _introspect_request["token"]
         _resp = self.response_cls(active=False)
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         try:
             _session_info = _context.session_manager.get_session_info_by_token(

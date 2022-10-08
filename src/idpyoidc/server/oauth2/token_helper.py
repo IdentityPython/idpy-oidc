@@ -59,7 +59,7 @@ class TokenEndpointHelper(object):
         token_args: Optional[dict] = None,
         token_type: Optional[str] = "",
     ) -> SessionToken:
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
@@ -108,7 +108,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         logger.debug("Access Token")
 
@@ -206,7 +206,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("endpoint_context").session_manager
+        _mngr = self.endpoint.server_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(request["code"], grant=True)
         except (KeyError, UnknownToken):
@@ -233,7 +233,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         logger.debug("Refresh Token")
 
@@ -325,7 +325,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         try:
             keyjar = _context.keyjar
         except AttributeError:
@@ -391,7 +391,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def post_parse_request(self, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         if "token_exchange" in _context.cdb[request["client_id"]]:
             config = _context.cdb[request["client_id"]]["token_exchange"]
         else:
@@ -432,7 +432,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return resp
 
     def _enforce_policy(self, request, token, config):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         subject_token_types_supported = config.get(
             "subject_token_types_supported", self.token_types_mapping.keys()
         )
@@ -508,7 +508,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return TokenExchangeResponse(**response_args)
 
     def process_request(self, request, **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(request["subject_token"], grant=True)
