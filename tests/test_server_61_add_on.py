@@ -148,7 +148,7 @@ class TestEndpoint(object):
         self.endpoint = server.server_get("endpoint", "authorization")
 
     def test_process_request(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         assert _context.add_on["extra_args"] == {"authorization": {"iss": "issuer"}}
 
         _pr_resp = self.endpoint.parse_request(AUTH_REQ)

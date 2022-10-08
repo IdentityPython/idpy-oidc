@@ -150,7 +150,7 @@ class IDToken(Token):
         :return: IDToken instance
         """
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         _mngr = _context.session_manager
         session_information = _mngr.get_session_info(session_id, grant=True)
         grant = session_information["grant"]
@@ -236,7 +236,7 @@ class IDToken(Token):
         :return: IDToken as a signed and/or encrypted JWT
         """
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         client_info = _context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(
@@ -269,7 +269,7 @@ class IDToken(Token):
         usage_rules: Optional[dict] = None,
         **kwargs,
     ) -> str:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
@@ -307,7 +307,7 @@ class IDToken(Token):
         :return: tuple of token type and session id
         """
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         _jwt = factory(token)
         if not _jwt:

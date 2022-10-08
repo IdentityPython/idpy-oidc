@@ -35,8 +35,8 @@ class WebFinger(Service):
     http_method = "GET"
     response_body_type = "json"
 
-    def __init__(self, client_get, conf=None, rel="", **kwargs):
-        Service.__init__(self, client_get, conf=conf, **kwargs)
+    def __init__(self, superior_get, conf=None, rel="", **kwargs):
+        Service.__init__(self, superior_get, conf=conf, **kwargs)
 
         self.rel = rel or OIC_ISSUER
 
@@ -55,7 +55,7 @@ class WebFinger(Service):
                     if _href.startswith("http://") and not _http_allowed:
                         raise ValueError("http link not allowed ({})".format(_href))
 
-                    self.client_get("service_context").issuer = link["href"]
+                    self.superior_get("context").issuer = link["href"]
                     break
         return resp
 
@@ -150,7 +150,7 @@ class WebFinger(Service):
                 _resource = kwargs["resource"]
             except KeyError:
                 try:
-                    _resource = self.client_get("service_context").config["resource"]
+                    _resource = self.superior_get("context").config["resource"]
                 except KeyError:
                     raise MissingRequiredAttribute("resource")
 

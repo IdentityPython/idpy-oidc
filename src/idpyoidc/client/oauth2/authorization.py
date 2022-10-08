@@ -45,20 +45,20 @@ class Authorization(Service):
         }
     }
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])
         self.post_construct.append(self.store_auth_request)
 
     def update_service_context(self, resp, key="", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.client_get("service_context").cstate.update(key, resp)
+        self.superior_get("context").cstate.update(key, resp)
 
     def store_auth_request(self, request_args=None, **kwargs):
         """Store the authorization request in the state DB."""
         _key = get_state_parameter(request_args, kwargs)
-        self.client_get("service_context").cstate.update(_key, request_args)
+        self.superior_get("context").cstate.update(_key, request_args)
         return request_args
 
     def gather_request_args(self, **kwargs):
@@ -66,8 +66,7 @@ class Authorization(Service):
 
         if "redirect_uri" not in ar_args:
             try:
-                # _cb = self.client_get("service_context").get_usage("callback_uris")
-                ar_args["redirect_uri"] = self.client_get("service_context").get_usage(
+                ar_args["redirect_uri"] = self.superior_get("context").get_usage(
                     "redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")
@@ -91,7 +90,7 @@ class Authorization(Service):
                 pass
             else:
                 if _key:
-                    item = self.client_get("service_context").cstate.get_set(
+                    item = self.superior_get("context").cstate.get_set(
                         _key, message=oauth2.AuthorizationRequest)
                     try:
                         response["scope"] = item["scope"]

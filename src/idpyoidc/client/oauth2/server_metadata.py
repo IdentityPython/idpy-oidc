@@ -24,8 +24,8 @@ class ServerMetadata(Service):
 
     _supports = {}
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
 
     def get_endpoint(self):
         """
@@ -34,7 +34,7 @@ class ServerMetadata(Service):
         :return: Service endpoint
         """
         try:
-            _iss = self.client_get("service_context").issuer
+            _iss = self.superior_get("context").issuer
         except AttributeError:
             _iss = self.endpoint
 
@@ -69,7 +69,7 @@ class ServerMetadata(Service):
         # In some cases we can live with the two URLs not being
         # the same. But this is an excepted that has to be explicit
         try:
-            self.client_get("service_context").allow["issuer_mismatch"]
+            self.superior_get("context").allow["issuer_mismatch"]
         except KeyError:
             if _issuer != _pcr_issuer:
                 raise OidcServiceError(
@@ -86,7 +86,7 @@ class ServerMetadata(Service):
             # a name ending in '_endpoint' so I can look specifically
             # for those
             if key.endswith("_endpoint"):
-                _srv = self.client_get("service_by_endpoint_name", key)
+                _srv = self.superior_get("service_by_endpoint_name", key)
                 if _srv:
                     _srv.endpoint = val
 
@@ -99,7 +99,7 @@ class ServerMetadata(Service):
         :param service_context: Information collected/used by services
         """
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         # Verify that the issuer value received is the same as the
         # url that was used as service endpoint (without the .well-known part)
         if "issuer" in resp:

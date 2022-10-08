@@ -126,7 +126,7 @@ class RPHandler(object):
         :return: An Issuer ID
         """
         for _rp in self.issuer2rp.values():
-            _iss = _rp.client_get("service_context").cstate.get_set(
+            _iss = _rp.superior_get("context").cstate.get_set(
                 state, claim=['iss']).get('iss')
             if _iss:
                 return _iss
@@ -154,7 +154,7 @@ class RPHandler(object):
         if not client:
             client = self.get_client_from_session_key(key)
 
-        return client.client_get("service_context").cstate.get(key)
+        return client.superior_get("context").cstate.get(key)
 
     def init_client(self, issuer):
         """
@@ -197,7 +197,7 @@ class RPHandler(object):
             logger.error(message)
             raise
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         if _context.iss_hash:
             self.hash2issuer[_context.iss_hash] = issuer
         # If non persistent
@@ -232,7 +232,7 @@ class RPHandler(object):
             else:
                 raise ValueError("Missing state/session key")
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         if not _context.get("provider_info"):
             dynamic_provider_info_discovery(client, behaviour_args=behaviour_args)
             return _context.get("provider_info")["issuer"]
@@ -243,7 +243,7 @@ class RPHandler(object):
                 # a name ending in '_endpoint' so I can look specifically
                 # for those
                 if key.endswith("_endpoint"):
-                    for _srv in client.client_get("services").values():
+                    for _srv in client.superior_get("services").values():
                         # Every service has an endpoint_name assigned
                         # when initiated. This name *MUST* match the
                         # endpoint names used in the provider info
@@ -299,7 +299,7 @@ class RPHandler(object):
             else:
                 raise ValueError("Missing state/session key")
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         _iss = _context.get("issuer")
         self.hash2issuer[iss_id] = _iss
 
@@ -421,8 +421,8 @@ class RPHandler(object):
             else:
                 raise ValueError("Missing state/session key")
 
-        _context = client.client_get("service_context")
-        _entity = client.client_get("entity")
+        _context = client.superior_get("context")
+        _entity = client.superior_get("entity")
         _nonce = rndstr(24)
         _response_type = self._get_response_type(_context, req_args)
         request_args = {
@@ -518,7 +518,7 @@ class RPHandler(object):
         :return: The client authentication method
         """
         if endpoint == "token_endpoint":
-            am = client.client_get("service_context").get_usage("token_endpoint_auth_method")
+            am = client.superior_get("context").get_usage("token_endpoint_auth_method")
             if not am:
                 return ""
             else:
@@ -542,7 +542,7 @@ class RPHandler(object):
         if client is None:
             client = self.get_client_from_session_key(state)
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         _claims = _context.cstate.get_set(state, claim=['code', 'redirect_uri'])
 
         req_args = {
@@ -628,8 +628,7 @@ class RPHandler(object):
             client = self.get_client_from_session_key(state)
 
         if not access_token:
-            _arg = client.client_get("service_context").cstate.get_set(state,
-                                                                       claim=["access_token"])
+            _arg = client.superior_get("context").cstate.get_set(state, claim=["access_token"])
             access_token = _arg["access_token"]
 
         request_args = {"access_token": access_token}
@@ -685,7 +684,7 @@ class RPHandler(object):
         if is_error_message(authorization_response):
             return authorization_response
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         try:
             _iss = _context.cstate.get_set(
                 authorization_response["state"], claim=['iss']).get('iss')
@@ -726,7 +725,7 @@ class RPHandler(object):
         if client is None:
             client = self.get_client_from_session_key(state)
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
 
         resp_attr = authorization_response or _context.cstate.get_set(state,
                                                                       message=AuthorizationResponse)
@@ -812,7 +811,7 @@ class RPHandler(object):
         _id_token = token.get("id_token")
         logger.debug(f"ID Token: {_id_token}")
 
-        if client.client_get("service", "userinfo") and token["access_token"]:
+        if client.superior_get("service", "userinfo") and token["access_token"]:
             inforesp = self.get_user_info(
                 state=authorization_response["state"],
                 client=client,
@@ -829,7 +828,7 @@ class RPHandler(object):
 
         logger.debug("UserInfo: %s", inforesp)
 
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         try:
             _sid_support = _context.get("provider_info")["backchannel_logout_session_required"]
         except KeyError:
@@ -872,7 +871,7 @@ class RPHandler(object):
         client = self.get_client_from_session_key(state)
 
         # Look for an IdToken
-        _arg = client.client_get("service_context").cstate.get_set(state,
+        _arg = client.superior_get("context").cstate.get_set(state,
                                                                    claim=["__verified_id_token"])
 
         if _arg:
@@ -896,7 +895,7 @@ class RPHandler(object):
         now = utc_time_sans_frac()
 
         client = self.get_client_from_session_key(state)
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         _args = _context.cstate.get_set(state, claim=["access_token", "__expires_at"])
         if "access_token" in _args:
             access_token = _args["access_token"]
@@ -938,7 +937,7 @@ class RPHandler(object):
             client = self.get_client_from_session_key(state)
 
         try:
-            srv = client.client_get("service", "end_session")
+            srv = client.superior_get("service", "end_session")
         except KeyError:
             raise OidcServiceError("Does not know how to logout")
 
@@ -970,7 +969,7 @@ class RPHandler(object):
 
     def clear_session(self, state):
         client = self.get_client_from_session_key(state)
-        client.client_get("service_context").cstate.remove_state(state)
+        client.superior_get("context").cstate.remove_state(state)
 
 
 def backchannel_logout(client, request="", request_args=None):
@@ -986,7 +985,7 @@ def backchannel_logout(client, request="", request_args=None):
     else:
         raise MissingRequiredAttribute("logout_token")
 
-    _context = client.client_get("service_context")
+    _context = client.superior_get("context")
     kwargs = {
         "aud": client.get_client_id(),
         "iss": _context.get("issuer"),
@@ -1030,7 +1029,7 @@ def load_registration_response(client, request_args=None):
 
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    if not client.client_get("service_context").get_client_id():
+    if not client.superior_get("context").get_client_id():
         try:
             response = client.do_request("registration", request_args=request_args)
         except KeyError:

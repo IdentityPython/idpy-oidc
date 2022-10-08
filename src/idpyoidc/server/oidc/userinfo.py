@@ -63,7 +63,7 @@ class UserInfo(Endpoint):
         if "error" in kwargs and kwargs["error"]:
             return Endpoint.do_response(self, response_args, request, **kwargs)
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         if not client_id:
             raise MissingValue("client_id")
 
@@ -112,7 +112,7 @@ class UserInfo(Endpoint):
         return {"response": resp, "http_headers": http_headers}
 
     def process_request(self, request=None, **kwargs):
-        _mngr = self.server_get("endpoint_context").session_manager
+        _mngr = self.server_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["access_token"], grant=True, handler_key="access_token"
@@ -147,7 +147,7 @@ class UserInfo(Endpoint):
             #     pass
 
         if allowed:
-            _cntxt = self.server_get("endpoint_context")
+            _cntxt = self.server_get("context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
                 _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )

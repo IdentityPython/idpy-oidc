@@ -140,7 +140,7 @@ class Registration(Endpoint):
 
     def match_client_request(self, request: dict) -> list:
         err = []
-        _provider_info = self.server_get("endpoint_context").provider_info
+        _provider_info = self.server_get("context").provider_info
         for key, val in request.items():
             if key not in REGISTER2PREFERRED:
                 continue
@@ -158,7 +158,7 @@ class Registration(Endpoint):
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
             ignore = []
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         _cinfo = _context.cdb[client_id].copy()
         logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
@@ -220,24 +220,6 @@ class Registration(Endpoint):
                         error="invalid_configuration_parameter",
                         error_description="%s pointed to illegal URL" % item,
                     )
-
-        # Do I have the necessary keys
-        # for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
-        #     if item in request:
-        #         if request[item] in _context.provider_info[PREFERENCE2SUPPORTED[item]]:
-        #             ktyp = alg2keytype(request[item])
-        #             # do I have this ktyp and for EC type keys the curve
-        #             if ktyp not in ["none", "oct"]:
-        #                 _k = []
-        #                 for iss in ["", _context.issuer]:
-        #                     _k.extend(
-        #                         _context.keyjar.get_signing_key(
-        #                             ktyp, alg=request[item], issuer_id=iss
-        #                         )
-        #                     )
-        #                 if not _k:
-        #                     logger.warning('Lacking support for "{}"'.format(request[item]))
-        #                     del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
 
@@ -316,8 +298,8 @@ class Registration(Endpoint):
         """
         si_url = request["sector_identifier_uri"]
         try:
-            res = self.server_get("endpoint_context").httpc.get(
-                si_url, **self.server_get("endpoint_context").httpc_params
+            res = self.server_get("context").httpc.get(
+                si_url, **self.server_get("context").httpc_params
             )
             logger.debug("sector_identifier_uri => %s", sanitize(res.text))
         except Exception as err:
@@ -388,7 +370,7 @@ class Registration(Endpoint):
                 error_description=f"Don't support proposed {faulty_claims}"
             )
 
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         if new_id:
             if self.kwargs.get("client_id_generator"):
                 cid_generator = importer(self.kwargs["client_id_generator"]["class"])
@@ -461,7 +443,7 @@ class Registration(Endpoint):
         if "error" in reg_resp:
             return reg_resp
         else:
-            _context = self.server_get("endpoint_context")
+            _context = self.server_get("context")
             _cookie = _context.new_cookie(
                 name=_context.cookie_handler.name["register"],
                 client_id=reg_resp["client_id"],

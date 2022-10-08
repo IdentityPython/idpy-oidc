@@ -55,8 +55,9 @@ class Authorization(authorization.Authorization):
         }
     }
 
-    def __init__(self, client_get, conf=None):
-        authorization.Authorization.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        authorization.Authorization.__init__(self, superior_get, conf=conf)
+        self.default_request_args = {"scope": ["openid"]}
         self.pre_construct = [
             self.set_state,
             pre_construct_pick_redirect_uri,
@@ -67,7 +68,7 @@ class Authorization(authorization.Authorization):
             self.default_request_args['scope'] = ['openid']
 
     def set_state(self, request_args, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         try:
             _state = kwargs["state"]
         except KeyError:
@@ -81,14 +82,14 @@ class Authorization(authorization.Authorization):
         return request_args, {}
 
     def update_service_context(self, resp, key="", **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
 
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
         _context.cstate.update(key, resp)
 
     def get_request_from_response(self, response):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("service_context")
         return _context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
 
     def post_parse_response(self, response, **kwargs):
@@ -98,7 +99,7 @@ class Authorization(authorization.Authorization):
         if _idt:
             # If there is a verified ID Token then we have to do nonce
             # verification.
-            _req_nonce = self.client_get("service_context").cstate.get_set(
+            _req_nonce = self.superior_get("context").cstate.get_set(
                 response["state"], claim=['nonce']).get('nonce')
             if _req_nonce:
                 _id_token_nonce = _idt.get("nonce")
@@ -109,8 +110,7 @@ class Authorization(authorization.Authorization):
         return response
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
-        _context = self.client_get("service_context")
-
+        _context = self.superior_get("context")
         if request_args is None:
             request_args = {}
 
@@ -179,7 +179,7 @@ class Authorization(authorization.Authorization):
                 break
 
         if not alg:
-            _context = self.client_get("service_context")
+            _context = self.superior_get("context")
             try:
                 alg = _context.work_environment.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
@@ -193,8 +193,7 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: The URL the OP should use to access the file
         """
-        _context = self.client_get("service_context")
-
+        _context = self.superior_get("context")
         _webname = _context.get_usage("request_uris")
         if _webname is None:
             filename, _webname = construct_request_uri(**kwargs)
@@ -215,7 +214,7 @@ class Authorization(authorization.Authorization):
         alg = self.get_request_object_signing_alg(**kwargs)
         kwargs["request_object_signing_alg"] = alg
 
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if "keys" not in kwargs and alg and alg != "none":
             kwargs["keys"] = _context.keyjar
 
@@ -267,7 +266,7 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: A possibly modified request.
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         if "openid" in req["scope"]:
             _response_type = req["response_type"][0]
             if "id_token" in _response_type or "code" in _response_type:
@@ -317,7 +316,7 @@ class Authorization(authorization.Authorization):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         kwargs = {
             "iss": _context.issuer,
             "keyjar": _context.keyjar,

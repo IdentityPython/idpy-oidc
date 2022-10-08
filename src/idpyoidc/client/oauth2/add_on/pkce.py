@@ -22,7 +22,7 @@ def add_code_challenge(request_args, service, **kwargs):
     :param kwargs: Extra set of keyword arguments
     :return: Updated set of request arguments
     """
-    _context = service.client_get("service_context")
+    _context = service.superior_get("context")
     _kwargs = _context.add_on["pkce"]
 
     try:
@@ -69,7 +69,7 @@ def add_code_verifier(request_args, service, **kwargs):
     _state = request_args.get("state")
     if _state is None:
         _state = kwargs.get("state")
-    _item = service.client_get("service_context").cstate.get_set(_state, claim=['code_verifier'])
+    _item = service.superior_get("context").cstate.get_set(_state, claim=['code_verifier'])
     request_args.update(_item)
     return request_args
 
@@ -91,7 +91,7 @@ def add_support(service, code_challenge_length, code_challenge_method):
     """
     if "authorization" in service and "accesstoken" in service:
         _service = service["authorization"]
-        _context = _service.client_get("service_context")
+        _context = _service.superior_get("context")
         _context.add_on["pkce"] = {
             "code_challenge_length": code_challenge_length,
             "code_challenge_method": code_challenge_method,

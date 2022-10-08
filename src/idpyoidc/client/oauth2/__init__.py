@@ -41,6 +41,7 @@ class Client(Entity):
         services=None,
         httpc_params=None,
         client_type: Optional[str] = ""
+        **kwargs
     ):
         """
 
@@ -140,7 +141,7 @@ class Client(Entity):
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
-                kwargs["keyjar"] = service.client_get("service_context").keyjar
+                kwargs["keyjar"] = service.superior_get("context").keyjar
             if not response_body_type:
                 response_body_type = service.response_body_type
 
@@ -293,7 +294,7 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     except KeyError:
         raise ConfigurationError("Can not do dynamic provider info discovery")
     else:
-        _context = client.client_get("service_context")
+        _context = client.superior_get("context")
         try:
             _context.set("issuer", _context.config["srv_discovery_url"])
         except KeyError:

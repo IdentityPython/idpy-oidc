@@ -142,11 +142,11 @@ def add_support(endpoint, **kwargs):
     if not _algs_supported:
         _algs_supported = ["RS256"]
 
-    _token_endp.server_get("endpoint_context").provider_info[
+    _token_endp.server_get("context").provider_info[
         "dpop_signing_alg_values_supported"
     ] = _algs_supported
 
-    _endpoint_context = _token_endp.server_get("endpoint_context")
+    _endpoint_context = _token_endp.server_get("context")
     _endpoint_context.dpop_enabled = True
 
 
@@ -163,7 +163,7 @@ class DPoPClientAuth(ClientAuthnMethod):
 
     def verify(self, authorization_info, **kwargs):
         client_info = basic_authn(authorization_info)
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
             return {"client_id": client_info["id"]}
         else:

@@ -254,7 +254,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint[index].server_get("endpoint_context"),
+            endpoint_context=self.endpoint[index].server_get("context"),
             token_class="authorization_code",
             token_handler=self.session_manager[index].token_handler["authorization_code"],
         )
@@ -272,7 +272,7 @@ class TestEndpoint(object):
 
         _token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint[index].server_get("endpoint_context"),
+            endpoint_context=self.endpoint[index].server_get("context"),
             token_class="access_token",
             token_handler=self.session_manager[index].token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token

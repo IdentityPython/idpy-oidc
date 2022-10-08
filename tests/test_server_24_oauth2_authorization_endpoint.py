@@ -272,7 +272,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.server_get("endpoint_context").keyjar.add_symmetric(
+        self.endpoint.server_get("context").keyjar.add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -334,24 +334,24 @@ class TestEndpoint(object):
     def test_verify_uri_unknown_client(self):
         request = {"redirect_uri": "https://rp.example.com/cb"}
         with pytest.raises(UnknownClient):
-            verify_uri(self.endpoint.server_get("endpoint_context"), request, "redirect_uri")
+            verify_uri(self.endpoint.server_get("context"), request, "redirect_uri")
 
     def test_verify_uri_fragment(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uri": ["https://rp.example.com/auth_cb"]}
         request = {"redirect_uri": "https://rp.example.com/cb#foobar"}
         with pytest.raises(URIError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_noregistered(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         request = {"redirect_uri": "https://rp.example.com/cb"}
 
         with pytest.raises(KeyError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_unregistered(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/auth_cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb"}
@@ -360,7 +360,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_match(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"]})]
         }
@@ -370,7 +370,7 @@ class TestEndpoint(object):
         verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_mismatch(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"]})]
         }
@@ -392,7 +392,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_missing(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar"], "state": ["low"]})]
         }
@@ -402,7 +402,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_missing_val(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "redirect_uris": [("https://rp.example.com/cb", {"foo": ["bar", "low"]})]
         }
@@ -412,7 +412,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_no_registered_qp(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
@@ -420,7 +420,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_wrong_uri_type(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
@@ -428,7 +428,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "post_logout_redirect_uri", "client_id")
 
     def test_verify_uri_none_registered(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "post_logout_redirect_uri": [("https://rp.example.com/plrc", {})]
         }
@@ -438,7 +438,7 @@ class TestEndpoint(object):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_get_uri(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {
@@ -449,7 +449,7 @@ class TestEndpoint(object):
         assert get_uri(_context, request, "redirect_uri") == "https://rp.example.com/cb"
 
     def test_get_uri_no_redirect_uri(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"client_id": "client_id"}
@@ -457,7 +457,7 @@ class TestEndpoint(object):
         assert get_uri(_context, request, "redirect_uri") == "https://rp.example.com/cb"
 
     def test_get_uri_no_registered(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"client_id": "client_id"}
@@ -466,7 +466,7 @@ class TestEndpoint(object):
             get_uri(_context, request, "post_logout_redirect_uri")
 
     def test_get_uri_more_then_one_registered(self):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = {
             "redirect_uris": [
                 ("https://rp.example.com/cb", {}),
@@ -489,7 +489,7 @@ class TestEndpoint(object):
             scope="openid",
         )
 
-        self.endpoint.server_get("endpoint_context").cdb["client_id"] = {
+        self.endpoint.server_get("context").cdb["client_id"] = {
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
@@ -517,7 +517,7 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        kaka = self.endpoint.server_get("endpoint_context").cookie_handler.make_cookie_content(
+        kaka = self.endpoint.server_get("context").cookie_handler.make_cookie_content(
             "value", "sso"
         )
 
@@ -545,7 +545,7 @@ class TestEndpoint(object):
             "id_token_signed_response_alg": "RS256",
         }
 
-        item = self.endpoint.server_get("endpoint_context").authn_broker.db["anon"]
+        item = self.endpoint.server_get("context").authn_broker.db["anon"]
         item["method"].fail = NoSuchAuthentication
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
@@ -575,7 +575,7 @@ class TestEndpoint(object):
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _context.cdb["client_id"] = cinfo
 
         kaka = _context.cookie_handler.make_cookie_content("value", "sso")
@@ -608,7 +608,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(request)
 
-        item = self.endpoint.server_get("endpoint_context").authn_broker.db["anon"]
+        item = self.endpoint.server_get("context").authn_broker.db["anon"]
         item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
@@ -633,7 +633,7 @@ class TestEndpoint(object):
 
         session_id = self._create_session(request)
 
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.server_get("context")
         _mngr = _context.session_manager
         _csi = _mngr[session_id]
         _csi.revoked = True

@@ -29,6 +29,8 @@ class AccessToken(access_token.AccessToken):
 
     def __init__(self, client_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf: Optional[dict] = None):
+        access_token.AccessToken.__init__(self, superior_get, conf=conf)
 
     def gather_verify_arguments(
         self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
@@ -38,8 +40,8 @@ class AccessToken(access_token.AccessToken):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.client_get("service_context")
-        _entity = self.client_get("entity")
+        _context = self.superior_get("context")
+        _entity = self.superior_get("entity")
 
         kwargs = {
             "client_id": _entity.get_client_id(),
@@ -70,7 +72,7 @@ class AccessToken(access_token.AccessToken):
         return kwargs
 
     def update_service_context(self, resp, key: Optional[str] ="", **kwargs):
-        _cstate = self.client_get("service_context").cstate
+        _cstate = self.superior_get("context").cstate
         try:
             _idt = resp[verified_claim_name("id_token")]
         except KeyError:
@@ -90,5 +92,7 @@ class AccessToken(access_token.AccessToken):
         _cstate.update(key, resp)
 
     def get_authn_method(self):
-        _context = self.client_get("service_context")
-        return _context.get_usage("token_endpoint_auth_method", self.default_authn_method)
+        try:
+            return self.superior_get("service_context").behaviour["token_endpoint_auth_method"]
+        except KeyError:
+            return self.default_authn_method

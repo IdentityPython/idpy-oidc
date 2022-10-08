@@ -29,7 +29,7 @@ class PushedAuthorization(Authorization):
         # create URN
 
         _urn = "urn:uuid:{}".format(uuid.uuid4())
-        self.server_get("endpoint_context").par_db[_urn] = request
+        self.server_get("context").par_db[_urn] = request
 
         return {
             "http_response": {"request_uri": _urn, "expires_in": self.ttl},

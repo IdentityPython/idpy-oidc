@@ -19,12 +19,12 @@ class CheckID(Service):
     synchronous = True
     service_name = "check_id"
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct]
 
     def oidc_pre_construct(self, request_args: Optional[dict]=None, **kwargs):
-        _args = self.client_get("service_context").cstate.get_set(
+        _args = self.superior_get("context").cstate.get_set(
             kwargs["state"],
             claim=["id_token"]
         )

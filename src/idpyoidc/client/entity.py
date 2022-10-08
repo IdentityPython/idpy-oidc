@@ -78,7 +78,9 @@ class Entity(object):
             config: Optional[Union[dict, Configuration]] = None,
             services: Optional[dict] = None,
             httpc_params: Optional[dict] = None,
-            client_type: Optional[str] = "oauth2"
+            client_type: Optional[str] = "oauth2",
+            context: Optional[OidcContext] = None,
+            superior_get: Optional[Callable] = None
     ):
         self.extra = {}
         if httpc_params:
@@ -101,7 +103,7 @@ class Entity(object):
             else:
                 _srvs = DEFAULT_OIDC_SERVICES
 
-        self._service = init_services(service_definitions=_srvs, client_get=self.client_get)
+        self._service = init_services(service_definitions=_srvs, superior_get=self.entity_get)
 
         self._service_context = ServiceContext(
             keyjar=keyjar, config=config, httpc_params=self.httpc_params,
@@ -111,12 +113,12 @@ class Entity(object):
         self.keyjar = self._service_context.get_preference('keyjar')
 
         self.setup_client_authn_methods(config)
+        self.superior_get = superior_get
 
         # Deal with backward compatibility
         self.backward_compatibility(config)
 
-
-    def client_get(self, what, *arg):
+    def entity_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
         if _func:
             return _func(*arg)
@@ -125,7 +127,10 @@ class Entity(object):
     def get_services(self, *arg):
         return self._service
 
-    def get_service_context(self, *arg):
+    def get_service_context(self, *arg):  # Want to get rid of this
+        return self._service_context
+
+    def get_context(self, *arg):
         return self._service_context
 
     def get_service(self, service_name, *arg):
@@ -151,10 +156,19 @@ class Entity(object):
         else:
             return self._service_context.work_environment.get_preference('client_id')
 
+    def get_keyjar(self):
+        if self.get_service_context().keyjar:
+            return self.get_service_context().keyjar
+        else:
+            return self.superior_get('application', 'keyjar')
+
     def setup_client_authn_methods(self, config):
-        self._service_context.client_authn_method = client_auth_setup(
-            config.get("client_authn_methods")
-        )
+        if config and "client_authn_methods" in config:
+            self._service_context.client_authn_method = client_auth_setup(
+                config.get("client_authn_methods")
+            )
+        else:
+            self._service_context.client_authn_method = {}
 
     def backward_compatibility(self, config):
         _work_environment = self._service_context.work_environment

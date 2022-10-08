@@ -90,7 +90,7 @@ class UserAuthnMethod(object):
         raise NotImplementedError
 
     def unpack_token(self, token):
-        return verify_signed_jwt(token=token, keyjar=self.server_get("endpoint_context").keyjar)
+        return verify_signed_jwt(token=token, keyjar=self.server_get("context").keyjar)
 
     def done(self, areq):
         """
@@ -106,7 +106,7 @@ class UserAuthnMethod(object):
             return False
 
     def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         logger.debug("Value cookies: {}".format(cookie))
 
         if cookie is None:
@@ -192,7 +192,7 @@ class UserPassJinja2(UserAuthnMethod):
         )
         if not self.server_get:
             raise Exception(f"{self.__class__.__name__} doesn't have a working server_get")
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
         jws = create_signed_jwt(_context.issuer, _context.keyjar, **kwargs)

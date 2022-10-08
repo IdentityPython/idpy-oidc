@@ -123,8 +123,10 @@ class EndpointContext(OidcContext):
         cookie_handler: Optional[Any] = None,
         httpc: Optional[Any] = None,
         server_type: Optional[str] = ''
+        entity_id: Optional[str] = ""
     ):
-        OidcContext.__init__(self, conf, entity_id=conf.get("issuer", ""))
+        _id = entity_id or conf.get("issuer", "")
+        OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
         self.server_get = server_get
 
@@ -245,7 +247,9 @@ class EndpointContext(OidcContext):
 
         self.set_scopes_handler()
         self.dev_auth_db = None
-        self.claims_interface = init_service(conf["claims_interface"], self.server_get)
+        _interface = conf.get("claims_interface")
+        if _interface:
+            self.claims_interface = init_service(_interface, self.server_get)
 
         if isinstance(conf, OPConfiguration):
             self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),

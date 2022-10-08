@@ -49,8 +49,8 @@ class UserInfo(Service):
         "encrypt_userinfo_supported": None
     }
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, superior_get, conf=None):
+        Service.__init__(self, superior_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
@@ -60,7 +60,7 @@ class UserInfo(Service):
         if "access_token" in request_args:
             pass
         else:
-            request_args = self.client_get("service_context").cstate.get_set(
+            request_args = self.superior_get("context").cstate.get_set(
                 kwargs["state"],
                 claim=["access_token"]
             )
@@ -68,7 +68,7 @@ class UserInfo(Service):
         return request_args, {}
 
     def post_parse_response(self, response, **kwargs):
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         _current = _context.cstate
         _args = _current.get_set(kwargs["state"], claim=[verified_claim_name("id_token")])
 
@@ -118,7 +118,7 @@ class UserInfo(Service):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.client_get("service_context")
+        _context = self.superior_get("context")
         kwargs = {
             "client_id": _context.get_client_id(),
             "iss": _context.issuer,

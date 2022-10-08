@@ -80,8 +80,8 @@ def pre_construct_pick_redirect_uri(
         request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None,
         **kwargs
 ):
-    request_args["redirect_uri"] = pick_redirect_uri(service.client_get("service_context"),
-                                                     entity=service.client_get("entity"),
+    request_args["redirect_uri"] = pick_redirect_uri(service.superior_get("context"),
+                                                     entity=service.superior_get("entity"),
                                                      request_args=request_args)
     return request_args, {}
 

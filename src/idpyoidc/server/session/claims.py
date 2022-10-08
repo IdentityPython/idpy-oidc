@@ -65,7 +65,7 @@ class ClaimsInterface:
         claims_release_point: str,
         secondary_identifier: Optional[str] = "",
     ):
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
         if add_claims_by_scope:
             _claims_by_scope = add_claims_by_scope.get(claims_release_point)
@@ -93,7 +93,7 @@ class ClaimsInterface:
         client_id: str = None,
         secondary_identifier: str = "",
     ) -> dict:
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         # which endpoint module configuration to get the base claims from
         module = self._get_module(claims_release_point, _context)
 
@@ -159,7 +159,7 @@ class ClaimsInterface:
             "userinfo"/"id_token"/"introspection"/"access_token"
         :return: Claims specification as a dictionary.
         """
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
         session_info = _context.session_manager.get_session_info(session_id, grant=True)
         client_id = session_info["client_id"]
         grant = session_info["grant"]
@@ -189,7 +189,7 @@ class ClaimsInterface:
         return _claims
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
-        grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
+        grant = self.server_get("context").session_manager.get_grant(session_id)
         if grant.authorization_request:
             auth_req = grant.authorization_request
         else:
@@ -203,7 +203,7 @@ class ClaimsInterface:
         :param claims_restriction: Specifies the upper limit of which claims can be returned
         :return:
         """
-        meth = self.server_get("endpoint_context").userinfo
+        meth = self.server_get("context").userinfo
         if not meth:
             raise ImproperlyConfigured("userinfo MUST be defined in the configuration")
         if claims_restriction:

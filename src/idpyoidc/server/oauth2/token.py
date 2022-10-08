@@ -86,7 +86,7 @@ class Token(Endpoint):
     ):
         grant_type = request["grant_type"]
         _helper = self.helper.get(grant_type)
-        client = kwargs["endpoint_context"].cdb[client_id]
+        client = kwargs["context"].cdb[client_id]
         grant_types_supported = client.get("grant_types_supported", self.grant_types_supported)
         if grant_type not in grant_types_supported:
             return self.error_cls(
@@ -132,7 +132,7 @@ class Token(Endpoint):
             return response_args
 
         _access_token = response_args["access_token"]
-        _context = self.server_get("endpoint_context")
+        _context = self.server_get("context")
 
         if isinstance(_helper, TokenExchangeHelper):
             _handler_key = _helper.get_handler_key(request, _context)

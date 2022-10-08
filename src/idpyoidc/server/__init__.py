@@ -1,12 +1,14 @@
 # Server specific defaults and a basic Server class
 import logging
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
 
 from idpyoidc.impexp import ImpExp
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
@@ -33,7 +35,7 @@ def do_endpoints(conf, server_get):
 
 
 class Server(ImpExp):
-    parameter = {"endpoint": [Endpoint], "endpoint_context": EndpointContext}
+    parameter = {"endpoint": [Endpoint], "context": EndpointContext}
 
     def __init__(
             self,
@@ -42,13 +44,10 @@ class Server(ImpExp):
             cwd: Optional[str] = "",
             cookie_handler: Optional[Any] = None,
             httpc: Optional[Any] = None,
+            parent_get: Optional[Callable] = None
     ):
         ImpExp.__init__(self)
         self.conf = conf
-
-        self.endpoint = do_endpoints(conf, self.server_get)
-
-        # endpoint context MUST be done after do_endpoints !!
         self.endpoint_context = EndpointContext(
             conf=conf,
             server_get=self.server_get,
@@ -57,13 +56,15 @@ class Server(ImpExp):
             cookie_handler=cookie_handler,
             httpc=httpc,
         )
-        self.endpoint_context.set_provider_info()
+        self.parent_get = parent_get
         self.endpoint_context.authz = self.setup_authz()
-        # _cap = get_provider_capabilities(conf, self.endpoint)
-        # self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
 
         self.setup_authentication(self.endpoint_context)
 
+        self.endpoint = do_endpoints(conf, self.server_get)
+        _cap = get_provider_capabilities(conf, self.endpoint)
+
+        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(
@@ -112,6 +113,9 @@ class Server(ImpExp):
 
     def get_endpoint_context(self, *arg):
         return self.endpoint_context
+
+    def get_server(self, *args):
+        return self
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
