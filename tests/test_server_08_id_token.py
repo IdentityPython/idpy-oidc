@@ -173,6 +173,7 @@ class TestEndpoint(object):
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.endpoint_context.session_manager

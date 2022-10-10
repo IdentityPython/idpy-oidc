@@ -207,6 +207,7 @@ class TestEndpoint(object):
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
@@ -410,6 +411,7 @@ class TestEndpointWebID(object):
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "webid"]
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"

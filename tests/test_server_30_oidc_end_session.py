@@ -209,6 +209,7 @@ class TestEndpoint(object):
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types": ["code", "token", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI1}logout_cb", ""],
+                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             },
             "client_2": {
                 "client_secret": "hemligare",
@@ -217,6 +218,7 @@ class TestEndpoint(object):
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types": ["code", "token", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI2}logout_cb", ""],
+                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             },
         }
         self.endpoint_context = endpoint_context

@@ -192,6 +192,10 @@ class SessionManager(GrantManager):
             sector_identifier = ""
             _claims = {}
 
+        resources = []
+        if "resource" in auth_req:
+            resources = auth_req["resource"]
+
         if self.node_type[0] == "user":
             kwargs = {
                 "sub": self.sub_func[sub_type](
@@ -205,11 +209,15 @@ class SessionManager(GrantManager):
             token_usage_rules=token_usage_rules,
             authorization_request=auth_req,
             authentication_event=authn_event,
+            sub=self.sub_func[sub_type](
+                user_id, salt=self.get_salt(), sector_identifier=sector_identifier
+            ),
+            usage_rules=token_usage_rules,
             scope=scopes,
             claims=_claims,
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
-            **kwargs
+            resources=resources
         )
 
     def create_exchange_grant(

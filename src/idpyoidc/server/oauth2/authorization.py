@@ -14,6 +14,7 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
 from idpyoidc.message import Message
@@ -39,6 +40,7 @@ from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
 from idpyoidc.util import split_uri
+from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +279,53 @@ def check_unknown_scopes_policy(request_info, client_id, endpoint_context):
         raise UnAuthorizedClientScope()
 
 
+def validate_resource_indicators_policy(request, context, **kwargs):
+    if "resource" not in request:
+        return oauth2.AuthorizationErrorResponse(
+            error="invalid_target",
+            error_description="Missing resource parameter",
+        )
+
+    resource_servers_per_client = kwargs["resource_servers_per_client"]
+    client_id = request["client_id"]
+
+    if isinstance(resource_servers_per_client, dict) and client_id not in resource_servers_per_client:
+        return oauth2.AuthorizationErrorResponse(
+            error="invalid_target",
+            error_description=f"Resources for client {client_id} not found",
+        )
+
+    if isinstance(resource_servers_per_client, dict):
+        permitted_resources = [res for res in resource_servers_per_client[client_id]]
+    else:
+        permitted_resources = [res for res in resource_servers_per_client]
+
+    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
+    if not common_resources:
+        return oauth2.AuthorizationErrorResponse(
+            error="invalid_target",
+            error_description=f"Invalid resource requested by client {client_id}",
+        )
+
+    common_resources = [r for r in common_resources if r in context.cdb.keys()]
+    if not common_resources:
+        return oauth2.AuthorizationErrorResponse(
+            error="invalid_target",
+            error_description=f"Invalid resource requested by client {client_id}",
+        )
+
+    if client_id not in common_resources:
+        common_resources.append(client_id)
+
+    request["resource"] = common_resources
+
+    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
+    permitted_scopes = [r for res in permitted_scopes for r in res]
+    scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
+    request["scope"] = scopes
+    return request
+
+
 class Authorization(Endpoint):
     request_cls = oauth2.AuthorizationRequest
     response_cls = oauth2.AuthorizationResponse
@@ -304,6 +353,8 @@ class Authorization(Endpoint):
 
     def __init__(self, server_get, **kwargs):
         Endpoint.__init__(self, server_get, **kwargs)
+
+        self.resource_indicators_config = kwargs.get("resource_indicators", None)
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
@@ -461,7 +512,44 @@ class Authorization(Endpoint):
         else:
             request["redirect_uri"] = redirect_uri
 
+        if ("resource_indicators" in _cinfo
+            and "authorization_code" in _cinfo["resource_indicators"]):
+            resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
+        else:
+            resource_indicators_config = self.resource_indicators_config
+
+        if resource_indicators_config is not None:
+            if "policy" not in resource_indicators_config:
+                policy = {"policy": {"callable": validate_resource_indicators_policy}}
+                resource_indicators_config.update(policy)
+            request = self._enforce_resource_indicators_policy(request, resource_indicators_config)
+
         return request
+
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.server_get("endpoint_context")
+
+        policy = config["policy"]
+        callable = policy["callable"]
+        kwargs = policy.get("kwargs", {})
+
+        if kwargs.get("resource_servers_per_client", None) is None:
+            kwargs["resource_servers_per_client"] = {
+                request["client_id"]: request["client_id"]
+            }
+
+        if isinstance(callable, str):
+            try:
+                fn = importer(callable)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+        else:
+            fn = callable
+        try:
+            return fn(request, context=_context, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
 
     def pick_authn_method(self, request, redirect_uri, acr=None, **kwargs):
         _context = self.server_get("endpoint_context")
@@ -750,10 +838,17 @@ class Authorization(Endpoint):
             _mngr = _context.session_manager
             _sinfo = _mngr.get_session_info(sid, grant=True)
 
+            scope = []
+            resource_scopes = []
             if request.get("scope"):
-                aresp["scope"] = _context.scopes_handler.filter_scopes(
-                    request["scope"], _sinfo["client_id"]
-                )
+                scope = request.get("scope")
+            if request.get("resource"):
+                resource_scopes = [_context.cdb[s]["scope"] for s in request.get("resource") if s in _context.cdb.keys() and _context.cdb[s].get("scope")]
+                resource_scopes = [item for sublist in resource_scopes for item in sublist]
+
+            aresp["scope"] = _context.scopes_handler.filter_scopes(
+                list(set(scope+resource_scopes)), _sinfo["client_id"]
+            )
 
             rtype = set(request["response_type"][:])
             handled_response_type = []

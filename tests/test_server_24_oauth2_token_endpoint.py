@@ -172,6 +172,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = endpoint_context.session_manager
@@ -445,6 +446,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         areq = AUTH_REQ.copy()
@@ -484,6 +486,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         self.token_endpoint.revoke_refresh_on_issue = True
@@ -521,6 +524,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.endpoint_context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()

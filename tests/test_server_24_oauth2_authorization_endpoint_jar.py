@@ -108,6 +108,13 @@ clients:
     'response_types': 
         - 'code'
         - 'token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client2:
     client_secret: "spraket"
     redirect_uris:
@@ -115,6 +122,13 @@ clients:
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
