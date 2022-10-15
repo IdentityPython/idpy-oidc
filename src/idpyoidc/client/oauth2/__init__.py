@@ -1,5 +1,6 @@
 import logging
 from json import JSONDecodeError
+from typing import Callable
 from typing import Optional
 
 from idpyoidc.client.entity import Entity
@@ -37,9 +38,10 @@ class Client(Entity):
         keyjar=None,
         verify_ssl=True,
         config=None,
-        httplib=None,
+        httpc=None,
         services=None,
         httpc_params=None,
+        superior_get: Optional[Callable] = None,
         client_type: Optional[str] = ""
         **kwargs
     ):
@@ -51,7 +53,7 @@ class Client(Entity):
         :param config: Configuration information passed on to the
             :py:class:`idpyoidc.client.service_context.ServiceContext`
             initialization
-        :param httplib: A HTTP client to use
+        :param httpc: A HTTP client to use
         :param services: A list of service definitions
         :param httpc_params: HTTP request arguments
         :return: Client instance
@@ -66,10 +68,11 @@ class Client(Entity):
             config=config,
             services=services,
             httpc_params=httpc_params,
+            superior_get=superior_get
             client_type=client_type
         )
 
-        self.http = httplib or HTTPLib(httpc_params)
+        self.http = httpc or HTTPLib(httpc_params)
 
         if isinstance(config, Configuration):
             _add_ons = config.conf.get("add_ons")

@@ -1,5 +1,7 @@
 import json
 import logging
+from typing import Callable
+from typing import Optional
 
 from idpyoidc.client import oauth2
 from idpyoidc.client.client_auth import BearerHeader
@@ -72,17 +74,19 @@ class FetchException(Exception):
 
 
 class RP(oauth2.Client):
-    def __init__(
-        self,
-        keyjar=None,
-        verify_ssl=True,
-        config=None,
-        httplib=None,
-        services=None,
-        httpc_params=None,
-        **kwargs
-    ):
 
+    def __init__(
+            self,
+            keyjar=None,
+            verify_ssl=True,
+            config=None,
+            httpc=None,
+            services=None,
+            httpc_params=None,
+            superior_get: Optional[Callable] = None,
+            **kwargs
+    ):
+        self.superior_get = superior_get
         _srvs = services or DEFAULT_OIDC_SERVICES
 
         oauth2.Client.__init__(
@@ -90,10 +94,11 @@ class RP(oauth2.Client):
             keyjar=keyjar,
             verify_ssl=verify_ssl,
             config=config,
-            httplib=httplib,
+            httpc=httpc,
             services=_srvs,
             httpc_params=httpc_params,
             client_type="oidc",
+            superior_get=superior_get,
             **kwargs
         )
 

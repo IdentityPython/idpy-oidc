@@ -96,12 +96,7 @@ class Entity(object):
             _srvs = None
 
         if not _srvs:
-            if services:
-                _srvs = services
-            elif client_type == "oauth2":
-                _srvs = DEFAULT_OAUTH2_SERVICES
-            else:
-                _srvs = DEFAULT_OIDC_SERVICES
+            _srvs = DEFAULT_OAUTH2_SERVICES
 
         self._service = init_services(service_definitions=_srvs, superior_get=self.entity_get)
 
