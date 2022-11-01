@@ -4,9 +4,43 @@ from typing import Union
 
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import instantiate
+
+
+def create_keyjar(
+        keyjar: Optional[KeyJar] = None,
+        conf: Optional[Union[dict, Configuration]] = None,
+        key_conf: Optional[dict] = None,
+        id: Optional[str] = "",
+):
+    if keyjar is None:
+        if key_conf:
+            keys_args = {k: v for k, v in key_conf.items() if k != "uri_path"}
+            _keyjar = init_key_jar(**keys_args)
+        elif conf:
+            if "keys" in conf:
+                keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
+            elif "key_conf" in conf:
+                keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
+            else:
+                _keyjar = KeyJar()
+                if "jwks" in conf:
+                    _keyjar.import_jwks(conf["jwks"], "")
+        else:
+            _keyjar = None
+
+        if _keyjar and "" in _keyjar and id:
+            # make sure I have the keys under my own name too (if I know it)
+            _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), id)
+
+        return _keyjar
+    else:
+        return keyjar
 
 
 class Unit(ImpExp):
@@ -32,7 +66,7 @@ class Unit(ImpExp):
         if keyjar or key_conf or config.get('key_conf') or config.get('jwks') or config.get('keys'):
             # Should be either one
             id = issuer_id or client_id
-            self.keyjar = self._keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
+            self.keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
             if client_id:
                 self.keyjar.add_symmetric('', client_id)
         else:
@@ -73,38 +107,6 @@ class Unit(ImpExp):
 
     def get_unit(self, *args):
         return self
-
-    def _keyjar(self,
-                keyjar: Optional[KeyJar] = None,
-                conf: Optional[Union[dict, Configuration]] = None,
-                key_conf: Optional[dict] = None,
-                id: Optional[str] = "",
-                ):
-        if keyjar is None:
-            if key_conf:
-                keys_args = {k: v for k, v in key_conf.items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-            elif conf:
-                if "keys" in conf:
-                    keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
-                    _keyjar = init_key_jar(**keys_args)
-                elif "key_conf" in conf:
-                    keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
-                    _keyjar = init_key_jar(**keys_args)
-                else:
-                    _keyjar = KeyJar()
-                    if "jwks" in conf:
-                        _keyjar.import_jwks(conf["jwks"], "")
-            else:
-                _keyjar = None
-
-            if _keyjar and "" in _keyjar and id:
-                # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), id)
-
-            return _keyjar
-        else:
-            return keyjar
 
 
 def topmost_unit(unit):

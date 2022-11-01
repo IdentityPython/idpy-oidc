@@ -89,6 +89,7 @@ class Endpoint(object):
     request_placement = "query"
     response_format = "json"
     response_placement = "body"
+    response_content_type = ""
     client_authn_method = ""
     default_capabilities = None
     auth_method_attribute = ""
@@ -382,7 +383,9 @@ class Endpoint(object):
             _response = ""
             content_type = kwargs.get("content_type")
             if content_type is None:
-                if self.response_format == "json":
+                if self.response_content_type:
+                    content_type = self.response_content_type
+                elif self.response_format == "json":
                     content_type = "application/json"
                 elif self.response_format in ["jws", "jwe", "jose"]:
                     content_type = "application/jose"
@@ -402,7 +405,10 @@ class Endpoint(object):
                         else:
                             resp = json.dumps(_response)
                     elif self.response_format in ["jws", "jwe", "jose"]:
-                        content_type = "application/jose; charset=utf-8"
+                        if self.response_content_type:
+                            content_type = self.response_content_type
+                        else:
+                            content_type = "application/jose; charset=utf-8"
                         resp = _response
                     else:
                         content_type = "application/x-www-form-urlencoded"
