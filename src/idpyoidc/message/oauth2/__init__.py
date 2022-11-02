@@ -314,6 +314,30 @@ class TokenIntrospectionResponse(Message):
         "jti": SINGLE_OPTIONAL_STRING,
     }
 
+# RFC 7009
+class TokenRevocationRequest(Message):
+    c_param = {
+        "token": SINGLE_REQUIRED_STRING,
+        "token_type_hint": SINGLE_OPTIONAL_STRING,
+        # The ones below are part of authentication information
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+    }
+
+
+class TokenRevocationResponse(Message):
+    pass
+
+class TokenRevocationErrorResponse(ResponseMessage):
+    """
+    Error response from the revocation endpoint
+    """
+    c_allowed_values = ResponseMessage.c_allowed_values.copy()
+    c_allowed_values = {
+        "error": [
+            "unsupported_token_type"
+        ]
+    }
 
 # RFC 8693
 class TokenExchangeRequest(Message):
