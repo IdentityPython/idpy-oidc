@@ -95,7 +95,7 @@ class SessionManager(GrantManager):
 
         session_params = self.conf.get("session_params") or {}
         _crypt_config = get_crypt_config(session_params)
-        super(SessionManager, self).__init__(_crypt_config)
+        super(SessionManager, self).__init__(handler, _crypt_config)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
         self.node_info_class = session_params.get("node_info_class",
