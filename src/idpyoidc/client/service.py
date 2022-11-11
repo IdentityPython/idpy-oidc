@@ -13,8 +13,8 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
 from .configure import Configuration
 from .exception import ResponseError
@@ -63,7 +63,7 @@ class Service(ImpExp):
 
     init_args = ["client_get"]
 
-    metadata_attributes = {}
+    metadata_claims = {}
     usage_rules = {}
     usage_to_uri_map = {}
     callback_path = {}
@@ -99,7 +99,7 @@ class Service(ImpExp):
 
             md_conf = conf.get("metadata", {})
             if md_conf:
-                for param, def_val in self.metadata_attributes.items():
+                for param, def_val in self.metadata_claims.items():
                     if param in md_conf:
                         self.metadata[param] = md_conf[param]
                     elif def_val is not None:
@@ -587,19 +587,22 @@ class Service(ImpExp):
 
         LOGGER.debug("response format: %s", sformat)
 
-        if sformat in ["jose", "jws", "jwe"]:
-            resp = self.post_parse_response(info, state=state)
-
-            if not resp:
-                LOGGER.error("Missing or faulty response")
-                raise ResponseError("Missing or faulty response")
-
-            return resp
+        resp = None
+        if sformat == "jose":
+            try:
+                self._do_jwt(info)
+                sformat = "dict"
+            except Exception:
+                _context = self.client_get("service_context")
+                resp = self.response_cls().from_jwe(info, keys=_context.keyjar)
+        elif sformat == "jwe":
+            _context = self.client_get("service_context")
+            resp = self.response_cls().from_jwe(info, keys=_context.keyjar)
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":
             info = self.get_urlinfo(info)
-        elif sformat == "jwt":
+        elif sformat in ["jwt", "jws"]:
             info = self._do_jwt(info)
             sformat = "dict"
         elif sformat == "json":
@@ -608,7 +611,12 @@ class Service(ImpExp):
 
         LOGGER.debug("response_cls: %s", self.response_cls.__name__)
 
-        resp = self._do_response(info, sformat, **kwargs)
+        if resp is None:
+            if not info:
+                LOGGER.error("Missing or faulty response")
+                raise ResponseError("Missing or faulty response")
+
+            resp = self._do_response(info, sformat, **kwargs)
 
         LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
 
@@ -635,7 +643,7 @@ class Service(ImpExp):
 
     def get_conf_attr(self, attr, default=None):
         """
-        Get the value of a attribute in the configuration
+        Get the value of an attribute in the configuration
 
         :param attr: The attribute
         :param default: If the attribute doesn't appear in the configuration
@@ -666,13 +674,13 @@ class Service(ImpExp):
                     self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri],
                                                       hex)
 
-    def get_metadata(self, attribute, default=None):
+    def get_metadata_claim(self, claim, default=None):
         try:
-            return self.metadata[attribute]
+            return self.metadata[claim]
         except KeyError:
             return default
 
-    def set_metadata(self, key, value):
+    def set_metadata_claim(self, key, value):
         self.metadata[key] = value
 
 
@@ -703,7 +711,7 @@ def init_services(service_definitions, client_get, metadata, usage):
             _srv = service_configuration["class"](**kwargs)
 
         for key, val in metadata.items():
-            if key in _srv.metadata_attributes and key not in _srv.metadata:
+            if key in _srv.metadata_claims and key not in _srv.metadata:
                 _srv.metadata[key] = val
 
         for key, val in usage.items():

@@ -77,7 +77,7 @@ KEY_CONF = {
 
 
 def test_create_client():
-    client = Entity(config=CLIENT_CONFIG)
+    client = Entity(config=CLIENT_CONFIG, client_type='oidc')
     _md = client.collect_metadata()
     assert set(_md.keys()) == {'application_type',
                                'backchannel_logout_uri',
@@ -96,10 +96,10 @@ def test_create_client():
                                'userinfo_signed_response_alg'}
 
     # What's in service configuration has higher priority then metadata.
-    assert client.get_metadata_value("contacts") == 'support@example.com'
+    assert client.get_metadata_claim("contacts") == 'support@example.com'
     # Two ways of looking at things
-    assert client.get_metadata_value("userinfo_signed_response_alg") == "ES256"
-    assert client.value_in_metadata_attribute("userinfo_signed_response_alg", "ES256")
+    assert client.get_metadata_claim("userinfo_signed_response_alg") == "ES256"
+    assert client.metadata_claim_contains_value("userinfo_signed_response_alg", "ES256")
     # How to act
     assert client.get_usage_value("request_uri") is True
 
@@ -121,7 +121,7 @@ def test_create_client_key_conf():
     client_config.update({"key_conf": KEY_CONF})
 
     client = Entity(config=client_config)
-    _jwks = client.get_metadata_value("jwks")
+    _jwks = client.get_metadata_claim("jwks")
     assert _jwks
 
 
@@ -130,11 +130,11 @@ def test_create_client_keyjar():
     client_config = CLIENT_CONFIG.copy()
 
     client = Entity(config=client_config, keyjar=_keyjar)
-    _jwks = client.get_metadata_value("jwks")
+    _jwks = client.get_metadata_claim("jwks")
     assert _jwks
 
 
 def test_create_client_jwks_uri():
     client_config = CLIENT_CONFIG.copy()
     client = Entity(config=client_config, jwks_uri="https://rp.example.com/jwks_uri.json")
-    assert client.get_metadata_value("jwks_uri")
+    assert client.get_metadata_claim("jwks_uri")

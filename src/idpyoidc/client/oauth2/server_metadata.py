@@ -22,7 +22,7 @@ class ServerMetadata(Service):
     service_name = "server_metadata"
     http_method = "GET"
 
-    metadata_attributes = {}
+    metadata_claims = {}
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
