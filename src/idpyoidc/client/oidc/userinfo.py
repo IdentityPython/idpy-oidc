@@ -38,13 +38,7 @@ class UserInfo(Service):
     default_authn_method = "bearer_header"
     http_method = "GET"
 
-    metadata_attributes = {
-        "userinfo_signed_response_alg": "",
-        "userinfo_encrypted_response_alg": "",
-        "userinfo_encrypted_response_enc": ""
-    }
-
-    metadata_attributes = {
+    metadata_claims = {
         "userinfo_signed_response_alg": None,
         "userinfo_encrypted_response_alg": None,
         "userinfo_encrypted_response_enc": None

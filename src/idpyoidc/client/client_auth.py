@@ -470,7 +470,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             if _alg :
                 algorithm = _alg
             else:
-                algorithm = entity.get_metadata_value("token_endpoint_auth_signing_alg")
+                algorithm = entity.get_metadata_claim("token_endpoint_auth_signing_alg")
                 if algorithm is None:
                     _pi = context.provider_info
                     try:

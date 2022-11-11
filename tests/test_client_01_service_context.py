@@ -36,7 +36,7 @@ class TestServiceContext:
         base_url = "https://example.com/cli"
         hex = "0123456789"
         self.service_context.specs.construct_redirect_uris(base_url, hex, [])
-        _uris = self.service_context.specs.get_metadata("redirect_uris")
+        _uris = self.service_context.specs.get_metadata_claim("redirect_uris")
         assert len(_uris) == 1
         assert _uris == [f"https://example.com/cli/authz_cb/{hex}"]
 

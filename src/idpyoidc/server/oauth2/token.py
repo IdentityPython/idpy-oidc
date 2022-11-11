@@ -43,7 +43,8 @@ class Token(Endpoint):
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
         self.configure_grant_types(kwargs.get("grant_types_helpers"))
-        self.grant_types_supported = kwargs.get("grant_types_supported", list(self.helper.keys()))
+        self.grant_types_supported = kwargs.get("grant_types_supported",
+                                                list(self.helper_by_grant_type.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
 
     def configure_grant_types(self, grant_types_helpers):

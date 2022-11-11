@@ -20,7 +20,7 @@ class EndSession(Service):
     service_name = "end_session"
     response_body_type = "html"
 
-    metadata_attributes = {
+    metadata_claims = {
         "post_logout_redirect_uris": None,
         "frontchannel_logout_uri": None,
         "frontchannel_logout_session_required": None,

@@ -82,10 +82,10 @@ class Specification(ImpExp):
         self.callback = {}
         self._local = {}
 
-    def get_all(self):
+    def get_metadata(self):
         return self.metadata
 
-    def get_metadata(self, key, default=None):
+    def get_metadata_claim(self, key, default=None):
         if key in self.metadata:
             return self.metadata[key]
         else:
@@ -97,7 +97,7 @@ class Specification(ImpExp):
         else:
             return default
 
-    def set_metadata(self, key, value):
+    def set_metadata_claim(self, key, value):
         self.metadata[key] = value
 
     def set_usage(self, key, value):
@@ -105,7 +105,7 @@ class Specification(ImpExp):
 
     def _callback_uris(self, base_url, hex):
         _red = {}
-        for type in self.get_metadata("response_types", ["code"]):
+        for type in self.get_metadata_claim("response_types", ["code"]):
             if "code" in type:
                 _red['code'] = True
             elif type in ["id_token", "id_token token"]:
@@ -120,12 +120,15 @@ class Specification(ImpExp):
             callback_uri[key] = _uri
         return callback_uri
 
-    def construct_redirect_uris(self, base_url, hex, callbacks):
+    def construct_redirect_uris(self,
+                                base_url: str,
+                                hex: str,
+                                callbacks: Optional[dict] = None):
         if not callbacks:
             callbacks = self._callback_uris(base_url, hex)
 
         if callbacks:
-            self.set_metadata("redirect_uris", [v for k, v in callbacks.items()])
+            self.set_metadata_claim("redirect_uris", [v for k, v in callbacks.items()])
 
         self.callback = callbacks
 
@@ -144,18 +147,18 @@ class Specification(ImpExp):
             elif attr == "metadata":
                 for k, v in val.items():
                     if k in self.attributes:
-                        self.set_metadata(k, v)
+                        self.set_metadata_claim(k, v)
             elif attr == "behaviour":
                 self.behaviour = val
             elif attr in self.attributes:
-                self.set_metadata(attr, val)
+                self.set_metadata_claim(attr, val)
             elif attr in self.rules:
                 self.set_usage(attr, val)
 
-        # defaults is nothing else is given
+        # defaults if nothing else is given
         for key, val in self.attributes.items():
             if val and key not in self.metadata:
-                self.set_metadata(key, val)
+                self.set_metadata_claim(key, val)
 
         for key, val in self.rules.items():
             if val and key not in self.usage:
@@ -163,6 +166,7 @@ class Specification(ImpExp):
 
         self.locals(info)
         self.verify_rules()
+        return self
 
     def bm_get(self, key, default=None):
         if key in self.behaviour:

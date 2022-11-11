@@ -39,7 +39,7 @@ class TestEntity:
         assert _srv is None
 
     def test_get_client_id(self):
-        assert self.entity.get_metadata_value("client_id") == "Number5"
+        assert self.entity.get_metadata_claim("client_id") == "Number5"
         assert self.entity.client_get("client_id") == "Number5"
 
     def test_get_service_by_endpoint_name(self):

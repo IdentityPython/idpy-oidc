@@ -61,18 +61,18 @@ def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
             if config.get("key_conf"):
                 _keyjar = init_key_jar(**config.get("key_conf"))
                 entity.set_usage_value("jwks", True)
-                entity.set_metadata_value("jwks", _keyjar.export_jwks())
+                entity.set_metadata_claim("jwks", _keyjar.export_jwks())
                 return
             elif keyjar:
                 entity.set_usage_value("jwks", True)
-                entity.set_metadata_value("jwks", keyjar.export_jwks())
+                entity.set_metadata_claim("jwks", keyjar.export_jwks())
                 return
 
         for attr in ["jwks_uri", "jwks"]:
             if entity.will_use(attr):
                 _val = getattr(service_context, attr)
                 if _val:
-                    entity.set_metadata_value(attr, _val)
+                    entity.set_metadata_claim(attr, _val)
                     return
 
 
@@ -84,7 +84,7 @@ class Entity(object):
             services: Optional[dict] = None,
             jwks_uri: Optional[str] = "",
             httpc_params: Optional[dict] = None,
-            client_type: Optional[str] = ""
+            client_type: Optional[str] = "oauth2"
     ):
         self.extra = {}
         if httpc_params:
@@ -123,7 +123,7 @@ class Entity(object):
 
         self.setup_client_authn_methods(config)
 
-        jwks_uri = jwks_uri or self.get_metadata_value("jwks_uri")
+        jwks_uri = jwks_uri or self.get_metadata_claim("jwks_uri")
         set_jwks_uri_or_jwks(self, self._service_context, config, jwks_uri, _kj)
 
         # Deal with backward compatibility
@@ -173,7 +173,7 @@ class Entity(object):
         res = {}
         for service in self._service.values():
             res.update(service.metadata)
-        res.update(self._service_context.specs.get_all())
+        res.update(self._service_context.specs.get_metadata())
         return res
 
     def collect_usage(self):
@@ -183,133 +183,125 @@ class Entity(object):
         res.update(self._service_context.specs.usage)
         return res
 
-    def get_metadata_value(self, attribute, default=None):
+    def get_metadata_claim(self, claim, default=None):
         for service in self._service.values():
-            if attribute in service.metadata_attributes:
-                return service.get_metadata(attribute, default)
+            if claim in service.metadata_claims:
+                return service.get_metadata(claim, default)
 
-        if attribute in self._service_context.specs.attributes:
-            return self._service_context.specs.get_metadata(attribute, default)
+        if claim in self._service_context.specs.attributes:
+            return self._service_context.specs.get_metadata_claim(claim, default)
 
-        raise KeyError(f"Unknown specs attribute: {attribute}")
+        raise KeyError(f"Unknown specs claim: {claim}")
 
-    def get_metadata_attributes(self):
-        attr = []
+    def get_metadata_claims(self):
+        claims = []
         for service in self._service.values():
-            attr.extend(list(service.metadata_attributes.keys()))
+            claims.extend(list(service.metadata_claims.keys()))
 
-        attr.extend(list(self._service_context.specs.attributes.keys()))
+        claims.extend(list(self._service_context.specs.metadata.keys()))
 
-        return attr
+        return claims
 
-    def value_in_metadata_attribute(self, attribute, value):
-        for service in self._service.values():
-            if attribute in service.metadata_attributes.keys():
-                _val = service.get_metadata(attribute)
-                if isinstance(_val, list):
-                    if value in _val:
-                        return True
-                else:
-                    if value == _val:
-                        return True
-
-        if attribute in self._service_context.specs.attributes.keys():
-            _val = self._service_context.specs.get_metadata(attribute)
-            if isinstance(_val, list):
-                if value in _val:
-                    return True
-            else:
-                if value == _val:
-                    return True
+    def metadata_claim_contains_value(self, claim, value):
+        _val = self.get_metadata_claim(claim)
+        if isinstance(_val, list):
+            if value in _val:
+                return True
+        else:
+            if value == _val:
+                return True
 
         return False
 
-    def will_use(self, attribute):
+    def will_use(self, claim):
         for service in self._service.values():
-            if attribute in service.usage_rules.keys():
-                if service.usage.get(attribute):
+            if claim in service.usage_rules.keys():
+                if service.usage.get(claim):
                     return True
 
-        if attribute in self._service_context.specs.rules.keys():
-            if self._service_context.specs.get_usage(attribute):
+        if claim in self._service_context.specs.rules.keys():
+            if self._service_context.specs.get_usage(claim):
                 return True
         return False
 
-    def set_metadata_value(self, attribute, value):
+    def set_metadata_claim(self, claim, value):
         """
         Only OK to overwrite a value if the value is the default value
         """
         for service in self._service.values():
-            if attribute in service.metadata_attributes:
-                _def_val = service.metadata_attributes[attribute]
+            if claim in service.metadata_claims:
+                _def_val = service.metadata_claims[claim]
                 if _def_val is None:
-                    service.metadata[attribute] = value
+                    service.metadata[claim] = value
                     return True
                 else:
-                    if service.metadata.get(attribute, _def_val) == _def_val:
-                        service.metadata[attribute] = value
+                    if service.metadata.get(claim, _def_val) == _def_val:
+                        service.metadata[claim] = value
                         return True
 
-        if attribute in self._service_context.specs.attributes:
-            _def_val = self._service_context.specs.attributes[attribute]
+        if claim in self._service_context.specs.attributes:
+            _def_val = self._service_context.specs.attributes[claim]
             if _def_val is None:
-                self._service_context.specs.set_metadata(attribute, value)
+                self._service_context.specs.set_metadata_claim(claim, value)
                 return True
             else:
-                if self._service_context.specs.get_metadata(attribute, _def_val):
-                    self._service_context.specs.set_metadata(attribute, value)
+                if self._service_context.specs.get_metadata_claim(claim, _def_val):
+                    self._service_context.specs.set_metadata_claim(claim, value)
                     return True
             return True
 
-        logger.info(f"Unknown set specs attribute: {attribute}")
+        logger.info(f"Unknown set specs claim: {claim}")
         return False
 
-    def set_usage_value(self, attribute, value):
+    def set_usage_value(self, claim, value):
         """
         Only OK to overwrite a value if the value is the default value
         """
         for service in self._service.values():
-            if attribute in service.usage_rules:
-                _def_val = service.usage_rules[attribute]
+            if claim in service.usage_rules:
+                _def_val = service.usage_rules[claim]
                 if _def_val is None:
-                    service.usage[attribute] = value
+                    service.usage[claim] = value
                     return True
                 else:
-                    if service.usage[attribute] == _def_val:
-                        service.usage[attribute] = value
+                    if service.usage[claim] == _def_val:
+                        service.usage[claim] = value
                         return True
 
-        if attribute in self._service_context.specs.rules:
-            _def_val = self._service_context.specs.rules[attribute]
+        if claim in self._service_context.specs.rules:
+            _def_val = self._service_context.specs.rules[claim]
             if _def_val is None:
-                self._service_context.specs.set_usage(attribute, value)
+                self._service_context.specs.set_usage(claim, value)
                 return True
             else:
-                if self._service_context.specs.usage[attribute] == _def_val:
-                    self._service_context.specs.set_usage(attribute, value)
+                if self._service_context.specs.usage[claim] == _def_val:
+                    self._service_context.specs.set_usage(claim, value)
                     return True
 
-        logger.info(f"Unknown set usage attribute: {attribute}")
+        logger.info(f"Unknown set usage claim: {claim}")
         return False
 
-    def get_usage_value(self, attribute, default=None):
+    def get_usage_value(self, claim, default=None):
         for service in self._service.values():
-            if attribute in service.usage_rules:
-                if attribute in service.usage:
-                    return service.usage[attribute]
+            if claim in service.usage_rules:
+                if claim in service.usage:
+                    return service.usage[claim]
                 else:
                     return default
 
-        if attribute in self._service_context.specs.rules:
-            _val = self._service_context.specs.get_usage(attribute)
+        if claim in self._service_context.specs.rules:
+            _val = self._service_context.specs.get_usage(claim)
             if _val:
                 return _val
             else:
                 return default
 
-        logger.info(f"Unknown usage attribute: {attribute}")
+        logger.info(f"Unknown usage claim: {claim}")
 
-    def construct_uris(self, issuer, hash_seed, callback):
+    def construct_uris(self,
+                       issuer: str,
+                       hash_seed: bytes,
+                       callback: Optional[dict]):
         _hash = hashlib.sha256()
         _hash.update(hash_seed)
         _hash.update(as_bytes(issuer))
@@ -321,15 +313,13 @@ class Entity(object):
         for service in self._service.values():
             service.construct_uris(_base_url, _hex)
 
-        if not self._service_context.specs.get_metadata("redirect_uris"):
+        if not self._service_context.specs.get_metadata_claim("redirect_uris"):
             self._service_context.specs.construct_redirect_uris(_base_url, _hex, callback)
-
-        self._service_context.specs.construct_uris(_base_url, _hex)
 
     def backward_compatibility(self, config):
         _uris = config.get("redirect_uris")
         if _uris:
-            self.set_metadata_value("redirect_uris", _uris)
+            self.set_metadata_claim("redirect_uris", _uris)
 
         _dir = config.conf.get("requests_dir")
         if _dir:
@@ -342,7 +332,7 @@ class Entity(object):
 
         _pref = config.get("client_preferences", {})
         for key, val in _pref.items():
-            if self.set_metadata_value(key, val) is False:
+            if self.set_metadata_claim(key, val) is False:
                 if self.set_usage_value(key, val) is False:
                     setattr(self, key, val)
 
@@ -360,12 +350,12 @@ class Entity(object):
         res = {}
         for id, service in self._service.items():
             res[id] = {
-                "metadata": service.metadata_attributes,
+                "metadata": service.metadata_claims,
                 "usage": service.usage_rules
             }
         res[""] = {
-            "metadata": self._service_context.specs.attributes,
-            "usage": self._service_context.specs.rules
+            "metadata": self._service_context.specs.metadata,
+            "usage": self._service_context.specs.usage
         }
         return res
 
