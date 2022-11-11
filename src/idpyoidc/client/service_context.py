@@ -116,10 +116,11 @@ class ServiceContext(OidcContext):
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
                  state: Optional[StateInterface] = None,
-                 client_type: Optional[str] = None,
+                 client_type: Optional[str] = 'oauth2',
                  **kwargs):
         config = get_configuration(config)
         self.config = config
+
         if not client_type or client_type == "oidc":
             self.specs = OIDC_Specs()
         elif client_type == "oauth2":
@@ -153,8 +154,7 @@ class ServiceContext(OidcContext):
 
         for param in [
             "client_secret",
-            "provider_info",
-            "behaviour"
+            "provider_info"
         ]:
             _val = config.conf.get(param, _def_value[param])
             self.set(param, _val)
@@ -270,4 +270,4 @@ class ServiceContext(OidcContext):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.specs.get_metadata("client_id")
+        return self.specs.get_metadata_claim("client_id")

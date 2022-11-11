@@ -40,7 +40,7 @@ class Registration(Service):
             try:
                 request_args[prop] = _context.specs.behaviour[prop]
             except KeyError:
-                _val = _context.specs.get_metadata(prop)
+                _val = _context.specs.get_metadata_claim(prop)
                 if _val:
                     request_args[prop] = _val
         return request_args, {}

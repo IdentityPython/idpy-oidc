@@ -67,7 +67,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     error_msg = ResponseMessage
     service_name = "provider_info"
 
-    metadata_attributes = {}
+    metadata_claims = {}
 
     def __init__(self, client_get, conf=None):
         server_metadata.ServerMetadata.__init__(self, client_get, conf=conf)

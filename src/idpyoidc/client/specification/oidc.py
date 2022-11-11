@@ -1,12 +1,11 @@
 import os
 from typing import Optional
 
-from idpyoidc.client import specification as sp
-from idpyoidc.client.service import Service
+from idpyoidc.client import specification
 
 
-class Specification(sp.Specification):
-    parameter = sp.Specification.parameter.copy()
+class Specification(specification.Specification):
+    parameter = specification.Specification.parameter.copy()
     parameter.update({
         "requests_dir": None
     })
@@ -64,17 +63,18 @@ class Specification(sp.Specification):
                  usage: Optional[dict] = None,
                  behaviour: Optional[dict] = None,
                  ):
-        sp.Specification.__init__(self, metadata=metadata, usage=usage, behaviour=behaviour)
+        specification.Specification.__init__(self, metadata=metadata, usage=usage,
+                                             behaviour=behaviour)
 
-    def construct_uris(self, base_url, hex):
-        if "request_uri" in self.usage:
-            if self.usage["request_uri"]:
-                _dir = self.get("requests_dir")
-                if _dir:
-                    self.set_metadata("request_uris", Service.get_uri(base_url, _dir, hex))
-                else:
-                    self.set_metadata("request_uris",
-                                      Service.get_uri(base_url, self.callback_path["requests"], hex))
+    # def construct_uris(self, base_url, hex):
+    #     if "request_uri" in self.usage:
+    #         if self.usage["request_uri"]:
+    #             _dir = self.get("requests_dir")
+    #             if _dir:
+    #                 self.set_metadata("request_uris", Service.get_uri(base_url, _dir, hex))
+    #             else:
+    #                 self.set_metadata("request_uris",
+    #                                   Service.get_uri(base_url, self.callback_path["requests"], hex))
 
     def verify_rules(self):
         if self.get_usage("request_parameter") and self.get_usage("request_uri"):
@@ -91,4 +91,3 @@ class Specification(sp.Specification):
                 os.makedirs(requests_dir)
 
             self.set("requests_dir", requests_dir)
-

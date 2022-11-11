@@ -24,7 +24,7 @@ class AccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
-    metadata_attributes = {
+    metadata_claims = {
         "token_endpoint_auth_method": "client_secret_basic",
         "token_endpoint_auth_signing_alg": "RS256"
     }

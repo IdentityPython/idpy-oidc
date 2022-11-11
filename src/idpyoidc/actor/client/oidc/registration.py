@@ -103,9 +103,9 @@ def _cmp(a, b):
     return a == b
 
 
-def check(entity, attribute, expected):
+def check(entity, claim, expected):
     try:
-        _usable = entity.get_metadata_attribute(attribute)
+        _usable = entity.get_metadata_claim(claim)
     except KeyError:
         pass
     else:

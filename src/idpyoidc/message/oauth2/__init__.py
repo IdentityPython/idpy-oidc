@@ -45,7 +45,7 @@ class ResponseMessage(Message):
     def verify(self, **kwargs):
         super(ResponseMessage, self).verify(**kwargs)
         if "error_description" in self:
-            # Verify that the characters used are within the allow ranges
+            # Verify that the characters used are within the allowed ranges
             # %x20-21 / %x23-5B / %x5D-7E
             if not all(x in error_chars for x in self["error_description"]):
                 raise ValueError("Characters outside allowed set")
