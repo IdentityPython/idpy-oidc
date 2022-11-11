@@ -98,6 +98,12 @@ class SessionManager(GrantManager):
         super(SessionManager, self).__init__(handler, _crypt_config)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
+        # Make sure node_type is a list and must contain at least one element.
+        if not isinstance(self.node_type, list):
+            raise ValueError("Wrong type of value for SessionManager node_type")
+        if len(self.node_type) == 0:
+            raise ValueError("SessionManager node_type must at least contain one value")
+
         self.node_info_class = session_params.get("node_info_class",
                                                   {
                                                       "user": UserSessionInfo,

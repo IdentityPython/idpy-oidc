@@ -204,7 +204,7 @@ class GrantManager(Database):
         :return:
         """
         session_info = self.get(path)
-        return [self.db[gid] for gid in session_info.subordinate]
+        return [self.db[gid] for gid in session_info.subordinate if gid in self.db]
 
     def get_grant_argument(self, branch_id: str, arg: str):
         grant = self[branch_id]

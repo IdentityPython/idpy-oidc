@@ -620,20 +620,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
     def get_handler_key(self, request, endpoint_context):
-        if "token_exchange" in endpoint_context.cdb[request["client_id"]]:
-            try:
-                default_requested_token_type = endpoint_context.cdb[request["client_id"]][
-                    "token_exchange"]["default_requested_token_type"]
-            except KeyError:
-                try:
-                    default_requested_token_type = self.config["default_requested_token_type"]
-                except:
-                    default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
-        else:
-            try:
-                default_requested_token_type = self.config["default_requested_token_type"]
-            except KeyError:
-                default_requested_token_type = DEFAULT_REQUESTED_TOKEN_TYPE
+        client_info = endpoint_context.cdb.get(request["client_id"], {})
+
+        default_requested_token_type = (
+                client_info.get("token_exchange", {}).get("default_requested_token_type", None)
+                or
+                self.config.get("default_requested_token_type", DEFAULT_REQUESTED_TOKEN_TYPE)
+        )
 
         requested_token_type = request.get("requested_token_type", default_requested_token_type)
         return TOKEN_TYPES_MAPPING[requested_token_type]
@@ -667,7 +660,7 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
             return TokenErrorResponse(
                 error="invalid_request",
                 error_description=f"Exchange {request['subject_token_type']} to refresh token "
-                                  f"forbbiden",
+                                  f"forbidden",
             )
 
     if "scope" in request:

@@ -70,13 +70,14 @@ class Database(ImpExp):
             logger.error(f"cryptography.fernet.InvalidToken: {key}")
             raise ValueError(err)
         except Exception as err:
+            logger.error(f"Other decrypt error ({err}), key={key}")
             raise ValueError(err)
         # order: rnd, type, sid
         return self.unpack_branch_key(lv_unpack(as_unicode(plain))[1])
 
     def set(self, path: List[str], value: Union[NodeInfo, Grant]):
         """
-        Assign a value to an node in the database.
+        Assign a value to a node in the database.
         As a side effect create a list of nodes (the branch) leading up to the leaf node.
 
         :param path: a list of identifiers. root -> .. -> leaf
@@ -107,9 +108,8 @@ class Database(ImpExp):
                     _info = value  # overwrite old value
 
             if _superior:
-                if hasattr(_superior, "subordinate"):
-                    if _key not in _superior.subordinate:
-                        _superior.add_subordinate(_key)
+                if _key not in getattr(_superior, "subordinate", {}):
+                    _superior.add_subordinate(_key)
 
             self.db[_key] = _info
             _superior = _info
