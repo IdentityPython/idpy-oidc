@@ -33,7 +33,9 @@ CLIENT_CONFIG = {
         },
         "authorization": {
             "class": "idpyoidc.client.oidc.authorization.Authorization",
-            "kwargs": {}
+            "kwargs": {
+                "support": {"request_uris": True}
+            }
         },
         "accesstoken": {
             "class": "idpyoidc.client.oidc.access_token.AccessToken",
@@ -60,7 +62,7 @@ CLIENT_CONFIG = {
                     "backchannel_logout_uri": "https://rp.example.com/back",
                     "backchannel_logout_session_required": True
                 },
-                "usage": {
+                "support": {
                     "backchannel_logout": True
                 }
             }
@@ -101,7 +103,7 @@ def test_create_client():
     assert client.get_metadata_claim("userinfo_signed_response_alg") == "ES256"
     assert client.metadata_claim_contains_value("userinfo_signed_response_alg", "ES256")
     # How to act
-    assert client.get_usage_value("request_uri") is True
+    assert client.get_support("request_uri") is True
 
     _conf_args = client.config_args()
     assert _conf_args

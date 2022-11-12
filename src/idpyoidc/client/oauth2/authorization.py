@@ -46,7 +46,7 @@ class Authorization(Service):
         if "redirect_uri" not in ar_args:
             try:
                 # ar_args["redirect_uri"] = self.client_get("service_context").redirect_uris[0]
-                ar_args["redirect_uri"] = self.client_get("entity").get_metadata_value(
+                ar_args["redirect_uri"] = self.client_get("entity").get_metadata_claim(
                     "redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")

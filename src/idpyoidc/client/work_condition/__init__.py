@@ -7,42 +7,42 @@ from idpyoidc.impexp import ImpExp
 from idpyoidc.util import qualified_name
 
 
-def specification_dump(info, exclude_attributes):
+def work_condition_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
 
 
-def specification_load(item: dict, **kwargs):
+def work_condition_load(item: dict, **kwargs):
     _class_name = list(item.keys())[0]  # there is only one
     _cls = importer(_class_name)
     _cls = _cls().load(item[_class_name])
     return _cls
 
 
-class Specification(ImpExp):
+class WorkCondition(ImpExp):
     parameter = {
         "metadata": None,
-        "usage": None,
+        "support": None,
         "behaviour": None,
         "callback": None,
         "_local": None
     }
 
-    attributes = {
+    metadata_claims = {
         "redirect_uris": None,
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
-        "client_name": None,
-        "client_uri": None,
-        "logo_uri": None,
+        "grant_types": ["authorization_code", "implicit", "refresh_token"],
+        "application_type": "web",
         "contacts": None,
-        "scope": None,
-        "tos_uri": None,
+        "client_name": None,
+        "logo_uri": None,
+        "client_uri": None,
         "policy_uri": None,
+        "tos_uri": None,
         "jwks_uri": None,
         "jwks": None,
     }
 
-    rules = {
+    can_support = {
         "jwks": None,
         "jwks_uri": None,
         "scope": ["openid"],
@@ -59,23 +59,23 @@ class Specification(ImpExp):
 
     def __init__(self,
                  metadata: Optional[dict] = None,
-                 usage: Optional[dict] = None,
+                 support: Optional[dict] = None,
                  behaviour: Optional[dict] = None
                  ):
 
         ImpExp.__init__(self)
         if isinstance(metadata, dict):
-            self.metadata = {k: v for k, v in metadata.items() if k in self.attributes}
+            self.metadata = {k: v for k, v in metadata.items() if k in self.metadata_claims}
         else:
             self.metadata = {}
 
-        if isinstance(usage, dict):
-            self.usage = {k: v for k, v in usage.items() if k in self.rules}
+        if isinstance(support, dict):
+            self.support = {k: v for k, v in support.items() if k in self.can_support}
         else:
-            self.usage = {}
+            self.support = {}
 
         if isinstance(behaviour, dict):
-            self.behaviour = {k: v for k, v in behaviour.items() if k in self.attributes}
+            self.behaviour = {k: v for k, v in behaviour.items() if k in self.metadata_claims}
         else:
             self.behaviour = {}
 
@@ -91,17 +91,17 @@ class Specification(ImpExp):
         else:
             return default
 
-    def get_usage(self, key, default=None):
-        if key in self.usage:
-            return self.usage[key]
+    def get_support(self, key, default=None):
+        if key in self.support:
+            return self.support[key]
         else:
             return default
 
     def set_metadata_claim(self, key, value):
         self.metadata[key] = value
 
-    def set_usage(self, key, value):
-        self.usage[key] = value
+    def set_support(self, key, value):
+        self.support[key] = value
 
     def _callback_uris(self, base_url, hex):
         _red = {}
@@ -111,7 +111,7 @@ class Specification(ImpExp):
             elif type in ["id_token", "id_token token"]:
                 _red['implicit'] = True
 
-        if "form_post" in self.usage:
+        if "form_post" in self.support:
             _red["form_post"] = True
 
         callback_uri = {}
@@ -140,29 +140,29 @@ class Specification(ImpExp):
 
     def load_conf(self, info):
         for attr, val in info.items():
-            if attr == "usage":
+            if attr == "support":
                 for k, v in val.items():
-                    if k in self.rules:
-                        self.set_usage(k, v)
+                    if k in self.can_support:
+                        self.set_support(k, v)
             elif attr == "metadata":
                 for k, v in val.items():
-                    if k in self.attributes:
+                    if k in self.metadata_claims:
                         self.set_metadata_claim(k, v)
             elif attr == "behaviour":
                 self.behaviour = val
-            elif attr in self.attributes:
+            elif attr in self.metadata_claims:
                 self.set_metadata_claim(attr, val)
-            elif attr in self.rules:
-                self.set_usage(attr, val)
+            elif attr in self.can_support:
+                self.set_support(attr, val)
 
         # defaults if nothing else is given
-        for key, val in self.attributes.items():
-            if val and key not in self.metadata:
-                self.set_metadata_claim(key, val)
+        for key, default in self.metadata_claims.items():
+            if default and key not in self.metadata:
+                self.set_metadata_claim(key, default)
 
-        for key, val in self.rules.items():
-            if val and key not in self.usage:
-                self.set_usage(key, val)
+        for key, default in self.can_support.items():
+            if default and key not in self.support:
+                self.set_support(key, default)
 
         self.locals(info)
         self.verify_rules()

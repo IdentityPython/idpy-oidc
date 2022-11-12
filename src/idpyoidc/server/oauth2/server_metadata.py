@@ -1,8 +1,6 @@
 import logging
 
 from idpyoidc.message import oauth2
-
-from idpyoidc.message import oidc
 from idpyoidc.server.endpoint import Endpoint
 
 logger = logging.getLogger(__name__)

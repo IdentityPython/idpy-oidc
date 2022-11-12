@@ -1,14 +1,14 @@
 import json
 import os
 
+import pytest
+import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
-import pytest
-import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -30,6 +30,7 @@ from idpyoidc.message.oidc.session import EndSessionRequest
 
 
 class Response(object):
+
     def __init__(self, status_code, text, headers=None):
         self.status_code = status_code
         self.text = text
@@ -70,6 +71,7 @@ def make_keyjar():
 
 
 class TestAuthorization(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         client_config = {
@@ -284,7 +286,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").specs.behaviour["verify_args"] = {
+        self.service.client_get("service_context").work_condition.behaviour["verify_args"] = {
             "allow_sign_alg_none": allow_sign_alg_none
         }
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -296,6 +298,7 @@ class TestAuthorization(object):
 
 
 class TestAuthorizationCallback(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         client_config = {
@@ -370,6 +373,7 @@ class TestAuthorizationCallback(object):
 
 
 class TestAccessTokenRequest(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         client_config = {
@@ -504,6 +508,7 @@ SERVICES = {
 
 
 class TestProviderInfo(object):
+
     @pytest.fixture(autouse=True)
     def create_service(self):
         self._iss = ISS
@@ -513,7 +518,7 @@ class TestProviderInfo(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "application_name": "rphandler",
-            "usage": {
+            "support": {
                 "scope": ["openid", "profile", "email", "address", "phone"],
             },
             "services": {
@@ -568,7 +573,7 @@ class TestProviderInfo(object):
                 }
             }
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, client_type='oidc')
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "provider_info")
 
@@ -643,7 +648,6 @@ class TestProviderInfo(object):
                 "address",
                 "phone",
                 "offline_access",
-                "openid",
             ],
             "userinfo_signing_alg_values_supported": [
                 "RS256",
@@ -773,7 +777,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").specs.behaviour == {}
+        assert self.service.client_get("service_context").work_condition.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -782,7 +786,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").specs.behaviour == {
+        assert self.service.client_get("service_context").work_condition.behaviour == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -817,7 +821,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").specs.behaviour == {}
+        assert self.service.client_get("service_context").work_condition.behaviour == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -826,7 +830,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").specs.behaviour == {
+        assert self.service.client_get("service_context").work_condition.behaviour == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -863,6 +867,7 @@ def create_jws(val):
 
 
 class TestRegistration(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         self._iss = ISS
@@ -884,7 +889,7 @@ class TestRegistration(object):
         assert len(_req) == 7
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").specs.set_metadata(
+        self.service.client_get("service_context").work_condition.set_metadata(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
@@ -945,6 +950,7 @@ def test_config_logout_uri():
 
 
 class TestUserInfo(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         self._iss = ISS
@@ -960,7 +966,7 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").specs.behaviour = {
+        entity.client_get("service_context").work_condition.behaviour = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
@@ -1088,6 +1094,7 @@ class TestUserInfo(object):
 
 
 class TestCheckSession(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         self._iss = ISS
@@ -1117,6 +1124,7 @@ class TestCheckSession(object):
 
 
 class TestCheckID(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         self._iss = ISS
@@ -1146,6 +1154,7 @@ class TestCheckID(object):
 
 
 class TestEndSession(object):
+
     @pytest.fixture(autouse=True)
     def create_request(self):
         self._iss = ISS

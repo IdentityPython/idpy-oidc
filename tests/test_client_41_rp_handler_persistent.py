@@ -313,7 +313,7 @@ class TestRPHandler(object):
         # redo
         rph_1.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").specs.metadata["redirect_uris"] = []
+        cli2.client_get("service_context").work_condition.metadata["redirect_uris"] = []
         rph_1.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):

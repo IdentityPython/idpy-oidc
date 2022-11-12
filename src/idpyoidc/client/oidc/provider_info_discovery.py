@@ -74,7 +74,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
 
     def update_service_context(self, resp, **kwargs):
         _context = self.client_get("service_context")
-        self._update_service_context(resp)
+        self._update_service_context(resp)  # set endpoints and import keys
         self.match_preferences(resp, _context.issuer)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
             _jwks = _context.keyjar.export_jwks_as_json(issuer=resp["issuer"])
@@ -101,14 +101,14 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
 
         regreq = oidc.RegistrationRequest
 
-        _behaviour = _context.specs.behaviour
+        _behaviour = _context.work_condition.behaviour
 
         for _pref, _prov in PREFERENCE2PROVIDER.items():
             if _pref in ["scope"]:
-                vals = _entity.get_usage_value(_pref)
+                vals = _entity.get_support(_pref)
             else:
                 try:
-                    vals = _entity.get_metadata_value(_pref)
+                    vals = _entity.get_metadata_claim(_pref)
                 except KeyError:
                     continue
 
@@ -134,10 +134,14 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
                     vtyp = regreq.c_param[_pref]
                 except KeyError:
                     # Allow non standard claims
-                    if isinstance(vals, list):
+                    if isinstance(vals, list) and isinstance(_pvals, list):
                         _behaviour[_pref] = [v for v in vals if v in _pvals]
-                    elif vals in _pvals:
-                        _behaviour[_pref] = vals
+                    elif isinstance(_pvals, list):
+                        if vals in _pvals:
+                            _behaviour[_pref] = vals
+                    elif type(vals) == type(_pvals):
+                        if vals == _pvals:
+                            _behaviour[_pref] = vals
                 else:
                     if isinstance(vtyp[0], list):
                         _behaviour[_pref] = []
@@ -170,5 +174,5 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
             if key not in PREFERENCE2PROVIDER:
                 _behaviour[key] = val
 
-        _context.specs.behaviour = _behaviour
+        _context.work_condition.behaviour = _behaviour
         logger.debug("service_context behaviour: {}".format(_behaviour))

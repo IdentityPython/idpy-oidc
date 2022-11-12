@@ -383,9 +383,9 @@ class RPHandler(object):
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
-            return req_args.get("response_type", context.specs.behaviour["response_types"][0])
+            return req_args.get("response_type", context.work_condition.behaviour["response_types"][0])
         else:
-            return context.specs.behaviour["response_types"][0]
+            return context.work_condition.behaviour["response_types"][0]
 
     def init_authorization(
         self,
@@ -422,7 +422,7 @@ class RPHandler(object):
             "redirect_uri": pick_redirect_uri(
                 _context, _entity, request_args=req_args, response_type=_response_type
             ),
-            "scope": _context.specs.behaviour["scope"],
+            "scope": _context.work_condition.behaviour["scope"],
             "response_type": _response_type,
             "nonce": _nonce,
         }
@@ -631,6 +631,7 @@ class RPHandler(object):
                 ["access_token"],
                 ["auth_response", "token_response", "refresh_token_response"],
             )
+            access_token = _arg["access_token"]
 
         request_args = {"access_token": access_token}
 
@@ -842,7 +843,7 @@ class RPHandler(object):
                 _sid_support = _context.get("provider_info")[
                     "frontchannel_logout_session_required"
                 ]
-            except:
+            except Exception:
                 _sid_support = False
 
         if _sid_support and _id_token:

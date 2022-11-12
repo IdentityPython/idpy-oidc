@@ -291,7 +291,7 @@ def verify_id_token(msg, check_hash=False, claim="id_token", **kwargs):
         _signed = False
         _sign_alg = kwargs.get("sigalg")
         if _sign_alg == "none":
-            _allowed = True
+            pass
         else:  # There might or might not be a specified signing alg
             if kwargs.get("allow_sign_alg_none", False) is False:
                 logger.info("Signing algorithm None not allowed")

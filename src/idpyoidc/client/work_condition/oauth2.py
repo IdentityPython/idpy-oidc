@@ -1,10 +1,10 @@
 from typing import Optional
 
-from idpyoidc.client import specification as sp
+from idpyoidc.client import work_condition
 
 
-class Specification(sp.Specification):
-    attributes = {
+class WorkCondition(work_condition.WorkCondition):
+    metadata_claims = {
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
@@ -39,7 +39,8 @@ class Specification(sp.Specification):
 
     def __init__(self,
                  metadata: Optional[dict] = None,
-                 usage: Optional[dict] = None,
+                 support: Optional[dict] = None,
                  behaviour: Optional[dict] = None
                  ):
-        sp.Specification.__init__(self, metadata=metadata, usage=usage, behaviour=behaviour)
+        work_condition.WorkCondition.__init__(self, metadata=metadata, support=support,
+                                              behaviour=behaviour)

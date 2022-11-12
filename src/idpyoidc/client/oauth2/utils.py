@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -36,9 +35,9 @@ def pick_redirect_uri(
     if "redirect_uri" in request_args:
         return request_args["redirect_uri"]
 
-    if context.specs.callback:
+    if context.work_condition.callback:
         if not response_type:
-            _conf_resp_types = context.specs.behaviour.get("response_types", [])
+            _conf_resp_types = context.work_condition.behaviour.get("response_types", [])
             response_type = request_args.get("response_type")
             if not response_type and _conf_resp_types:
                 response_type = _conf_resp_types[0]
@@ -46,18 +45,18 @@ def pick_redirect_uri(
         _response_mode = request_args.get("response_mode")
 
         if _response_mode == "form_post" or response_type == ["form_post"]:
-            redirect_uri = context.specs.callback["form_post"]
+            redirect_uri = context.work_condition.callback["form_post"]
         elif response_type == "code" or response_type == ["code"]:
-            redirect_uri = context.specs.callback["code"]
+            redirect_uri = context.work_condition.callback["code"]
         else:
-            redirect_uri = context.specs.callback["implicit"]
+            redirect_uri = context.work_condition.callback["implicit"]
 
         logger.debug(
             f"pick_redirect_uris: response_type={response_type}, response_mode={_response_mode}, "
             f"redirect_uri={redirect_uri}"
         )
     else:
-        redirect_uris = entity.get_metadata_value("redirect_uris", [])
+        redirect_uris = entity.get_metadata_claim("redirect_uris", [])
         if redirect_uris:
             redirect_uri = redirect_uris[0]
         else:
