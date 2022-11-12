@@ -6,22 +6,22 @@ import copy
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.configure import Configuration
-from idpyoidc.client.specification.oauth2 import Specification as OAUTH2_Specs
-from idpyoidc.client.specification.oidc import Specification as OIDC_Specs
+from idpyoidc.client.work_condition.oauth2 import WorkCondition as OAUTH2_Specs
+from idpyoidc.client.work_condition.oidc import WorkCondition as OIDC_Specs
 from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
-from .specification import Specification
-from .specification import specification_dump
-from .specification import specification_load
 from .state_interface import StateInterface
+from .work_condition import work_condition_dump
+from .work_condition import work_condition_load
+from .work_condition import WorkCondition
 
 CLI_REG_MAP = {
     "userinfo": {
@@ -96,7 +96,7 @@ class ServiceContext(OidcContext):
             "httpc_params": None,
             "iss_hash": None,
             "issuer": None,
-            "specs": Specification,
+            "work_condition": WorkCondition,
             "provider_info": None,
             "requests_dir": None,
             "registration_response": None,
@@ -107,9 +107,8 @@ class ServiceContext(OidcContext):
     )
 
     special_load_dump = {
-        "specs": {"load": specification_load, "dump": specification_dump},
+        "specs": {"load": work_condition_load, "dump": work_condition_dump},
     }
-
 
     def __init__(self,
                  base_url: Optional[str] = "",
@@ -122,9 +121,9 @@ class ServiceContext(OidcContext):
         self.config = config
 
         if not client_type or client_type == "oidc":
-            self.specs = OIDC_Specs()
+            self.work_condition = OIDC_Specs()
         elif client_type == "oauth2":
-            self.specs = OAUTH2_Specs()
+            self.work_condition = OAUTH2_Specs()
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 
@@ -175,7 +174,7 @@ class ServiceContext(OidcContext):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.specs.load_conf(config.conf)
+        self.work_condition.load_conf(config.conf)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -233,7 +232,7 @@ class ServiceContext(OidcContext):
         """
 
         try:
-            return self.specs.behaviour[CLI_REG_MAP[typ]["sign"]]
+            return self.work_condition.behaviour[CLI_REG_MAP[typ]["sign"]]
         except KeyError:
             try:
                 return self.provider_info[PROVIDER_INFO_MAP[typ]["sign"]]
@@ -252,7 +251,7 @@ class ServiceContext(OidcContext):
         res = {}
         for attr in ["enc", "alg"]:
             try:
-                _alg = self.specs.behaviour[CLI_REG_MAP[typ][attr]]
+                _alg = self.work_condition.behaviour[CLI_REG_MAP[typ][attr]]
             except KeyError:
                 try:
                     _alg = self.provider_info[PROVIDER_INFO_MAP[typ][attr]]
@@ -270,4 +269,4 @@ class ServiceContext(OidcContext):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.specs.get_metadata_claim("client_id")
+        return self.work_condition.get_metadata_claim("client_id")

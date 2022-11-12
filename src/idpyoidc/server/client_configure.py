@@ -35,12 +35,6 @@ class ClientConfiguration(RegistrationResponse):
 
     def verify(self, **kwargs):
         RegistrationResponse.verify(self, **kwargs)
-        _server_get = kwargs.get("server_get")
-        if _server_get:
-            _endpoint_context = _server_get("endpoint_context")
-        else:
-            _endpoint_context = None
-
         if "add_claims" in self:
             if not set(self["add_claims"].keys()).issubset({"always", "by_scope"}):
                 _diff = set(self["add_claims"].keys()).difference({"always", "by_scope"})

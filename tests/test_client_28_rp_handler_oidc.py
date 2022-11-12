@@ -297,7 +297,7 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-            client.client_get("service_context").specs.callback.get("post_logout_redirect_uris") is None
+            client.client_get("service_context").work_condition.callback.get("post_logout_redirect_uris") is None
         )
 
     def test_do_client_setup(self):
@@ -328,7 +328,7 @@ class TestRPHandler(object):
         _context = _srv.client_get("service_context")
         # add_callbacks(_context, [])
 
-        cb = _srv.client_get("service_context").specs.callback
+        cb = _srv.client_get("service_context").work_condition.callback
 
         assert set(cb.keys()) == {"code", "implicit"}
         _hash = _context.iss_hash
@@ -383,7 +383,7 @@ class TestRPHandler(object):
         # redo
         self.rph.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").specs.metadata["redirect_uris"] = []
+        cli2.client_get("service_context").work_condition.metadata["redirect_uris"] = []
         self.rph.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):

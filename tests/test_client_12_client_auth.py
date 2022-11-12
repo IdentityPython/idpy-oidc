@@ -429,7 +429,7 @@ class TestClientSecretJWT_TE(object):
 
         # By client preferences
         request = AccessTokenRequest()
-        entity.set_metadata_value("token_endpoint_auth_signing_alg", "RS512")
+        entity.set_metadata_claim("token_endpoint_auth_signing_alg", "RS512")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])

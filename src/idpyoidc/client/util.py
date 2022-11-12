@@ -11,17 +11,9 @@ from idpyoidc.constant import DEFAULT_POST_CONTENT_TYPE
 from idpyoidc.constant import JOSE_ENCODED
 from idpyoidc.constant import JSON_ENCODED
 from idpyoidc.constant import URL_ENCODED
+from idpyoidc.defaults import BASECHR
 from idpyoidc.exception import UnSupported
 from idpyoidc.util import importer
-
-# Since SystemRandom is not available on all systems
-try:
-    import SystemRandom as rnd
-except ImportError:
-    import random as rnd
-
-from idpyoidc.defaults import BASECHR
-
 from .exception import TimeFormatError
 from .exception import WrongContentType
 
@@ -268,9 +260,9 @@ def get_deserialization_method(reqresp):
     if not _ctype:
         # let's try to detect the format
         try:
-            content = reqresp.json()
+            reqresp.json()
             return "json"
-        except:
+        except Exception:
             return "urlencoded"  # reasonable default ??
 
     if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):

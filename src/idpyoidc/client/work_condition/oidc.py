@@ -1,45 +1,45 @@
 import os
 from typing import Optional
 
-from idpyoidc.client import specification
+from idpyoidc.client import work_condition
 
 
-class Specification(specification.Specification):
-    parameter = specification.Specification.parameter.copy()
+class WorkCondition(work_condition.WorkCondition):
+    parameter = work_condition.WorkCondition.parameter.copy()
     parameter.update({
         "requests_dir": None
     })
 
-    attributes = {
+    metadata_claims = {
+        "redirect_uris": None,
+        "response_types": ["code"],
+        "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "application_type": "web",
         "contacts": None,
         "client_name": None,
-        "client_id": None,
         "logo_uri": None,
         "client_uri": None,
         "policy_uri": None,
         "tos_uri": None,
-        "jwks_uri": None,
         "jwks": None,
+        "jwks_uri": None,
         "sector_identifier_uri": None,
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
-        "default_max_age": None,
+        "subject_type": None,
         "id_token_signed_response_alg": "RS256",
         "id_token_encrypted_response_alg": None,
         "id_token_encrypted_response_enc": None,
-        "initiate_login_uri": None,
-        "subject_type": None,
-        "default_acr_values": None,
-        "require_auth_time": None,
-        "redirect_uris": None,
         "request_object_signing_alg": None,
         "request_object_encryption_alg": None,
         "request_object_encryption_enc": None,
+        "default_max_age": None,
+        "require_auth_time": None,
+        "initiate_login_uri": None,
+        "default_acr_values": None,
         "request_uris": None,
-        "response_types": ["code"]
+        "client_id": None,
     }
 
-    rules = {
+    can_support = {
         "form_post": None,
         "jwks": None,
         "jwks_uri": None,
@@ -60,28 +60,18 @@ class Specification(specification.Specification):
 
     def __init__(self,
                  metadata: Optional[dict] = None,
-                 usage: Optional[dict] = None,
+                 support: Optional[dict] = None,
                  behaviour: Optional[dict] = None,
                  ):
-        specification.Specification.__init__(self, metadata=metadata, usage=usage,
-                                             behaviour=behaviour)
-
-    # def construct_uris(self, base_url, hex):
-    #     if "request_uri" in self.usage:
-    #         if self.usage["request_uri"]:
-    #             _dir = self.get("requests_dir")
-    #             if _dir:
-    #                 self.set_metadata("request_uris", Service.get_uri(base_url, _dir, hex))
-    #             else:
-    #                 self.set_metadata("request_uris",
-    #                                   Service.get_uri(base_url, self.callback_path["requests"], hex))
+        work_condition.WorkCondition.__init__(self, metadata=metadata, support=support,
+                                              behaviour=behaviour)
 
     def verify_rules(self):
-        if self.get_usage("request_parameter") and self.get_usage("request_uri"):
+        if self.get_support("request_parameter") and self.get_support("request_uri"):
             raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'.")
         # default is jwks_uri
-        if not self.get_usage("jwks") and not self.get_usage('jwks_uri'):
-            self.set_usage('jwks_uri', True)
+        if not self.get_support("jwks") and not self.get_support('jwks_uri'):
+            self.set_support('jwks_uri', True)
 
     def locals(self, info):
         requests_dir = info.get("requests_dir")

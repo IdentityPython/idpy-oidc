@@ -27,7 +27,16 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
-    usage_rules = {
+    can_support = {
+        "request_uris": None
+    }
+
+    callback_path = {
+        "request_uris": "request",
+    }
+
+    support_to_uri = {
+        "request_uris": "request_uris",
     }
 
     def __init__(self, client_get, conf=None):
@@ -93,7 +102,7 @@ class Authorization(authorization.Authorization):
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.specs.behaviour.get("response_types")
+            _response_types = _context.work_condition.behaviour.get("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -101,7 +110,7 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            _scope = self.client_get("entity").get_usage_value("scope")
+            _scope = self.client_get("entity").get_support("scope")
             if _scope:
                 request_args["scope"] = _scope
             else:
@@ -133,9 +142,9 @@ class Authorization(authorization.Authorization):
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
         else:
-            if _entity.get_usage_value("request_uri"):
+            if _entity.get_support("request_uri"):
                 post_args["request_param"] = "request_uri"
-            elif _entity.get_usage_value("request_parameter"):
+            elif _entity.get_support("request_parameter"):
                 post_args["request_param"] = "request"
 
         return request_args, post_args
@@ -153,7 +162,7 @@ class Authorization(authorization.Authorization):
         if not alg:
             _context = self.client_get("service_context")
             try:
-                alg = _context.specs.behaviour["request_object_signing_alg"]
+                alg = _context.work_condition.behaviour["request_object_signing_alg"]
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -255,15 +264,15 @@ class Authorization(authorization.Authorization):
         if _request_param:
             del kwargs["request_param"]
         else:
-            if _context.specs.get_usage("request_uri"):
+            if _context.work_condition.get_support("request_uri"):
                 _request_param = "request_uri"
-            elif _context.specs.get_usage("request_parameter"):
+            elif _context.work_condition.get_support("request_parameter"):
                 _request_param = "request"
 
         _req = None  # just a flag
         if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            kwargs["local_dir"] = _context.specs.get("requests_dir", "./requests")
+            kwargs["local_dir"] = _context.work_condition.get("requests_dir", "./requests")
             _req = self.construct_request_parameter(req, _request_param, **kwargs)
             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
         elif _request_param == "request":
@@ -313,7 +322,7 @@ class Authorization(authorization.Authorization):
         except KeyError:
             pass
 
-        _verify_args = _context.specs.behaviour.get("verify_args")
+        _verify_args = _context.work_condition.behaviour.get("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 

@@ -598,17 +598,17 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def _validate_configuration(self, config):
         if "requested_token_types_supported" not in config:
             raise ImproperlyConfigured(
-                f"Missing 'requested_token_types_supported' from Token Exchange configuration"
+                "Missing 'requested_token_types_supported' from Token Exchange configuration"
             )
         if "policy" not in config:
-            raise ImproperlyConfigured(f"Missing 'policy' from Token Exchange configuration")
+            raise ImproperlyConfigured("Missing 'policy' from Token Exchange configuration")
         if "" not in config["policy"]:
             raise ImproperlyConfigured(
-                f"Default Token Exchange policy configuration is not defined"
+                "Default Token Exchange policy configuration is not defined"
             )
         if "callable" not in config["policy"][""]:
             raise ImproperlyConfigured(
-                f"Missing 'callable' from default Token Exchange policy configuration"
+                "Missing 'callable' from default Token Exchange policy configuration"
             )
 
         _default_requested_token_type = config.get("default_requested_token_type",

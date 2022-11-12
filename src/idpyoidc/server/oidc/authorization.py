@@ -95,6 +95,9 @@ class Authorization(authorization.Authorization):
         "grant_types_supported": ["authorization_code", "implicit"],
         "claim_types_supported": ["normal", "aggregated", "distributed"],
     }
+    metadata_claims = {
+
+    }
     default_capabilities = {
         "client_authn_method": ["request_param", "public"],
     }

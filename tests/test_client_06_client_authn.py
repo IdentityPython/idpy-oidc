@@ -22,7 +22,7 @@ from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.specification import Specification
+from idpyoidc.client.work_condition import WorkCondition
 
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message import Message
@@ -439,7 +439,8 @@ class TestClientSecretJWT_TE(object):
 
         # By client preferences
         request = AccessTokenRequest()
-        _service_context.specs.set_metadata("token_endpoint_auth_signing_alg", "RS512")
+        _service_context.work_condition.set_metadata_claim("token_endpoint_auth_signing_alg",
+                                                          "RS512")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])
@@ -448,7 +449,7 @@ class TestClientSecretJWT_TE(object):
 
         # Use provider information is everything else fails
         request = AccessTokenRequest()
-        _service_context.specs = Specification()
+        _service_context.work_condition = WorkCondition()
         _service_context.provider_info["token_endpoint_auth_signing_alg_values_supported"] = [
             "ES256",
             "RS256",

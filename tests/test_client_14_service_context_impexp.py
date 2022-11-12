@@ -19,7 +19,7 @@ def test_client_info_init():
         "base_url": BASE_URL,
         "requests_dir": "requests",
     }
-    ci = ServiceContext(config=config)
+    ci = ServiceContext(config=config,client_type='oidc')
 
     srvcnx = ServiceContext(base_url=BASE_URL).load(ci.dump())
 
@@ -27,7 +27,7 @@ def test_client_info_init():
         if attr == "client_id":
             assert srvcnx.get_client_id() == config[attr]
         elif attr == "requests_dir":
-            assert srvcnx.specs.get("requests_dir") == config[attr]
+            assert srvcnx.work_condition.get("requests_dir") == config[attr]
         else:
             try:
                 val = getattr(srvcnx, attr)
@@ -48,7 +48,7 @@ def test_set_and_get_client_secret():
 
 def test_set_and_get_client_id():
     service_context = ServiceContext(base_url=BASE_URL)
-    service_context.specs.set_metadata("client_id", "myself")
+    service_context.work_condition.set_metadata_claim("client_id", "myself")
     srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
     assert srvcnx2.get_client_id() == "myself"
 
@@ -108,7 +108,7 @@ class TestClientInfo(object):
         self.service_context = ServiceContext(config=config)
 
     def test_registration_userinfo_sign_enc_algs(self):
-        self.service_context.specs.behaviour = {
+        self.service_context.work_condition.behaviour = {
                 "application_type": "web",
                 "redirect_uris": [
                     "https://client.example.org/callback",
@@ -128,7 +128,7 @@ class TestClientInfo(object):
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
 
     def test_registration_request_object_sign_enc_algs(self):
-        self.service_context.specs.behaviour = {
+        self.service_context.work_condition.behaviour = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -150,7 +150,7 @@ class TestClientInfo(object):
         assert srvcntx.get_sign_alg("request_object") == "RS384"
 
     def test_registration_id_token_sign_enc_algs(self):
-        self.service_context.specs.behaviour = {
+        self.service_context.work_condition.behaviour = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",

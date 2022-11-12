@@ -7,7 +7,6 @@ from typing import Union
 
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
-from idpyoidc.message.oidc import RegistrationResponse
 from .util import lower_or_upper
 
 try:
@@ -26,6 +25,7 @@ URIS = [
 
 
 class RPHConfiguration(Base):
+
     def __init__(
             self,
             conf: Dict,

@@ -103,7 +103,7 @@ class Client(Entity):
 
         try:
             _state = kwargs["state"]
-        except:
+        except Exception:
             _state = ""
         return self.service_request(
             _srv, response_body_type=response_body_type, state=_state, **_info
