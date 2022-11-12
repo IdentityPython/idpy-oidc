@@ -7,7 +7,6 @@ from typing import Union
 from urllib.parse import urlparse
 
 from cryptojwt.jwt import JWT
-from cryptojwt.utils import qualified_name
 
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
@@ -64,10 +63,10 @@ class Service(ImpExp):
     init_args = ["client_get"]
 
     metadata_claims = {}
-    usage_rules = {}
-    usage_to_uri_map = {}
+    can_support = {}
+    support = {}
+    support_to_uri = {}
     callback_path = {}
-    callback_uris = []
 
     def __init__(
             self,
@@ -80,7 +79,7 @@ class Service(ImpExp):
         self.client_get = client_get
         self.default_request_args = {}
         self.metadata = {}
-        self.usage = {}
+        self.support = {}
         self.callback_uri = {}
 
         if conf:
@@ -105,13 +104,13 @@ class Service(ImpExp):
                     elif def_val is not None:
                         self.metadata[param] = def_val
 
-            usage_conf = conf.get("usage", {})
-            if usage_conf:
-                for param, def_val in self.usage_rules.items():
-                    if param in usage_conf:
-                        self.usage[param] = usage_conf[param]
+            support_conf = conf.get("support", {})
+            if support_conf:
+                for facet, def_val in self.can_support.items():
+                    if facet in support_conf:
+                        self.support[facet] = support_conf[facet]
                     elif def_val is not None:
-                        self.usage[param] = def_val
+                        self.support[facet] = def_val
 
             _default_request_args = conf.get("request_args", {})
             if _default_request_args:
@@ -163,7 +162,7 @@ class Service(ImpExp):
                 if not val:
                     val = self.default_request_args.get(prop)
                     if not val:
-                        val = _context.specs.behaviour.get(prop)
+                        val = _context.work_condition.behaviour.get(prop)
                         if not val:
                             val = md.get(prop)
             if val:
@@ -539,6 +538,7 @@ class Service(ImpExp):
         try:
             resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
         except Exception as err:
+            LOGGER.error("Error while deserializing: %s (1 pass)", err)
             resp = None
             if sformat == "json":
                 # Could be JWS or JWE but wrongly tagged
@@ -667,12 +667,11 @@ class Service(ImpExp):
         return f"{base_url}/{path}/{hex}"
 
     def construct_uris(self, base_url, hex):
-        for usage in self.usage_rules.keys():
-            if usage in self.usage:
-                uri = self.usage_to_uri_map.get(usage)
+        for activity, _support in self.support.items():
+            if _support:
+                uri = self.support_to_uri.get(activity)
                 if uri and uri not in self.metadata:
-                    self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri],
-                                                      hex)
+                    self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri], hex)
 
     def get_metadata_claim(self, claim, default=None):
         try:
@@ -684,12 +683,13 @@ class Service(ImpExp):
         self.metadata[key] = value
 
 
-def init_services(service_definitions, client_get, metadata, usage):
+def init_services(service_definitions, client_get, metadata, support):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
     :param client_get: A function that returns different things from the base entity.
+    :param support: What facets of the service that can be used
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
@@ -703,20 +703,18 @@ def init_services(service_definitions, client_get, metadata, usage):
         kwargs.update({"client_get": client_get})
 
         if isinstance(service_configuration["class"], str):
-            _value_cls = service_configuration["class"]
             _cls = importer(service_configuration["class"])
             _srv = _cls(**kwargs)
         else:
-            _value_cls = qualified_name(service_configuration["class"])
             _srv = service_configuration["class"](**kwargs)
 
         for key, val in metadata.items():
             if key in _srv.metadata_claims and key not in _srv.metadata:
                 _srv.metadata[key] = val
 
-        for key, val in usage.items():
-            if key in _srv.usage_rules and key not in _srv.usage:
-                _srv.usage[key] = val
+        for key, val in support.items():
+            if key in _srv.can_support and key not in _srv.support:
+                _srv.support[key] = val
 
         service[_srv.service_name] = _srv
 

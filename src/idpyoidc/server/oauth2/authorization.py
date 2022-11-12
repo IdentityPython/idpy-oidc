@@ -335,7 +335,7 @@ class Authorization(Endpoint):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
-    provider_info_attributes = {
+    metadata_claims = {
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
@@ -615,12 +615,12 @@ class Authorization(Endpoint):
             _uid = as_unicode(identity['uid'])
             try:
                 _id = b64d(as_bytes(_uid))
-            except Exception as err:
+            except Exception:
                 return identity
         else:
             try:
                 _id = b64d(as_bytes(identity))
-            except Exception as err:
+            except Exception:
                 return identity
 
         try:

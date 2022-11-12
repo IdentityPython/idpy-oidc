@@ -50,7 +50,7 @@ class TestService:
         assert args == {"response_type": "code", "state": "state",
                         'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
 
-        self.entity.set_metadata_value("client_id", "client")
+        self.entity.set_metadata_claim("client_id", "client")
         args = self.service.gather_request_args(state="state")
         assert args == {"client_id": "client", "response_type": "code", "state": "state",
                         'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
@@ -65,7 +65,7 @@ class TestService:
             'redirect_uri': 'https://example.com/cli/authz_cb',
         }
 
-        self.entity.set_metadata_value("redirect_uris", ["https://rp.example.com"])
+        self.entity.set_metadata_claim("redirect_uris", ["https://rp.example.com"])
         args = self.service.gather_request_args(state="state")
         assert args == {
             "client_id": "client",

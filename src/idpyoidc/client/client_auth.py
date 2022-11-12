@@ -1,7 +1,6 @@
 """Implementation of a number of client authentication methods."""
 import base64
 import logging
-from urllib.parse import quote_plus
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -11,14 +10,13 @@ from cryptojwt.utils import importer
 
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
 from idpyoidc.message.oauth2 import AccessTokenRequest
+from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-
-from ..message import VREQUIRED
 from .util import sanitize
+from ..message import VREQUIRED
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
@@ -135,8 +133,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         """
         if (
-            isinstance(request, AccessTokenRequest)
-            and request["grant_type"] == "authorization_code"
+                isinstance(request, AccessTokenRequest)
+                and request["grant_type"] == "authorization_code"
         ):
             if "client_id" not in request:
                 try:
@@ -467,7 +465,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         # we're talking to.
         if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
             _alg = context.registration_response.get("token_endpoint_auth_signing_alg")
-            if _alg :
+            if _alg:
                 algorithm = _alg
             else:
                 algorithm = entity.get_metadata_claim("token_endpoint_auth_signing_alg")
@@ -480,7 +478,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                     else:
                         for alg in algs:  # pick the first one I support and have keys for
                             if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
-                                alg, context
+                                    alg, context
                             ):
                                 algorithm = alg
                                 break

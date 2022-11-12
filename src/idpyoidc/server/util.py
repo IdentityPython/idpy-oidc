@@ -2,7 +2,6 @@ import json
 import logging
 
 from idpyoidc.util import importer
-
 from .exception import OidcEndpointError
 
 logger = logging.getLogger(__name__)
@@ -64,6 +63,7 @@ def build_endpoints(conf, server_get, issuer):
 
 
 class JSONDictDB(object):
+
     def __init__(self, filename):
         with open(filename, "r") as f:
             self._db = json.load(f)
@@ -100,7 +100,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l) :]
+        txt = v[int(l):]
     return res
 
 
@@ -175,7 +175,6 @@ def execute(spec, **kwargs):
             return _func(**kwargs)
         else:
             return kwargs
-
 
 # def sector_id_from_redirect_uris(uris):
 #     if not uris:

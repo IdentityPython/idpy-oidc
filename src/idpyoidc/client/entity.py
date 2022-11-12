@@ -47,25 +47,25 @@ def response_types_to_grant_types(response_types):
 def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
     # lots of different ways to configure the RP's keys
     if jwks_uri:
-        entity.set_usage_value("jwks_uri", True)
-        entity.set_metadata_value("jwks_uri", jwks_uri)
+        entity.set_support("jwks_uri", True)
+        entity.set_metadata_claim("jwks_uri", jwks_uri)
     else:
         if config.get("jwks_uri"):
-            entity.set_usage_value("jwks_uri", True)
-            entity.set_usage_value("jwks", False)
+            entity.set_support("jwks_uri", True)
+            entity.set_support("jwks", False)
         elif config.get("jwks"):
-            entity.set_usage_value("jwks", True)
-            entity.set_usage_value("jwks_uri", False)
+            entity.set_support("jwks", True)
+            entity.set_support("jwks_uri", False)
         else:
-            entity.set_usage_value("jwks_uri", False)
+            entity.set_support("jwks_uri", False)
             if config.get("key_conf"):
                 keys_args = {k: v for k, v in config.get("key_conf").items() if k != "uri_path"}
                 _keyjar = init_key_jar(**keys_args)
-                entity.set_usage_value("jwks", True)
+                entity.set_support("jwks", True)
                 entity.set_metadata_claim("jwks", _keyjar.export_jwks())
                 return
             elif keyjar:
-                entity.set_usage_value("jwks", True)
+                entity.set_support("jwks", True)
                 entity.set_metadata_claim("jwks", keyjar.export_jwks())
                 return
 
@@ -120,7 +120,7 @@ class Entity(object):
 
         self._service = init_services(service_definitions=_srvs, client_get=self.client_get,
                                       metadata=config.conf.get("metadata", {}),
-                                      usage=config.conf.get("usage", {}))
+                                      support=config.conf.get("support", {}))
 
         self.setup_client_authn_methods(config)
 
@@ -174,23 +174,23 @@ class Entity(object):
         res = {}
         for service in self._service.values():
             res.update(service.metadata)
-        res.update(self._service_context.specs.get_metadata())
+        res.update(self._service_context.work_condition.get_metadata())
         return res
 
-    def collect_usage(self):
+    def collect_support(self):
         res = {}
         for service in self._service.values():
-            res.update(service.usage)
-        res.update(self._service_context.specs.usage)
+            res.update(service.support)
+        res.update(self._service_context.work_condition.support)
         return res
 
     def get_metadata_claim(self, claim, default=None):
         for service in self._service.values():
             if claim in service.metadata_claims:
-                return service.get_metadata(claim, default)
+                return service.get_metadata_claim(claim, default)
 
-        if claim in self._service_context.specs.attributes:
-            return self._service_context.specs.get_metadata_claim(claim, default)
+        if claim in self._service_context.work_condition.metadata_claims:
+            return self._service_context.work_condition.get_metadata_claim(claim, default)
 
         raise KeyError(f"Unknown specs claim: {claim}")
 
@@ -199,7 +199,14 @@ class Entity(object):
         for service in self._service.values():
             claims.extend(list(service.metadata_claims.keys()))
 
-        claims.extend(list(self._service_context.specs.metadata.keys()))
+        claims.extend(list(self._service_context.work_condition.metadata_claims.keys()))
+
+        return claims
+
+    def get_claim_sources(self):
+        claims = {'': list(self._service_context.work_condition.metadata_claims.keys())}
+        for service in self._service.values():
+            claims[service.endpoint_name] = list(service.metadata_claims.keys())
 
         return claims
 
@@ -214,14 +221,14 @@ class Entity(object):
 
         return False
 
-    def will_use(self, claim):
+    def will_use(self, facet):
         for service in self._service.values():
-            if claim in service.usage_rules.keys():
-                if service.usage.get(claim):
+            if facet in service.can_support.keys():
+                if service.support.get(facet):
                     return True
 
-        if claim in self._service_context.specs.rules.keys():
-            if self._service_context.specs.get_usage(claim):
+        if facet in self._service_context.work_condition.can_support.keys():
+            if self._service_context.work_condition.get_support(facet):
                 return True
         return False
 
@@ -240,64 +247,61 @@ class Entity(object):
                         service.metadata[claim] = value
                         return True
 
-        if claim in self._service_context.specs.attributes:
-            _def_val = self._service_context.specs.attributes[claim]
+        if claim in self._service_context.work_condition.metadata_claims:
+            _def_val = self._service_context.work_condition.metadata_claims[claim]
             if _def_val is None:
-                self._service_context.specs.set_metadata_claim(claim, value)
+                self._service_context.work_condition.set_metadata_claim(claim, value)
                 return True
             else:
-                if self._service_context.specs.get_metadata_claim(claim, _def_val):
-                    self._service_context.specs.set_metadata_claim(claim, value)
+                if self._service_context.work_condition.get_metadata_claim(claim, _def_val):
+                    self._service_context.work_condition.set_metadata_claim(claim, value)
                     return True
             return True
 
         logger.info(f"Unknown set specs claim: {claim}")
         return False
 
-    def set_usage_value(self, claim, value):
+    def set_support(self, claim, value):
         """
         Only OK to overwrite a value if the value is the default value
         """
         for service in self._service.values():
-            if claim in service.usage_rules:
-                _def_val = service.usage_rules[claim]
+            if claim in service.can_support:
+                _def_val = service.can_support[claim]
                 if _def_val is None:
-                    service.usage[claim] = value
+                    service.support[claim] = value
                     return True
                 else:
-                    if service.usage[claim] == _def_val:
-                        service.usage[claim] = value
+                    if service.support[claim] == _def_val:
+                        service.support[claim] = value
                         return True
 
-        if claim in self._service_context.specs.rules:
-            _def_val = self._service_context.specs.rules[claim]
+        if claim in self._service_context.work_condition.can_support:
+            _def_val = self._service_context.work_condition.can_support[claim]
             if _def_val is None:
-                self._service_context.specs.set_usage(claim, value)
+                self._service_context.work_condition.set_support(claim, value)
                 return True
             else:
-                if self._service_context.specs.usage[claim] == _def_val:
-                    self._service_context.specs.set_usage(claim, value)
+                if self._service_context.work_condition.can_support[claim] == _def_val:
+                    self._service_context.work_condition.set_support(claim, value)
                     return True
 
-        logger.info(f"Unknown set usage claim: {claim}")
+        logger.info(f"Unknown set support claim: {claim}")
         return False
 
-    def get_usage_value(self, claim, default=None):
+    def get_support(self, claim, default=None):
         for service in self._service.values():
-            if claim in service.usage_rules:
-                if claim in service.usage:
-                    return service.usage[claim]
-                else:
-                    return default
+            if claim in service.can_support.keys():
+                return service.support.get(claim, default)
 
-        if claim in self._service_context.specs.rules:
-            _val = self._service_context.specs.get_usage(claim)
+        if claim in self._service_context.work_condition.can_support:
+            _val = self._service_context.work_condition.get_support(claim)
             if _val:
                 return _val
             else:
                 return default
 
-        logger.info(f"Unknown usage claim: {claim}")
+        logger.info(f"Unknown support claim: {claim}")
 
     def construct_uris(self,
                        issuer: str,
@@ -314,8 +318,8 @@ class Entity(object):
         for service in self._service.values():
             service.construct_uris(_base_url, _hex)
 
-        if not self._service_context.specs.get_metadata_claim("redirect_uris"):
-            self._service_context.specs.construct_redirect_uris(_base_url, _hex, callback)
+        if not self._service_context.work_condition.get_metadata_claim("redirect_uris"):
+            self._service_context.work_condition.construct_redirect_uris(_base_url, _hex, callback)
 
     def backward_compatibility(self, config):
         _uris = config.get("redirect_uris")
@@ -326,7 +330,7 @@ class Entity(object):
         if _dir:
             authz_serv = self.get_service('authorization')
             if authz_serv:  # If this isn't true that's weird. Tests perhaps ?
-                self.set_usage_value("request_uri", True)
+                self.set_support("request_uri", True)
                 if not os.path.isdir(_dir):
                     os.makedirs(_dir)
                 authz_serv.callback_path["request_uris"] = _dir
@@ -334,12 +338,12 @@ class Entity(object):
         _pref = config.get("client_preferences", {})
         for key, val in _pref.items():
             if self.set_metadata_claim(key, val) is False:
-                if self.set_usage_value(key, val) is False:
+                if self.set_support(key, val) is False:
                     setattr(self, key, val)
 
         for key, val in config.conf.items():
             if key not in ["port", "domain", "httpc_params", "metadata", "client_preferences",
-                           "usage", "services", "add_ons"]:
+                           "support", "services", "add_ons"]:
                 self.extra[key] = val
 
         auth_request_args = config.conf.get("request_args", {})
@@ -352,11 +356,11 @@ class Entity(object):
         for id, service in self._service.items():
             res[id] = {
                 "metadata": service.metadata_claims,
-                "usage": service.usage_rules
+                "support": service.can_support
             }
         res[""] = {
-            "metadata": self._service_context.specs.metadata,
-            "usage": self._service_context.specs.usage
+            "metadata": self._service_context.work_condition.metadata_claims,
+            "support": self._service_context.work_condition.can_support
         }
         return res
 
@@ -364,5 +368,5 @@ class Entity(object):
         res = []
         for service in self._service.values():
             res.extend(service.callback_uris)
-        res.extend(self._service_context.specs.callback_uris)
+        res.extend(self._service_context.work_condition.callback_uris)
         return res

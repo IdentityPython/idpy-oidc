@@ -4,7 +4,6 @@ from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Union
-from urllib.parse import unquote_plus
 
 from cryptojwt.exception import BadSignature
 from cryptojwt.exception import Invalid

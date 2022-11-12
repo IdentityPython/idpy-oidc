@@ -86,10 +86,8 @@ class ImpExp:
     ) -> Any:
         if load_args:
             _kwargs = {"load_args": load_args}
-            _load_args = load_args
         else:
             _kwargs = {}
-            _load_args = {}
 
         if init_args:
             _kwargs["init_args"] = init_args

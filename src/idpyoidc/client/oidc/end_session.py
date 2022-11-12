@@ -28,7 +28,7 @@ class EndSession(Service):
         "backchannel_logout_session_required": None
     }
 
-    usage_rules = {
+    can_support = {
         "frontchannel_logout": None,
         "backchannel_logout": None,
         "post_logout_redirects": None
@@ -40,17 +40,11 @@ class EndSession(Service):
         "post_logout_redirect_uris": "session_logout"
     }
 
-    usage_to_uri_map = {
+    support_to_uri = {
         "frontchannel_logout": "frontchannel_logout_uri",
         "backchannel_logout": "backchannel_logout_uri",
         "post_logout_redirect": "post_logout_redirect_uris"
     }
-
-    callback_uris = [
-        "frontchannel_logout_uri",
-        "backchannel_logout_uri",
-        "post_logout_redirect_uris"
-    ]
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)

@@ -1,9 +1,6 @@
 __author__ = "Roland Hedberg"
 __version__ = "1.4.0"
 
-import os
-from typing import Dict
-
 VERIFIED_CLAIM_PREFIX = "__verified"
 
 

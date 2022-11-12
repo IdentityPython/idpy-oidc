@@ -95,7 +95,7 @@ class UserInfo(Service):
                         )
                     except MissingSigningKey as err:
                         logger.warning(
-                            "Error encountered while unpacking aggregated " "claims".format(err)
+                            f"Error encountered while unpacking aggregated claims: {err}"
                         )
                     else:
                         claims = [
@@ -104,16 +104,16 @@ class UserInfo(Service):
 
                         for key in claims:
                             response[key] = aggregated_claims[key]
-                elif "endpoint" in spec:
-                    _info = {
-                        "headers": self.get_authn_header(
-                            {},
-                            self.default_authn_method,
-                            authn_endpoint=self.endpoint_name,
-                            key=kwargs["state"],
-                        ),
-                        "url": spec["endpoint"],
-                    }
+                # elif "endpoint" in spec:
+                #     _info = {
+                #         "headers": self.get_authn_header(
+                #             {},
+                #             self.default_authn_method,
+                #             authn_endpoint=self.endpoint_name,
+                #             key=kwargs["state"],
+                #         ),
+                #         "url": spec["endpoint"],
+                #     }
 
         # Extension point
         for meth in self.post_parse_process:

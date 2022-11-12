@@ -38,9 +38,9 @@ class Registration(Service):
                 continue
 
             try:
-                request_args[prop] = _context.specs.behaviour[prop]
+                request_args[prop] = _context.work_condition.behaviour[prop]
             except KeyError:
-                _val = _context.specs.get_metadata_claim(prop)
+                _val = _context.work_condition.get_metadata_claim(prop)
                 if _val:
                     request_args[prop] = _val
         return request_args, {}
@@ -67,7 +67,7 @@ class Registration(Service):
         _context.registration_response = resp
         _client_id = resp.get("client_id")
         if _client_id:
-            _context.specs.set_metadata("client_id", _client_id)
+            _context.work_condition.set_metadata("client_id", _client_id)
             if _client_id not in _context.keyjar:
                 _context.keyjar.import_jwks(
                     _context.keyjar.export_jwks(True, ""), issuer_id=_client_id

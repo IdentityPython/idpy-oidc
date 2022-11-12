@@ -67,7 +67,7 @@ class HTTPLib(object):
             except CookieError as err:
                 logger.error(err)
                 raise NonFatalException(response, "{}".format(err))
-        except (AttributeError, KeyError) as err:
+        except (AttributeError, KeyError):
             pass
 
     def __call__(self, url, method="GET", **kwargs):
