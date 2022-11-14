@@ -103,7 +103,7 @@ def test_create_client():
     assert client.get_metadata_claim("userinfo_signed_response_alg") == "ES256"
     assert client.metadata_claim_contains_value("userinfo_signed_response_alg", "ES256")
     # How to act
-    assert client.get_support("request_uri") is True
+    assert client.get_support("request_uris") is True
 
     _conf_args = client.config_args()
     assert _conf_args

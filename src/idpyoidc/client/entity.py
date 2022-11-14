@@ -102,7 +102,7 @@ class Entity(object):
 
         self._service_context = ServiceContext(
             keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params,
-            client_type=client_type
+            client_type=client_type, client_get=self.client_get
         )
 
         if config:
@@ -163,163 +163,12 @@ class Entity(object):
         return self
 
     def get_client_id(self):
-        return self._service_context.get_client_id()
+        return self._service_context.work_condition.get_usage_claim('client_id')
 
     def setup_client_authn_methods(self, config):
         self._service_context.client_authn_method = client_auth_setup(
             config.get("client_authn_methods")
         )
-
-    def collect_metadata(self):
-        res = {}
-        for service in self._service.values():
-            res.update(service.metadata)
-        res.update(self._service_context.work_condition.get_metadata())
-        return res
-
-    def collect_support(self):
-        res = {}
-        for service in self._service.values():
-            res.update(service.support)
-        res.update(self._service_context.work_condition.support)
-        return res
-
-    def get_metadata_claim(self, claim, default=None):
-        for service in self._service.values():
-            if claim in service.metadata_claims:
-                return service.get_metadata_claim(claim, default)
-
-        if claim in self._service_context.work_condition.metadata_claims:
-            return self._service_context.work_condition.get_metadata_claim(claim, default)
-
-        raise KeyError(f"Unknown specs claim: {claim}")
-
-    def get_metadata_claims(self):
-        claims = []
-        for service in self._service.values():
-            claims.extend(list(service.metadata_claims.keys()))
-
-        claims.extend(list(self._service_context.work_condition.metadata_claims.keys()))
-
-        return claims
-
-    def get_claim_sources(self):
-        claims = {'': list(self._service_context.work_condition.metadata_claims.keys())}
-        for service in self._service.values():
-            claims[service.endpoint_name] = list(service.metadata_claims.keys())
-
-        return claims
-
-    def metadata_claim_contains_value(self, claim, value):
-        _val = self.get_metadata_claim(claim)
-        if isinstance(_val, list):
-            if value in _val:
-                return True
-        else:
-            if value == _val:
-                return True
-
-        return False
-
-    def will_use(self, facet):
-        for service in self._service.values():
-            if facet in service.can_support.keys():
-                if service.support.get(facet):
-                    return True
-
-        if facet in self._service_context.work_condition.can_support.keys():
-            if self._service_context.work_condition.get_support(facet):
-                return True
-        return False
-
-    def set_metadata_claim(self, claim, value):
-        """
-        Only OK to overwrite a value if the value is the default value
-        """
-        for service in self._service.values():
-            if claim in service.metadata_claims:
-                _def_val = service.metadata_claims[claim]
-                if _def_val is None:
-                    service.metadata[claim] = value
-                    return True
-                else:
-                    if service.metadata.get(claim, _def_val) == _def_val:
-                        service.metadata[claim] = value
-                        return True
-
-        if claim in self._service_context.work_condition.metadata_claims:
-            _def_val = self._service_context.work_condition.metadata_claims[claim]
-            if _def_val is None:
-                self._service_context.work_condition.set_metadata_claim(claim, value)
-                return True
-            else:
-                if self._service_context.work_condition.get_metadata_claim(claim, _def_val):
-                    self._service_context.work_condition.set_metadata_claim(claim, value)
-                    return True
-            return True
-
-        logger.info(f"Unknown set specs claim: {claim}")
-        return False
-
-    def set_support(self, claim, value):
-        """
-        Only OK to overwrite a value if the value is the default value
-        """
-        for service in self._service.values():
-            if claim in service.can_support:
-                _def_val = service.can_support[claim]
-                if _def_val is None:
-                    service.support[claim] = value
-                    return True
-                else:
-                    if service.support[claim] == _def_val:
-                        service.support[claim] = value
-                        return True
-
-        if claim in self._service_context.work_condition.can_support:
-            _def_val = self._service_context.work_condition.can_support[claim]
-            if _def_val is None:
-                self._service_context.work_condition.set_support(claim, value)
-                return True
-            else:
-                if self._service_context.work_condition.can_support[claim] == _def_val:
-                    self._service_context.work_condition.set_support(claim, value)
-                    return True
-
-        logger.info(f"Unknown set support claim: {claim}")
-        return False
-
-    def get_support(self, claim, default=None):
-        for service in self._service.values():
-            if claim in service.can_support.keys():
-                return service.support.get(claim, default)
-
-        if claim in self._service_context.work_condition.can_support:
-            _val = self._service_context.work_condition.get_support(claim)
-            if _val:
-                return _val
-            else:
-                return default
-
-        logger.info(f"Unknown support claim: {claim}")
-
-    def construct_uris(self,
-                       issuer: str,
-                       hash_seed: bytes,
-                       callback: Optional[dict]):
-        _hash = hashlib.sha256()
-        _hash.update(hash_seed)
-        _hash.update(as_bytes(issuer))
-        _hex = _hash.hexdigest()
-
-        self._service_context.iss_hash = _hex
-
-        _base_url = self._service_context.get("base_url")
-        for service in self._service.values():
-            service.construct_uris(_base_url, _hex)
-
-        if not self._service_context.work_condition.get_metadata_claim("redirect_uris"):
-            self._service_context.work_condition.construct_redirect_uris(_base_url, _hex, callback)
 
     def backward_compatibility(self, config):
         _uris = config.get("redirect_uris")

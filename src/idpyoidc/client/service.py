@@ -12,8 +12,8 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
 from .configure import Configuration
 from .exception import ResponseError
@@ -62,11 +62,8 @@ class Service(ImpExp):
 
     init_args = ["client_get"]
 
-    metadata_claims = {}
-    can_support = {}
-    support = {}
-    support_to_uri = {}
-    callback_path = {}
+    _supports = {}
+    _callback_path = {}
 
     def __init__(
             self,
@@ -78,9 +75,8 @@ class Service(ImpExp):
 
         self.client_get = client_get
         self.default_request_args = {}
-        self.metadata = {}
-        self.support = {}
-        self.callback_uri = {}
+        self.prefer = conf.get("prefer", {})
+        self.use = {}
 
         if conf:
             self.conf = conf
@@ -95,22 +91,6 @@ class Service(ImpExp):
             ]:
                 if param in conf:
                     setattr(self, param, conf[param])
-
-            md_conf = conf.get("metadata", {})
-            if md_conf:
-                for param, def_val in self.metadata_claims.items():
-                    if param in md_conf:
-                        self.metadata[param] = md_conf[param]
-                    elif def_val is not None:
-                        self.metadata[param] = def_val
-
-            support_conf = conf.get("support", {})
-            if support_conf:
-                for facet, def_val in self.can_support.items():
-                    if facet in support_conf:
-                        self.support[facet] = support_conf[facet]
-                    elif def_val is not None:
-                        self.support[facet] = def_val
 
             _default_request_args = conf.get("request_args", {})
             if _default_request_args:
@@ -641,23 +621,29 @@ class Service(ImpExp):
 
         return resp
 
-    def get_conf_attr(self, attr, default=None):
-        """
-        Get the value of an attribute in the configuration
+    def supports(self):
+        res = {}
+        for key, val in self._supports.items():
+            if isinstance(val, Callable):
+                res[key] = val()
+            else:
+                res[key] = val
+        return res
 
-        :param attr: The attribute
-        :param default: If the attribute doesn't appear in the configuration
-            return this value
-        :return: The value of attribute in the configuration or the default
-            value
-        """
-        if attr in self.conf:
-            return self.conf[attr]
-
-        return default
-
-    def usage_to_uri(self, usage):
-        return self.usage_to_uri_map.get(usage)
+    # def get_conf_attr(self, attr, default=None):
+    #     """
+    #     Get the value of an attribute in the configuration
+    #
+    #     :param attr: The attribute
+    #     :param default: If the attribute doesn't appear in the configuration
+    #         return this value
+    #     :return: The value of attribute in the configuration or the default
+    #         value
+    #     """
+    #     if attr in self.conf:
+    #         return self.conf[attr]
+    #
+    #     return default
 
     def get_callback_path(self, callback):
         return self.callback_path.get(callback)
