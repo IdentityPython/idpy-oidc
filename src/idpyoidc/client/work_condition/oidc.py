@@ -10,9 +10,7 @@ class WorkCondition(work_condition.WorkCondition):
         "requests_dir": None
     })
 
-    metadata_claims = {
-        "redirect_uris": None,
-        "response_types": ["code"],
+    supports = {
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "application_type": "web",
         "contacts": None,
@@ -25,53 +23,33 @@ class WorkCondition(work_condition.WorkCondition):
         "jwks_uri": None,
         "sector_identifier_uri": None,
         "subject_type": None,
-        "id_token_signed_response_alg": "RS256",
-        "id_token_encrypted_response_alg": None,
-        "id_token_encrypted_response_enc": None,
-        "request_object_signing_alg": None,
-        "request_object_encryption_alg": None,
-        "request_object_encryption_enc": None,
+        "id_token_signed_response_alg": work_condition.get_signing_algs,
+        "id_token_encrypted_response_alg": work_condition.get_encryption_algs,
+        "id_token_encrypted_response_enc": work_condition.get_encryption_encs,
         "default_max_age": None,
         "require_auth_time": None,
         "initiate_login_uri": None,
         "default_acr_values": None,
-        "request_uris": None,
         "client_id": None,
-    }
-
-    can_support = {
-        "form_post": None,
-        "jwks": None,
-        "jwks_uri": None,
-        "request_parameter": None,
-        "request_uri": None,
+        "client_secret": None,
         "scope": ["openid"],
-        "verify_args": None,
+        #  "verify_args": None,
     }
-
-    callback_path = {
-        "requests": "req",
-        "code": "authz_cb",
-        "implicit": "authz_im_cb",
-        "form_post": "form"
-    }
-
-    callback_uris = ["redirect_uris"]
 
     def __init__(self,
-                 metadata: Optional[dict] = None,
-                 support: Optional[dict] = None,
-                 behaviour: Optional[dict] = None,
+                 prefer: Optional[dict] = None,
+                 callback_path: Optional[dict] = None
                  ):
-        work_condition.WorkCondition.__init__(self, metadata=metadata, support=support,
-                                              behaviour=behaviour)
+        work_condition.WorkCondition.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def verify_rules(self):
-        if self.get_support("request_parameter") and self.get_support("request_uri"):
-            raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'.")
+        if self.get_preference("request_parameter") and self.get_preference("request_uri"):
+            raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'."
+                             " you can't have both.")
+
         # default is jwks_uri
-        if not self.get_support("jwks") and not self.get_support('jwks_uri'):
-            self.set_support('jwks_uri', True)
+        if not self.get_preference("jwks") and not self.get_preference('jwks_uri'):
+            self.set_preference('jwks_uri', True)
 
     def locals(self, info):
         requests_dir = info.get("requests_dir")

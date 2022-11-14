@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.client import work_condition
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
@@ -27,16 +28,24 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
-    can_support = {
-        "request_uris": None
+    supports = {
+        "request_object_signing_alg": work_condition.get_signing_algs,
+        "request_object_encryption_alg": work_condition.get_encryption_algs,
+        "request_object_encryption_enc": work_condition.get_encryption_encs,
+        "request_uris": None,
+        "request_parameter": None,
+        "redirect_uris": None,
+        "response_types": ["code"],
+        "form_post": None,
     }
 
     callback_path = {
-        "request_uris": "request",
-    }
-
-    support_to_uri = {
-        "request_uris": "request_uris",
+        "request_uris": "req",
+        "redirect_uris": {  # based on response_types
+            "code": "authz_cb",
+            "implicit": "authz_im_cb",
+            "form_post": "form"
+        }
     }
 
     def __init__(self, client_get, conf=None):

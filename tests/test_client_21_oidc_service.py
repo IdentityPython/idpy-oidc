@@ -872,29 +872,28 @@ class TestRegistration(object):
     def create_request(self):
         self._iss = ISS
         client_config = {
-            "client_id": "client_id",
-            "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
+                        client_type='oidc')
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "registration")
 
     def test_construct(self):
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 7
+        assert len(_req) == 6
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").work_condition.set_metadata(
+        self.service.client_get("service_context").work_condition.set_metadata_claim(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 8
+        assert len(_req) == 7
         assert "post_logout_redirect_uri" in _req
 
 
@@ -907,7 +906,8 @@ def test_config_with_required_request_uri():
         "requests_dir": "requests",
         "base_url": "https://example.com/cli",
     }
-    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
+                    client_type='oidc')
     entity.client_get("service_context").issuer = "https://example.com"
 
     pi_service = entity.client_get("service", "provider_info")

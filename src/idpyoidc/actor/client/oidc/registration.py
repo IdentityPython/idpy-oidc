@@ -148,14 +148,14 @@ class Registration(Service):
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [
-            self.add_client_behaviour_preference,
+            self.add_client_preference,
             # add_redirect_uris,
             # add_callback_uris,
             add_jwks_uri_or_jwks,
         ]
         self.post_construct = [self.oidc_post_construct]
 
-    def add_client_behaviour_preference(self, request_args=None, **kwargs):
+    def add_client_preference(self, request_args=None, **kwargs):
         _context = self.client_get("service_context")
         for prop in self.msg_type.c_param.keys():
             if prop in request_args:

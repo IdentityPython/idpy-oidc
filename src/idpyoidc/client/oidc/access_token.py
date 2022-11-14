@@ -5,6 +5,7 @@ from typing import Union
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
+from idpyoidc.client.work_condition import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
@@ -19,6 +20,11 @@ class AccessToken(access_token.AccessToken):
     msg_type = oidc.AccessTokenRequest
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
+
+    supports = {
+        "token_endpoint_auth_method": '',
+        "token_endpoint_auth_signing_alg": get_signing_algs
+    }
 
     def __init__(self, client_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, client_get, conf=conf)

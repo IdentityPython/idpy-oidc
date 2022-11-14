@@ -1,5 +1,8 @@
+from typing import Callable
 from typing import Optional
 
+from cryptojwt.jwe import SUPPORTED
+from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.utils import importer
 
 from idpyoidc.client.service import Service
@@ -20,104 +23,59 @@ def work_condition_load(item: dict, **kwargs):
 
 class WorkCondition(ImpExp):
     parameter = {
-        "metadata": None,
-        "support": None,
-        "behaviour": None,
-        "callback": None,
+        "prefer": None,
+        "use": None,
+        "callback_path": None,
         "_local": None
     }
 
-    metadata_claims = {
-        "redirect_uris": None,
-        "response_types": ["code"],
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
-        "application_type": "web",
-        "contacts": None,
-        "client_name": None,
-        "logo_uri": None,
-        "client_uri": None,
-        "policy_uri": None,
-        "tos_uri": None,
-        "jwks_uri": None,
-        "jwks": None,
-    }
-
-    can_support = {
-        "jwks": None,
-        "jwks_uri": None,
-        "scope": ["openid"],
-        "verify_args": None,
-    }
-
-    callback_path = {
-        "requests": "req",
-        "code": "authz_cb",
-        "implicit": "authz_im_cb",
-    }
-
-    callback_uris = ["redirect_uris"]
+    _supports = {}
 
     def __init__(self,
-                 metadata: Optional[dict] = None,
-                 support: Optional[dict] = None,
-                 behaviour: Optional[dict] = None
-                 ):
+                 prefer: Optional[dict] = None,
+                 callback_path: Optional[dict] = None):
 
         ImpExp.__init__(self)
-        if isinstance(metadata, dict):
-            self.metadata = {k: v for k, v in metadata.items() if k in self.metadata_claims}
+        if isinstance(prefer, dict):
+            self.prefer = {k: v for k, v in prefer.items() if k in self.supports}
         else:
-            self.metadata = {}
+            self.prefer = {}
 
-        if isinstance(support, dict):
-            self.support = {k: v for k, v in support.items() if k in self.can_support}
-        else:
-            self.support = {}
-
-        if isinstance(behaviour, dict):
-            self.behaviour = {k: v for k, v in behaviour.items() if k in self.metadata_claims}
-        else:
-            self.behaviour = {}
-
-        self.callback = {}
+        self.callback_path = callback_path or {}
+        self.use = {}
         self._local = {}
+        self.callback = {}
 
-    def get_metadata(self):
-        return self.metadata
+    def get_usage(self):
+        return self.use
 
-    def get_metadata_claim(self, key, default=None):
-        if key in self.metadata:
-            return self.metadata[key]
-        else:
-            return default
+    def set_usage_claim(self, key, value):
+        self.use[key] = value
 
-    def get_support(self, key, default=None):
-        if key in self.support:
-            return self.support[key]
-        else:
-            return default
+    def get_usage_claim(self, key, default=None):
+        return self.use.get(key, default)
 
-    def set_metadata_claim(self, key, value):
-        self.metadata[key] = value
+    def get_preference(self, key, default=None):
+        return self.prefer.get(key, default)
 
-    def set_support(self, key, value):
-        self.support[key] = value
+    def set_preference(self, key, value):
+        self.prefer[key] = value
 
     def _callback_uris(self, base_url, hex):
-        _red = {}
-        for type in self.get_metadata_claim("response_types", ["code"]):
+        _uri = []
+        for type in self.get_usage_claim("response_types",
+                                         self._supports['response_types']):
             if "code" in type:
-                _red['code'] = True
+                _uri.append('code')
             elif type in ["id_token", "id_token token"]:
-                _red['implicit'] = True
+                _uri.append('implicit')
 
-        if "form_post" in self.support:
-            _red["form_post"] = True
+        if "form_post" in self.supports:
+            _uri.append("form_post")
 
         callback_uri = {}
-        for key in _red.keys():
-            _uri = Service.get_uri(base_url, self.callback_path[key], hex)
-            callback_uri[key] = _uri
+        for key in _uri:
+            callback_uri[key] = Service.get_uri(base_url, self.callback_path[key], hex)
         return callback_uri
 
     def construct_redirect_uris(self,
@@ -128,7 +86,7 @@ class WorkCondition(ImpExp):
             callbacks = self._callback_uris(base_url, hex)
 
         if callbacks:
-            self.set_metadata_claim("redirect_uris", [v for k, v in callbacks.items()])
+            self.set_preference("redirect_uris", [v for k, v in callbacks.items()])
 
         self.callback = callbacks
 
@@ -140,41 +98,21 @@ class WorkCondition(ImpExp):
 
     def load_conf(self, info):
         for attr, val in info.items():
-            if attr == "support":
+            if attr == "preference":
                 for k, v in val.items():
-                    if k in self.can_support:
-                        self.set_support(k, v)
-            elif attr == "metadata":
-                for k, v in val.items():
-                    if k in self.metadata_claims:
-                        self.set_metadata_claim(k, v)
-            elif attr == "behaviour":
-                self.behaviour = val
-            elif attr in self.metadata_claims:
-                self.set_metadata_claim(attr, val)
-            elif attr in self.can_support:
-                self.set_support(attr, val)
+                    if k in self._supports:
+                        self.set_preference(k, v)
+            elif attr in self._supports:
+                self.set_preference(attr, val)
 
-        # defaults if nothing else is given
-        for key, default in self.metadata_claims.items():
-            if default and key not in self.metadata:
-                self.set_metadata_claim(key, default)
-
-        for key, default in self.can_support.items():
-            if default and key not in self.support:
-                self.set_support(key, default)
+        # # defaults if nothing else is given
+        # for key, default in self._supports.items():
+        #     if default and key not in self.prefer:
+        #         self.set_preference(key, default)
 
         self.locals(info)
         self.verify_rules()
         return self
-
-    def bm_get(self, key, default=None):
-        if key in self.behaviour:
-            return self.behaviour[key]
-        elif key in self.metadata:
-            return self.metadata[key]
-
-        return default
 
     def get(self, key, default=None):
         if key in self._local:
@@ -187,3 +125,25 @@ class WorkCondition(ImpExp):
 
     def construct_uris(self, *args):
         pass
+
+    def supports(self):
+        res = {}
+        for key, val in self._supports.items():
+            if isinstance(val, Callable):
+                res[key] = val()
+            else:
+                res[key] = val
+        return res
+
+
+def get_signing_algs():
+    # Assumes Cryptojwt
+    return list(SIGNER_ALGS.keys())
+
+
+def get_encryption_algs():
+    return SUPPORTED['alg']
+
+
+def get_encryption_encs():
+    return SUPPORTED['enc']
