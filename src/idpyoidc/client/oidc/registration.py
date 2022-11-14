@@ -25,23 +25,23 @@ class Registration(Service):
 
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
-        self.pre_construct = [
-            self.add_client_behaviour_preference,
-            # add_redirect_uris,
-        ]
+        self.pre_construct = [self.add_client_preference]
         self.post_construct = [self.oidc_post_construct]
 
-    def add_client_behaviour_preference(self, request_args=None, **kwargs):
-        _context = self.client_get("service_context")
-        for prop in self.msg_type.c_param.keys():
+    def add_client_preference(self, request_args=None, **kwargs):
+        _work_condition = self.client_get("service_context")
+        for prop, spec in self.msg_type.c_param.items():
             if prop in request_args:
                 continue
 
-            try:
-                request_args[prop] = _context.work_condition.behaviour[prop]
-            except KeyError:
-                _val = _context.work_condition.get_metadata_claim(prop)
-                if _val:
+            _val = _work_condition.get_preference(prop)
+            if _val:
+                if isinstance(_val, list):
+                    if isinstance(spec[0], list):
+                        request_args[prop] = _val
+                    else:
+                        request_args[prop] = _val[0]  # get the first one
+                else:
                     request_args[prop] = _val
         return request_args, {}
 
@@ -64,25 +64,29 @@ class Registration(Service):
             resp["token_endpoint_auth_method"] = "client_secret_basic"
 
         _context = self.client_get("service_context")
+        _work_condition = _context.work_condition
+        _keyjar = _context.keyjar
+
         _context.registration_response = resp
         _client_id = resp.get("client_id")
         if _client_id:
-            _context.work_condition.set_metadata("client_id", _client_id)
-            if _client_id not in _context.keyjar:
-                _context.keyjar.import_jwks(
-                    _context.keyjar.export_jwks(True, ""), issuer_id=_client_id
-                )
+            _context.work_condition.set_usage_claim("client_id", _client_id)
+            if _client_id not in _keyjar:
+                _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
             _client_secret = resp.get("client_secret")
             if _client_secret:
-                _context.client_secret = _client_secret
-                _context.keyjar.add_symmetric("", _client_secret)
-                _context.keyjar.add_symmetric(_client_id, _client_secret)
+                _work_condition.set_usage_claim("client_secret", _client_secret)
+                # _context.client_secret = _client_secret
+                _keyjar.add_symmetric("", _client_secret)
+                _keyjar.add_symmetric(_client_id, _client_secret)
                 try:
-                    _context.client_secret_expires_at = resp["client_secret_expires_at"]
+                    _work_condition.set_usage_claim("client_secret_expires_at",
+                                                    resp["client_secret_expires_at"])
                 except KeyError:
                     pass
 
         try:
-            _context.registration_access_token = resp["registration_access_token"]
+            _work_condition.set_usage_claim("registration_access_token",
+                                            resp["registration_access_token"])
         except KeyError:
             pass

@@ -3,6 +3,8 @@ Implements a service context. A Service context is used to keep information that
 common between all the services that are used by OAuth2 client or OpenID Connect Relying Party.
 """
 import copy
+import hashlib
+from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -111,6 +113,7 @@ class ServiceContext(OidcContext):
     }
 
     def __init__(self,
+                 client_get: Callable,
                  base_url: Optional[str] = "",
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
@@ -119,6 +122,7 @@ class ServiceContext(OidcContext):
                  **kwargs):
         config = get_configuration(config)
         self.config = config
+        self.client_get = client_get
 
         if not client_type or client_type == "oidc":
             self.work_condition = OIDC_Specs()
@@ -231,15 +235,11 @@ class ServiceContext(OidcContext):
         :return:
         """
 
-        try:
-            return self.work_condition.behaviour[CLI_REG_MAP[typ]["sign"]]
-        except KeyError:
-            try:
-                return self.provider_info[PROVIDER_INFO_MAP[typ]["sign"]]
-            except (KeyError, TypeError):
-                pass
+        _alg = self.work_condition.get_usage_claim(CLI_REG_MAP[typ]["sign"])
+        if not _alg:
+            _alg = self.provider_info.get(PROVIDER_INFO_MAP[typ]["sign"])
 
-        return None
+        return _alg
 
     def get_enc_alg_enc(self, typ):
         """
@@ -250,14 +250,9 @@ class ServiceContext(OidcContext):
 
         res = {}
         for attr in ["enc", "alg"]:
-            try:
-                _alg = self.work_condition.behaviour[CLI_REG_MAP[typ][attr]]
-            except KeyError:
-                try:
-                    _alg = self.provider_info[PROVIDER_INFO_MAP[typ][attr]]
-                except KeyError:
-                    _alg = None
-
+            _alg = self.work_condition.get_usage_claim(CLI_REG_MAP[typ][attr])
+            if not _alg:
+                _alg = self.provider_info.get(PROVIDER_INFO_MAP[typ][attr])
             res[attr] = _alg
 
         return res
@@ -269,4 +264,47 @@ class ServiceContext(OidcContext):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.work_condition.get_metadata_claim("client_id")
+        return self.work_condition.get_usage_claim("client_id")
+
+    def collect_usage(self):
+        services = self. client_get('services')
+        res = {}
+        for service in services.values():
+            res.update(service.use)
+        res.update(self.work_condition.use)
+        return res
+
+    def supports(self):
+        services = self.client_get('services')
+        res = {}
+        for service in services.values():
+            res.update(service.supports())
+        res.update(self.work_condition.supports())
+        return res
+
+    def prefers(self):
+        services = self.client_get('services')
+        res = {}
+        for service in services.values():
+            res.update(service.prefer)
+        res.update(self.work_condition.prefer)
+        return res
+
+    def construct_uris(self,
+                       issuer: str,
+                       hash_seed: bytes,
+                       callback: Optional[dict]):
+        _hash = hashlib.sha256()
+        _hash.update(hash_seed)
+        _hash.update(as_bytes(issuer))
+        _hex = _hash.hexdigest()
+
+        self.iss_hash = _hex
+
+        _base_url = self.get("base_url")
+        services = self.client_get('services')
+        for service in services.values():
+            service.construct_uris(_base_url, _hex)
+
+        if not self.work_condition.get_usage_claim("redirect_uris"):
+            self.work_condition.construct_redirect_uris(_base_url, _hex, callback)
