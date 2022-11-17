@@ -101,7 +101,7 @@ def _cmp(a, b):
 
 def check(entity, claim, expected):
     try:
-        _usable = entity.get_metadata_claim(claim)
+        _usable = entity.get_service_context().get_usage(claim)
     except KeyError:
         pass
     else:
@@ -162,10 +162,10 @@ class Registration(Service):
                 continue
 
             try:
-                request_args[prop] = _context.work_condition.behaviour[prop]
+                request_args[prop] = _context.work_condition.get_usage(prop)
             except KeyError:
                 try:
-                    request_args[prop] = _context.client_preferences[prop]
+                    request_args[prop] = _context.work_condition.get_preference[prop]
                 except KeyError:
                     pass
         return request_args, {}

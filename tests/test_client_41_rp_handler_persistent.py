@@ -55,7 +55,7 @@ CLIENT_CONFIG = {
         "client_id": "xxxxxxx",
         "client_secret": "yyyyyyyyyyyyyyyyyyyy",
         "redirect_uris": ["{}/authz_cb/linkedin".format(BASE_URL)],
-        "behaviour": {
+        "preference": {
             "response_types": ["code"],
             "scope": ["r_basicprofile", "r_emailaddress"],
             "token_endpoint_auth_method": "client_secret_post",
@@ -76,7 +76,7 @@ CLIENT_CONFIG = {
         "issuer": "https://www.facebook.com/v2.11/dialog/oauth",
         "client_id": "ccccccccc",
         "client_secret": "dddddddddddddd",
-        "behaviour": {
+        "preference": {
             "response_types": ["code"],
             "scope": ["email", "public_profile"],
             "token_endpoint_auth_method": "",
@@ -104,7 +104,7 @@ CLIENT_CONFIG = {
         "client_id": "eeeeeeeee",
         "client_secret": "aaaaaaaaaaaaaaaaaaaa",
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
-        "behaviour": {
+        "preference": {
             "response_types": ["code"],
             "scope": ["user", "public_repo"],
             "token_endpoint_auth_method": "",

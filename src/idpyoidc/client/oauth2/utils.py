@@ -37,7 +37,7 @@ def pick_redirect_uri(
 
     if context.work_condition.callback:
         if not response_type:
-            _conf_resp_types = context.work_condition.behaviour.get("response_types", [])
+            _conf_resp_types = context.work_condition.get_usage("response_types", [])
             response_type = request_args.get("response_type")
             if not response_type and _conf_resp_types:
                 response_type = _conf_resp_types[0]
@@ -56,7 +56,7 @@ def pick_redirect_uri(
             f"redirect_uri={redirect_uri}"
         )
     else:
-        redirect_uris = entity.get_metadata_claim("redirect_uris", [])
+        redirect_uris = context.get_usage("redirect_uris", [])
         if redirect_uris:
             redirect_uri = redirect_uris[0]
         else:

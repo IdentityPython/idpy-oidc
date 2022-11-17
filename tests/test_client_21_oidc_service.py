@@ -79,8 +79,13 @@ class TestAuthorization(object):
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
         }
-        entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=make_keyjar(), config=client_config)
-        entity.client_get("service_context").issuer = "https://example.com"
+        entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=make_keyjar(), config=client_config,
+                        client_type='oidc')
+        _context = entity.client_get("service_context")
+        _context.issuer = "https://example.com"
+        _context.map_supported_to_preferred()
+        _context.map_preferred_to_register()
+        self.context = _context
         self.service = entity.client_get("service", "authorization")
 
     def test_construct(self):
@@ -173,6 +178,7 @@ class TestAuthorization(object):
     def test_request_init_request_method(self):
         req_args = {"response_type": "code", "state": "state"}
         self.service.endpoint = "https://example.com/authorize"
+        self.context.set_usage('request_object_encryption_alg', None)
         _info = self.service.get_request_parameters(request_args=req_args, request_method="value")
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = AuthorizationRequest().from_urlencoded(self.service.get_urlinfo(_info["url"]))
@@ -213,6 +219,7 @@ class TestAuthorization(object):
             "request_uris": ["https://example.com/request123456.jwt"],
         }
         _context.base_url = "https://example.com/"
+        _context.set_usage('request_object_encryption_alg', None)
         _info = self.service.get_request_parameters(
             request_args=req_args, request_method="reference"
         )
@@ -286,9 +293,9 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").work_condition.behaviour["verify_args"] = {
+        self.service.client_get("service_context").work_condition.set_usage("verify_args", {
             "allow_sign_alg_none": allow_sign_alg_none
-        }
+        })
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
         if allow_sign_alg_none:
             self.service.parse_response(resp.to_urlencoded())
@@ -777,7 +784,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").work_condition.behaviour == {}
+        assert self.service.client_get("service_context").work_condition.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -786,7 +793,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").work_condition.behaviour == {
+        assert self.service.client_get("service_context").work_condition.use == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -821,7 +828,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        assert self.service.client_get("service_context").work_condition.behaviour == {}
+        assert self.service.client_get("service_context").work_condition.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -830,7 +837,7 @@ class TestProviderInfo(object):
 
             self.service.update_service_context(resp)
 
-        assert self.service.client_get("service_context").work_condition.behaviour == {
+        assert self.service.client_get("service_context").work_condition.use == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
@@ -966,7 +973,7 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").work_condition.behaviour = {
+        entity.client_get("service_context").work_condition.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
@@ -1189,7 +1196,7 @@ def test_authz_service_conf():
         "client_id": "client_id",
         "client_secret": "a longesh password",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "behaviour": {"response_types": ["code"]},
+        "preference": {"response_types": ["code"]},
     }
 
     services = {

@@ -6,6 +6,7 @@ from idpyoidc.message.oauth2 import Message
 
 
 class Response(object):
+
     def __init__(self, status_code, text, headers=None):
         self.status_code = status_code
         self.text = text
@@ -19,23 +20,25 @@ KEYDEFS = [
 
 CLIENT_CONF = {
     "redirect_uris": ["https://example.com/cli/authz_cb"],
-    "behaviour": {"response_types": ["code"]},
+    "preference": {"response_types": ["code"]},
     "key_conf": {"key_defs": KEYDEFS},
+    "client_id": 'CLIENT'
 }
 
 
 class TestService:
+
     @pytest.fixture(autouse=True)
     def create_service(self):
         self.entity = Entity(
             config=CLIENT_CONF,
-            services={
-                "authz": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
-            }
+            services={"authz": {"class": "idpyoidc.client.oidc.authorization.Authorization"}},
+            client_type='oidc'
         )
 
         self.service = self.entity.get_service("authorization")
         self.service_context = self.entity.get_service_context()
+        self.service_context.map_supported_to_preferred()
 
     def client_get(self, *args):
         if args[0] == "service_context":
@@ -44,34 +47,46 @@ class TestService:
     def test_1(self):
         assert self.service
 
+    def test_use(self):
+        use = self.service_context.map_preferred_to_register()
+
+        assert set(use.keys()) == {'client_id', 'redirect_uris', 'response_types',
+                                   'grant_types', 'application_type', 'jwks', 'subject_type',
+                                   'id_token_signed_response_alg',
+                                   'id_token_encrypted_response_alg',
+                                   'id_token_encrypted_response_enc',
+                                   'request_object_signing_alg',
+                                   'request_object_encryption_alg',
+                                   'request_object_encryption_enc', 'scope'}
+
     def test_gather_request_args(self):
         self.service.conf["request_args"] = {"response_type": "code"}
         args = self.service.gather_request_args(state="state")
-        assert args == {"response_type": "code", "state": "state",
+        assert args == {"response_type": "code", "state": "state", 'client_id': 'CLIENT',
                         'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
 
-        self.entity.set_metadata_claim("client_id", "client")
+        self.service_context.set_usage("client_id", "client")
         args = self.service.gather_request_args(state="state")
         assert args == {"client_id": "client", "response_type": "code", "state": "state",
                         'redirect_uri': 'https://example.com/cli/authz_cb', 'scope': ['openid']}
 
-        self.service.default_request_args = {"scope": ["openid"]}
+        self.service_context.set_usage("scope", ["openid", "foo"])
         args = self.service.gather_request_args(state="state")
         assert args == {
             "client_id": "client",
             "response_type": "code",
-            "scope": ["openid"],
+            "scope": ["openid", "foo"],
             "state": "state",
             'redirect_uri': 'https://example.com/cli/authz_cb',
         }
 
-        self.entity.set_metadata_claim("redirect_uris", ["https://rp.example.com"])
+        self.service_context.set_usage("redirect_uri", "https://rp.example.com")
         args = self.service.gather_request_args(state="state")
         assert args == {
             "client_id": "client",
             "redirect_uri": "https://rp.example.com",
             "response_type": "code",
-            "scope": ["openid"],
+            "scope": ["openid", "foo"],
             "state": "state",
         }
 
@@ -126,6 +141,7 @@ class TestService:
 
 
 class TestAuthorization(object):
+
     @pytest.fixture(autouse=True)
     def create_service(self):
         self.entity = Entity(

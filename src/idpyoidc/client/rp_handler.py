@@ -383,9 +383,9 @@ class RPHandler(object):
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
-            return req_args.get("response_type", context.work_condition.behaviour["response_types"][0])
+            return req_args.get("response_type", context.work_condition.get_usage("response_types")[0])
         else:
-            return context.work_condition.behaviour["response_types"][0]
+            return context.work_condition.get_usage("response_types")[0]
 
     def init_authorization(
         self,
@@ -422,7 +422,7 @@ class RPHandler(object):
             "redirect_uri": pick_redirect_uri(
                 _context, _entity, request_args=req_args, response_type=_response_type
             ),
-            "scope": _context.work_condition.behaviour["scope"],
+            "scope": _context.work_condition.get_usage("scope"),
             "response_type": _response_type,
             "nonce": _nonce,
         }
@@ -496,7 +496,7 @@ class RPHandler(object):
         :param client: A Client instance
         :return: The response_type
         """
-        return client.service_context.get("behaviour")["response_types"][0]
+        return client.service_context.work_condition.get_usage("response_types")[0]
 
     @staticmethod
     def get_client_authn_method(client, endpoint):
@@ -510,9 +510,9 @@ class RPHandler(object):
         """
         if endpoint == "token_endpoint":
             try:
-                am = client.client_get("service_context").get("behaviour")[
+                am = client.client_get("service_context").work_condition.get_usage(
                     "token_endpoint_auth_method"
-                ]
+                )
             except KeyError:
                 return ""
             else:

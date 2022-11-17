@@ -28,18 +28,18 @@ class Authorization(authorization.Authorization):
     response_cls = oidc.AuthorizationResponse
     error_msg = oidc.ResponseMessage
 
-    supports = {
-        "request_object_signing_alg": work_condition.get_signing_algs,
-        "request_object_encryption_alg": work_condition.get_encryption_algs,
-        "request_object_encryption_enc": work_condition.get_encryption_encs,
+    _supports = {
+        "request_object_signing_alg_values_supported": work_condition.get_signing_algs,
+        "request_object_encryption_alg_values_supported": work_condition.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": work_condition.get_encryption_encs,
+        "response_types_supported": ["code", "form_post"],
         "request_uris": None,
         "request_parameter": None,
+        "encrypt_request_object": None,
         "redirect_uris": None,
-        "response_types": ["code"],
-        "form_post": None,
     }
 
-    callback_path = {
+    _callback_path = {
         "request_uris": "req",
         "redirect_uris": {  # based on response_types
             "code": "authz_cb",
@@ -50,7 +50,6 @@ class Authorization(authorization.Authorization):
 
     def __init__(self, client_get, conf=None):
         authorization.Authorization.__init__(self, client_get, conf=conf)
-        self.default_request_args.update({"scope": ["openid"]})
         self.pre_construct = [
             self.set_state,
             pre_construct_pick_redirect_uri,
@@ -103,7 +102,6 @@ class Authorization(authorization.Authorization):
 
     def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
         _context = self.client_get("service_context")
-        _entity = self.client_get("entity")
 
         if request_args is None:
             request_args = {}
@@ -111,7 +109,7 @@ class Authorization(authorization.Authorization):
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.work_condition.behaviour.get("response_types")
+            _response_types = _context.get_usage("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -119,7 +117,7 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            _scope = self.client_get("entity").get_support("scope")
+            _scope = _context.get_usage("scope")
             if _scope:
                 request_args["scope"] = _scope
             else:
@@ -151,9 +149,9 @@ class Authorization(authorization.Authorization):
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
         else:
-            if _entity.get_support("request_uri"):
+            if _context.get_usage("request_uri"):
                 post_args["request_param"] = "request_uri"
-            elif _entity.get_support("request_parameter"):
+            elif _context.get_usage("request_parameter"):
                 post_args["request_param"] = "request"
 
         return request_args, post_args
@@ -171,7 +169,7 @@ class Authorization(authorization.Authorization):
         if not alg:
             _context = self.client_get("service_context")
             try:
-                alg = _context.work_condition.behaviour["request_object_signing_alg"]
+                alg = _context.work_condition.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -209,18 +207,16 @@ class Authorization(authorization.Authorization):
         if alg == "none":
             kwargs["keys"] = []
 
-        _srv_cntx = _context
-
         # This is the issuer of the JWT, that is me !
         _issuer = kwargs.get("issuer")
         if _issuer is None:
-            kwargs["issuer"] = _srv_cntx.get_client_id()
+            kwargs["issuer"] = _context.get_client_id()
 
         if kwargs.get("recv") is None:
             try:
-                kwargs["recv"] = _srv_cntx.provider_info["issuer"]
+                kwargs["recv"] = _context.provider_info["issuer"]
             except KeyError:
-                kwargs["recv"] = _srv_cntx.issuer
+                kwargs["recv"] = _context.issuer
 
         try:
             del kwargs["service"]
@@ -273,15 +269,15 @@ class Authorization(authorization.Authorization):
         if _request_param:
             del kwargs["request_param"]
         else:
-            if _context.work_condition.get_support("request_uri"):
+            if _context.get_usage("request_uri"):
                 _request_param = "request_uri"
-            elif _context.work_condition.get_support("request_parameter"):
+            elif _context.get_usage("request_parameter"):
                 _request_param = "request"
 
         _req = None  # just a flag
         if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            kwargs["local_dir"] = _context.work_condition.get("requests_dir", "./requests")
+            kwargs["local_dir"] = _context.get_usage("requests_dir", "./requests")
             _req = self.construct_request_parameter(req, _request_param, **kwargs)
             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
         elif _request_param == "request":
@@ -331,7 +327,7 @@ class Authorization(authorization.Authorization):
         except KeyError:
             pass
 
-        _verify_args = _context.work_condition.behaviour.get("verify_args")
+        _verify_args = _context.get_usage("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 

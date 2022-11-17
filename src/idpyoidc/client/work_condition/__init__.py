@@ -1,3 +1,4 @@
+from functools import cmp_to_key
 from typing import Callable
 from typing import Optional
 
@@ -5,6 +6,7 @@ from cryptojwt.jwe import SUPPORTED
 from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.utils import importer
 
+from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.service import Service
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import qualified_name
@@ -46,13 +48,13 @@ class WorkCondition(ImpExp):
         self._local = {}
         self.callback = {}
 
-    def get_usage(self):
+    def get_use(self):
         return self.use
 
-    def set_usage_claim(self, key, value):
+    def set_usage(self, key, value):
         self.use[key] = value
 
-    def get_usage_claim(self, key, default=None):
+    def get_usage(self, key, default=None):
         return self.use.get(key, default)
 
     def get_preference(self, key, default=None):
@@ -63,7 +65,7 @@ class WorkCondition(ImpExp):
 
     def _callback_uris(self, base_url, hex):
         _uri = []
-        for type in self.get_usage_claim("response_types",
+        for type in self.get_usage("response_types",
                                          self._supports['response_types']):
             if "code" in type:
                 _uri.append('code')
@@ -86,6 +88,7 @@ class WorkCondition(ImpExp):
             callbacks = self._callback_uris(base_url, hex)
 
         if callbacks:
+            self.set_preference('callbacks', callbacks)
             self.set_preference("redirect_uris", [v for k, v in callbacks.items()])
 
         self.callback = callbacks
@@ -96,19 +99,14 @@ class WorkCondition(ImpExp):
     def locals(self, info):
         pass
 
-    def load_conf(self, info):
+    def load_conf(self, info, supports):
         for attr, val in info.items():
             if attr == "preference":
                 for k, v in val.items():
-                    if k in self._supports:
+                    if k in supports:
                         self.set_preference(k, v)
-            elif attr in self._supports:
+            elif attr in supports:
                 self.set_preference(attr, val)
-
-        # # defaults if nothing else is given
-        # for key, default in self._supports.items():
-        #     if default and key not in self.prefer:
-        #         self.set_preference(key, default)
 
         self.locals(info)
         self.verify_rules()
@@ -135,10 +133,39 @@ class WorkCondition(ImpExp):
                 res[key] = val
         return res
 
+    def supported(self, claim):
+        return claim in self._supports
+
+    def prefers(self):
+        return self.prefer
+
+
+SIGNING_ALGORITHM_SORT_ORDER = ['RS', 'ES', 'PS', 'HS']
+
+
+def cmp(a, b):
+    return (a > b) - (a < b)
+
+
+def alg_cmp(a, b):
+    if a == 'none':
+        return 1
+    elif b == 'none':
+        return -1
+
+    _pos1 = SIGNING_ALGORITHM_SORT_ORDER.index(a[0:2])
+    _pos2 = SIGNING_ALGORITHM_SORT_ORDER.index(b[0:2])
+    if _pos1 == _pos2:
+        return (a > b) - (a < b)
+    elif _pos1 > _pos2:
+        return 1
+    else:
+        return -1
+
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    return list(SIGNER_ALGS.keys())
+    return sorted(list(SIGNER_ALGS.keys()), key=cmp_to_key(alg_cmp))
 
 
 def get_encryption_algs():
@@ -147,3 +174,7 @@ def get_encryption_algs():
 
 def get_encryption_encs():
     return SUPPORTED['enc']
+
+
+def get_client_authn_methods():
+    return list(CLIENT_AUTHN_METHOD.keys())

@@ -10,8 +10,13 @@ class WorkCondition(work_condition.WorkCondition):
         "requests_dir": None
     })
 
-    supports = {
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
+    _supports = {
+        "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
+        "id_token_signing_alg_values_supported": work_condition.get_signing_algs,
+        "id_token_encryption_alg_values_supported": work_condition.get_encryption_algs,
+        "id_token_encryption_enc_values_supported": work_condition.get_encryption_encs,
+        "acr_values_supported": None,
+        "subject_types_supported": ["public", "pairwise", "ephemeral"],
         "application_type": "web",
         "contacts": None,
         "client_name": None,
@@ -23,17 +28,15 @@ class WorkCondition(work_condition.WorkCondition):
         "jwks_uri": None,
         "sector_identifier_uri": None,
         "subject_type": None,
-        "id_token_signed_response_alg": work_condition.get_signing_algs,
-        "id_token_encrypted_response_alg": work_condition.get_encryption_algs,
-        "id_token_encrypted_response_enc": work_condition.get_encryption_encs,
         "default_max_age": None,
         "require_auth_time": None,
         "initiate_login_uri": None,
-        "default_acr_values": None,
         "client_id": None,
         "client_secret": None,
         "scope": ["openid"],
         #  "verify_args": None,
+        "requests_dir": None,
+        "encrypt_id_token": None
     }
 
     def __init__(self,
@@ -47,10 +50,6 @@ class WorkCondition(work_condition.WorkCondition):
             raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'."
                              " you can't have both.")
 
-        # default is jwks_uri
-        if not self.get_preference("jwks") and not self.get_preference('jwks_uri'):
-            self.set_preference('jwks_uri', True)
-
     def locals(self, info):
         requests_dir = info.get("requests_dir")
         if requests_dir:
@@ -59,3 +58,4 @@ class WorkCondition(work_condition.WorkCondition):
                 os.makedirs(requests_dir)
 
             self.set("requests_dir", requests_dir)
+
