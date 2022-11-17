@@ -95,7 +95,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             try:
                 passwd = request["client_secret"]
             except KeyError:
-                passwd = service.client_get("service_context").client_secret
+                passwd = service.client_get("service_context").get_usage('client_secret')
         return passwd
 
     @staticmethod
@@ -220,9 +220,8 @@ class ClientSecretPost(ClientSecretBasic):
             try:
                 request["client_secret"] = kwargs["client_secret"]
             except (KeyError, TypeError):
-                if _context.client_secret:
-                    request["client_secret"] = _context.client_secret
-                else:
+                request["client_secret"] = _context.get_usage('client_secret')
+                if not request["client_secret"]:
                     raise AuthnFailure("Missing client secret")
 
         # Set the client_id in the the request
@@ -458,30 +457,26 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         return signing_key
 
-    def _get_audience_and_algorithm(self, context, entity, **kwargs):
+    def _get_audience_and_algorithm(self, context, **kwargs):
         algorithm = None
 
         # audience for the signed JWT depends on which endpoint
         # we're talking to.
         if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
-            _alg = context.registration_response.get("token_endpoint_auth_signing_alg")
-            if _alg:
-                algorithm = _alg
-            else:
-                algorithm = entity.get_metadata_claim("token_endpoint_auth_signing_alg")
-                if algorithm is None:
-                    _pi = context.provider_info
-                    try:
-                        algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
-                    except KeyError:
-                        algorithm = "RS256"  # default
-                    else:
-                        for alg in algs:  # pick the first one I support and have keys for
-                            if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
-                                    alg, context
-                            ):
-                                algorithm = alg
-                                break
+            algorithm = context.get_usage("token_endpoint_auth_signing_alg")
+            if algorithm is None:
+                _pi = context.provider_info
+                try:
+                    algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
+                except KeyError:
+                    algorithm = "RS256"  # default
+                else:
+                    for alg in algs:  # pick the first one I support and have keys for
+                        if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
+                                alg, context
+                        ):
+                            algorithm = alg
+                            break
 
             audience = context.provider_info["token_endpoint"]
         else:
@@ -493,8 +488,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def _construct_client_assertion(self, service, **kwargs):
         _context = service.client_get("service_context")
-        _entity = service.client_get("entity")
-        audience, algorithm = self._get_audience_and_algorithm(_context, _entity, **kwargs)
+        audience, algorithm = self._get_audience_and_algorithm(_context, **kwargs)
 
         if "kid" in kwargs:
             signing_key = self._get_signing_key(algorithm, _context, kid=kwargs["kid"])
@@ -511,7 +505,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
-        return assertion_jwt(_entity.get_client_id(), signing_key, audience, algorithm, **_args)
+        return assertion_jwt(_context.get_usage('client_id'), signing_key, audience, algorithm,
+                             **_args)
 
     def modify_request(self, request, service, **kwargs):
         """

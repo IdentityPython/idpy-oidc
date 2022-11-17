@@ -20,7 +20,6 @@ class Registration(Service):
     request_body_type = "json"
     http_method = "POST"
 
-    usage_to_uri_map = {}
     callback_path = {}
 
     def __init__(self, client_get, conf=None):
@@ -70,7 +69,7 @@ class Registration(Service):
         _context.registration_response = resp
         _client_id = resp.get("client_id")
         if _client_id:
-            _context.work_condition.set_usage_claim("client_id", _client_id)
+            _context.work_condition.set_usage("client_id", _client_id)
             if _client_id not in _keyjar:
                 _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
             _client_secret = resp.get("client_secret")

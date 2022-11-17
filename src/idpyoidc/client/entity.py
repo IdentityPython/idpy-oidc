@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 from typing import Optional
@@ -6,7 +5,6 @@ from typing import Union
 
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
-from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.configure import Configuration
@@ -18,7 +16,7 @@ from idpyoidc.client.service_context import ServiceContext
 
 logger = logging.getLogger(__name__)
 
-rt2gt = {
+RESPONSE_TYPES2GRANT_TYPES = {
     "code": ["authorization_code"],
     "id_token": ["implicit"],
     "id_token token": ["implicit"],
@@ -35,7 +33,7 @@ def response_types_to_grant_types(response_types):
         _rt = response_type.split(" ")
         _rt.sort()
         try:
-            _gt = rt2gt[" ".join(_rt)]
+            _gt = RESPONSE_TYPES2GRANT_TYPES[" ".join(_rt)]
         except KeyError:
             logger.warning("No such response type combination: {}".format(response_types))
         else:
@@ -44,40 +42,30 @@ def response_types_to_grant_types(response_types):
     return list(_res)
 
 
-def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
+def _set_jwks(service_context, config: Configuration, keyjar: Optional[KeyJar]):
+    _key_conf = config.get("key_conf") or config.conf.get('key_conf')
+
+    if _key_conf:
+        keys_args = {k: v for k, v in _key_conf.items() if k != "uri_path"}
+        _keyjar = init_key_jar(**keys_args)
+        service_context.set_preference("jwks", _keyjar.export_jwks())
+    elif keyjar:
+        service_context.set_preference("jwks", keyjar.export_jwks())
+
+
+def set_jwks_uri_or_jwks(service_context, config, jwks_uri, keyjar):
     # lots of different ways to configure the RP's keys
     if jwks_uri:
-        entity.set_support("jwks_uri", True)
-        entity.set_metadata_claim("jwks_uri", jwks_uri)
+        service_context.set_preference("jwks_uri", jwks_uri)
     else:
         if config.get("jwks_uri"):
-            entity.set_support("jwks_uri", True)
-            entity.set_support("jwks", False)
-        elif config.get("jwks"):
-            entity.set_support("jwks", True)
-            entity.set_support("jwks_uri", False)
+            service_context.set_preference("jwks_uri", jwks_uri)
         else:
-            entity.set_support("jwks_uri", False)
-            if config.get("key_conf"):
-                keys_args = {k: v for k, v in config.get("key_conf").items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-                entity.set_support("jwks", True)
-                entity.set_metadata_claim("jwks", _keyjar.export_jwks())
-                return
-            elif keyjar:
-                entity.set_support("jwks", True)
-                entity.set_metadata_claim("jwks", keyjar.export_jwks())
-                return
-
-        for attr in ["jwks_uri", "jwks"]:
-            if entity.will_use(attr):
-                _val = getattr(service_context, attr)
-                if _val:
-                    entity.set_metadata_claim(attr, _val)
-                    return
+            _set_jwks(service_context, config, keyjar)
 
 
 class Entity(object):
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -118,21 +106,22 @@ class Entity(object):
             else:
                 _srvs = DEFAULT_OIDC_SERVICES
 
-        self._service = init_services(service_definitions=_srvs, client_get=self.client_get,
-                                      metadata=config.conf.get("metadata", {}),
-                                      support=config.conf.get("support", {}))
+        self._service = init_services(service_definitions=_srvs, client_get=self.client_get)
 
         self.setup_client_authn_methods(config)
 
-        jwks_uri = jwks_uri or self.get_metadata_claim("jwks_uri")
-        set_jwks_uri_or_jwks(self, self._service_context, config, jwks_uri, _kj)
+        jwks_uri = jwks_uri or self._service_context.get("jwks_uri")
+        set_jwks_uri_or_jwks(self._service_context, config, jwks_uri, self._service_context.keyjar)
 
         # Deal with backward compatibility
         self.backward_compatibility(config)
 
-        self.construct_uris(self._service_context.issuer,
-                            self._service_context.hash_seed,
-                            config.conf.get("callback"))
+        self._service_context.work_condition.load_conf(config.conf,
+                                                       supports=self._service_context.supports())
+
+        self._service_context.construct_uris(self._service_context.issuer,
+                                             self._service_context.hash_seed,
+                                             config.conf.get("callback"))
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
@@ -163,7 +152,11 @@ class Entity(object):
         return self
 
     def get_client_id(self):
-        return self._service_context.work_condition.get_usage_claim('client_id')
+        _val = self._service_context.work_condition.get_usage('client_id')
+        if _val:
+            return _val
+        else:
+            return self._service_context.work_condition.get_preference('client_id')
 
     def setup_client_authn_methods(self, config):
         self._service_context.client_authn_method = client_auth_setup(
@@ -171,29 +164,18 @@ class Entity(object):
         )
 
     def backward_compatibility(self, config):
+        _work_condition = self._service_context.work_condition
         _uris = config.get("redirect_uris")
         if _uris:
-            self.set_metadata_claim("redirect_uris", _uris)
+             _work_condition.set_preference("redirect_uris", _uris)
 
         _dir = config.conf.get("requests_dir")
         if _dir:
-            authz_serv = self.get_service('authorization')
-            if authz_serv:  # If this isn't true that's weird. Tests perhaps ?
-                self.set_support("request_uri", True)
-                if not os.path.isdir(_dir):
-                    os.makedirs(_dir)
-                authz_serv.callback_path["request_uris"] = _dir
+            _work_condition.set_preference('requests_dir', _dir)
 
         _pref = config.get("client_preferences", {})
         for key, val in _pref.items():
-            if self.set_metadata_claim(key, val) is False:
-                if self.set_support(key, val) is False:
-                    setattr(self, key, val)
-
-        for key, val in config.conf.items():
-            if key not in ["port", "domain", "httpc_params", "metadata", "client_preferences",
-                           "support", "services", "add_ons"]:
-                self.extra[key] = val
+            _work_condition.set_preference(key, val)
 
         auth_request_args = config.conf.get("request_args", {})
         if auth_request_args:
@@ -204,18 +186,25 @@ class Entity(object):
         res = {}
         for id, service in self._service.items():
             res[id] = {
-                "metadata": service.metadata_claims,
-                "support": service.can_support
+                "preference": service.supports(),
             }
         res[""] = {
-            "metadata": self._service_context.work_condition.metadata_claims,
-            "support": self._service_context.work_condition.can_support
+            "preference": self._service_context.work_condition.supports,
         }
         return res
 
     def get_callback_uris(self):
         res = []
         for service in self._service.values():
-            res.extend(service.callback_uris)
-        res.extend(self._service_context.work_condition.callback_uris)
+            for _callback in service.callback_uris():
+                _uri = self._service_context.work_condition.get_preference(_callback)
+                if _uri:
+                    res[_callback] = _uri
+        # res.extend(self._service_context.work_condition.callback_uris)
         return res
+
+    def prefers(self):
+        return self._service_context.work_condition.prefers()
+
+    def use(self):
+        return self._service_context.work_condition.get_use()

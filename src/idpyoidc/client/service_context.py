@@ -4,6 +4,7 @@ common between all the services that are used by OAuth2 client or OpenID Connect
 """
 import copy
 import hashlib
+import logging
 from typing import Callable
 from typing import Optional
 from typing import Union
@@ -24,6 +25,10 @@ from .state_interface import StateInterface
 from .work_condition import work_condition_dump
 from .work_condition import work_condition_load
 from .work_condition import WorkCondition
+from .work_condition.transform import preferred_to_register
+from .work_condition.transform import supported_to_preferred
+
+logger = logging.getLogger(__name__)
 
 CLI_REG_MAP = {
     "userinfo": {
@@ -67,7 +72,6 @@ DEFAULT_VALUE = {
     "client_id": "",
     "redirect_uris": [],
     "provider_info": {},
-    "behaviour": {},
     "callback": {},
     "issuer": ""
 }
@@ -113,7 +117,7 @@ class ServiceContext(OidcContext):
     }
 
     def __init__(self,
-                 client_get: Callable,
+                 client_get: Optional[Callable] = None,
                  base_url: Optional[str] = "",
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
@@ -145,24 +149,20 @@ class ServiceContext(OidcContext):
         self.issuer = ""
         self.httpc_params = {}
         self.callback = {}
-        self.client_secret = ""
         self.client_secret_expires_at = 0
         self.provider_info = {}
         # self.post_logout_redirect_uri = ""
         # self.redirect_uris = []
         self.registration_response = {}
-        self.requests_dir = ""
+        # self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
 
-        for param in [
-            "client_secret",
-            "provider_info"
-        ]:
-            _val = config.conf.get(param, _def_value[param])
-            self.set(param, _val)
-            if param == "client_secret" and _val:
-                self.keyjar.add_symmetric("", _val)
+        _val = config.conf.get("client_secret")
+        if _val:
+            self.keyjar.add_symmetric("", _val)
+
+        self.provider_info = config.conf.get("provider_info", {})
 
         _issuer = config.get("issuer")
         if _issuer:
@@ -177,8 +177,6 @@ class ServiceContext(OidcContext):
 
         for key, val in kwargs.items():
             setattr(self, key, val)
-
-        self.work_condition.load_conf(config.conf)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -228,18 +226,28 @@ class ServiceContext(OidcContext):
                     _bundle = KeyBundle(source=url)
                     self.keyjar.add_kb(iss, _bundle)
 
+    def _get_crypt(self, typ, attr):
+        _item_typ = CLI_REG_MAP.get(typ)
+        _alg = ''
+        if _item_typ:
+            _alg = self.work_condition.get_usage(_item_typ[attr])
+            if not _alg:
+                _alg = self.work_condition.get_preference(_item_typ[attr])
+
+        if not _alg:
+            _item_typ = PROVIDER_INFO_MAP.get(typ)
+            if _item_typ:
+                _alg = self.provider_info.get(_item_typ[attr])
+
+        return _alg
+
     def get_sign_alg(self, typ):
         """
 
         :param typ: ['id_token', 'userinfo', 'request_object']
-        :return:
+        :return: signing algorithm
         """
-
-        _alg = self.work_condition.get_usage_claim(CLI_REG_MAP[typ]["sign"])
-        if not _alg:
-            _alg = self.provider_info.get(PROVIDER_INFO_MAP[typ]["sign"])
-
-        return _alg
+        return self._get_crypt(typ, 'sign')
 
     def get_enc_alg_enc(self, typ):
         """
@@ -250,10 +258,7 @@ class ServiceContext(OidcContext):
 
         res = {}
         for attr in ["enc", "alg"]:
-            _alg = self.work_condition.get_usage_claim(CLI_REG_MAP[typ][attr])
-            if not _alg:
-                _alg = self.provider_info.get(PROVIDER_INFO_MAP[typ][attr])
-            res[attr] = _alg
+            res[attr] = self._get_crypt(typ, attr)
 
         return res
 
@@ -264,36 +269,39 @@ class ServiceContext(OidcContext):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.work_condition.get_usage_claim("client_id")
+        return self.work_condition.get_usage("client_id")
 
     def collect_usage(self):
-        services = self. client_get('services')
-        res = {}
-        for service in services.values():
-            res.update(service.use)
-        res.update(self.work_condition.use)
-        return res
+        return self.work_condition.use
 
     def supports(self):
-        services = self.client_get('services')
         res = {}
-        for service in services.values():
-            res.update(service.supports())
+        if self.client_get:
+            services = self.client_get('services')
+            for service in services.values():
+                res.update(service.supports())
         res.update(self.work_condition.supports())
         return res
 
     def prefers(self):
-        services = self.client_get('services')
-        res = {}
-        for service in services.values():
-            res.update(service.prefer)
-        res.update(self.work_condition.prefer)
-        return res
+        return self.work_condition.prefer
+
+    def get_preference(self, claim, default=None):
+        return self.work_condition.get_preference(claim)
+
+    def set_preference(self, key, value):
+        self.work_condition.set_preference(key, value)
+
+    def get_usage(self, claim, default: Optional[str] = None):
+        return self.work_condition.get_usage(claim, default)
+
+    def set_usage(self, claim, value):
+        return self.work_condition.set_usage(claim, value)
 
     def construct_uris(self,
                        issuer: str,
                        hash_seed: bytes,
-                       callback: Optional[dict]):
+                       callback: Optional[dict] = None):
         _hash = hashlib.sha256()
         _hash.update(hash_seed)
         _hash.update(as_bytes(issuer))
@@ -302,9 +310,35 @@ class ServiceContext(OidcContext):
         self.iss_hash = _hex
 
         _base_url = self.get("base_url")
-        services = self.client_get('services')
-        for service in services.values():
-            service.construct_uris(_base_url, _hex)
+        if self.client_get:
+            services = self.client_get('services')
+            for service in services.values():
+                service.construct_uris(base_url=_base_url, hex=_hex,
+                                       preference=self.work_condition.prefer)
 
-        if not self.work_condition.get_usage_claim("redirect_uris"):
-            self.work_condition.construct_redirect_uris(_base_url, _hex, callback)
+        # if not self.work_condition.get_usage("redirect_uris"):
+        #     self.work_condition.construct_redirect_uris(_base_url, _hex, callback)
+
+    def prefer_or_support(self, claim):
+        if claim in self.work_condition.prefer:
+            return 'prefer'
+        else:
+            for service in self.client_get('services').values():
+                _res = service.prefer_or_support(claim)
+                if _res:
+                    return _res
+
+        if claim in self.work_condition.supported(claim):
+            return 'support'
+        return None
+
+    def map_supported_to_preferred(self, info: Optional[dict] = None):
+        self.work_condition.prefer = supported_to_preferred(self.supports(),
+                                                            self.work_condition.prefer,
+                                                            info)
+        return self.work_condition.prefer
+
+    def map_preferred_to_register(self):
+        self.work_condition.use = preferred_to_register(self.work_condition.prefer,
+                                                        self.work_condition.use)
+        return self.work_condition.use

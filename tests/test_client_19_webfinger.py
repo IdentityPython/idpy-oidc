@@ -15,8 +15,6 @@ from idpyoidc.message.oidc import Link
 
 __author__ = "Roland Hedberg"
 
-SERVICE_CONTEXT = ServiceContext(base_url="https://example.com")
-
 ENTITY = Entity(config={"base_url":"https://example.com"})
 
 

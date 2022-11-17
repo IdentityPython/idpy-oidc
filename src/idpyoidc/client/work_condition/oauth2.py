@@ -4,11 +4,12 @@ from idpyoidc.client import work_condition
 
 
 class WorkCondition(work_condition.WorkCondition):
-    metadata_claims = {
+    _supports = {
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
         "client_id": None,
+        'client_secret': None,
         "client_name": None,
         "client_uri": None,
         "logo_uri": None,
@@ -22,25 +23,12 @@ class WorkCondition(work_condition.WorkCondition):
         "software_version": None
     }
 
-    rules = {
-        "jwks": None,
-        "jwks_uri": None,
-        "scope": ["openid"],
-        "verify_args": None,
-    }
 
-    callback_path = {
-        "requests": "req",
-        "code": "authz_cb",
-        "implicit": "authz_im_cb",
-    }
+    callback_path = {}
 
     callback_uris = ["redirect_uris"]
 
     def __init__(self,
-                 metadata: Optional[dict] = None,
-                 support: Optional[dict] = None,
-                 behaviour: Optional[dict] = None
-                 ):
-        work_condition.WorkCondition.__init__(self, metadata=metadata, support=support,
-                                              behaviour=behaviour)
+                 prefer: Optional[dict] = None,
+                 callback_path: Optional[dict] = None):
+        work_condition.WorkCondition.__init__(self, prefer=prefer, callback_path=callback_path)

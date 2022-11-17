@@ -7,9 +7,9 @@ from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
-from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 
+# from idpyoidc.defaults import PREFERENCE2SUPPORTED
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import ClientRegistrationErrorResponse
@@ -24,25 +24,6 @@ from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import sanitize
 from idpyoidc.util import split_uri
-
-PREFERENCE2PROVIDER = {
-    # "require_signed_request_object": "request_object_algs_supported",
-    "request_object_signing_alg": "request_object_signing_alg_values_supported",
-    "request_object_encryption_alg": "request_object_encryption_alg_values_supported",
-    "request_object_encryption_enc": "request_object_encryption_enc_values_supported",
-    "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
-    "userinfo_encrypted_response_alg": "userinfo_encryption_alg_values_supported",
-    "userinfo_encrypted_response_enc": "userinfo_encryption_enc_values_supported",
-    "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
-    "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
-    "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
-    "default_acr_values": "acr_values_supported",
-    "subject_type": "subject_types_supported",
-    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
-    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
-    "response_types": "response_types_supported",
-    "grant_types": "grant_types_supported",
-}
 
 logger = logging.getLogger(__name__)
 
@@ -124,12 +105,13 @@ def comb_uri(args):
         args["request_uris"] = val
 
 
-def random_client_id(length: int = 16, reserved: list = [], **kwargs):
+def random_client_id(length: int = 16, reserved: list = None, **kwargs):
     # create new id och secret
     client_id = rndstr(16)
     # cdb client_id MUST be unique!
-    while client_id in reserved:
-        client_id = rndstr(16)
+    if reserved:
+        while client_id in reserved:
+            client_id = rndstr(16)
     return client_id
 
 
@@ -156,18 +138,18 @@ class Registration(Endpoint):
 
     def match_client_request(self, request):
         _context = self.server_get("endpoint_context")
-        for _pref, _prov in PREFERENCE2PROVIDER.items():
-            if _pref in request:
-                if _pref in ["response_types", "default_acr_values"]:
-                    if not match_sp_sep(request[_pref], _context.provider_info[_prov]):
-                        raise CapabilitiesMisMatch(_pref)
-                else:
-                    if isinstance(request[_pref], str):
-                        if request[_pref] not in _context.provider_info[_prov]:
-                            raise CapabilitiesMisMatch(_pref)
-                    else:
-                        if not set(request[_pref]).issubset(set(_context.provider_info[_prov])):
-                            raise CapabilitiesMisMatch(_pref)
+        # for _pref, _prov in PREFERENCE2SUPPORTED.items():
+        #     if _pref in request:
+        #         if _pref in ["response_types", "default_acr_values"]:
+        #             if not match_sp_sep(request[_pref], _context.provider_info[_prov]):
+        #                 raise CapabilitiesMisMatch(_pref)
+        #         else:
+        #             if isinstance(request[_pref], str):
+        #                 if request[_pref] not in _context.provider_info[_prov]:
+        #                     raise CapabilitiesMisMatch(_pref)
+        #             else:
+        #                 if not set(request[_pref]).issubset(set(_context.provider_info[_prov])):
+        #                     raise CapabilitiesMisMatch(_pref)
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
@@ -236,22 +218,22 @@ class Registration(Endpoint):
                     )
 
         # Do I have the necessary keys
-        for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
-            if item in request:
-                if request[item] in _context.provider_info[PREFERENCE2PROVIDER[item]]:
-                    ktyp = alg2keytype(request[item])
-                    # do I have this ktyp and for EC type keys the curve
-                    if ktyp not in ["none", "oct"]:
-                        _k = []
-                        for iss in ["", _context.issuer]:
-                            _k.extend(
-                                _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], issuer_id=iss
-                                )
-                            )
-                        if not _k:
-                            logger.warning('Lacking support for "{}"'.format(request[item]))
-                            del _cinfo[item]
+        # for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
+        #     if item in request:
+        #         if request[item] in _context.provider_info[PREFERENCE2SUPPORTED[item]]:
+        #             ktyp = alg2keytype(request[item])
+        #             # do I have this ktyp and for EC type keys the curve
+        #             if ktyp not in ["none", "oct"]:
+        #                 _k = []
+        #                 for iss in ["", _context.issuer]:
+        #                     _k.extend(
+        #                         _context.keyjar.get_signing_key(
+        #                             ktyp, alg=request[item], issuer_id=iss
+        #                         )
+        #                     )
+        #                 if not _k:
+        #                     logger.warning('Lacking support for "{}"'.format(request[item]))
+        #                     del _cinfo[item]
 
         t = {"jwks_uri": "", "jwks": None}
 

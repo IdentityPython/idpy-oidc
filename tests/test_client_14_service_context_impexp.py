@@ -1,6 +1,5 @@
 import json
 import os
-from urllib.parse import urlsplit
 
 import pytest
 import responses
@@ -19,36 +18,37 @@ def test_client_info_init():
         "base_url": BASE_URL,
         "requests_dir": "requests",
     }
-    ci = ServiceContext(config=config,client_type='oidc')
+    ci = ServiceContext(config=config, client_type='oidc')
+    ci.work_condition.load_conf(config, supports=ci.supports())
+    ci.map_supported_to_preferred()
+    ci.map_preferred_to_register()
 
     srvcnx = ServiceContext(base_url=BASE_URL).load(ci.dump())
 
     for attr in config.keys():
         if attr == "client_id":
             assert srvcnx.get_client_id() == config[attr]
-        elif attr == "requests_dir":
-            assert srvcnx.work_condition.get("requests_dir") == config[attr]
         else:
             try:
                 val = getattr(srvcnx, attr)
             except AttributeError:
-                val = srvcnx.get(attr)
+                val = srvcnx.get_usage(attr)
 
             assert val == config[attr]
 
 
 def test_set_and_get_client_secret():
     service_context = ServiceContext(base_url=BASE_URL)
-    service_context.client_secret = "longenoughsupersecret"
+    service_context.set_usage('client_secret', "longenoughsupersecret")
 
     srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
 
-    assert srvcnx2.client_secret == "longenoughsupersecret"
+    assert srvcnx2.get_usage('client_secret') == "longenoughsupersecret"
 
 
 def test_set_and_get_client_id():
     service_context = ServiceContext(base_url=BASE_URL)
-    service_context.work_condition.set_metadata_claim("client_id", "myself")
+    service_context.set_usage("client_id", "myself")
     srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
     assert srvcnx2.get_client_id() == "myself"
 
@@ -96,6 +96,7 @@ def verify_alg_support(service_context, alg, usage, typ):
 
 
 class TestClientInfo(object):
+
     @pytest.fixture(autouse=True)
     def create_client_info_instance(self):
         config = {
@@ -108,18 +109,17 @@ class TestClientInfo(object):
         self.service_context = ServiceContext(config=config)
 
     def test_registration_userinfo_sign_enc_algs(self):
-        self.service_context.work_condition.behaviour = {
-                "application_type": "web",
-                "redirect_uris": [
-                    "https://client.example.org/callback",
-                    "https://client.example.org/callback2",
-                ],
-                "token_endpoint_auth_method": "client_secret_basic",
-                "jwks_uri": "https://client.example.org/my_public_keys.jwks",
-                "userinfo_encrypted_response_alg": "RSA1_5",
-                "userinfo_encrypted_response_enc": "A128CBC-HS256",
-            }
-
+        self.service_context.work_condition.use = {
+            "application_type": "web",
+            "redirect_uris": [
+                "https://client.example.org/callback",
+                "https://client.example.org/callback2",
+            ],
+            "token_endpoint_auth_method": "client_secret_basic",
+            "jwks_uri": "https://client.example.org/my_public_keys.jwks",
+            "userinfo_encrypted_response_alg": "RSA1_5",
+            "userinfo_encrypted_response_enc": "A128CBC-HS256",
+        }
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
             self.service_context.dump(exclude_attributes=["service_context"])
@@ -128,7 +128,7 @@ class TestClientInfo(object):
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
 
     def test_registration_request_object_sign_enc_algs(self):
-        self.service_context.work_condition.behaviour = {
+        self.service_context.work_condition.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -150,7 +150,7 @@ class TestClientInfo(object):
         assert srvcntx.get_sign_alg("request_object") == "RS384"
 
     def test_registration_id_token_sign_enc_algs(self):
-        self.service_context.work_condition.behaviour = {
+        self.service_context.work_condition.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
