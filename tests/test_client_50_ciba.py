@@ -28,7 +28,7 @@ class TestDPoPWithoutUserinfo:
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
-            "behaviour": {"response_types": ["code"]},
+            "preference": {"response_types": ["code"]},
             "add_ons": {
                 "ciba": {
                     "function": "idpyoidc.client.oidc.add_on.ciba.add_support",

@@ -4,6 +4,9 @@ from typing import Union
 
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
+from idpyoidc.client.work_condition import get_encryption_algs
+from idpyoidc.client.work_condition import get_encryption_encs
+from idpyoidc.client.work_condition import get_signing_algs
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -38,10 +41,11 @@ class UserInfo(Service):
     default_authn_method = "bearer_header"
     http_method = "GET"
 
-    metadata_claims = {
-        "userinfo_signed_response_alg": None,
-        "userinfo_encrypted_response_alg": None,
-        "userinfo_encrypted_response_enc": None
+    _supports = {
+        "userinfo_signing_alg_values_supported": get_signing_algs,
+        "userinfo_encryption_alg_values_supported": get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": get_encryption_encs,
+        "encrypt_userinfo": None
     }
 
     def __init__(self, client_get, conf=None):

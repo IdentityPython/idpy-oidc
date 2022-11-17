@@ -5,6 +5,7 @@ from typing import Union
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
+from idpyoidc.client.work_condition import get_client_authn_methods
 from idpyoidc.client.work_condition import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -21,9 +22,9 @@ class AccessToken(access_token.AccessToken):
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
 
-    supports = {
-        "token_endpoint_auth_method": '',
-        "token_endpoint_auth_signing_alg": get_signing_algs
+    _supports = {
+        "token_endpoint_auth_methods_supported": get_client_authn_methods,
+        "token_endpoint_auth_signing_alg_values_supported": get_signing_algs
     }
 
     def __init__(self, client_get, conf: Optional[dict] = None):
@@ -61,7 +62,7 @@ class AccessToken(access_token.AccessToken):
         except KeyError:
             pass
 
-        _verify_args = _context.work_condition.behaviour.get("verify_args")
+        _verify_args = _context.work_condition.get_usage("verify_args")
         if _verify_args:
             if _verify_args:
                 kwargs.update(_verify_args)
@@ -91,6 +92,6 @@ class AccessToken(access_token.AccessToken):
     def get_authn_method(self):
         _work_condition = self.client_get("service_context").work_condition
         try:
-            return _work_condition.behaviour["token_endpoint_auth_method"]
+            return _work_condition.get_usage("token_endpoint_auth_method")
         except KeyError:
             return self.default_authn_method

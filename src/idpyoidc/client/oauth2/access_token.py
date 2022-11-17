@@ -3,6 +3,8 @@ import logging
 
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
+from idpyoidc.client.work_condition import get_client_authn_methods
+from idpyoidc.client.work_condition import get_signing_algs
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.time_util import time_sans_frac
@@ -24,13 +26,9 @@ class AccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
-    metadata_claims = {
-        "token_endpoint_auth_method": "client_secret_basic",
-        "token_endpoint_auth_signing_alg": "RS256"
-    }
-
-    usage_rules = {
-        "token_endpoint_auth_methods": None
+    _supports = {
+        "token_endpoint_auth_method": get_client_authn_methods,
+        "token_endpoint_auth_signing_alg": get_signing_algs,
     }
 
     def __init__(self, client_get, conf=None):

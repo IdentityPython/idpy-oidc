@@ -1,5 +1,7 @@
 """The service that talks to the OAuth2 Authorization endpoint."""
 import logging
+from typing import List
+from typing import Optional
 
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
@@ -24,6 +26,18 @@ class Authorization(Service):
     service_name = "authorization"
     response_body_type = "urlencoded"
 
+    _supports = {
+        "response_types": ["code"]
+    }
+
+    _callback_path = {
+        "redirect_uris": {  # based on response_types
+            "code": "authz_cb",
+            "implicit": "authz_im_cb",
+            # "form_post": "form"
+        }
+    }
+
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])
@@ -46,7 +60,7 @@ class Authorization(Service):
         if "redirect_uri" not in ar_args:
             try:
                 # ar_args["redirect_uri"] = self.client_get("service_context").redirect_uris[0]
-                ar_args["redirect_uri"] = self.client_get("entity").get_metadata_claim(
+                ar_args["redirect_uri"] = self.client_get("service_context").get_usage(
                     "redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")
@@ -78,3 +92,35 @@ class Authorization(Service):
                     except KeyError:
                         pass
         return response
+
+    def construct_uris(self, base_url: str, hex: bytes,
+                       targets: Optional[List[str]] = None,
+                       preference: Optional[dict] = None):
+        if not targets:
+            targets = list(self._callback_path.keys())
+
+        res = {}
+        for uri_name in targets:
+            spec = self._callback_path.get(uri_name)
+            if spec:
+                if uri_name == "redirect_uris":  # another layer
+                    _uris = []
+                    for typ, path in spec.items():
+                        add = False
+                        if 'response_type' in preference:
+                            if typ in preference['response_type']:
+                                add = True
+                        elif typ in preference:
+                            add = True
+                        elif 'response_type' in self._supports:
+                            if typ in self._supports['response_type']:
+                                add = True
+                        elif typ in self._supports:
+                            add = True
+
+                        if add:
+                            _uris.append(self.get_uri(base_url, path, hex))
+                    res[uri_name] = _uris
+                elif uri_name in preference or uri_name in self._supports:
+                    res[uri_name] = self.get_uri(base_url, spec, hex)
+            return res

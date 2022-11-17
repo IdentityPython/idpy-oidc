@@ -29,7 +29,7 @@ class TestDPoPWithoutUserinfo:
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
-            "behaviour": {"response_types": ["code"]},
+            "preference": {"response_types": ["code"]},
             "add_ons": {
                 "dpop": {
                     "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",
@@ -77,7 +77,7 @@ class TestDPoPWithUserinfo:
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
-            "behaviour": {"response_types": ["code"]},
+            "preference": {"response_types": ["code"]},
             "add_ons": {
                 "dpop": {
                     "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",

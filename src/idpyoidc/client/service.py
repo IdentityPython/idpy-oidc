@@ -2,6 +2,7 @@
 import json
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -12,8 +13,8 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
 from .configure import Configuration
 from .exception import ResponseError
@@ -75,8 +76,6 @@ class Service(ImpExp):
 
         self.client_get = client_get
         self.default_request_args = {}
-        self.prefer = conf.get("prefer", {})
-        self.use = {}
 
         if conf:
             self.conf = conf
@@ -117,10 +116,14 @@ class Service(ImpExp):
         """
         ar_args = kwargs.copy()
 
-        _entity = self.client_get("entity")
-        md = _entity.collect_metadata()
-
         _context = self.client_get("service_context")
+        _use = _context.collect_usage()
+        if not _use:
+            _use = _context.map_preferred_to_register()
+
+        if "request_args" in self.conf:
+            ar_args.update(self.conf["request_args"])
+
         # Go through the list of claims defined for the message class.
         # There are a couple of places where information can be found.
         # Access them in the order of priority
@@ -131,20 +134,10 @@ class Service(ImpExp):
             if prop in ar_args:
                 continue
 
-            if prop != "state":
-                val = _context.get(prop)
-            else:
-                val = ""
-
+            val = self.default_request_args.get(prop)
             if not val:
-                if "request_args" in self.conf:
-                    val = self.conf["request_args"].get(prop)
-                if not val:
-                    val = self.default_request_args.get(prop)
-                    if not val:
-                        val = _context.work_condition.behaviour.get(prop)
-                        if not val:
-                            val = md.get(prop)
+                val = _use.get(prop)
+
             if val:
                 ar_args[prop] = val
 
@@ -630,52 +623,39 @@ class Service(ImpExp):
                 res[key] = val
         return res
 
-    # def get_conf_attr(self, attr, default=None):
-    #     """
-    #     Get the value of an attribute in the configuration
-    #
-    #     :param attr: The attribute
-    #     :param default: If the attribute doesn't appear in the configuration
-    #         return this value
-    #     :return: The value of attribute in the configuration or the default
-    #         value
-    #     """
-    #     if attr in self.conf:
-    #         return self.conf[attr]
-    #
-    #     return default
-
     def get_callback_path(self, callback):
-        return self.callback_path.get(callback)
+        return self._callback_path.get(callback)
 
     @staticmethod
     def get_uri(base_url, path, hex):
         return f"{base_url}/{path}/{hex}"
 
-    def construct_uris(self, base_url, hex):
-        for activity, _support in self.support.items():
-            if _support:
-                uri = self.support_to_uri.get(activity)
-                if uri and uri not in self.metadata:
-                    self.metadata[uri] = self.get_uri(base_url, self.callback_path[uri], hex)
+    def construct_uris(self, base_url: str, hex: bytes,
+                       targets: Optional[List[str]] = None,
+                       preference: Optional[dict] = None):
+        if not targets:
+            targets = self._callback_path.keys()
+        res = {}
+        for uri in targets:
+            _path = self._callback_path.get(uri)
+            if _path:
+                res[uri] = self.get_uri(base_url, _path, hex)
+        return res
 
-    def get_metadata_claim(self, claim, default=None):
-        try:
-            return self.metadata[claim]
-        except KeyError:
-            return default
+    def supported(self, claim):
+        return claim in self._supports
 
-    def set_metadata_claim(self, key, value):
-        self.metadata[key] = value
+    def callback_uris(self):
+        return list(self._callback_path.keys())
 
 
-def init_services(service_definitions, client_get, metadata, support):
+
+def init_services(service_definitions, client_get):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
     :param client_get: A function that returns different things from the base entity.
-    :param support: What facets of the service that can be used
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
@@ -693,14 +673,6 @@ def init_services(service_definitions, client_get, metadata, support):
             _srv = _cls(**kwargs)
         else:
             _srv = service_configuration["class"](**kwargs)
-
-        for key, val in metadata.items():
-            if key in _srv.metadata_claims and key not in _srv.metadata:
-                _srv.metadata[key] = val
-
-        for key, val in support.items():
-            if key in _srv.can_support and key not in _srv.support:
-                _srv.support[key] = val
 
         service[_srv.service_name] = _srv
 

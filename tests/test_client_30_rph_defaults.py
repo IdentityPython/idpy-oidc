@@ -91,7 +91,7 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.work_condition.behaviour.keys()) == {
+        assert set(_context.work_condition.use.keys()) == {
             "token_endpoint_auth_method",
             "response_types",
             "scope",

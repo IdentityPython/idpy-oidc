@@ -7,7 +7,7 @@ def test_load_registration_response():
         "redirect_uris": ["https://example.com/cli/authz_cb"],
         "client_id": "client_1",
         "client_secret": "abcdefghijklmnop",
-        "registration_response": {"issuer": "https://example.com"},
+        "issuer": "https://example.com",
     }
     client = RP(config=conf)
 

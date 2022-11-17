@@ -1,25 +1,24 @@
 import base64
 import os
-from urllib.parse import quote_plus
 
 import pytest
 from cryptojwt.exception import MissingKey
 from cryptojwt.jwk.rsa import new_rsa_key
-from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
+from cryptojwt.jws.jws import JWS
 from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 
+from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import AuthnFailure
+from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import BearerBody
 from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.client_auth import ClientSecretBasic
 from idpyoidc.client.client_auth import ClientSecretJWT
 from idpyoidc.client.client_auth import ClientSecretPost
 from idpyoidc.client.client_auth import PrivateKeyJWT
-from idpyoidc.client.client_auth import assertion_jwt
-from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
 from idpyoidc.defaults import JWT_BEARER
@@ -48,7 +47,12 @@ def _eq(l1, l2):
 
 @pytest.fixture
 def entity():
-    return Entity(config=CLIENT_CONF)
+    entity = Entity(config=CLIENT_CONF, client_type='oidc')
+    # The following two lines is necessary since they replace provider info collection and
+    # client registration.
+    entity.get_service_context().map_supported_to_preferred()
+    entity.get_service_context().map_preferred_to_register()
+    return entity
 
 
 def test_quote():
@@ -60,15 +64,17 @@ def test_quote():
     )
 
     assert (
-        http_args["headers"]["Authorization"] == "Basic "
-                                                 'Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg='
+            http_args["headers"]["Authorization"] == "Basic "
+                                                     'Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg='
     )
 
 
 class TestClientSecretBasic(object):
+
     def test_construct(self, entity):
         _token_service = entity.client_get("service", "accesstoken")
-        request = _token_service.construct(redirect_uri="http://example.com", state="ABCDE")
+        request = _token_service.construct(request_args={'redirect_uri': "http://example.com",
+                                                         'state': "ABCDE"})
 
         csb = ClientSecretBasic()
         http_args = csb.construct(request, _token_service)
@@ -102,6 +108,7 @@ class TestClientSecretBasic(object):
 
 
 class TestBearerHeader(object):
+
     def test_construct(self, entity):
         request = ResourceRequest(access_token="Sesame")
         bh = BearerHeader()
@@ -173,6 +180,7 @@ class TestBearerHeader(object):
 
 
 class TestBearerBody(object):
+
     def test_construct(self, entity):
         _token_service = entity.client_get("service", "accesstoken")
         request = ResourceRequest(access_token="Sesame")
@@ -227,6 +235,7 @@ class TestBearerBody(object):
 
 
 class TestClientSecretPost(object):
+
     def test_construct(self, entity):
         _token_service = entity.client_get("service", "accesstoken")
         request = _token_service.construct(redirect_uri="http://example.com", state="ABCDE")
@@ -258,13 +267,14 @@ class TestClientSecretPost(object):
         csp = ClientSecretPost()
         # client secret not in request or kwargs
         del request["client_secret"]
-        token_service.client_get("service_context").client_secret = ""
+        token_service.client_get("service_context").set_usage('client_secret', "")
         # this will fail
         with pytest.raises(AuthnFailure):
-            http_args = csp.construct(request, service=token_service)
+            csp.construct(request, service=token_service)
 
 
 class TestPrivateKeyJWT(object):
+
     def test_construct(self, entity):
         token_service = entity.client_get("service", "accesstoken")
         kb_rsa = KeyBundle(
@@ -320,6 +330,7 @@ class TestPrivateKeyJWT(object):
 
 
 class TestClientSecretJWT_TE(object):
+
     def test_client_secret_jwt(self, entity):
         _service_context = entity.client_get("service_context")
         _service_context.token_endpoint = "https://example.com/token"
@@ -329,7 +340,7 @@ class TestClientSecretJWT_TE(object):
             "token_endpoint": "https://example.com/token",
         }
 
-        _service_context.registration_response = {"token_endpoint_auth_signing_alg": "HS256"}
+        _service_context.set_usage("token_endpoint_auth_signing_alg", "HS256")
 
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
@@ -345,7 +356,7 @@ class TestClientSecretJWT_TE(object):
 
         _kj = KeyJar()
         _kj.add_symmetric(_service_context.get_client_id(),
-                          _service_context.client_secret, ["sig"])
+                          _service_context.get_usage('client_secret'), ["sig"])
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "exp", "iat", "jti"])
 
@@ -365,7 +376,7 @@ class TestClientSecretJWT_TE(object):
             "token_endpoint": "https://example.com/token",
         }
 
-        _service_context.registration_response = {"token_endpoint_auth_signing_alg": "HS256"}
+        _service_context.set_usage("token_endpoint_auth_signing_alg", "HS256")
 
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
@@ -387,7 +398,7 @@ class TestClientSecretJWT_TE(object):
             "token_endpoint": "https://example.com/token",
         }
 
-        _service_context.registration_response = {"token_endpoint_auth_signing_alg": "HS256"}
+        _service_context.set_usage("token_endpoint_auth_signing_alg", "HS256")
 
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
@@ -406,7 +417,7 @@ class TestClientSecretJWT_TE(object):
             "token_endpoint": "https://example.com/token",
         }
 
-        _service_context.registration_response = {"token_endpoint_auth_signing_alg": "HS256"}
+        _service_context.set_usage("token_endpoint_auth_signing_alg", "RS256")
 
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
@@ -429,7 +440,7 @@ class TestClientSecretJWT_TE(object):
 
         # By client preferences
         request = AccessTokenRequest()
-        entity.set_metadata_claim("token_endpoint_auth_signing_alg", "RS512")
+        _service_context.set_usage("token_endpoint_auth_signing_alg", "RS512")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
         _jws = factory(request["client_assertion"])
@@ -439,7 +450,7 @@ class TestClientSecretJWT_TE(object):
         # Use provider information is everything else fails
         request = AccessTokenRequest()
         # Can't use set_metadata_value since it won't allow me to overwrite a non-default value
-        token_service.metadata["token_endpoint_auth_signing_alg"] = None
+        _service_context.set_usage("token_endpoint_auth_signing_alg", None)
         _service_context.provider_info["token_endpoint_auth_signing_alg_values_supported"] = [
             "ES256",
             "RS256",
@@ -453,6 +464,7 @@ class TestClientSecretJWT_TE(object):
 
 
 class TestClientSecretJWT_UI(object):
+
     def test_client_secret_jwt(self, entity):
         access_token_service = entity.client_get("service", "accesstoken")
 
@@ -475,7 +487,7 @@ class TestClientSecretJWT_UI(object):
 
         _kj = KeyJar()
         _kj.add_symmetric(_service_context.get_client_id(),
-                          _service_context.client_secret, usage=["sig"])
+                          _service_context.get_usage('client_secret'), usage=["sig"])
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 
@@ -488,6 +500,7 @@ class TestClientSecretJWT_UI(object):
 
 
 class TestValidClientInfo(object):
+
     def test_valid_service_context(self, entity):
         _service_context = entity.client_get("service_context")
 
