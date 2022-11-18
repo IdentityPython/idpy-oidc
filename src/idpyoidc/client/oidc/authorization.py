@@ -325,10 +325,9 @@ class Authorization(authorization.Authorization):
                 except KeyError:
                     pass
 
-        try:
-            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
-        except KeyError:
-            pass
+        _allow = _context.allow.get("missing_kid")
+        if _allow:
+            kwargs["allow_missing_kid"] = _allow
 
         _verify_args = _context.get_usage("verify_args")
         if _verify_args:

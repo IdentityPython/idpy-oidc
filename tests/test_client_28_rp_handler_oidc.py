@@ -4,16 +4,16 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
+from cryptojwt.key_jar import init_key_jar
 import pytest
 import responses
-from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
-from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
@@ -112,9 +112,9 @@ CLIENT_CONFIG = {
         "client_secret": "aaaaaaaaaaaaaaaaaaaa",
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
         "preference": {
-            "response_types": ["code"],
+            "response_types_supported": ["code"],
             "scope": ["user", "public_repo"],
-            "token_endpoint_auth_method": "",
+            "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
         "provider_info": {
@@ -127,10 +127,7 @@ CLIENT_CONFIG = {
                 "class": "idpyoidc.client.oidc.authorization.Authorization",
             },
             "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
-            "userinfo": {
-                "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-                "kwargs": {"conf": {"default_authn_method": ""}},
-            },
+            "userinfo": {"class": "idpyoidc.client.oidc.userinfo.UserInfo"},
             "refresh_access_token": {
                 "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
             },
@@ -241,9 +238,11 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert _context.get_client_id() == "eeeeeeeee"
-        assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
-        assert _context.get("issuer") == "https://github.com/login/oauth/authorize"
+        # Neither provider info discovery not client registration has been done
+        # So only preferences so far.
+        assert _context.get_preference('client_id') == "eeeeeeeee"
+        assert _context.get_preference("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
+        assert _context.issuer == "https://github.com/login/oauth/authorize"
 
         assert _context.get("provider_info") is not None
         assert set(_context.get("provider_info").keys()) == {
@@ -252,12 +251,8 @@ class TestRPHandler(object):
             "userinfo_endpoint",
         }
 
-        assert _context.get("preference") == {
-            "response_types": ["code"],
-            "scope": ["user", "public_repo"],
-            "token_endpoint_auth_method": "",
-            "verify_args": {"allow_sign_alg_none": True},
-        }
+        _pref = [k for k,v in _context.prefers().items() if v]
+        assert _pref == ['jwks', 'client_id', 'client_secret', 'redirect_uris', 'scope']
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -293,7 +288,8 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-            client.client_get("service_context").work_condition.callback.get("post_logout_redirect_uris") is None
+                client.client_get("service_context").work_condition.callback.get(
+                    "post_logout_redirect_uris") is None
         )
 
     def test_do_client_setup(self):
@@ -301,9 +297,11 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.client_get("service_context")
 
-        assert _context.get_client_id() == "eeeeeeeee"
-        assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
-        assert _context.get("issuer") == _github_id
+        # Neither provider info discovery not client registration has been done
+        # So only preferences so far.
+        assert _context.get_preference('client_id') == "eeeeeeeee"
+        assert _context.get_preference("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
+        assert _context.issuer == _github_id
 
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
@@ -322,14 +320,14 @@ class TestRPHandler(object):
         client = self.rph.init_client("https://op.example.com/")
         _srv = client.client_get("service", "registration")
         _context = _srv.client_get("service_context")
-        # add_callbacks(_context, [])
 
-        cb = _srv.client_get("service_context").work_condition.callback
+        cb = _srv.client_get("service_context").get_usage('callback_uris')
 
-        assert set(cb.keys()) == {"code", "implicit"}
+        assert set(cb.keys()) == {"request_uris", "redirect_uris"}
+        assert set(cb['redirect_uris'].keys()) == {'code', 'form_post'}
         _hash = _context.iss_hash
 
-        assert cb["code"] == f"https://example.com/rp/authz_cb/{_hash}"
+        assert cb['redirect_uris']["code"] == f"https://example.com/rp/authz_cb/{_hash}"
 
         assert list(self.rph.hash2issuer.keys()) == [_hash]
 

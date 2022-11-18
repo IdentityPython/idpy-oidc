@@ -264,6 +264,9 @@ class RPHandler(object):
                                 _kj.add_kb(_context.get("issuer"), _kb)
                     else:
                         raise ValueError("Unknown provider JWKS type: {}".format(typ))
+
+            _context.map_supported_to_preferred(info=_pi)
+
             try:
                 return _context.get("provider_info")["issuer"]
             except KeyError:
@@ -312,6 +315,8 @@ class RPHandler(object):
                 request_args.update({k: v for k, v in behaviour_args.items() if k in _params})
 
             load_registration_response(client, request_args=request_args)
+        else:
+            _context.map_preferred_to_register()
 
     def do_webfinger(self, user: str) -> Client:
         """
