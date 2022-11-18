@@ -95,7 +95,8 @@ class Authorization(Service):
 
     def construct_uris(self, base_url: str, hex: bytes,
                        targets: Optional[List[str]] = None,
-                       preference: Optional[dict] = None):
+                       preference: Optional[dict] = None,
+                       response_types: Optional[List[str]] = None):
         if not targets:
             targets = list(self._callback_path.keys())
 
@@ -104,13 +105,10 @@ class Authorization(Service):
             spec = self._callback_path.get(uri_name)
             if spec:
                 if uri_name == "redirect_uris":  # another layer
-                    _uris = []
+                    _uris = {}
                     for typ, path in spec.items():
                         add = False
-                        if 'response_type' in preference:
-                            if typ in preference['response_type']:
-                                add = True
-                        elif typ in preference:
+                        if typ in response_types:
                             add = True
                         elif 'response_type' in self._supports:
                             if typ in self._supports['response_type']:
@@ -119,8 +117,9 @@ class Authorization(Service):
                             add = True
 
                         if add:
-                            _uris.append(self.get_uri(base_url, path, hex))
+                            _uris[typ] = self.get_uri(base_url, path, hex)
                     res[uri_name] = _uris
                 elif uri_name in preference or uri_name in self._supports:
                     res[uri_name] = self.get_uri(base_url, spec, hex)
-            return res
+
+        return res

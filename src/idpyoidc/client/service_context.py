@@ -9,8 +9,8 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -22,9 +22,9 @@ from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
 from .state_interface import StateInterface
+from .work_condition import WorkCondition
 from .work_condition import work_condition_dump
 from .work_condition import work_condition_load
-from .work_condition import WorkCondition
 from .work_condition.transform import preferred_to_register
 from .work_condition.transform import supported_to_preferred
 
@@ -93,8 +93,6 @@ class ServiceContext(OidcContext):
             "args": None,
             "base_url": None,
             "behaviour": None,
-            "callback": None,
-            "client_secret": None,
             "client_secret_expires_at": 0,
             "clock_skew": None,
             "config": None,
@@ -142,7 +140,7 @@ class ServiceContext(OidcContext):
 
         self.base_url = base_url or config.get("base_url", "")
         # Below so my IDE won't complain
-        self.allow = config.conf.get('allow')
+        self.allow = config.conf.get('allow', {})
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
@@ -286,7 +284,7 @@ class ServiceContext(OidcContext):
         return self.work_condition.prefer
 
     def get_preference(self, claim, default=None):
-        return self.work_condition.get_preference(claim)
+        return self.work_condition.get_preference(claim, default=default)
 
     def set_preference(self, key, value):
         self.work_condition.set_preference(key, value)
@@ -300,7 +298,8 @@ class ServiceContext(OidcContext):
     def construct_uris(self,
                        issuer: str,
                        hash_seed: bytes,
-                       callback: Optional[dict] = None):
+                       callback: Optional[dict] = None,
+                       response_types: Optional[list] = None):
         _hash = hashlib.sha256()
         _hash.update(hash_seed)
         _hash.update(as_bytes(issuer))
@@ -309,14 +308,14 @@ class ServiceContext(OidcContext):
         self.iss_hash = _hex
 
         _base_url = self.get("base_url")
+        _uris = {}
         if self.client_get:
             services = self.client_get('services')
             for service in services.values():
-                service.construct_uris(base_url=_base_url, hex=_hex,
-                                       preference=self.work_condition.prefer)
-
-        # if not self.work_condition.get_usage("redirect_uris"):
-        #     self.work_condition.construct_redirect_uris(_base_url, _hex, callback)
+                _uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
+                                                    preference=self.work_condition.prefer,
+                                                    response_types=response_types))
+        return _uris
 
     def prefer_or_support(self, claim):
         if claim in self.work_condition.prefer:
