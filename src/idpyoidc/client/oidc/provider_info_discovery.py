@@ -73,90 +73,9 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
         :param issuer: The issuer identifier
         """
         _context = self.client_get("service_context")
-        _entity = self.client_get("entity")
-        _work_condition = _context.work_condition
-
-        _supports = _context.supports()
-        _prefers = _context.prefers()
-
         if not pcr:
             pcr = _context.provider_info
 
-        regreq = oidc.RegistrationRequest
-        prefers = {}
+        prefers = _context.map_supported_to_preferred(pcr)
 
-        for _pref, _prov in PREFERENCE2PROVIDER.items():
-            _supported_values = _supports.get(_pref)
-            _preferred_value = _prefers.get(_pref)
-
-            if not _preferred_value:
-                if not _supported_values:
-                    continue
-            else:
-                _supported_values = _preferred_value
-
-            try:
-                _provider_vals = pcr[_prov]
-            except KeyError:
-                try:
-                    # If the provider have not specified use what the
-                    # standard says is mandatory if at all.
-                    _provider_vals = PROVIDER_DEFAULT[_pref]
-                except KeyError:
-                    logger.info("No info from provider on {} and no default".format(_pref))
-                    _provider_vals = _supported_values
-
-            if not isinstance(_supported_values, list):
-                if isinstance(_provider_vals, list):
-                    if _supported_values in _provider_vals:
-                        prefers[_pref] = _supported_values
-                elif _provider_vals == _supported_values:
-                    prefers[_pref] = _supported_values
-            else:  # _supported_values is a list
-                try:
-                    vtyp = regreq.c_param[_pref]
-                except KeyError:
-                    # Allow non standard claims
-                    if isinstance(_supported_values, list) and isinstance(_provider_vals, list):
-                        prefers[_pref] = [v for v in _supported_values if v in _provider_vals]
-                    elif isinstance(_provider_vals, list):
-                        if _supported_values in _provider_vals:
-                            prefers[_pref] = _supported_values
-                    elif type(_supported_values) == type(_provider_vals):
-                        if _supported_values == _provider_vals:
-                            prefers[_pref] = _supported_values
-                else:
-                    if isinstance(vtyp[0], list):
-                        prefers[_pref] = []
-                        for val in _supported_values:
-                            if val in _provider_vals:
-                                prefers[_pref].append(_supported_values)
-                    else:
-                        for val in _supported_values:
-                            if val in _provider_vals:
-                                prefers[_pref] = val
-                                break
-
-            if _pref not in prefers:
-                raise ConfigurationError("OP couldn't match preference:%s" % _pref, pcr)
-
-        for key, val in _supports:
-            if key in prefers:
-                continue
-            if key in ["jwks", "jwks_uri"]:
-                continue
-
-            try:
-                vtyp = regreq.c_param[key]
-                if isinstance(vtyp[0], list):
-                    pass
-                elif isinstance(val, list) and not isinstance(val, str):
-                    val = val[0]
-            except KeyError:
-                pass
-            if key not in PREFERENCE2PROVIDER:
-                prefers[key] = val
-
-        # stores it all in one place
-        _context.work_condition.prefer = prefers
         logger.debug("Entity prefers: {}".format(prefers))

@@ -90,8 +90,5 @@ class AccessToken(access_token.AccessToken):
         _state_interface.store_item(resp, "token_response", key)
 
     def get_authn_method(self):
-        _work_condition = self.client_get("service_context").work_condition
-        try:
-            return _work_condition.get_usage("token_endpoint_auth_method")
-        except KeyError:
-            return self.default_authn_method
+        _context = self.client_get("service_context")
+        return _context.get_usage("token_endpoint_auth_method", self.default_authn_method)

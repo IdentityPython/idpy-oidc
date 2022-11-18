@@ -27,8 +27,7 @@ class WorkCondition(work_condition.WorkCondition):
         "jwks": None,
         "jwks_uri": None,
         "sector_identifier_uri": None,
-        "subject_type": None,
-        "default_max_age": None,
+        "default_max_age": 86400,
         "require_auth_time": None,
         "initiate_login_uri": None,
         "client_id": None,
@@ -36,7 +35,8 @@ class WorkCondition(work_condition.WorkCondition):
         "scope": ["openid"],
         #  "verify_args": None,
         "requests_dir": None,
-        "encrypt_id_token": None
+        "encrypt_id_token_supported": None,
+        "callback_uris": None
     }
 
     def __init__(self,
@@ -50,6 +50,22 @@ class WorkCondition(work_condition.WorkCondition):
             raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'."
                              " you can't have both.")
 
+        _cb_uris = self.get_preference('callback_uris')
+        if _cb_uris:
+            self.set_preference('redirect_uris', list(_cb_uris.values()))  # just overwrite
+
+        if not self.get_preference('encrypt_userinfo_supported'):
+            self.set_preference('userinfo_encryption_alg_values_supported', [])
+            self.set_preference('userinfo_encryption_enc_values_supported', [])
+
+        if not self.get_preference('encrypt_request_object_supported'):
+            self.set_preference('request_object_encryption_alg_values_supported', [])
+            self.set_preference('request_object_encryption_enc_values_supported', [])
+
+        if not self.get_preference('encrypt_id_token_supported'):
+            self.set_preference('id_token_encryption_alg_values_supported', [])
+            self.set_preference('id_token_encryption_enc_values_supported', [])
+
     def locals(self, info):
         requests_dir = info.get("requests_dir")
         if requests_dir:
@@ -58,4 +74,3 @@ class WorkCondition(work_condition.WorkCondition):
                 os.makedirs(requests_dir)
 
             self.set("requests_dir", requests_dir)
-

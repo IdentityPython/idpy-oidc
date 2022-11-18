@@ -193,16 +193,6 @@ class Entity(object):
         }
         return res
 
-    def get_callback_uris(self):
-        res = []
-        for service in self._service.values():
-            for _callback in service.callback_uris():
-                _uri = self._service_context.work_condition.get_preference(_callback)
-                if _uri:
-                    res[_callback] = _uri
-        # res.extend(self._service_context.work_condition.callback_uris)
-        return res
-
     def prefers(self):
         return self._service_context.work_condition.prefers()
 
