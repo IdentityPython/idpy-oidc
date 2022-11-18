@@ -35,9 +35,10 @@ def pick_redirect_uri(
     if "redirect_uri" in request_args:
         return request_args["redirect_uri"]
 
-    if context.work_condition.callback:
+    _callback_uris = context.get_preference("callback_uris")
+    if _callback_uris:
         if not response_type:
-            _conf_resp_types = context.work_condition.get_usage("response_types", [])
+            _conf_resp_types = context.get_usage("response_types", [])
             response_type = request_args.get("response_type")
             if not response_type and _conf_resp_types:
                 response_type = _conf_resp_types[0]
@@ -45,11 +46,11 @@ def pick_redirect_uri(
         _response_mode = request_args.get("response_mode")
 
         if _response_mode == "form_post" or response_type == ["form_post"]:
-            redirect_uri = context.work_condition.callback["form_post"]
+            redirect_uri = _callback_uris["form_post"]
         elif response_type == "code" or response_type == ["code"]:
-            redirect_uri = context.work_condition.callback["code"]
+            redirect_uri = _callback_uris["code"]
         else:
-            redirect_uri = context.work_condition.callback["implicit"]
+            redirect_uri = _callback_uris["implicit"]
 
         logger.debug(
             f"pick_redirect_uris: response_type={response_type}, response_mode={_response_mode}, "

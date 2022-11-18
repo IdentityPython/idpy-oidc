@@ -79,8 +79,8 @@ class RP(oauth2.Client):
         )
 
         _context = self.get_service_context()
-        if _context.callback is None:
-            _context.callback = {}
+        if _context.get_preference('callback_uris') is None:
+            _context.set_preference('callback_uris', {})
 
     def fetch_distributed_claims(self, userinfo, callback=None):
         """

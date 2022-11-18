@@ -56,10 +56,14 @@ class TestPKCE256:
                 }
             },
         }
-        self.entity = Entity(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
+        self.entity = Entity(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES,
+                             client_type='oauth2')
 
         if "add_ons" in config:
             do_add_ons(config["add_ons"], self.entity.client_get("services"))
+        _context = self.entity.get_service_context()
+        _context.map_supported_to_preferred()
+        _context.map_preferred_to_register()
 
     def test_add_code_challenge_default_values(self):
         auth_serv = self.entity.client_get("service", "authorization")

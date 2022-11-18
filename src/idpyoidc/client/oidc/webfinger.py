@@ -49,10 +49,8 @@ class WebFinger(Service):
             for link in links:
                 if link["rel"] == self.rel:
                     _href = link["href"]
-                    try:
-                        _http_allowed = self.get_conf_attr("allow", default={})["http_links"]
-                    except KeyError:
-                        _http_allowed = False
+                    _context = self.client_get('service_context')
+                    _http_allowed = 'http_links' in _context.get("allow", default={})
 
                     if _href.startswith("http://") and not _http_allowed:
                         raise ValueError("http link not allowed ({})".format(_href))

@@ -15,7 +15,7 @@ CLIENT_CONFIG = {
         "response_types": ["code"],
         "client_id": "client_id",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
-        'request_parameter': True,
+        'request_parameter': "request_uri",
         "request_object_signing_alg_values_supported": ["ES256"],
         "scope": ["openid", "profile", "email", "address", "phone"],
         "token_endpoint_auth_methods_supported": ["private_key_jwt"],
@@ -72,6 +72,7 @@ def test_create_client():
                                  'client_id',
                                  'client_secret',
                                  'contacts',
+                                 'default_max_age',
                                  'grant_types_supported',
                                  'id_token_encryption_alg_values_supported',
                                  'id_token_encryption_enc_values_supported',
@@ -98,20 +99,24 @@ def test_create_client():
     #
     assert _context.get_preference("userinfo_signing_alg_values_supported") == ['ES256']
     # How to act
-    _context.work_condition.use = _context.map_preferred_to_register()
+    _context.map_preferred_to_register()
 
     assert _context.get_usage("request_uris") is None
 
-    _conf_args = _context.collect_usage()
+    _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 25
+    assert len(_conf_args) == 20
     rr = set(RegistrationRequest.c_param.keys())
+    # The ones that are not defined
     d = rr.difference(set(_conf_args))
     assert d == {'initiate_login_uri', 'client_name', 'post_logout_redirect_uri', 'tos_uri',
                  'logo_uri', 'jwks_uri', 'federation_type', 'frontchannel_logout_session_required',
                  'require_auth_time', 'client_uri', 'frontchannel_logout_uri', 'request_uris',
-                 'sector_identifier_uri', 'default_max_age', 'organization_name', 'policy_uri',
-                 'default_acr_values'}
+                 'sector_identifier_uri', 'organization_name', 'policy_uri',
+                 'default_acr_values', 'userinfo_encrypted_response_alg',
+                 'id_token_encrypted_response_alg', 'request_object_encryption_alg',
+                 'userinfo_encrypted_response_enc', 'request_object_encryption_enc',
+                 'id_token_encrypted_response_enc'}
 
 
 def test_create_client_key_conf():

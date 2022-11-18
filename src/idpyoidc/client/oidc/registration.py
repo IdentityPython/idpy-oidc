@@ -28,12 +28,13 @@ class Registration(Service):
         self.post_construct = [self.oidc_post_construct]
 
     def add_client_preference(self, request_args=None, **kwargs):
-        _work_condition = self.client_get("service_context")
+        _context = self.client_get("service_context")
+        _use = _context.map_preferred_to_register()
         for prop, spec in self.msg_type.c_param.items():
             if prop in request_args:
                 continue
 
-            _val = _work_condition.get_preference(prop)
+            _val = _use.get(prop)
             if _val:
                 if isinstance(_val, list):
                     if isinstance(spec[0], list):
@@ -63,7 +64,6 @@ class Registration(Service):
             resp["token_endpoint_auth_method"] = "client_secret_basic"
 
         _context = self.client_get("service_context")
-        _work_condition = _context.work_condition
         _keyjar = _context.keyjar
 
         _context.registration_response = resp
@@ -74,18 +74,17 @@ class Registration(Service):
                 _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
             _client_secret = resp.get("client_secret")
             if _client_secret:
-                _work_condition.set_usage_claim("client_secret", _client_secret)
+                _context.set_usage("client_secret", _client_secret)
                 # _context.client_secret = _client_secret
                 _keyjar.add_symmetric("", _client_secret)
                 _keyjar.add_symmetric(_client_id, _client_secret)
                 try:
-                    _work_condition.set_usage_claim("client_secret_expires_at",
-                                                    resp["client_secret_expires_at"])
+                    _context.set_usage("client_secret_expires_at",
+                                       resp["client_secret_expires_at"])
                 except KeyError:
                     pass
 
         try:
-            _work_condition.set_usage_claim("registration_access_token",
-                                            resp["registration_access_token"])
+            _context.set_usage("registration_access_token", resp["registration_access_token"])
         except KeyError:
             pass
