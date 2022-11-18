@@ -632,7 +632,8 @@ class Service(ImpExp):
 
     def construct_uris(self, base_url: str, hex: bytes,
                        targets: Optional[List[str]] = None,
-                       preference: Optional[dict] = None):
+                       preference: Optional[dict] = None,
+                       response_types: Optional[list] = None):
         if not targets:
             targets = self._callback_path.keys()
         res = {}

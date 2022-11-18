@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Optional
 from typing import Union
 
@@ -119,9 +118,15 @@ class Entity(object):
         self._service_context.work_condition.load_conf(config.conf,
                                                        supports=self._service_context.supports())
 
-        self._service_context.construct_uris(self._service_context.issuer,
-                                             self._service_context.hash_seed,
-                                             config.conf.get("callback"))
+        _response_types = self._service_context.get_preference(
+            'response_types_supported',
+            self._service_context.supports()['response_types_supported'])
+
+        _callback_uris = self._service_context.construct_uris(self._service_context.issuer,
+                                                              self._service_context.hash_seed,
+                                                              config.conf.get("callback"),
+                                                              response_types=_response_types)
+        self._service_context.set_usage('callback_uris', _callback_uris)
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)
@@ -167,7 +172,7 @@ class Entity(object):
         _work_condition = self._service_context.work_condition
         _uris = config.get("redirect_uris")
         if _uris:
-             _work_condition.set_preference("redirect_uris", _uris)
+            _work_condition.set_preference("redirect_uris", _uris)
 
         _dir = config.conf.get("requests_dir")
         if _dir:
