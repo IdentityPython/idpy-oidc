@@ -68,17 +68,51 @@ REQUEST2REGISTER = {
 # ]
 
 
-def supported_to_preferred(supported: dict, preference: dict, info: Optional[dict] = None):
-    for key, val in supported.items():
-        if info and key in info:
-            preference[key] = info[key]
-            continue
+def supported_to_preferred(supported: dict,
+                           preference: dict,
+                           base_url: str,
+                           info: Optional[dict] = None,
+                           ):
+    if info:  # The provider info
+        for key, val in supported.items():
+            if key in preference:
+                _pref_val = preference.get(key)  # defined in configuration
+                _info_val = info.get(key)
+                if _info_val:
+                    # Only use provider setting if less or equal to what I support
+                    if key.endswith('supported'):  # list
+                        preference[key] = [x for x in _pref_val if x in _info_val]
+                    else:
+                        pass
+            elif val is None:  # No default
+                # if key not in ['jwks_uri', 'jwks']:
+                pass
+            else:
+                # there is a default
+                _info_val = info.get(key)
+                if _info_val:  # The OP has an opinion
+                    if key.endswith('supported'):  # list
+                        preference[key] = [x for x in val if x in _info_val]
+                    else:
+                        pass
+                else:
+                    preference[key] = val
 
-        if val is None:
-            continue
-
-        if key not in preference:
-            preference[key] = val
+        # special case -> must have a request_uris value
+        if 'require_request_uri_registration' in info:
+            # only makes sense if I want to use request_uri
+            if preference.get('request_parameter') == 'request_uri':
+                if 'request_uri' not in preference:
+                    preference['request_uris'] = [f'{base_url}/requests']
+            else:  # just ignore
+                logger.info('Asked for "request_uri" which it did not plan to use')
+    else:
+        # Add defaults
+        for key, val in supported.items():
+            if val is None:
+                continue
+            if key not in preference:
+                preference[key] = val
 
     return preference
 
@@ -104,6 +138,7 @@ def preferred_to_register(prefers: dict, use: Optional[dict] = None):
                 else:
                     use[key] = _preferred_values
 
+    # transfer those claims that are not part of the registration request
     _rr_keys = list(RegistrationResponse.c_param.keys())
     for key, val in prefers.items():
         if PREFERRED2REGISTER.get(key):

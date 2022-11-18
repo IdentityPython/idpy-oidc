@@ -45,7 +45,7 @@ class UserInfo(Service):
         "userinfo_signing_alg_values_supported": get_signing_algs,
         "userinfo_encryption_alg_values_supported": get_encryption_algs,
         "userinfo_encryption_enc_values_supported": get_encryption_encs,
-        "encrypt_userinfo": None
+        "encrypt_userinfo_supported": None
     }
 
     def __init__(self, client_get, conf=None):

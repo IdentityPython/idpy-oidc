@@ -63,10 +63,13 @@ class WorkCondition(ImpExp):
     def set_preference(self, key, value):
         self.prefer[key] = value
 
+    def remove_preference(self, key):
+        if key in self.prefer:
+            del self.prefer[key]
+
     def _callback_uris(self, base_url, hex):
         _uri = []
-        for type in self.get_usage("response_types",
-                                         self._supports['response_types']):
+        for type in self.get_usage("response_types", self._supports['response_types']):
             if "code" in type:
                 _uri.append('code')
             elif type in ["id_token", "id_token token"]:

@@ -142,13 +142,12 @@ class ServiceContext(OidcContext):
 
         self.base_url = base_url or config.get("base_url") or config.conf.get('base_url', '')
         # Below so my IDE won't complain
-        self.allow = {}
+        self.allow = config.conf.get('allow')
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
         self.issuer = ""
         self.httpc_params = {}
-        self.callback = {}
         self.client_secret_expires_at = 0
         self.provider_info = {}
         # self.post_logout_redirect_uri = ""
@@ -335,7 +334,8 @@ class ServiceContext(OidcContext):
     def map_supported_to_preferred(self, info: Optional[dict] = None):
         self.work_condition.prefer = supported_to_preferred(self.supports(),
                                                             self.work_condition.prefer,
-                                                            info)
+                                                            base_url=self.base_url,
+                                                            info=info)
         return self.work_condition.prefer
 
     def map_preferred_to_register(self):

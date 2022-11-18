@@ -20,7 +20,7 @@ from idpyoidc.message.oidc import ProviderConfigurationResponse
 
 BASE_URL = "https://example.com/rp"
 
-METADATA = {
+PREF = {
     "application_type": "web",
     "contacts": ["ops@example.com"],
     "response_types": [
@@ -32,9 +32,6 @@ METADATA = {
         "code token",
     ],
     "token_endpoint_auth_method": "client_secret_basic",
-}
-
-USAGE = {
     "scope": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
     "request_uri": True
@@ -42,8 +39,7 @@ USAGE = {
 
 CLIENT_CONFIG = {
     "": {
-        "metadata": METADATA,
-        "usage": USAGE,
+        "preference": PREF,
         "redirect_uris": None,
         "base_url": BASE_URL,
         "requests_dir": "requests",

@@ -35,7 +35,7 @@ class Authorization(authorization.Authorization):
         "response_types_supported": ["code", "form_post"],
         "request_uris": None,
         "request_parameter": None,
-        "encrypt_request_object": None,
+        "encrypt_request_object_supported": None,
         "redirect_uris": None,
     }
 
@@ -182,11 +182,14 @@ class Authorization(authorization.Authorization):
         :return: The URL the OP should use to access the file
         """
         _context = self.client_get("service_context")
-        try:
-            _webname = _context.registration_response["request_uris"][0]
-            filename = _context.filename_from_webname(_webname)
-        except KeyError:
+
+        _webname = _context.get_usage("request_uris")
+        if _webname is None:
             filename, _webname = construct_request_uri(**kwargs)
+        else:
+            # webname should be a list
+            _webname = _webname[0]
+            filename = _context.filename_from_webname(_webname)
 
         fid = open(filename, mode="w")
         fid.write(req)

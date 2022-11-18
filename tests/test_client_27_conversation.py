@@ -114,66 +114,46 @@ SERVICES = {
     },
     "authorization": {
         "class": "idpyoidc.client.oidc.authorization.Authorization",
-        "kwargs": {
-            "metadata": {
-                "request_object_signing_alg": "ES256"
-            },
-            "usage": {
-                "request_uri": True
-            }
-        }
+        "kwargs": {}
     },
     "accesstoken": {
         "class": "idpyoidc.client.oidc.access_token.AccessToken",
-        "kwargs": {
-            "metadata": {
-                "token_endpoint_auth_method": "private_key_jwt",
-                "token_endpoint_auth_signing_alg": "ES256"
-            }
-        }
+        "kwargs": {}
     },
     "refresh_token": {
         "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
     },
     "userinfo": {
         "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-        "kwargs": {
-            "metadata": {
-                "userinfo_signed_response_alg": "ES256"
-            },
-        }
+        "kwargs": {}
     },
     "end_session": {
         "class": "idpyoidc.client.oidc.end_session.EndSession",
-        "kwargs": {
-            "metadata": {
-                "post_logout_redirect_uri": "https://rp.example.com/post",
-                "backchannel_logout_uri": "https://rp.example.com/back",
-                "backchannel_logout_session_required": True
-            },
-            "usage": {
-                "backchannel_logout": True
-            }
-        }
+        "kwargs": {}
     }
 }
 
 
 def test_conversation():
     config = {
-        "metadata": {
-            "application_type": "web",
-            "contacts": ["ops@example.org"],
-            "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
-            "response_types": ["code"],
-        },
-        "usage": {
-            "scope": ["openid", "profile", "email", "address", "phone"],
-        },
+        "application_type": "web",
+        "contacts": ["ops@example.org"],
+        "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
+        "response_types": ["code"],
+        "scope": ["openid", "profile", "email", "address", "phone"],
+        "request_object_signing_alg": "ES256",
+        "request_uris": [f"{RP_BASEURL}/requests"],
+        "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+        "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
+        "userinfo_signing_alg_values_supported": ["ES256"],
+        "post_logout_redirect_uri": "https://rp.example.com/post",
+        "backchannel_logout_uri": "https://rp.example.com/back",
+        "backchannel_logout_session_required": True,
+        'allow': {'missing_kid': True},
         "services": SERVICES
     }
 
-    entity = Entity(config=config, keyjar=RP_KEYJAR)
+    entity = Entity(config=config, keyjar=RP_KEYJAR, client_type='oidc')
 
     assert set(entity.client_get("services").keys()) == {
         "accesstoken",
@@ -437,20 +417,22 @@ def test_conversation():
 
     assert info["url"] == "https://example.org/op/registration"
     _body = json.loads(info["body"])
-    assert set(_body.keys()) == {
-        "application_type",
-        'backchannel_logout_uri',
-        'backchannel_logout_session_required',
-        "contacts",
-        "grant_types",
-        'id_token_signed_response_alg',
-        'jwks',
-        "redirect_uris",
-        "response_types",
-        "token_endpoint_auth_method",
-        'userinfo_signed_response_alg',
-        'token_endpoint_auth_signing_alg',
-    }
+    assert set(_body.keys()) == {'application_type',
+                                 'backchannel_logout_session_required',
+                                 'backchannel_logout_uri',
+                                 'contacts',
+                                 'default_max_age',
+                                 'grant_types',
+                                 'id_token_signed_response_alg',
+                                 'jwks',
+                                 'redirect_uris',
+                                 'request_object_signing_alg',
+                                 'request_uris',
+                                 'response_types',
+                                 'subject_type',
+                                 'token_endpoint_auth_method',
+                                 'token_endpoint_auth_signing_alg',
+                                 'userinfo_signed_response_alg'}
     assert info["headers"] == {"Content-Type": "application/json"}
 
     now = int(time.time())
@@ -477,7 +459,7 @@ def test_conversation():
     registration_service.update_service_context(response)
 
     assert service_context.get_client_id() == "zls2qhN1jO6A"
-    assert service_context.client_secret == "c8434f28cf9375d9a7"
+    assert service_context.get_usage('client_secret') == "c8434f28cf9375d9a7"
     assert set(service_context.registration_response.keys()) == {
         "client_secret_expires_at",
         "contacts",
@@ -535,7 +517,7 @@ def test_conversation():
     # =================== Access token ====================
 
     token_service = entity.client_get("service", "accesstoken")
-    request_args = {"state": STATE, "redirect_uri": entity.get_metadata_value("redirect_uris")[0]}
+    request_args = {"state": STATE, "redirect_uri": service_context.get_usage("redirect_uris")[0]}
 
     info = token_service.get_request_parameters(request_args=request_args)
 

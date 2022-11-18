@@ -18,19 +18,16 @@ class TestRegistrationRead(object):
     def create_request(self):
         self._iss = ISS
         client_config = {
-            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
-            "metadata": {
-                "application_type": "web",
-                "response_types": ["code"],
-                "contacts": ["ops@example.org"],
-                "jwks_uri": "https://example.com/rp/static/jwks.json",
-                "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
-                "token_endpoint_auth_method": "client_secret_basic",
-                "grant_types": ["authorization_code"],
-            },
+            "application_type": "web",
+            "response_types": ["code"],
+            "contacts": ["ops@example.org"],
+            "jwks_uri": "https://example.com/rp/static/jwks.json",
+            "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
+            "token_endpoint_auth_method": "client_secret_basic",
+            "grant_types": ["authorization_code"],
         }
         services = {
             "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
@@ -40,6 +37,9 @@ class TestRegistrationRead(object):
         }
 
         self.entity = Entity(config=client_config, services=services)
+        _context = self.entity.get_service_context()
+        _context.map_supported_to_preferred()
+        _context.map_preferred_to_register()
 
         self.reg_service = self.entity.client_get("service", "registration")
         self.read_service = self.entity.client_get("service", "registration_read")
