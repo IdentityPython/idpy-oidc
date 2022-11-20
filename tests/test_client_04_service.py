@@ -20,9 +20,10 @@ KEYDEFS = [
 
 CLIENT_CONF = {
     "redirect_uris": ["https://example.com/cli/authz_cb"],
-    "preference": {"response_types": ["code"]},
+    "preference": {"response_types_supported": ["code"]},
     "key_conf": {"key_defs": KEYDEFS},
-    "client_id": 'CLIENT'
+    "client_id": 'CLIENT',
+    'base_url': "https://example.com/cli"
 }
 
 
@@ -53,7 +54,7 @@ class TestService:
         assert set(use.keys()) == {'client_id', 'redirect_uris', 'response_types',
                                    'grant_types', 'application_type', 'jwks', 'subject_type',
                                    'id_token_signed_response_alg', 'default_max_age',
-                                   'request_object_signing_alg', 'scope'}
+                                   'request_object_signing_alg', 'scope',  'callback_uris'}
 
     def test_gather_request_args(self):
         self.service.conf["request_args"] = {"response_type": "code"}

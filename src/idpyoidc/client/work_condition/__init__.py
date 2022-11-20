@@ -46,7 +46,6 @@ class WorkCondition(ImpExp):
         self.callback_path = callback_path or {}
         self.use = {}
         self._local = {}
-        self.callback = {}
 
     def get_use(self):
         return self.use

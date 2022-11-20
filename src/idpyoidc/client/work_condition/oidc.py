@@ -53,6 +53,10 @@ class WorkCondition(work_condition.WorkCondition):
         _cb_uris = self.get_preference('callback_uris')
         if _cb_uris:
             self.set_preference('redirect_uris', list(_cb_uris.values()))  # just overwrite
+        else:
+            _uris = self.get_preference('redirect_uris')
+            if _uris:
+                self.set_preference('callback_uris', {'redirect_uris': {'code': _uris}})
 
         if not self.get_preference('encrypt_userinfo_supported'):
             self.set_preference('userinfo_encryption_alg_values_supported', [])

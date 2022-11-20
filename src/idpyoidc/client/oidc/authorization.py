@@ -32,18 +32,20 @@ class Authorization(authorization.Authorization):
         "request_object_signing_alg_values_supported": work_condition.get_signing_algs,
         "request_object_encryption_alg_values_supported": work_condition.get_encryption_algs,
         "request_object_encryption_enc_values_supported": work_condition.get_encryption_encs,
-        "response_types_supported": ["code", "form_post"],
+        "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
+                                     'code id_token', 'code idtoken token'],
         "request_uris": None,
         "request_parameter": None,
         "encrypt_request_object_supported": None,
         "redirect_uris": None,
+        "response_modes_supported": ['query', 'fragment', 'form_post']
     }
 
     _callback_path = {
         "request_uris": "req",
         "redirect_uris": {  # based on response_types
             "code": "authz_cb",
-            "implicit": "authz_im_cb",
+            "token": "authz_tok_cb",
             "form_post": "form"
         }
     }
