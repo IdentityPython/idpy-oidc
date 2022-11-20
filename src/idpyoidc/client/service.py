@@ -26,6 +26,8 @@ from ..constant import URL_ENCODED
 
 __author__ = "Roland Hedberg"
 
+from ..context import OidcContext
+
 LOGGER = logging.getLogger(__name__)
 
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
@@ -630,9 +632,11 @@ class Service(ImpExp):
     def get_uri(base_url, path, hex):
         return f"{base_url}/{path}/{hex}"
 
-    def construct_uris(self, base_url: str, hex: bytes,
+    def construct_uris(self,
+                       base_url: str,
+                       hex: bytes,
+                       context: OidcContext,
                        targets: Optional[List[str]] = None,
-                       preference: Optional[dict] = None,
                        response_types: Optional[list] = None):
         if not targets:
             targets = self._callback_path.keys()
@@ -648,7 +652,6 @@ class Service(ImpExp):
 
     def callback_uris(self):
         return list(self._callback_path.keys())
-
 
 
 def init_services(service_definitions, client_get):

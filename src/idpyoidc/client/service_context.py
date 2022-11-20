@@ -9,8 +9,8 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -22,9 +22,9 @@ from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
 from .state_interface import StateInterface
-from .work_condition import WorkCondition
 from .work_condition import work_condition_dump
 from .work_condition import work_condition_load
+from .work_condition import WorkCondition
 from .work_condition.transform import preferred_to_register
 from .work_condition.transform import supported_to_preferred
 
@@ -295,14 +295,10 @@ class ServiceContext(OidcContext):
     def set_usage(self, claim, value):
         return self.work_condition.set_usage(claim, value)
 
-    def construct_uris(self,
-                       issuer: str,
-                       hash_seed: bytes,
-                       callback: Optional[dict] = None,
-                       response_types: Optional[list] = None):
+    def construct_uris(self, response_types: Optional[list] = None):
         _hash = hashlib.sha256()
-        _hash.update(hash_seed)
-        _hash.update(as_bytes(issuer))
+        _hash.update(self.hash_seed)
+        _hash.update(as_bytes(self.issuer))
         _hex = _hash.hexdigest()
 
         self.iss_hash = _hex
@@ -313,7 +309,7 @@ class ServiceContext(OidcContext):
             services = self.client_get('services')
             for service in services.values():
                 _uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
-                                                    preference=self.work_condition.prefer,
+                                                    context=self,
                                                     response_types=response_types))
         return _uris
 

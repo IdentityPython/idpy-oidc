@@ -7,6 +7,7 @@ from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
 from idpyoidc.client.service import Service
+from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.exception import MissingParameter
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -59,7 +60,7 @@ class Authorization(Service):
 
         if "redirect_uri" not in ar_args:
             try:
-                # ar_args["redirect_uri"] = self.client_get("service_context").redirect_uris[0]
+                # _cb = self.client_get("service_context").get_usage("callback_uris")
                 ar_args["redirect_uri"] = self.client_get("service_context").get_usage(
                     "redirect_uris")[0]
             except (KeyError, AttributeError):
@@ -93,15 +94,19 @@ class Authorization(Service):
                         pass
         return response
 
-    def construct_uris(self, base_url: str, hex: bytes,
+    def construct_uris(self,
+                       base_url: str,
+                       hex: bytes,
+                       context: ServiceContext,
                        targets: Optional[List[str]] = None,
-                       preference: Optional[dict] = None,
                        response_types: Optional[List[str]] = None):
         if not targets:
             targets = list(self._callback_path.keys())
 
-        res = {}
+        res = context.get_preference('callback_uris', {})
         for uri_name in targets:
+            if uri_name in res:
+                continue
             spec = self._callback_path.get(uri_name)
             if spec:
                 if uri_name == "redirect_uris":  # another layer
@@ -119,7 +124,10 @@ class Authorization(Service):
                         if add:
                             _uris[typ] = self.get_uri(base_url, path, hex)
                     res[uri_name] = _uris
-                elif uri_name in preference or uri_name in self._supports:
+                elif uri_name == 'request_uris':
+                    if 'request_uri' == context.get_preference('request_parameter'):
+                        res[uri_name] = self.get_uri(base_url, spec, hex)
+                elif uri_name in context.prefers() or uri_name in self._supports:
                     res[uri_name] = self.get_uri(base_url, spec, hex)
 
         return res
