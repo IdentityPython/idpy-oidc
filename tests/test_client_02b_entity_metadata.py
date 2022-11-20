@@ -69,6 +69,7 @@ def test_create_client():
     assert set(_pref.keys()) == {'application_type',
                                  'backchannel_logout_session_required',
                                  'backchannel_logout_uri',
+                                 'callback_uris',
                                  'client_id',
                                  'client_secret',
                                  'contacts',
@@ -105,7 +106,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 20
+    assert len(_conf_args) == 21
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined
     d = rr.difference(set(_conf_args))

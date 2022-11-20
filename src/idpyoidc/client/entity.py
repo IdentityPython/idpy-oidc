@@ -63,6 +63,13 @@ def set_jwks_uri_or_jwks(service_context, config, jwks_uri, keyjar):
             _set_jwks(service_context, config, keyjar)
 
 
+def redirect_uris_from_callback_uris(callback_uris):
+    res = []
+    for k, v in callback_uris['redirect_uris'].items():
+        res.extend(v)
+    return res
+
+
 class Entity(object):
 
     def __init__(
@@ -120,13 +127,12 @@ class Entity(object):
 
         _response_types = self._service_context.get_preference(
             'response_types_supported',
-            self._service_context.supports()['response_types_supported'])
+            self._service_context.supports().get('response_types_supported', []))
 
-        _callback_uris = self._service_context.construct_uris(self._service_context.issuer,
-                                                              self._service_context.hash_seed,
-                                                              config.conf.get("callback"),
-                                                              response_types=_response_types)
-        self._service_context.set_usage('callback_uris', _callback_uris)
+        _callback_uris = self._service_context.construct_uris(response_types=_response_types)
+        if _callback_uris:
+            self._service_context.set_preference('redirect_uris',
+                                                 redirect_uris_from_callback_uris(_callback_uris))
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)

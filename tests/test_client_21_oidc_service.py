@@ -77,7 +77,14 @@ class TestAuthorization(object):
         client_config = {
             "client_id": "client_id",
             "client_secret": "a longesh password",
-            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "callbak_uris": {
+                "redirect_uris": {  # different flows
+                    "code": ["https://example.com/cli/authz_cb"],
+                    "implicit": ["https://example.com/cli/imp_cb"],
+                    "form_post": ["https://example.com/cli/form"]
+                }
+            },
+            "response_types_supported": ['code', 'token']
         }
         entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=make_keyjar(), config=client_config,
                         client_type='oidc')
@@ -311,7 +318,7 @@ class TestAuthorizationCallback(object):
             "client_secret": "a longesh password",
             "callback_uris": {
                 "code": "https://example.com/cli/authz_cb",
-                "implicit": "https://example.com/cli/authz_im_cb",
+                "token": "https://example.com/cli/authz_im_cb",
                 "form_post": "https://example.com/cli/authz_fp_cb",
             },
         }
@@ -600,7 +607,7 @@ class TestProviderInfo(object):
             # "require_request_uri_registration": True,
             "grant_types_supported": [
                 "authorization_code",
-                "implicit",
+                "token",
                 "urn:ietf:params:oauth:grant-type:jwt-bearer",
                 "refresh_token",
             ],
