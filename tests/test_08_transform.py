@@ -1,12 +1,12 @@
 from typing import Callable
 
-from cryptojwt.utils import importer
 import pytest
+from cryptojwt.utils import importer
 
 from idpyoidc.client.work_condition.oidc import WorkCondition as WorkConditionOIDC
-from idpyoidc.client.work_condition.transform import REGISTER2PREFERRED
-from idpyoidc.client.work_condition.transform import array_to_singleton
+from idpyoidc.client.work_condition.transform import create_registration_request
 from idpyoidc.client.work_condition.transform import preferred_to_registered
+from idpyoidc.client.work_condition.transform import REGISTER2PREFERRED
 from idpyoidc.client.work_condition.transform import supported_to_preferred
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
@@ -37,6 +37,7 @@ class TestTransform:
         for key, val in supported.items():
             if isinstance(val, Callable):
                 supported[key] = val()
+        # NOTE! Not checking rules
         self.supported = supported
 
     def test_supported(self):
@@ -251,6 +252,48 @@ class TestTransform:
         # The OP supports less than the RP
         assert pref["response_types_supported"] == ['code', 'id_token', 'code id_token']
 
+
+class TestTransform2:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        self.work_condition = WorkConditionOIDC()
+        supported = self.work_condition._supports.copy()
+        for service in [
+            'idpyoidc.client.oidc.access_token.AccessToken',
+            'idpyoidc.client.oidc.authorization.Authorization',
+            'idpyoidc.client.oidc.backchannel_authentication.BackChannelAuthentication',
+            'idpyoidc.client.oidc.backchannel_authentication.ClientNotification',
+            'idpyoidc.client.oidc.check_id.CheckID',
+            'idpyoidc.client.oidc.check_session.CheckSession',
+            'idpyoidc.client.oidc.end_session.EndSession',
+            'idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery',
+            'idpyoidc.client.oidc.read_registration.RegistrationRead',
+            'idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken',
+            'idpyoidc.client.oidc.registration.Registration',
+            'idpyoidc.client.oidc.userinfo.UserInfo',
+            'idpyoidc.client.oidc.webfinger.WebFinger'
+        ]:
+            cls = importer(service)
+            supported.update(cls._supports)
+
+        for key, val in supported.items():
+            if isinstance(val, Callable):
+                supported[key] = val()
+
+        self.supported = supported
+        preference = {
+            "application_type": "web",
+            "redirect_uris": ["https://client.example.org/callback",
+                              "https://client.example.org/callback2"],
+            "client_name": "My Example",
+            # "client_name#ja-Jpan-JP": "クライアント名",
+            "logo_uri": "https://client.example.org/logo.png",
+            'contacts': ["ve7jtb@example.org", "mary@example.org"]
+        }
+
+        self.work_condition.load_conf(preference, self.supported)
+
     def test_registration_response(self):
         OP_BASEURL = 'https://example.com'
         provider_info_response = {
@@ -276,34 +319,50 @@ class TestTransform:
             "acr_values_supported": ['mfa'],
         }
 
-        preference = {
-            "application_type": "web",
-            "redirect_uris":
-                ["https://client.example.org/callback",
-                 "https://client.example.org/callback2"],
-            "client_name": "My Example",
-            "client_name#ja-Jpan-JP":
-                "クライアント名",
-            "logo_uri": "https://client.example.org/logo.png",
-            'contacts': ["ve7jtb@example.org", "mary@example.org"]
-        }
-        pref = supported_to_preferred(supported=self.supported, preference=preference,
+        pref = supported_to_preferred(supported=self.supported,
+                                      preference=self.work_condition.prefer,
                                       base_url='https://example.com',
                                       info=provider_info_response)
 
-        registration_request = {}
-        for key, spec in RegistrationRequest.c_param.items():
-            _pref_key = REGISTER2PREFERRED.get(key, key)
-            if _pref_key in pref:
-                value = pref[_pref_key]
-            elif _pref_key in self.supported:
-                value = self.supported[_pref_key]
-            else:
-                value = None
+        registration_request = create_registration_request(pref, self.supported)
 
-            if value:
-                #registration_request[key] = array_to_singleton(spec, value)
-                registration_request[key] = value
+        assert set(registration_request.keys()) == {'application_type',
+                                                    'backchannel_logout_session_required',
+                                                    'backchannel_logout_uri',
+                                                    'client_name',
+                                                    'client_uri',
+                                                    'contacts',
+                                                    'default_acr_values',
+                                                    'default_max_age',
+                                                    'frontchannel_logout_session_required',
+                                                    'frontchannel_logout_uri',
+                                                    'grant_types',
+                                                    'id_token_encrypted_response_alg',
+                                                    'id_token_encrypted_response_enc',
+                                                    'id_token_signed_response_alg',
+                                                    'initiate_login_uri',
+                                                    'jwks',
+                                                    'jwks_uri',
+                                                    'logo_uri',
+                                                    'policy_uri',
+                                                    'post_logout_redirect_uri',
+                                                    'redirect_uris',
+                                                    'request_object_encryption_alg',
+                                                    'request_object_encryption_enc',
+                                                    'request_object_signing_alg',
+                                                    'request_uris',
+                                                    'require_auth_time',
+                                                    'response_types',
+                                                    'sector_identifier_uri',
+                                                    'subject_type',
+                                                    'token_endpoint_auth_method',
+                                                    'token_endpoint_auth_signing_alg',
+                                                    'tos_uri',
+                                                    'userinfo_encrypted_response_alg',
+                                                    'userinfo_encrypted_response_enc',
+                                                    'userinfo_signed_response_alg'}
+
+        assert registration_request["subject_type"] == 'public'
 
         registration_response = {
             "application_type": "web",
@@ -311,8 +370,6 @@ class TestTransform:
                 ["https://client.example.org/callback",
                  "https://client.example.org/callback2"],
             "client_name": "My Example",
-            "client_name#ja-Jpan-JP":
-                "クライアント名",
             "logo_uri": "https://client.example.org/logo.png",
             "subject_type": "pairwise",
             "sector_identifier_uri":
@@ -329,4 +386,30 @@ class TestTransform:
         to_use = preferred_to_registered(prefers=pref,
                                          registration_response=registration_response)
 
-        assert to_use
+        assert set(to_use.keys()) == {'application_type',
+                                      'client_name',
+                                      'client_name#ja-Jpan-JP',
+                                      'contacts',
+                                      'default_max_age',
+                                      'grant_types',
+                                      'id_token_encrypted_response_alg',
+                                      'id_token_encrypted_response_enc',
+                                      'id_token_signed_response_alg',
+                                      'jwks_uri',
+                                      'logo_uri',
+                                      'redirect_uris',
+                                      'request_object_encryption_alg',
+                                      'request_object_encryption_enc',
+                                      'request_object_signing_alg',
+                                      'request_uris',
+                                      'response_modes_supported',
+                                      'response_types',
+                                      'sector_identifier_uri',
+                                      'subject_type',
+                                      'token_endpoint_auth_method',
+                                      'token_endpoint_auth_signing_alg',
+                                      'userinfo_encrypted_response_alg',
+                                      'userinfo_encrypted_response_enc',
+                                      'userinfo_signed_response_alg'}
+
+        assert to_use["subject_type"] == 'pairwise'
