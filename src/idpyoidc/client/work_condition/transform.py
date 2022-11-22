@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
 logger = logging.getLogger(__name__)
@@ -95,9 +96,12 @@ def supported_to_preferred(supported: dict,
     return preference
 
 
-def array_to_singleton(claim_spec, values):
+def array_or_singleton(claim_spec, values):
     if isinstance(claim_spec[0], list):
-        return values
+        if isinstance(values, list):
+            return values
+        else:
+            return [values]
     else:
         if isinstance(values, list):
             return values[0]
@@ -128,7 +132,7 @@ def preferred_to_registered(prefers: dict, registration_response: Optional[dict]
         _preferred_values = prefers.get(_pref_key)
         if not _preferred_values:
             continue
-        registered[key] = array_to_singleton(spec, _preferred_values)
+        registered[key] = array_or_singleton(spec, _preferred_values)
 
     # transfer those claims that are not part of the registration request
     _rr_keys = list(RegistrationResponse.c_param.keys())
@@ -142,5 +146,16 @@ def preferred_to_registered(prefers: dict, registration_response: Optional[dict]
     return registered
 
 
-def register_to_request(prefers, registration_response):
-    pass
+def create_registration_request(prefers, supported):
+    _request = {}
+    for key, spec in RegistrationRequest.c_param.items():
+        _pref_key = REGISTER2PREFERRED.get(key, key)
+        if _pref_key in prefers:
+            value = prefers[_pref_key]
+        elif _pref_key in supported:
+            value = supported[_pref_key]
+        else:
+            continue
+
+        _request[key] = array_or_singleton(spec, value)
+    return _request
