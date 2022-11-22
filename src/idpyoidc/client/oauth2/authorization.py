@@ -8,6 +8,7 @@ from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingParameter
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -28,7 +29,8 @@ class Authorization(Service):
     response_body_type = "urlencoded"
 
     _supports = {
-        "response_types": ["code"]
+        "response_types_supported": ["code", 'token'],
+        "response_modes_supported": ['query', 'fragment']
     }
 
     _callback_path = {
@@ -94,40 +96,56 @@ class Authorization(Service):
                         pass
         return response
 
+    def _do_flow(self, flow_type, response_types):
+        if flow_type == 'code' and 'code' in response_types:
+            return True
+        elif flow_type == 'implicit':
+            if implicit_response_types(response_types):
+                return True
+        return False
+
+    def _do_redirect_uris(self, base_url, hex, context, callback_uris, response_types):
+        _redirect_uris = context.get_preference('redirect_uris', [])
+        if _redirect_uris:
+            if not callback_uris or 'redirect_uris' not in callback_uris:
+                # the same redirect_uris for all flow types
+                callback_uris['redirect_uris'] = {}
+                for flow_type in self._callback_path['redirect_uris'].keys():
+                    if self._do_flow(flow_type, response_types):
+                        callback_uris['redirect_uris'][flow_type] = _redirect_uris
+        elif callback_uris:
+            if 'redirect_uris' in callback_uris:
+                pass
+            else:
+                callback_uris['redirect_uris'] = {}
+                for flow_type, path in self._callback_path['redirect_uris'].items():
+                    if self._do_flow(flow_type, response_types):
+                        callback_uris['redirect_uris'][flow_type] = self.get_uri(base_url, path, hex)
+        else:
+            callback_uris['redirect_uris'] = {}
+            for flow_type, path in self._callback_path['redirect_uris'].items():
+                if self._do_flow(flow_type, response_types):
+                    callback_uris['redirect_uris'][flow_type] = self.get_uri(base_url, path, hex)
+        return callback_uris
+
     def construct_uris(self,
                        base_url: str,
                        hex: bytes,
                        context: ServiceContext,
                        targets: Optional[List[str]] = None,
                        response_types: Optional[List[str]] = None):
-        if not targets:
-            targets = list(self._callback_path.keys())
+        _callback_uris = context.get_preference('callback_uris', {})
 
-        res = context.get_preference('callback_uris', {})
-        for uri_name in targets:
-            if uri_name in res:
-                continue
-            spec = self._callback_path.get(uri_name)
-            if spec:
-                if uri_name == "redirect_uris":  # another layer
-                    _uris = {}
-                    for typ, path in spec.items():
-                        add = False
-                        if typ in response_types:
-                            add = True
-                        elif 'response_type' in self._supports:
-                            if typ in self._supports['response_type']:
-                                add = True
-                        elif typ in self._supports:
-                            add = True
+        for uri_name in self._callback_path.keys():
+            if uri_name == 'redirect_uris':
+                _callback_uris = self._do_redirect_uris(base_url, hex, context, _callback_uris,
+                                                        response_types)
+                _redirect_uris = set()
+                for flow, _uris in _callback_uris['redirect_uris'].items():
+                    _redirect_uris.update(set(_uris))
+                context.set_preference('redirect_uris', list(_redirect_uris))
+            else:
+                _callback_uris[uri_name] = self.get_uri(base_url, self._callback_path[uri_name],
+                                                        hex)
 
-                        if add:
-                            _uris[typ] = self.get_uri(base_url, path, hex)
-                    res[uri_name] = _uris
-                elif uri_name == 'request_uris':
-                    if 'request_uri' == context.get_preference('request_parameter'):
-                        res[uri_name] = self.get_uri(base_url, spec, hex)
-                elif uri_name in context.prefers() or uri_name in self._supports:
-                    res[uri_name] = self.get_uri(base_url, spec, hex)
-
-        return res
+        return _callback_uris

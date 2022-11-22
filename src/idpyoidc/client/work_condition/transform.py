@@ -23,12 +23,12 @@ REGISTER2PREFERRED = {
     "response_types": "response_types_supported",
     "grant_types": "grant_types_supported",
     "scope": "scopes_supported",
-    "display": "display_values_supported",
-    "claims": "claims_supported",
-    "request": "request_parameter_supported",
-    "request_uri": "request_uri_parameter_supported",
-    'claims_locales': 'claims_locales_supported',
-    'ui_locales': 'ui_locales_supported',
+    # "display": "display_values_supported",
+    # "claims": "claims_supported",
+    # "request": "request_parameter_supported",
+    # "request_uri": "request_uri_parameter_supported",
+    # 'claims_locales': 'claims_locales_supported',
+    # 'ui_locales': 'ui_locales_supported',
 }
 
 PREFERRED2REGISTER = dict([(v, k) for k, v in REGISTER2PREFERRED.items()])
@@ -41,31 +41,9 @@ REQUEST2REGISTER = {
     'redirect_uri': "redirect_uris",
     'response_type': "response_types",
     'request_uri': "request_uris",
-    'grant_type': "grant_types"
+    'grant_type': "grant_types",
+    "scope": 'scopes_supported',
 }
-
-
-# AUTHORIZATION_REQUEST = [
-#     "acr_values",
-#     "claims",
-#     "claims_locales",
-#     "client_id",
-#     "display",
-#     "id_token_hint",
-#     "login_hint",
-#     "max_age",
-#     "nonce",
-#     "prompt",
-#     "redirect_uri",
-#     "registration",
-#     "request",
-#     "request_uri",
-#     "response_mode"
-#     "response_type",
-#     "scope",
-#     "state",
-#     "ui_locales",
-# ]
 
 
 def supported_to_preferred(supported: dict,
@@ -84,7 +62,7 @@ def supported_to_preferred(supported: dict,
                         preference[key] = [x for x in _pref_val if x in _info_val]
                     else:
                         pass
-            elif val is None:  # No default
+            elif val is None:  # No default, means the RP does not have a preference
                 # if key not in ['jwks_uri', 'jwks']:
                 pass
             else:
@@ -117,26 +95,40 @@ def supported_to_preferred(supported: dict,
     return preference
 
 
-def preferred_to_register(prefers: dict, use: Optional[dict] = None):
-    if not use:
-        use = {}
+def array_to_singleton(claim_spec, values):
+    if isinstance(claim_spec[0], list):
+        return values
+    else:
+        if isinstance(values, list):
+            return values[0]
+        else:  # singleton
+            return values
+
+
+def preferred_to_registered(prefers: dict, registration_response: Optional[dict] = None):
+    """
+    The claims with values that are returned from the OP is what goes unless (!!)
+    the values returned are not within the supported values.
+
+    @param prefers:
+    @param registration_response:
+    @return:
+    """
+    registered = {}
+
+    if registration_response:
+        for key, val in registration_response.items():
+            registered[key] = val  # Should I just accept with the OP says ??
 
     for key, spec in RegistrationResponse.c_param.items():
+        if key in registered:
+            continue
         _pref_key = REGISTER2PREFERRED.get(key, key)
 
         _preferred_values = prefers.get(_pref_key)
         if not _preferred_values:
             continue
-
-        if isinstance(spec[0], list):
-            if _preferred_values:
-                use[key] = _preferred_values
-        else:
-            if _preferred_values:
-                if isinstance(_preferred_values, list):
-                    use[key] = _preferred_values[0]
-                else:
-                    use[key] = _preferred_values
+        registered[key] = array_to_singleton(spec, _preferred_values)
 
     # transfer those claims that are not part of the registration request
     _rr_keys = list(RegistrationResponse.c_param.keys())
@@ -144,7 +136,11 @@ def preferred_to_register(prefers: dict, use: Optional[dict] = None):
         if PREFERRED2REGISTER.get(key):
             continue
         if key not in _rr_keys:
-            use[key] = val
+            registered[key] = val
 
-    logger.debug(f"Entity uses: {use}")
-    return use
+    logger.debug(f"Entity registered: {registered}")
+    return registered
+
+
+def register_to_request(prefers, registration_response):
+    pass

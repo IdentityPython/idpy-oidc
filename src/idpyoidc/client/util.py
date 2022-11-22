@@ -1,8 +1,8 @@
 """Utilities"""
-import logging
-import secrets
 from http.cookiejar import Cookie
 from http.cookiejar import http2time
+import logging
+import secrets
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -306,4 +306,18 @@ def lower_or_upper(config, param, default=None):
     res = config.get(param.lower(), default)
     if not res:
         res = config.get(param.upper(), default)
+    return res
+
+
+IMPLICIT_RESPONSE_TYPES = [
+    {'id_token'}, {'id_token', 'token'}, {'code', 'token'}, ['code', 'id_token'],
+    {'code', 'id_token', 'token'}, {'token'}
+]
+
+
+def implicit_response_types(a):
+    res = []
+    for typ in a:
+        if set(typ.split(' ')) in IMPLICIT_RESPONSE_TYPES:
+            res.append(typ)
     return res

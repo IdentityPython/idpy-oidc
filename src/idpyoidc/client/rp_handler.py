@@ -316,7 +316,7 @@ class RPHandler(object):
 
             load_registration_response(client, request_args=request_args)
         else:
-            _context.map_preferred_to_register()
+            _context.map_preferred_to_registered()
 
     def do_webfinger(self, user: str) -> Client:
         """
@@ -514,11 +514,8 @@ class RPHandler(object):
         :return: The client authentication method
         """
         if endpoint == "token_endpoint":
-            try:
-                am = client.client_get("service_context").work_condition.get_usage(
-                    "token_endpoint_auth_method"
-                )
-            except KeyError:
+            am = client.client_get("service_context").get_usage("token_endpoint_auth_method")
+            if not am:
                 return ""
             else:
                 if isinstance(am, str):
