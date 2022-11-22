@@ -21,17 +21,19 @@ class EndSession(Service):
     response_body_type = "html"
 
     _supports = {
-        "post_logout_redirect_uris": None,
+        "post_logout_redirect_uri": None,
+        'frontchannel_logout_supported': None,
         "frontchannel_logout_uri": None,
         "frontchannel_logout_session_required": None,
+        'backchannel_logout_supported': None,
         "backchannel_logout_uri": None,
         "backchannel_logout_session_required": None
     }
 
-    callback_path = {
+    _callback_path = {
         "frontchannel_logout_uri": "fc_logout",
         "backchannel_logout_uri": "bc_logout",
-        "post_logout_redirect_uris": "session_logout"
+        "post_logout_redirect_uri": "session_logout"
     }
 
     def __init__(self, client_get, conf=None):

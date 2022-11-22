@@ -48,15 +48,22 @@ class TestPKCE256:
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
-            "preference": {"response_types": ["code"]},
+            "preference": {
+                "response_types": ["code"]
+            },
             "add_ons": {
                 "pkce": {
                     "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
-                    "kwargs": {"code_challenge_length": 64, "code_challenge_method": "S256"},
+                    "kwargs": {
+                        "code_challenge_length": 64,
+                        "code_challenge_method": "S256"
+                    },
                 }
             },
         }
-        self.entity = Entity(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES,
+        self.entity = Entity(keyjar=CLI_KEY,
+                             config=config,
+                             services=DEFAULT_OAUTH2_SERVICES,
                              client_type='oauth2')
 
         if "add_ons" in config:

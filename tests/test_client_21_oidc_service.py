@@ -1,14 +1,14 @@
 import json
 import os
 
-import pytest
-import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
+import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -77,7 +77,7 @@ class TestAuthorization(object):
         client_config = {
             "client_id": "client_id",
             "client_secret": "a longesh password",
-            "callbak_uris": {
+            "callback_uris": {
                 "redirect_uris": {  # different flows
                     "code": ["https://example.com/cli/authz_cb"],
                     "implicit": ["https://example.com/cli/imp_cb"],
@@ -317,9 +317,11 @@ class TestAuthorizationCallback(object):
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "callback_uris": {
-                "code": "https://example.com/cli/authz_cb",
-                "token": "https://example.com/cli/authz_im_cb",
-                "form_post": "https://example.com/cli/authz_fp_cb",
+                "redirect_uris": {
+                    "code": ["https://example.com/cli/authz_cb"],
+                    "implicit": ["https://example.com/cli/authz_im_cb"],
+                    "form_post": ["https://example.com/cli/authz_fp_cb"]
+                },
             },
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
@@ -798,27 +800,29 @@ class TestProviderInfo(object):
         assert 'jwks' in use_copy
         del use_copy['jwks']
 
-        assert use_copy == {
-            'client_secret': 'a longesh password',
-            'contacts': ['ops@example.org'],
-            'default_max_age': 86400,
-            'encrypt_id_token_supported': False,
-            'application_type': 'web',
-            'backchannel_logout_session_required': True,
-            'backchannel_logout_uri': 'https://rp.example.com/back',
-            'client_id': 'client_id',
-            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
-            'id_token_signed_response_alg': 'RS256',
-            'post_logout_redirect_uris': ['https://rp.example.com/post'],
-            'redirect_uris': ['https://example.com/cli/authz_cb'],
-            'response_types': ['code'],
-            'token_endpoint_auth_method': 'private_key_jwt',
-            'token_endpoint_auth_signing_alg': 'ES256',
-            'userinfo_signed_response_alg': 'ES256',
-            'scope': ["openid", "profile", "email", "address", "phone"],
-            'request_object_signing_alg': 'ES256',
-            'subject_type': 'public'
-        }
+        assert use_copy == {'application_type': 'web',
+                            'backchannel_logout_session_required': True,
+                            'backchannel_logout_uri': 'https://rp.example.com/back',
+                            'callback_uris': {
+                                'redirect_uris': {'code': ['https://example.com/cli/authz_cb']}},
+                            'client_id': 'client_id',
+                            'client_secret': 'a longesh password',
+                            'contacts': ['ops@example.org'],
+                            'default_max_age': 86400,
+                            'encrypt_id_token_supported': False,
+                            'grant_types': ['authorization_code', 'refresh_token'],
+                            'id_token_signed_response_alg': 'RS256',
+                            'post_logout_redirect_uris': ['https://rp.example.com/post'],
+                            'redirect_uris': ['https://example.com/cli/authz_cb'],
+                            'request_object_signing_alg': 'ES256',
+                            'response_modes_supported': ['query', 'fragment', 'form_post'],
+                            'response_types': ['code'],
+                            'scope': ['openid', 'profile', 'email', 'address', 'phone'],
+                            'subject_type': 'public',
+                            'token_endpoint_auth_method': 'private_key_jwt',
+                            'token_endpoint_auth_signing_alg': 'ES256',
+                            'userinfo_signed_response_alg': 'ES256'
+                            }
 
     def test_post_parse_2(self):
         OP_BASEURL = ISS
@@ -861,23 +865,25 @@ class TestProviderInfo(object):
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
+            'callback_uris': {
+                'redirect_uris': {'code': ['https://example.com/cli/authz_cb']}},
             'client_id': 'client_id',
-            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
-            'id_token_signed_response_alg': 'RS256',
-            'post_logout_redirect_uris': ['https://rp.example.com/post'],
-            'redirect_uris': ['https://example.com/cli/authz_cb'],
-            'response_types': ['code'],
-            'token_endpoint_auth_method': 'private_key_jwt',
-            'token_endpoint_auth_signing_alg': 'ES256',
-            'userinfo_signed_response_alg': 'ES256',
-            'scope': ["openid", "profile", "email", "address", "phone"],
             'client_secret': 'a longesh password',
             'contacts': ['ops@example.org'],
             'default_max_age': 86400,
             'encrypt_id_token_supported': False,
+            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
+            'id_token_signed_response_alg': 'RS256',
+            'post_logout_redirect_uris': ['https://rp.example.com/post'],
+            'redirect_uris': ['https://example.com/cli/authz_cb'],
             'request_object_signing_alg': 'ES256',
-            'subject_type': 'public'
-        }
+            'response_modes_supported': ['query', 'fragment', 'form_post'],
+            'response_types': ['code'],
+            'scope': ['openid', 'profile', 'email', 'address', 'phone'],
+            'subject_type': 'public',
+            'token_endpoint_auth_method': 'private_key_jwt',
+            'token_endpoint_auth_signing_alg': 'ES256',
+            'userinfo_signed_response_alg': 'ES256'}
 
 
 def test_response_types_to_grant_types():

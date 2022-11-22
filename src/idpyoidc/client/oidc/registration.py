@@ -29,7 +29,7 @@ class Registration(Service):
 
     def add_client_preference(self, request_args=None, **kwargs):
         _context = self.client_get("service_context")
-        _use = _context.map_preferred_to_register()
+        _use = _context.map_preferred_to_registered()
         for prop, spec in self.msg_type.c_param.items():
             if prop in request_args:
                 continue
