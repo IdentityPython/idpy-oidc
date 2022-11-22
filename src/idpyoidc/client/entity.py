@@ -129,10 +129,7 @@ class Entity(object):
             'response_types_supported',
             self._service_context.supports().get('response_types_supported', []))
 
-        _callback_uris = self._service_context.construct_uris(response_types=_response_types)
-        if _callback_uris:
-            self._service_context.set_preference('redirect_uris',
-                                                 redirect_uris_from_callback_uris(_callback_uris))
+        self._service_context.construct_uris(response_types=_response_types)
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)

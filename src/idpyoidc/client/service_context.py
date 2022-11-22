@@ -9,8 +9,8 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -22,10 +22,10 @@ from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
 from .state_interface import StateInterface
+from .work_condition import WorkCondition
 from .work_condition import work_condition_dump
 from .work_condition import work_condition_load
-from .work_condition import WorkCondition
-from .work_condition.transform import preferred_to_register
+from .work_condition.transform import preferred_to_registered
 from .work_condition.transform import supported_to_preferred
 
 logger = logging.getLogger(__name__)
@@ -295,6 +295,14 @@ class ServiceContext(OidcContext):
     def set_usage(self, claim, value):
         return self.work_condition.set_usage(claim, value)
 
+    def _callback_per_service(self):
+        _cb = {}
+        for service in self.client_get('services').values():
+            _cbs = service._callback_path.keys()
+            if _cbs:
+                _cb[service.service_name] = _cbs
+        return _cb
+
     def construct_uris(self, response_types: Optional[list] = None):
         _hash = hashlib.sha256()
         _hash.update(self.hash_seed)
@@ -304,14 +312,21 @@ class ServiceContext(OidcContext):
         self.iss_hash = _hex
 
         _base_url = self.get("base_url")
-        _uris = {}
+
+        _callback_uris = self.get_preference('callback_uris', {})
         if self.client_get:
             services = self.client_get('services')
             for service in services.values():
-                _uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
-                                                    context=self,
-                                                    response_types=response_types))
-        return _uris
+                _callback_uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
+                                                             context=self,
+                                                             response_types=response_types))
+
+        self.set_preference('callback_uris', _callback_uris)
+        if 'redirect_uris' in _callback_uris:
+            _redirect_uris = set()
+            for flow, _uris in _callback_uris['redirect_uris'].items():
+                _redirect_uris.update(set(_uris))
+            self.set_preference('redirect_uris', list(_redirect_uris))
 
     def prefer_or_support(self, claim):
         if claim in self.work_condition.prefer:
@@ -333,7 +348,7 @@ class ServiceContext(OidcContext):
                                                             info=info)
         return self.work_condition.prefer
 
-    def map_preferred_to_register(self):
-        self.work_condition.use = preferred_to_register(self.work_condition.prefer,
+    def map_preferred_to_registered(self):
+        self.work_condition.use = preferred_to_registered(self.work_condition.prefer,
                                                         self.work_condition.use)
         return self.work_condition.use

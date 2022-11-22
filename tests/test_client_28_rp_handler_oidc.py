@@ -23,7 +23,7 @@ BASE_URL = "https://example.com/rp"
 PREF = {
     "application_type": "web",
     "contacts": ["ops@example.com"],
-    "response_types": [
+    "response_types_supported": [
         "code",
         "id_token",
         "id_token token",
@@ -31,10 +31,9 @@ PREF = {
         "code id_token token",
         "code token",
     ],
-    "token_endpoint_auth_method": "client_secret_basic",
-    "scope": ["openid", "profile", "email", "address", "phone"],
+    "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+    "scopes_supported": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
-    "request_uri": True
 }
 
 CLIENT_CONFIG = {
@@ -42,7 +41,7 @@ CLIENT_CONFIG = {
         "preference": PREF,
         "redirect_uris": None,
         "base_url": BASE_URL,
-        "requests_dir": "requests",
+        "request_parameter": "request_uris",
         "services": {
             "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
             "discovery": {
@@ -63,9 +62,9 @@ CLIENT_CONFIG = {
         "client_secret": "yyyyyyyyyyyyyyyyyyyy",
         "redirect_uris": ["{}/authz_cb/linkedin".format(BASE_URL)],
         "preference": {
-            "response_types": ["code"],
-            "scope": ["r_basicprofile", "r_emailaddress"],
-            "token_endpoint_auth_method": "client_secret_post",
+            "response_types_supported": ["code"],
+            "scopes_supported": ["r_basicprofile", "r_emailaddress"],
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
         },
         "provider_info": {
             "authorization_endpoint": "https://www.linkedin.com/oauth/v2/authorization",
@@ -84,9 +83,9 @@ CLIENT_CONFIG = {
         "client_id": "ccccccccc",
         "client_secret": "dddddddddddddd",
         "preference": {
-            "response_types": ["code"],
-            "scope": ["email", "public_profile"],
-            "token_endpoint_auth_method": "",
+            "response_types_supported": ["code"],
+            "scopes_supported": ["email", "public_profile"],
+            "token_endpoint_auth_methods_supported": [],
         },
         "redirect_uris": ["{}/authz_cb/facebook".format(BASE_URL)],
         "provider_info": {
@@ -113,7 +112,7 @@ CLIENT_CONFIG = {
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
         "preference": {
             "response_types_supported": ["code"],
-            "scope": ["user", "public_repo"],
+            "scopes_supported": ["user", "public_repo", 'openid'],
             "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
@@ -139,9 +138,9 @@ CLIENT_CONFIG = {
         "client_secret": "aaaaaaaaaaaaaaaaaaaa",
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
         "preference": {
-            "response_types": ["code"],
-            "scope": ["user", "public_repo"],
-            "token_endpoint_auth_method": "",
+            "response_types_supported": ["code"],
+            "scopes_supported": ["user", "public_repo"],
+            "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
         "provider_info": {
@@ -251,8 +250,9 @@ class TestRPHandler(object):
             "userinfo_endpoint",
         }
 
-        _pref = [k for k,v in _context.prefers().items() if v]
-        assert _pref == ['jwks', 'client_id', 'client_secret', 'redirect_uris', 'scope']
+        _pref = [k for k, v in _context.prefers().items() if v]
+        assert set(_pref) == {'jwks', 'client_id', 'client_secret', 'redirect_uris',
+                              'response_types_supported', 'callback_uris'}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -288,7 +288,7 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-                client.client_get("service_context").work_condition.callback.get(
+                client.client_get("service_context").get_preference('callback_uris').get(
                     "post_logout_redirect_uris") is None
         )
 
@@ -321,10 +321,10 @@ class TestRPHandler(object):
         _srv = client.client_get("service", "registration")
         _context = _srv.client_get("service_context")
 
-        cb = _srv.client_get("service_context").get_usage('callback_uris')
+        cb = _srv.client_get("service_context").get_preference('callback_uris')
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb['redirect_uris'].keys()) == {'code', 'form_post'}
+        assert set(cb['redirect_uris'].keys()) == {'code'}
         _hash = _context.iss_hash
 
         assert cb['redirect_uris']["code"] == f"https://example.com/rp/authz_cb/{_hash}"
@@ -361,7 +361,7 @@ class TestRPHandler(object):
         assert query["client_id"] == ["eeeeeeeee"]
         assert query["redirect_uri"] == ["https://example.com/rp/authz_cb/github"]
         assert query["response_type"] == ["code"]
-        assert query["scope"] == ["user public_repo openid"]
+        assert query["scope"] == ["user public_repo"]
 
     def test_get_session_information(self):
         res = self.rph.begin(issuer_id="github")
@@ -377,7 +377,7 @@ class TestRPHandler(object):
         # redo
         self.rph.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").work_condition.metadata["redirect_uris"] = []
+        cli2.client_get("service_context").set_preference("redirect_uris", [])
         self.rph.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):

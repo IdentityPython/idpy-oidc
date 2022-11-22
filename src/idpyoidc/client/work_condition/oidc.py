@@ -32,7 +32,7 @@ class WorkCondition(work_condition.WorkCondition):
         "initiate_login_uri": None,
         "client_id": None,
         "client_secret": None,
-        "scope": ["openid"],
+        "scopes_supported": ["openid"],
         #  "verify_args": None,
         "requests_dir": None,
         "encrypt_id_token_supported": None,

@@ -1,4 +1,5 @@
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -8,6 +9,8 @@ from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
+from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
@@ -58,6 +61,7 @@ class Authorization(authorization.Authorization):
             self.oidc_pre_construct,
         ]
         self.post_construct = [self.oidc_post_construct]
+        self.default_request_args = {'scope': ['openid']}
 
     def set_state(self, request_args, **kwargs):
         try:
@@ -336,3 +340,45 @@ class Authorization(authorization.Authorization):
             kwargs.update(_verify_args)
 
         return kwargs
+
+    def _do_request_uris(self, base_url, hex, context, callback_uris):
+        _uri_name = 'request_uris'
+        if context.get_preference('request_parameter') == _uri_name:
+            if _uri_name not in callback_uris:
+                callback_uris[_uri_name] = self.get_uri(base_url,
+                                                        self._callback_path[_uri_name],
+                                                        hex)
+        return callback_uris
+
+    def _do_type(self, context, typ, response_types):
+        if typ == 'code' and 'code' in response_types:
+            if typ in context.get_preference('response_modes_supported'):
+                return True
+        elif typ == 'implicit':
+            if typ in context.get_preference('response_modes_supported'):
+                if implicit_response_types(response_types):
+                    return True
+        elif typ == 'form_post':
+            if typ in context.get_preference('response_modes_supported'):
+                return True
+        return False
+
+    def construct_uris(self,
+                       base_url: str,
+                       hex: bytes,
+                       context: ServiceContext,
+                       targets: Optional[List[str]] = None,
+                       response_types: Optional[List[str]] = None):
+        _callback_uris = context.get_preference('callback_uris', {})
+
+        for uri_name in self._callback_path.keys():
+            if uri_name == 'redirect_uris':
+                _callback_uris = self._do_redirect_uris(base_url, hex, context, _callback_uris,
+                                                        response_types)
+            elif uri_name == 'request_uris':
+                _callback_uris = self._do_request_uris(base_url, hex, context, _callback_uris)
+            else:
+                _callback_uris[uri_name] = self.get_uri(base_url, self._callback_path[uri_name],
+                                                        hex)
+
+        return _callback_uris

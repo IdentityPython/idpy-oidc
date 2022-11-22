@@ -14,7 +14,7 @@ class WorkCondition(work_condition.WorkCondition):
         "client_uri": None,
         "logo_uri": None,
         "contacts": None,
-        "scope": None,
+        "scopes_supported": [],
         "tos_uri": None,
         "policy_uri": None,
         "jwks_uri": None,

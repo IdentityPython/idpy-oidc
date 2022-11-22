@@ -13,8 +13,8 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
 from .configure import Configuration
 from .exception import ResponseError
@@ -121,7 +121,7 @@ class Service(ImpExp):
         _context = self.client_get("service_context")
         _use = _context.collect_usage()
         if not _use:
-            _use = _context.map_preferred_to_register()
+            _use = _context.map_preferred_to_registered()
 
         if "request_args" in self.conf:
             ar_args.update(self.conf["request_args"])
@@ -136,9 +136,11 @@ class Service(ImpExp):
             if prop in ar_args:
                 continue
 
-            val = self.default_request_args.get(prop)
+            val = _use.get(prop)
             if not val:
-                val = _use.get(prop)
+                #val = request_claim(_context, prop)
+                #if not val:
+                val = self.default_request_args.get(prop)
 
             if val:
                 ar_args[prop] = val
@@ -640,12 +642,18 @@ class Service(ImpExp):
                        response_types: Optional[list] = None):
         if not targets:
             targets = self._callback_path.keys()
-        res = {}
+
+        if not targets:
+            return {}
+
+        _callback_uris = context.get_preference('callback_uris', {})
         for uri in targets:
-            _path = self._callback_path.get(uri)
-            if _path:
-                res[uri] = self.get_uri(base_url, _path, hex)
-        return res
+            if uri in _callback_uris:
+                pass
+            else:
+                _callback_uris[uri] = self.get_uri(base_url, self._callback_path.get(uri), hex)
+
+        return _callback_uris
 
     def supported(self, claim):
         return claim in self._supports
