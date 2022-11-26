@@ -64,7 +64,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types_supported": ["code"],
             "scopes_supported": ["r_basicprofile", "r_emailaddress"],
-            "token_endpoint_auth_methods_supported": ["client_secret_post"],
+            "token_endpoint_auth_method": ["client_secret_post"],
         },
         "provider_info": {
             "authorization_endpoint": "https://www.linkedin.com/oauth/v2/authorization",
@@ -85,7 +85,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types_supported": ["code"],
             "scopes_supported": ["email", "public_profile"],
-            "token_endpoint_auth_methods_supported": [],
+            "token_endpoint_auth_method": [],
         },
         "redirect_uris": ["{}/authz_cb/facebook".format(BASE_URL)],
         "provider_info": {
@@ -113,7 +113,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types_supported": ["code"],
             "scopes_supported": ["user", "public_repo", 'openid'],
-            "token_endpoint_auth_methods_supported": [],
+            "token_endpoint_auth_method": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
         "provider_info": {
@@ -252,7 +252,8 @@ class TestRPHandler(object):
 
         _pref = [k for k, v in _context.prefers().items() if v]
         assert set(_pref) == {'jwks', 'client_id', 'client_secret', 'redirect_uris',
-                              'response_types_supported', 'callback_uris'}
+                              'response_types_supported', 'callback_uris', 'scopes_supported',
+                              'keyjar'}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -327,7 +328,7 @@ class TestRPHandler(object):
         assert set(cb['redirect_uris'].keys()) == {'code'}
         _hash = _context.iss_hash
 
-        assert cb['redirect_uris']["code"] == f"https://example.com/rp/authz_cb/{_hash}"
+        assert cb['redirect_uris']["code"] == [f"https://example.com/rp/authz_cb/{_hash}"]
 
         assert list(self.rph.hash2issuer.keys()) == [_hash]
 
@@ -358,10 +359,11 @@ class TestRPHandler(object):
         }
 
         # nonce and state are created on the fly so can't check for those
+        # that all values are lists is a parse_qs artifact.
         assert query["client_id"] == ["eeeeeeeee"]
         assert query["redirect_uri"] == ["https://example.com/rp/authz_cb/github"]
         assert query["response_type"] == ["code"]
-        assert query["scope"] == ["user public_repo"]
+        assert set(query["scope"][0].split(' ')) == {"openid", "user", "public_repo"}
 
     def test_get_session_information(self):
         res = self.rph.begin(issuer_id="github")
@@ -398,7 +400,7 @@ class TestRPHandler(object):
         _session = self.rph.get_session_information(res["state"])
         client = self.rph.issuer2rp[_session["iss"]]
         authn_method = self.rph.get_client_authn_method(client, "token_endpoint")
-        assert authn_method == ""
+        assert authn_method == ''
 
         res = self.rph.begin(issuer_id="linkedin")
         _session = self.rph.get_session_information(res["state"])

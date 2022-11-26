@@ -2,6 +2,7 @@ import logging
 
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.oauth2 import server_metadata
+from idpyoidc.client.work_condition.transform import supported_to_preferred
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -53,8 +54,8 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
 
     def update_service_context(self, resp, **kwargs):
         _context = self.client_get("service_context")
-        self._update_service_context(resp)  # set endpoints and import keys
-        self.match_preferences(resp, _context.issuer)
+        self._update_service_context(resp) # set endpoints and import keys
+        _context.map_supported_to_preferred(resp)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
             _jwks = _context.keyjar.export_jwks_as_json(issuer=resp["issuer"])
             logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))

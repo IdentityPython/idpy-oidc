@@ -183,6 +183,14 @@ class RPHandler(object):
         except KeyError:
             _services = self.services
 
+        if not 'base_url' in _cnf:
+            _cnf['base_url'] = self.base_url
+
+        if self.jwks_uri:
+            _cnf['jwks_uri'] = self.jwks_uri
+        elif self.jwks:
+            _cnf['jwks'] = self.jwks
+
         try:
             client = self.client_cls(
                 services=_services,

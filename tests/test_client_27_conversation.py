@@ -140,7 +140,7 @@ def test_conversation():
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "response_types": ["code"],
-        "scope": ["openid", "profile", "email", "address", "phone"],
+        "scopes_supported": ["openid", "profile", "email", "address", "phone"],
         "request_object_signing_alg": "ES256",
         "request_uris": [f"{RP_BASEURL}/requests"],
         "token_endpoint_auth_methods_supported": ["private_key_jwt"],
@@ -523,17 +523,8 @@ def test_conversation():
 
     assert info["url"] == "https://example.org/op/token"
     _qp = parse_qs(info["body"])
-    assert set(_qp.keys()) == {
-        "grant_type",
-        "redirect_uri",
-        "state",
-        "code",
-        "client_assertion",
-        "client_assertion_type"
-    }
-    assert info["headers"] == {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+    assert set(_qp.keys()) == {'state', 'code', 'client_id', 'grant_type', 'redirect_uri'}
+    assert info["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
 
     # create the IdToken
     _jwt = JWT(OP_KEYJAR, OP_BASEURL, lifetime=3600, sign=True, sign_alg="RS256")

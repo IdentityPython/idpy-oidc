@@ -120,12 +120,13 @@ class Authorization(Service):
                 callback_uris['redirect_uris'] = {}
                 for flow_type, path in self._callback_path['redirect_uris'].items():
                     if self._do_flow(flow_type, response_types):
-                        callback_uris['redirect_uris'][flow_type] = self.get_uri(base_url, path, hex)
+                        callback_uris['redirect_uris'][flow_type] = [
+                            self.get_uri(base_url, path, hex)]
         else:
             callback_uris['redirect_uris'] = {}
             for flow_type, path in self._callback_path['redirect_uris'].items():
                 if self._do_flow(flow_type, response_types):
-                    callback_uris['redirect_uris'][flow_type] = self.get_uri(base_url, path, hex)
+                    callback_uris['redirect_uris'][flow_type] = [self.get_uri(base_url, path, hex)]
         return callback_uris
 
     def construct_uris(self,

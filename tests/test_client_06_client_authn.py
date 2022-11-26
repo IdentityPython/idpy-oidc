@@ -71,7 +71,7 @@ def entity():
     # The following two lines is necessary since they replace provider info collection and
     # client registration.
     _entity.get_service_context().map_supported_to_preferred()
-    _entity.get_service_context().map_preferred_to_register()
+    _entity.get_service_context().map_preferred_to_registered()
     return _entity
 
 

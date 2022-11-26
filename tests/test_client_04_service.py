@@ -49,12 +49,12 @@ class TestService:
         assert self.service
 
     def test_use(self):
-        use = self.service_context.map_preferred_to_register()
+        use = self.service_context.map_preferred_to_registered()
 
         assert set(use.keys()) == {'client_id', 'redirect_uris', 'response_types',
                                    'grant_types', 'application_type', 'jwks', 'subject_type',
                                    'id_token_signed_response_alg', 'default_max_age',
-                                   'request_object_signing_alg', 'callback_uris',
+                                   'request_object_signing_alg', 'callback_uris', 'scope',
                                    'response_modes_supported'}
 
     def test_gather_request_args(self):

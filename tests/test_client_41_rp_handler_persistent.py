@@ -106,7 +106,7 @@ CLIENT_CONFIG = {
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
         "preference": {
             "response_types": ["code"],
-            "scope": ["user", "public_repo"],
+            "scopes_supported": ["user", "public_repo"],
             "token_endpoint_auth_method": "",
             "verify_args": {"allow_sign_alg_none": True},
         },
@@ -229,7 +229,7 @@ class TestRPHandler(object):
         # only 2 things should have happened
 
         assert rph_1.hash2issuer["github"] == issuer
-        assert not client.client_get("service_context").callback.get("post_logout_redirect_uris")
+        assert not client.client_get("service_context").get_usage("post_logout_redirect_uris")
 
     def test_do_client_setup(self):
         rph_1 = RPHandler(
@@ -241,7 +241,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
 
         assert _context.get_client_id() == "eeeeeeeee"
-        assert _context.get("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
+        assert _context.get_usage("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == _github_id
 
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -313,7 +313,7 @@ class TestRPHandler(object):
         # redo
         rph_1.do_provider_info(state=res["state"])
         # get new redirect_uris
-        cli2.client_get("service_context").work_condition.metadata["redirect_uris"] = []
+        cli2.client_get("service_context").set_usage("redirect_uris", [])
         rph_1.do_client_registration(state=res["state"])
 
     def test_finalize_auth(self):

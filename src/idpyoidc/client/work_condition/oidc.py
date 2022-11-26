@@ -1,6 +1,9 @@
 import os
 from typing import Optional
 
+from cryptojwt import KeyJar
+from cryptojwt.key_jar import init_key_jar
+
 from idpyoidc.client import work_condition
 
 
@@ -46,17 +49,11 @@ class WorkCondition(work_condition.WorkCondition):
         work_condition.WorkCondition.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def verify_rules(self):
-        if self.get_preference("request_parameter") and self.get_preference("request_uri"):
-            raise ValueError("You have to chose one of 'request_parameter' and 'request_uri'."
-                             " you can't have both.")
-
-        _cb_uris = self.get_preference('callback_uris')
-        if _cb_uris:
-            self.set_preference('redirect_uris', list(_cb_uris.values()))  # just overwrite
-        else:
-            _uris = self.get_preference('redirect_uris')
-            if _uris:
-                self.set_preference('callback_uris', {'redirect_uris': {'code': _uris}})
+        if self.get_preference("request_parameter_supported") and self.get_preference(
+                "request_uri_parameter_supported"):
+            raise ValueError(
+                "You have to chose one of 'request_parameter_supported' and "
+                "'request_uri_parameter_supported'. You can't have both.")
 
         if not self.get_preference('encrypt_userinfo_supported'):
             self.set_preference('userinfo_encryption_alg_values_supported', [])

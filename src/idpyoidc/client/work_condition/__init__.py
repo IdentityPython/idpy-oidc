@@ -2,12 +2,16 @@ from functools import cmp_to_key
 from typing import Callable
 from typing import Optional
 
+from cryptojwt import KeyJar
+from cryptojwt.exception import IssuerNotFound
 from cryptojwt.jwe import SUPPORTED
+from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.jws import SIGNER_ALGS
+from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
-from idpyoidc.client.service import Service
+from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import qualified_name
 
@@ -79,7 +83,7 @@ class WorkCondition(ImpExp):
 
         callback_uri = {}
         for key in _uri:
-            callback_uri[key] = Service.get_uri(base_url, self.callback_path[key], hex)
+            callback_uri[key] = get_uri(base_url, self.callback_path[key], hex)
         return callback_uri
 
     def construct_redirect_uris(self,
@@ -101,8 +105,65 @@ class WorkCondition(ImpExp):
     def locals(self, info):
         pass
 
-    def load_conf(self, info, supports):
-        for attr, val in info.items():
+    def _keyjar(self, keyjar=None, conf=None, entity_id=""):
+        _uri_path = ''
+        if keyjar is None:
+            if "keys" in conf:
+                keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
+                _uri_path = conf['keys'].get('uri_path')
+            elif "key_conf" in conf and conf["key_conf"]:
+                keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
+                _uri_path = conf['key_conf'].get('uri_path')
+            else:
+                _keyjar = KeyJar()
+                if "jwks" in conf:
+                    _keyjar.import_jwks(conf["jwks"], "")
+
+            if "" in _keyjar and entity_id:
+                # make sure I have the keys under my own name too (if I know it)
+                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
+
+            _httpc_params = conf.get("httpc_params")
+            if _httpc_params:
+                _keyjar.httpc_params = _httpc_params
+
+            return _keyjar, _uri_path
+        else:
+            return keyjar, _uri_path
+
+    def handle_keys(self, configuration: dict, keyjar: Optional[KeyJar] = None):
+        _jwks = _jwks_uri = None
+        _id = self.get_preference('client_id')
+        keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
+
+        _secret = self.get_preference('client_secret')
+        if _secret:
+            keyjar.add_symmetric(issuer_id=_id, key=_secret)
+            keyjar.add_symmetric(issuer_id='', key=_secret)
+
+        # now that keys are in the Key Jar, now for how to publish it
+        if 'jwks_uri' in configuration:  # simple
+            _jwks_uri = configuration.get('jwks_uri')
+        elif uri_path:
+            _jwks_uri = f"{configuration.get('base_url')}{uri_path}"
+        else:  # jwks or nothing
+            #  if only the client secret, no need to publish as a JWKS
+            try:
+                _own_keys = keyjar.get_issuer_keys('')
+            except IssuerNotFound:
+                pass
+            else:
+                if len(_own_keys) == 1 and isinstance(_own_keys[0], SYMKey):
+                    pass
+                else:
+                    _jwks = keyjar.export_jwks()
+
+        return {'keyjar': keyjar, 'jwks': _jwks, 'jwks_uri': _jwks_uri}
+
+    def load_conf(self, configuration, supports):
+        for attr, val in configuration.items():
             if attr == "preference":
                 for k, v in val.items():
                     if k in supports:
@@ -110,7 +171,12 @@ class WorkCondition(ImpExp):
             elif attr in supports:
                 self.set_preference(attr, val)
 
-        self.locals(info)
+        self.locals(configuration)
+
+        for key, val in self.handle_keys(configuration).items():
+            if val:
+                self.set_preference(key, val)
+
         self.verify_rules()
         return self
 

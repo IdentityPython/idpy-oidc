@@ -1,9 +1,9 @@
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+from cryptojwt.key_jar import build_keyjar
 import pytest
 import responses
-from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.rp_handler import RPHandler
@@ -35,15 +35,19 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert set(_context.config.conf["metadata"].keys()) == {
-            "application_type",
-            "response_types",
-            "token_endpoint_auth_method"
-        }
-        assert _context.config.conf["usage"] == {
-            "scope": ["openid"],
-            "jwks_uri": True
-        }
+        assert set(_context.work_condition.prefer.keys()) == {
+            'application_type',
+            'callback_uris',
+            'id_token_encryption_alg_values_supported',
+            'id_token_encryption_enc_values_supported',
+            'jwks_uri',
+            'redirect_uris',
+            'request_object_encryption_alg_values_supported',
+            'request_object_encryption_enc_values_supported',
+            'scopes_supported',
+            'token_endpoint_auth_method',
+            'userinfo_encryption_alg_values_supported',
+            'userinfo_encryption_enc_values_supported'}
 
         assert list(_context.keyjar.owners()) == ["", BASE_URL]
         keys = _context.keyjar.get_issuer_keys("")
@@ -91,17 +95,25 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.work_condition.use.keys()) == {
-            "token_endpoint_auth_method",
-            "response_types",
-            "scope",
-            "application_type",
-            'redirect_uris',
-            'id_token_signed_response_alg',
-            'grant_types'
-        }
+        assert set(_context.work_condition.use.keys()) == {'application_type',
+                                                           'callback_uris',
+                                                           'client_id',
+                                                           'client_secret',
+                                                           'default_max_age',
+                                                           'grant_types',
+                                                           'id_token_signed_response_alg',
+                                                           'jwks_uri',
+                                                           'redirect_uris',
+                                                           'request_object_signing_alg',
+                                                           'response_modes_supported',
+                                                           'response_types',
+                                                           'scope',
+                                                           'subject_type',
+                                                           'token_endpoint_auth_method',
+                                                           'token_endpoint_auth_signing_alg',
+                                                           'userinfo_signed_response_alg'}
         assert _context.get_client_id() == "client uno"
-        assert _context.get("client_secret") == "VerySecretAndLongEnough"
+        assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 
         res = self.rph.init_authorization(client)
@@ -156,4 +168,4 @@ class TestRPHandler(object):
             rsps.add("POST", request_uri, body=_jws, status=200)
             self.rph.do_client_registration(client, ISS_ID)
 
-        assert "jwks" in _context.get("registration_response")
+        assert "jwks_uri" in _context.get("registration_response")
