@@ -20,10 +20,11 @@ REGISTER2PREFERRED = {
     "default_acr_values": "acr_values_supported",
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
-    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
     "grant_types": "grant_types_supported",
+    # In OAuth2 but not in OIDC
     "scope": "scopes_supported",
+    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     # "display": "display_values_supported",
     # "claims": "claims_supported",
     # "request": "request_parameter_supported",
@@ -44,6 +45,7 @@ REQUEST2REGISTER = {
     'request_uri': "request_uris",
     'grant_type': "grant_types",
     "scope": 'scopes_supported',
+    'post_logout_redirect_uri': "post_logout_redirect_uris"
 }
 
 
@@ -109,7 +111,18 @@ def array_or_singleton(claim_spec, values):
             return values
 
 
-def preferred_to_registered(prefers: dict, registration_response: Optional[dict] = None):
+def _is_subset(a, b):
+    if isinstance(a, list):
+        if isinstance(b, list):
+            return set(b).issubset(set(a))
+    elif isinstance(b, list):
+        return a in b
+    else:
+        return a == b
+
+
+def preferred_to_registered(prefers: dict, supported: dict,
+                            registration_response: Optional[dict] = None):
     """
     The claims with values that are returned from the OP is what goes unless (!!)
     the values returned are not within the supported values.
@@ -122,25 +135,33 @@ def preferred_to_registered(prefers: dict, registration_response: Optional[dict]
 
     if registration_response:
         for key, val in registration_response.items():
-            registered[key] = val  # Should I just accept with the OP says ??
+            if key in REGISTER2PREFERRED:
+                if _is_subset(val, supported.get(REGISTER2PREFERRED[key])):
+                    registered[key] = val
+                else:
+                    logger.warning(f'OP tells me to do something I do not support: {key} = {val}')
+            else:
+                registered[key] = val  # Should I just accept with the OP says ??
 
     for key, spec in RegistrationResponse.c_param.items():
         if key in registered:
             continue
         _pref_key = REGISTER2PREFERRED.get(key, key)
 
-        _preferred_values = prefers.get(_pref_key)
+        _preferred_values = prefers.get(_pref_key, prefers.get(key))
         if not _preferred_values:
             continue
+
         registered[key] = array_or_singleton(spec, _preferred_values)
 
     # transfer those claims that are not part of the registration request
     _rr_keys = list(RegistrationResponse.c_param.keys())
     for key, val in prefers.items():
-        if PREFERRED2REGISTER.get(key):
-            continue
-        if key not in _rr_keys:
-            registered[key] = val
+        _reg_key = PREFERRED2REGISTER.get(key, key)
+        if _reg_key not in _rr_keys:
+            # If they are not part of the registration request I do not knoe if it is supposed to
+            # be a singleton or an array. So just add it as is.
+            registered[_reg_key] = val
 
     logger.debug(f"Entity registered: {registered}")
     return registered
@@ -155,6 +176,9 @@ def create_registration_request(prefers, supported):
         elif _pref_key in supported:
             value = supported[_pref_key]
         else:
+            continue
+
+        if not value:
             continue
 
         _request[key] = array_or_singleton(spec, value)
