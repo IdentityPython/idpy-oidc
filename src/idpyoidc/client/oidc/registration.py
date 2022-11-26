@@ -2,6 +2,7 @@ import logging
 
 from idpyoidc.client.entity import response_types_to_grant_types
 from idpyoidc.client.service import Service
+from idpyoidc.client.work_condition.transform import create_registration_request
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -60,22 +61,20 @@ class Registration(Service):
         return request_args
 
     def update_service_context(self, resp, key="", **kwargs):
-        if "token_endpoint_auth_method" not in resp:
-            resp["token_endpoint_auth_method"] = "client_secret_basic"
+        # if "token_endpoint_auth_method" not in resp:
+        #     resp["token_endpoint_auth_method"] = "client_secret_basic"
 
         _context = self.client_get("service_context")
+        _context.map_preferred_to_registered(resp)
         _keyjar = _context.keyjar
 
         _context.registration_response = resp
-        _client_id = resp.get("client_id")
+        _client_id = _context.get_usage("client_id")
         if _client_id:
-            _context.work_condition.set_usage("client_id", _client_id)
             if _client_id not in _keyjar:
                 _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
-            _client_secret = resp.get("client_secret")
+            _client_secret = _context.get_usage("client_secret")
             if _client_secret:
-                _context.set_usage("client_secret", _client_secret)
-                # _context.client_secret = _client_secret
                 _keyjar.add_symmetric("", _client_secret)
                 _keyjar.add_symmetric(_client_id, _client_secret)
                 try:
@@ -88,3 +87,17 @@ class Registration(Service):
             _context.set_usage("registration_access_token", resp["registration_access_token"])
         except KeyError:
             pass
+
+    def gather_request_args(self, **kwargs):
+        """
+
+        @param kwargs:
+        @return:
+        """
+        _context = self.client_get("service_context")
+        req_args = create_registration_request(_context.work_condition.prefer, _context.supports())
+        if "request_args" in self.conf:
+            req_args.update(self.conf["request_args"])
+
+        req_args.update(kwargs)
+        return req_args

@@ -21,7 +21,7 @@ def test_client_info_init():
     ci = ServiceContext(config=config, client_type='oidc')
     ci.work_condition.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
-    ci.map_preferred_to_register()
+    ci.map_preferred_to_registered()
 
     srvcnx = ServiceContext(base_url=BASE_URL).load(ci.dump())
 

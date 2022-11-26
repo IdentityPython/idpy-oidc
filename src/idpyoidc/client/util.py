@@ -321,3 +321,6 @@ def implicit_response_types(a):
         if set(typ.split(' ')) in IMPLICIT_RESPONSE_TYPES:
             res.append(typ)
     return res
+
+def get_uri(base_url, path, hex):
+    return f"{base_url}/{path}/{hex}"

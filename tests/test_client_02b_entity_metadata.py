@@ -79,6 +79,7 @@ def test_create_client():
                                  'id_token_encryption_enc_values_supported',
                                  'id_token_signing_alg_values_supported',
                                  'jwks',
+                                 'keyjar',
                                  'post_logout_redirect_uris',
                                  'redirect_uris',
                                  'request_object_encryption_alg_values_supported',
@@ -89,7 +90,7 @@ def test_create_client():
                                  'response_types_supported',
                                  'scopes_supported',
                                  'subject_types_supported',
-                                 'token_endpoint_auth_methods_supported',
+                                 'token_endpoint_auth_method',
                                  'token_endpoint_auth_signing_alg_values_supported',
                                  'userinfo_encryption_alg_values_supported',
                                  'userinfo_encryption_enc_values_supported',
@@ -101,33 +102,47 @@ def test_create_client():
     #
     assert _context.get_preference("userinfo_signing_alg_values_supported") == ['ES256']
     # How to act
-    _context.map_preferred_to_register()
+    _context.map_preferred_to_registered()
 
     assert _context.get_usage("request_uris") is None
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 21
+    assert len(_conf_args) == 23
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined
     d = rr.difference(set(_conf_args))
-    assert d == {'initiate_login_uri', 'client_name', 'post_logout_redirect_uri', 'tos_uri',
-                 'logo_uri', 'jwks_uri', 'federation_type', 'frontchannel_logout_session_required',
-                 'require_auth_time', 'client_uri', 'frontchannel_logout_uri', 'request_uris',
-                 'sector_identifier_uri', 'organization_name', 'policy_uri',
-                 'default_acr_values', 'userinfo_encrypted_response_alg',
-                 'id_token_encrypted_response_alg', 'request_object_encryption_alg',
-                 'userinfo_encrypted_response_enc', 'request_object_encryption_enc',
-                 'id_token_encrypted_response_enc'}
+    assert d == {'client_name',
+                 'client_uri',
+                 'default_acr_values',
+                 'frontchannel_logout_session_required',
+                 'frontchannel_logout_uri',
+                 'id_token_encrypted_response_alg',
+                 'id_token_encrypted_response_enc',
+                 'initiate_login_uri',
+                 'jwks_uri',
+                 'logo_uri',
+                 'policy_uri',
+                 'post_logout_redirect_uri',
+                 'request_object_encryption_alg',
+                 'request_object_encryption_enc',
+                 'request_uris',
+                 'require_auth_time',
+                 'sector_identifier_uri',
+                 'tos_uri',
+                 'userinfo_encrypted_response_alg',
+                 'userinfo_encrypted_response_enc'}
 
 
 def test_create_client_key_conf():
     client_config = CLIENT_CONFIG.copy()
-    client_config.update({"key_conf": KEY_CONF})
+    client_config.update({
+        "key_conf": KEY_CONF,
+        "jwks_uri": "https://example.com/keys/jwks.json"
+    })
 
     client = Entity(config=client_config, client_type='oidc')
-    _jwks = client.get_service_context().get_preference("jwks")
-    assert _jwks
+    assert client.get_service_context().get_preference("jwks_uri")
 
 
 def test_create_client_keyjar():

@@ -37,6 +37,8 @@ class Authorization(authorization.Authorization):
         "request_object_encryption_enc_values_supported": work_condition.get_encryption_encs,
         "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
                                      'code id_token', 'code idtoken token'],
+        'request_parameter_supported': None,
+        'request_uri_parameter_supported': None,
         "request_uris": None,
         "request_parameter": None,
         "encrypt_request_object_supported": None,
@@ -61,7 +63,8 @@ class Authorization(authorization.Authorization):
             self.oidc_pre_construct,
         ]
         self.post_construct = [self.oidc_post_construct]
-        self.default_request_args = {'scope': ['openid']}
+        if 'scope' not in self.default_request_args:
+            self.default_request_args['scope'] = ['openid']
 
     def set_state(self, request_args, **kwargs):
         try:
@@ -127,7 +130,11 @@ class Authorization(authorization.Authorization):
             if _scope:
                 request_args["scope"] = _scope
             else:
-                request_args["scope"] = "openid"
+                _scope = _context.get_preference("scopes_supported")
+                if _scope:
+                    request_args['scope'] = _scope
+                else:
+                    request_args["scope"] = "openid"
         elif "openid" not in request_args["scope"]:
             request_args["scope"].append("openid")
 

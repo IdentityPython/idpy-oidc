@@ -70,7 +70,7 @@ class TestPKCE256:
             do_add_ons(config["add_ons"], self.entity.client_get("services"))
         _context = self.entity.get_service_context()
         _context.map_supported_to_preferred()
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
 
     def test_add_code_challenge_default_values(self):
         auth_serv = self.entity.client_get("service", "authorization")

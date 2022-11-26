@@ -348,7 +348,9 @@ class ServiceContext(OidcContext):
                                                             info=info)
         return self.work_condition.prefer
 
-    def map_preferred_to_registered(self):
-        self.work_condition.use = preferred_to_registered(self.work_condition.prefer,
-                                                        self.work_condition.use)
+    def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
+        self.work_condition.use = preferred_to_registered(
+            self.work_condition.prefer,
+            supported=self.supports(),
+            registration_response=registration_response)
         return self.work_condition.use

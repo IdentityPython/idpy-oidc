@@ -91,7 +91,7 @@ class TestAuthorization(object):
         _context = entity.client_get("service_context")
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
         self.context = _context
         self.service = entity.client_get("service", "authorization")
 
@@ -329,7 +329,7 @@ class TestAuthorizationCallback(object):
         _context = entity.client_get("service_context")
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
 
         self.service = entity.client_get("service", "authorization")
 
@@ -544,7 +544,7 @@ class TestProviderInfo(object):
                 "response_types_supported": ["code"],
                 "request_object_signing_alg_values_supported": ["ES256"],
                 "encrypt_id_token_supported": False,  # default
-                "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+                "token_endpoint_auth_method": ["private_key_jwt"],
                 "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
                 "userinfo_signing_alg_values_supported": ["ES256"],
                 "post_logout_redirect_uris": ["https://rp.example.com/post"],
@@ -793,18 +793,18 @@ class TestProviderInfo(object):
             self.service.update_service_context(resp)
 
         # static client registration
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
 
         use_copy = self.service.client_get("service_context").work_condition.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
+        del use_copy['keyjar']
+        del use_copy['callback_uris']
 
         assert use_copy == {'application_type': 'web',
                             'backchannel_logout_session_required': True,
                             'backchannel_logout_uri': 'https://rp.example.com/back',
-                            'callback_uris': {
-                                'redirect_uris': {'code': ['https://example.com/cli/authz_cb']}},
                             'client_id': 'client_id',
                             'client_secret': 'a longesh password',
                             'contacts': ['ops@example.org'],
@@ -817,7 +817,7 @@ class TestProviderInfo(object):
                             'request_object_signing_alg': 'ES256',
                             'response_modes_supported': ['query', 'fragment', 'form_post'],
                             'response_types': ['code'],
-                            'scope': ['openid', 'profile', 'email', 'address', 'phone'],
+                            'scope': ['openid'],
                             'subject_type': 'public',
                             'token_endpoint_auth_method': 'private_key_jwt',
                             'token_endpoint_auth_signing_alg': 'ES256',
@@ -854,19 +854,19 @@ class TestProviderInfo(object):
             self.service.update_service_context(resp)
 
         # static client registration
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
 
         use_copy = self.service.client_get("service_context").work_condition.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
+        del use_copy['keyjar']
+        del use_copy['callback_uris']
 
         assert use_copy == {
             'application_type': 'web',
             'backchannel_logout_session_required': True,
             'backchannel_logout_uri': 'https://rp.example.com/back',
-            'callback_uris': {
-                'redirect_uris': {'code': ['https://example.com/cli/authz_cb']}},
             'client_id': 'client_id',
             'client_secret': 'a longesh password',
             'contacts': ['ops@example.org'],
@@ -879,7 +879,7 @@ class TestProviderInfo(object):
             'request_object_signing_alg': 'ES256',
             'response_modes_supported': ['query', 'fragment', 'form_post'],
             'response_types': ['code'],
-            'scope': ['openid', 'profile', 'email', 'address', 'phone'],
+            'scope': ['openid'],
             'subject_type': 'public',
             'token_endpoint_auth_method': 'private_key_jwt',
             'token_endpoint_auth_signing_alg': 'ES256',
@@ -924,16 +924,37 @@ class TestRegistration(object):
     def test_construct(self):
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 5
+        assert set(_req.keys()) == {'application_type',
+                                    'default_max_age',
+                                    'grant_types',
+                                    'id_token_signed_response_alg',
+                                    'jwks',
+                                    'redirect_uris',
+                                    'request_object_signing_alg',
+                                    'response_types',
+                                    'subject_type',
+                                    'token_endpoint_auth_signing_alg',
+                                    'userinfo_signed_response_alg'}
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").work_condition.set_usage(
+        self.service.client_get("service_context").work_condition.set_preference(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
         assert isinstance(_req, RegistrationRequest)
-        assert len(_req) == 6
-        assert "post_logout_redirect_uri" in _req
+        assert set(_req.keys()) == {'application_type',
+                                    'default_max_age',
+                                    'grant_types',
+                                    'id_token_signed_response_alg',
+                                    'jwks',
+                                    'post_logout_redirect_uri',
+                                    'redirect_uris',
+                                    'request_object_signing_alg',
+                                    'response_types',
+                                    'subject_type',
+                                    'token_endpoint_auth_signing_alg',
+                                    'userinfo_signed_response_alg'}
+        assert "post_logout_redirect_uri" in _req.keys()
 
 
 def test_config_with_required_request_uri():
@@ -1228,7 +1249,7 @@ class TestEndSession(object):
         _context = entity.client_get("service_context")
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
-        _context.map_preferred_to_register()
+        _context.map_preferred_to_registered()
         self.service = entity.client_get("service", "end_session")
 
     def test_construct(self):
@@ -1269,7 +1290,7 @@ def test_authz_service_conf():
     _context = entity.client_get("service_context")
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
-    _context.map_preferred_to_register()
+    _context.map_preferred_to_registered()
     service = entity.client_get("service", "authorization")
 
     req = service.construct()
@@ -1292,7 +1313,7 @@ def test_jwks_uri_conf():
     _context = entity.client_get("service_context")
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
-    _context.map_preferred_to_register()
+    _context.map_preferred_to_registered()
 
     assert _context.get_usage("jwks_uri")
 
@@ -1318,6 +1339,6 @@ def test_jwks_uri_arg():
     _context = entity.client_get("service_context")
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
-    _context.map_preferred_to_register()
+    _context.map_preferred_to_registered()
 
     assert _context.get_usage("jwks_uri")

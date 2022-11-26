@@ -1,12 +1,12 @@
 from typing import Callable
 
-import pytest
 from cryptojwt.utils import importer
+import pytest
 
 from idpyoidc.client.work_condition.oidc import WorkCondition as WorkConditionOIDC
+from idpyoidc.client.work_condition.transform import REGISTER2PREFERRED
 from idpyoidc.client.work_condition.transform import create_registration_request
 from idpyoidc.client.work_condition.transform import preferred_to_registered
-from idpyoidc.client.work_condition.transform import REGISTER2PREFERRED
 from idpyoidc.client.work_condition.transform import supported_to_preferred
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
@@ -70,12 +70,14 @@ class TestTransform:
             'jwks_uri',
             'logo_uri',
             'policy_uri',
-            'post_logout_redirect_uri',
+            'post_logout_redirect_uris',
             'redirect_uris',
             'request_object_encryption_alg_values_supported',
             'request_object_encryption_enc_values_supported',
             'request_object_signing_alg_values_supported',
             'request_parameter',
+            'request_parameter_supported',
+            'request_uri_parameter_supported',
             'request_uris',
             'requests_dir',
             'require_auth_time',
@@ -110,8 +112,8 @@ class TestTransform:
                    'op_policy_uri',
                    'op_tos_uri',
                    'registration_endpoint',
-                   'request_parameter_supported',
-                   'request_uri_parameter_supported',
+                   # 'request_parameter_supported',
+                   # 'request_uri_parameter_supported',
                    'require_request_uri_registration',
                    'service_documentation',
                    'token_endpoint',
@@ -138,7 +140,7 @@ class TestTransform:
                    'jwks',
                    'logo_uri',
                    'policy_uri',
-                   'post_logout_redirect_uri',
+                   'post_logout_redirect_uris',
                    'redirect_uris',
                    'request_parameter',
                    'request_uris',
@@ -179,7 +181,8 @@ class TestTransform:
             if _pref_key in self.supported:
                 reg_claim.append(key)
 
-        assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == set()
+        assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
+            'post_logout_redirect_uri'}
 
         # Which ones are list -> singletons
 
@@ -327,39 +330,18 @@ class TestTransform2:
         registration_request = create_registration_request(pref, self.supported)
 
         assert set(registration_request.keys()) == {'application_type',
-                                                    'backchannel_logout_session_required',
-                                                    'backchannel_logout_uri',
                                                     'client_name',
-                                                    'client_uri',
                                                     'contacts',
-                                                    'default_acr_values',
                                                     'default_max_age',
-                                                    'frontchannel_logout_session_required',
-                                                    'frontchannel_logout_uri',
                                                     'grant_types',
-                                                    'id_token_encrypted_response_alg',
-                                                    'id_token_encrypted_response_enc',
                                                     'id_token_signed_response_alg',
-                                                    'initiate_login_uri',
-                                                    'jwks',
-                                                    'jwks_uri',
                                                     'logo_uri',
-                                                    'policy_uri',
-                                                    'post_logout_redirect_uri',
                                                     'redirect_uris',
-                                                    'request_object_encryption_alg',
-                                                    'request_object_encryption_enc',
                                                     'request_object_signing_alg',
-                                                    'request_uris',
-                                                    'require_auth_time',
                                                     'response_types',
-                                                    'sector_identifier_uri',
                                                     'subject_type',
                                                     'token_endpoint_auth_method',
                                                     'token_endpoint_auth_signing_alg',
-                                                    'tos_uri',
-                                                    'userinfo_encrypted_response_alg',
-                                                    'userinfo_encrypted_response_enc',
                                                     'userinfo_signed_response_alg'}
 
         assert registration_request["subject_type"] == 'public'
@@ -384,26 +366,23 @@ class TestTransform2:
         }
 
         to_use = preferred_to_registered(prefers=pref,
+                                         supported=self.supported,
                                          registration_response=registration_response)
 
         assert set(to_use.keys()) == {'application_type',
                                       'client_name',
-                                      'client_name#ja-Jpan-JP',
                                       'contacts',
                                       'default_max_age',
                                       'grant_types',
-                                      'id_token_encrypted_response_alg',
-                                      'id_token_encrypted_response_enc',
                                       'id_token_signed_response_alg',
                                       'jwks_uri',
                                       'logo_uri',
                                       'redirect_uris',
-                                      'request_object_encryption_alg',
-                                      'request_object_encryption_enc',
                                       'request_object_signing_alg',
                                       'request_uris',
                                       'response_modes_supported',
                                       'response_types',
+                                      'scope',
                                       'sector_identifier_uri',
                                       'subject_type',
                                       'token_endpoint_auth_method',
