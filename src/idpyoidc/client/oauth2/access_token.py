@@ -27,7 +27,7 @@ class AccessToken(Service):
     response_body_type = "json"
 
     _supports = {
-        "token_endpoint_auth_method": get_client_authn_methods,
+        "token_endpoint_auth_methods_supported": get_client_authn_methods,
         "token_endpoint_auth_signing_alg": get_signing_algs,
     }
 
