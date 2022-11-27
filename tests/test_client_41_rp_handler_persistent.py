@@ -12,7 +12,7 @@ from idpyoidc.message.oidc import IdToken
 
 BASE_URL = "https://example.com/rp"
 
-METADATA = {
+PREFERENCE = {
     "application_type": "web",
     "contacts": ["ops@example.com"],
     "response_types": [
@@ -24,17 +24,13 @@ METADATA = {
         "code token",
     ],
     "token_endpoint_auth_method": "client_secret_basic",
-}
-
-USAGE = {
     "scope": ["openid", "profile", "email", "address", "phone"],
     "verify_args": {"allow_sign_alg_none": True},
 }
 
 CLIENT_CONFIG = {
     "": {
-        "metadata": METADATA,
-        "usage": USAGE,
+        "preference": PREFERENCE,
         "redirect_uris": None,
         "services": {
             "web_finger": {"class": "idpyoidc.client.oidc.webfinger.WebFinger"},
@@ -246,7 +242,7 @@ class TestRPHandler(object):
 
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert list(_context.keyjar.owners()) == ["", _github_id]
+        assert set(_context.keyjar.owners()) == {"", 'eeeeeeeee', _github_id}
         keys = _context.keyjar.get_issuer_keys("")
         assert len(keys) == 2
 

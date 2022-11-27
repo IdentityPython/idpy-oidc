@@ -162,7 +162,7 @@ class WorkCondition(ImpExp):
 
         return {'keyjar': keyjar, 'jwks': _jwks, 'jwks_uri': _jwks_uri}
 
-    def load_conf(self, configuration, supports):
+    def load_conf(self, configuration, supports, keyjar: Optional[KeyJar] = None):
         for attr, val in configuration.items():
             if attr == "preference":
                 for k, v in val.items():
@@ -173,12 +173,14 @@ class WorkCondition(ImpExp):
 
         self.locals(configuration)
 
-        for key, val in self.handle_keys(configuration).items():
-            if val:
+        for key, val in self.handle_keys(configuration, keyjar=keyjar).items():
+            if key == 'keyjar':
+                keyjar = val
+            elif val:
                 self.set_preference(key, val)
 
         self.verify_rules()
-        return self
+        return keyjar
 
     def get(self, key, default=None):
         if key in self._local:

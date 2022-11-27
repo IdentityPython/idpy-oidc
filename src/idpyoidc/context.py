@@ -1,9 +1,6 @@
 import copy
 from urllib.parse import quote_plus
 
-from cryptojwt import KeyJar
-from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.impexp import ImpExp
 
 
@@ -20,35 +17,8 @@ def add_issuer(conf, issuer):
 
 
 class OidcContext(ImpExp):
-    parameter = {"keyjar": KeyJar, "issuer": None}
+    parameter = {"issuer": None}
 
-    def __init__(self, config=None, keyjar=None, entity_id=""):
+    def __init__(self, config=None, entity_id=""):
         ImpExp.__init__(self)
-        if config is None:
-            config = {}
-        self.keyjar = self._keyjar(keyjar, conf=config, entity_id=entity_id)
-
-    def _keyjar(self, keyjar=None, conf=None, entity_id=""):
-        if keyjar is None:
-            if "keys" in conf:
-                keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-            elif "key_conf" in conf and conf["key_conf"]:
-                keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-            else:
-                _keyjar = KeyJar()
-                if "jwks" in conf:
-                    _keyjar.import_jwks(conf["jwks"], "")
-
-            if "" in _keyjar and entity_id:
-                # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
-
-            _httpc_params = conf.get("httpc_params")
-            if _httpc_params:
-                _keyjar.httpc_params = _httpc_params
-
-            return _keyjar
-        else:
-            return keyjar
+        self.entity_id = entity_id or config.get('client_id')

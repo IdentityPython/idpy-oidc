@@ -251,9 +251,8 @@ class TestRPHandler(object):
         }
 
         _pref = [k for k, v in _context.prefers().items() if v]
-        assert set(_pref) == {'jwks', 'client_id', 'client_secret', 'redirect_uris',
-                              'response_types_supported', 'callback_uris', 'scopes_supported',
-                              'keyjar'}
+        assert set(_pref) == {'client_id', 'client_secret', 'redirect_uris',
+                              'response_types_supported', 'callback_uris', 'scopes_supported'}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -262,7 +261,7 @@ class TestRPHandler(object):
         # secret. 2 because one is marked for encryption and the other signing
         # usage.
 
-        assert list(_context.keyjar.owners()) == ["", _github_id]
+        assert set(_context.keyjar.owners()) == {"", 'eeeeeeeee', _github_id}
         keys = _context.keyjar.get_issuer_keys("")
         assert len(keys) == 2
 
@@ -306,7 +305,7 @@ class TestRPHandler(object):
 
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert list(_context.keyjar.owners()) == ["", _github_id]
+        assert set(_context.keyjar.owners()) == {"", "eeeeeeeee", _github_id}
         keys = _context.keyjar.get_issuer_keys("")
         assert len(keys) == 2
 
