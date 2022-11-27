@@ -202,6 +202,6 @@ class TestClient2(object):
         }
 
         _context = self.client.client_get("service_context")
-        assert len(_context.keyjar) == 1  # one issuer
+        assert len(_context.keyjar) == 2  # one issuer
         assert len(_context.keyjar[""]) == 2
         assert len(_context.keyjar.get("sig")) == 2

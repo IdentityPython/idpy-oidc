@@ -7,14 +7,14 @@ ISS = "http://example.org/op"
 CLIENT_CONFIG = {
     "base_url": "https://example.com/cli",
     "client_secret": "a longesh password",
+    "client_id": "client_id",
+    "redirect_uris": ["https://example.com/cli/authz_cb"],
     "issuer": ISS,
     "application_name": "rphandler",
     "preference": {
         "application_type": "web",
         "contacts": "support@example.com",
         "response_types": ["code"],
-        "client_id": "client_id",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
         'request_parameter': "request_uri",
         "request_object_signing_alg_values_supported": ["ES256"],
         "scope": ["openid", "profile", "email", "address", "phone"],
@@ -78,8 +78,6 @@ def test_create_client():
                                  'id_token_encryption_alg_values_supported',
                                  'id_token_encryption_enc_values_supported',
                                  'id_token_signing_alg_values_supported',
-                                 'jwks',
-                                 'keyjar',
                                  'post_logout_redirect_uris',
                                  'redirect_uris',
                                  'request_object_encryption_alg_values_supported',
@@ -108,7 +106,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 23
+    assert len(_conf_args) == 21
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined
     d = rr.difference(set(_conf_args))
@@ -120,6 +118,7 @@ def test_create_client():
                  'id_token_encrypted_response_alg',
                  'id_token_encrypted_response_enc',
                  'initiate_login_uri',
+                 'jwks',
                  'jwks_uri',
                  'logo_uri',
                  'policy_uri',
@@ -156,5 +155,6 @@ def test_create_client_keyjar():
 
 def test_create_client_jwks_uri():
     client_config = CLIENT_CONFIG.copy()
-    client = Entity(config=client_config, jwks_uri="https://rp.example.com/jwks_uri.json")
+    client_config['jwks_uri'] = "https://rp.example.com/jwks_uri.json"
+    client = Entity(config=client_config)
     assert client.get_service_context().get_preference("jwks_uri")

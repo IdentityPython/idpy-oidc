@@ -1,9 +1,6 @@
 import os
 from typing import Optional
 
-from cryptojwt import KeyJar
-from cryptojwt.key_jar import init_key_jar
-
 from idpyoidc.client import work_condition
 
 

@@ -77,7 +77,6 @@ class Entity(object):
             keyjar: Optional[KeyJar] = None,
             config: Optional[Union[dict, Configuration]] = None,
             services: Optional[dict] = None,
-            jwks_uri: Optional[str] = "",
             httpc_params: Optional[dict] = None,
             client_type: Optional[str] = "oauth2"
     ):
@@ -88,16 +87,6 @@ class Entity(object):
             self.httpc_params = {"verify": True}
 
         config = get_configuration(config)
-
-        if keyjar:
-            _kj = keyjar.copy()
-        else:
-            _kj = None
-
-        self._service_context = ServiceContext(
-            keyjar=keyjar, config=config, jwks_uri=jwks_uri, httpc_params=self.httpc_params,
-            client_type=client_type, client_get=self.client_get
-        )
 
         if config:
             _srvs = config.conf.get("services")
@@ -114,22 +103,18 @@ class Entity(object):
 
         self._service = init_services(service_definitions=_srvs, client_get=self.client_get)
 
-        self.setup_client_authn_methods(config)
+        self._service_context = ServiceContext(
+            keyjar=keyjar, config=config, httpc_params=self.httpc_params,
+            client_type=client_type, client_get=self.client_get
+        )
 
-        jwks_uri = jwks_uri or self._service_context.get("jwks_uri")
-        set_jwks_uri_or_jwks(self._service_context, config, jwks_uri, self._service_context.keyjar)
+        self.keyjar = self._service_context.get_preference('keyjar')
+
+        self.setup_client_authn_methods(config)
 
         # Deal with backward compatibility
         self.backward_compatibility(config)
 
-        self._service_context.work_condition.load_conf(config.conf,
-                                                       supports=self._service_context.supports())
-
-        _response_types = self._service_context.get_preference(
-            'response_types_supported',
-            self._service_context.supports().get('response_types_supported', []))
-
-        self._service_context.construct_uris(response_types=_response_types)
 
     def client_get(self, what, *arg):
         _func = getattr(self, "get_{}".format(what), None)

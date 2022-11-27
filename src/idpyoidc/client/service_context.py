@@ -18,7 +18,6 @@ from cryptojwt.utils import as_bytes
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.work_condition.oauth2 import WorkCondition as OAUTH2_Specs
 from idpyoidc.client.work_condition.oidc import WorkCondition as OIDC_Specs
-from idpyoidc.context import OidcContext
 from idpyoidc.util import rndstr
 from .configure import get_configuration
 from .state_interface import StateInterface
@@ -27,6 +26,7 @@ from .work_condition import work_condition_dump
 from .work_condition import work_condition_load
 from .work_condition.transform import preferred_to_registered
 from .work_condition.transform import supported_to_preferred
+from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +77,7 @@ DEFAULT_VALUE = {
 }
 
 
-class ServiceContext(OidcContext):
+class ServiceContext(ImpExp):
     """
     This class keeps information that a client needs to be able to talk
     to a server. Some of this information comes from configuration and some
@@ -85,30 +85,28 @@ class ServiceContext(OidcContext):
     But information is also picked up during the conversation with a server.
     """
 
-    parameter = OidcContext.parameter.copy()
-    parameter.update(
-        {
-            "add_on": None,
-            "allow": None,
-            "args": None,
-            "base_url": None,
-            "behaviour": None,
-            "client_secret_expires_at": 0,
-            "clock_skew": None,
-            "config": None,
-            "hash_seed": b"",
-            "httpc_params": None,
-            "iss_hash": None,
-            "issuer": None,
-            "work_condition": WorkCondition,
-            "provider_info": None,
-            "requests_dir": None,
-            "registration_response": None,
-            "state": StateInterface,
-            'usage': None,
-            "verify_args": None,
-        }
-    )
+    parameter = {
+        "add_on": None,
+        "allow": None,
+        "args": None,
+        "base_url": None,
+        # "behaviour": None,
+        # "client_secret_expires_at": 0,
+        "clock_skew": None,
+        "config": None,
+        "hash_seed": b"",
+        "httpc_params": None,
+        "iss_hash": None,
+        "issuer": None,
+        'keyjar': KeyJar,
+        "work_condition": WorkCondition,
+        "provider_info": None,
+        "requests_dir": None,
+        "registration_response": None,
+        "state": StateInterface,
+        # 'usage': None,
+        "verify_args": None,
+    }
 
     special_load_dump = {
         "specs": {"load": work_condition_load, "dump": work_condition_dump},
@@ -122,6 +120,7 @@ class ServiceContext(OidcContext):
                  state: Optional[StateInterface] = None,
                  client_type: Optional[str] = 'oauth2',
                  **kwargs):
+        ImpExp.__init__(self)
         config = get_configuration(config)
         self.config = config
         self.client_get = client_get
@@ -133,33 +132,25 @@ class ServiceContext(OidcContext):
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 
-        OidcContext.__init__(self, config, keyjar, entity_id=config.conf.get("client_id", ""))
+        self.entity_id = config.conf.get("client_id", "")
         self.state = state or StateInterface()
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.base_url = base_url or config.get("base_url") or config.conf.get('base_url', '')
-        # Below so my IDE won't complain
         self.allow = config.conf.get('allow', {})
+        self.base_url = base_url or config.get("base_url", "")
+        self.provider_info = config.conf.get("provider_info", {})
+
+        # Below so my IDE won't complain
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
         self.issuer = ""
         self.httpc_params = {}
         self.client_secret_expires_at = 0
-        self.provider_info = {}
-        # self.post_logout_redirect_uri = ""
-        # self.redirect_uris = []
         self.registration_response = {}
-        # self.requests_dir = ""
 
         _def_value = copy.deepcopy(DEFAULT_VALUE)
-
-        _val = config.conf.get("client_secret")
-        if _val:
-            self.keyjar.add_symmetric("", _val)
-
-        self.provider_info = config.conf.get("provider_info", {})
 
         _issuer = config.get("issuer")
         if _issuer:
@@ -174,6 +165,15 @@ class ServiceContext(OidcContext):
 
         for key, val in kwargs.items():
             setattr(self, key, val)
+
+        self.keyjar = self.work_condition.load_conf(config.conf, supports=self.supports(),
+                                                    keyjar=keyjar)
+
+        _response_types = self.get_preference(
+            'response_types_supported',
+            self.supports().get('response_types_supported', []))
+
+        self.construct_uris(response_types=_response_types)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)

@@ -188,8 +188,6 @@ class RPHandler(object):
 
         if self.jwks_uri:
             _cnf['jwks_uri'] = self.jwks_uri
-        elif self.jwks:
-            _cnf['jwks'] = self.jwks
 
         try:
             client = self.client_cls(
