@@ -39,7 +39,6 @@ class Client(Entity):
         config=None,
         httplib=None,
         services=None,
-        jwks_uri="",
         httpc_params=None,
         client_type: Optional[str] = ""
     ):
@@ -53,7 +52,6 @@ class Client(Entity):
             initialization
         :param httplib: A HTTP client to use
         :param services: A list of service definitions
-        :param jwks_uri: A jwks_uri
         :param httpc_params: HTTP request arguments
         :return: Client instance
         """
@@ -66,7 +64,6 @@ class Client(Entity):
             keyjar=keyjar,
             config=config,
             services=services,
-            jwks_uri=jwks_uri,
             httpc_params=httpc_params,
             client_type=client_type
         )

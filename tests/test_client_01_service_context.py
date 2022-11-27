@@ -14,7 +14,7 @@ MINI_CONFIG = {
     "base_url": "https://example.com/cli",
     "key_conf": {"key_defs": KEYDEFS},
     "issuer": "https://op.example.com",
-    "metadata": {
+    "preference": {
         "response_types": ["code"]
     }
 }
@@ -31,15 +31,7 @@ class TestServiceContext:
 
     def test_filename_from_webname(self):
         _filename = self.service_context.filename_from_webname("https://example.com/cli/jwks.json")
-        assert _filename == "jwks.json"
-
-    # def test_create_callback_uris(self):
-    #     base_url = "https://example.com/cli"
-    #     hex = "0123456789"
-    #     self.service_context.work_condition.construct_redirect_uris(base_url, hex, [])
-    #     _uris = self.service_context.work_condition.get_metadata_claim("redirect_uris")
-    #     assert len(_uris) == 1
-    #     assert _uris == [f"https://example.com/cli/authz_cb/{hex}"]
+        assert _filename == 'jwks.json'
 
     def test_get_sign_alg(self):
         _alg = self.service_context.get_sign_alg("id_token")
@@ -83,7 +75,7 @@ class TestServiceContext:
         assert _alg_enc == {"alg": ["RSA1_5", "A128KW"], "enc": ["A128CBC+HS256", "A128GCM"]}
 
     def test_get(self):
-        assert self.service_context.get("base_url") == MINI_CONFIG["base_url"]
+        assert self.service_context.base_url == MINI_CONFIG["base_url"]
 
     def test_set(self):
         self.service_context.set_preference("client_id", "number5")

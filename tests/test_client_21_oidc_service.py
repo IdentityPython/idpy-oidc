@@ -473,59 +473,6 @@ class TestAccessTokenRequest(object):
             self.service.update_service_context(resp, key="state2")
 
 
-SERVICES = {
-    "discovery": {
-        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery",
-        "kwargs": {}
-    },
-    "registration": {
-        "class": "idpyoidc.client.oidc.registration.Registration",
-        "kwargs": {}
-    },
-    "authorization": {
-        "class": "idpyoidc.client.oidc.authorization.Authorization",
-        "kwargs": {
-            "metadata": {
-                "request_object_signing_alg": "ES256"
-            },
-            "usage": {
-                "request_uri": True
-            }
-        }
-    },
-    "accesstoken": {
-        "class": "idpyoidc.client.oidc.access_token.AccessToken",
-        "kwargs": {
-            "conf": {
-                "token_endpoint_auth_method": "private_key_jwt",
-                "token_endpoint_auth_signing_alg": "ES256"
-            }
-        }
-    },
-    "userinfo": {
-        "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-        "kwargs": {
-            "conf": {
-                "userinfo_signed_response_alg": "ES256"
-            },
-        }
-    },
-    "end_session": {
-        "class": "idpyoidc.client.oidc.end_session.EndSession",
-        "kwargs": {
-            "conf": {
-                "post_logout_redirect_uri": "https://rp.example.com/post",
-                "backchannel_logout_uri": "https://rp.example.com/back",
-                "backchannel_logout_session_required": True
-            },
-            "usage": {
-                "backchannel_logout": True
-            }
-        }
-    }
-}
-
-
 class TestProviderInfo(object):
 
     @pytest.fixture(autouse=True)
@@ -799,7 +746,6 @@ class TestProviderInfo(object):
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
-        del use_copy['keyjar']
         del use_copy['callback_uris']
 
         assert use_copy == {'application_type': 'web',
@@ -860,7 +806,6 @@ class TestProviderInfo(object):
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
-        del use_copy['keyjar']
         del use_copy['callback_uris']
 
         assert use_copy == {
@@ -985,6 +930,7 @@ def test_config_with_required_request_uri():
                                 'token_endpoint_auth_signing_alg', 'userinfo_signed_response_alg'}
 
 
+
 def test_config_logout_uri():
     client_config = {
         "client_id": "client_id",
@@ -995,10 +941,18 @@ def test_config_logout_uri():
         "request_uris": ["https://example.com/cli/requests"],
         "base_url": "https://example.com/cli/",
         "preference": {
-            "request_parameter": "request_uri"
+            "request_parameter": "request_uri",
+            "request_object_signing_alg": "ES256",
+            "token_endpoint_auth_method": "private_key_jwt",
+            "token_endpoint_auth_signing_alg": "ES256",
+            "userinfo_signed_response_alg": "ES256",
+            "post_logout_redirect_uri": "https://rp.example.com/post",
+            "backchannel_logout_uri": "https://rp.example.com/back",
+            "backchannel_logout_session_required": True,
+            'backchannel_logout_supported': True
         }
     }
-    entity = Entity(keyjar=make_keyjar(), config=client_config, services=SERVICES,
+    entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                     client_type='oidc')
     _context = entity.client_get("service_context")
     _context.issuer = "https://example.com"
@@ -1322,9 +1276,10 @@ def test_jwks_uri_arg():
     client_config = {
         "client_secret": "a longesh password",
         "issuer": ISS,
-        "metadata": {
-            "client_id": "client_id",
-            "redirect_uris": ["https://example.com/cli/authz_cb"],
+        "client_id": "client_id",
+        "redirect_uris": ["https://example.com/cli/authz_cb"],
+        "jwks_uri": "https://example.com/jwks/jwks.json",
+        "preference": {
             "id_token_signed_response_alg": "RS384",
             "userinfo_signed_response_alg": "RS384",
         },
@@ -1332,7 +1287,6 @@ def test_jwks_uri_arg():
     entity = Entity(
         keyjar=make_keyjar(),
         config=client_config,
-        jwks_uri="https://example.com/jwks/jwks.json",
         services=DEFAULT_OIDC_SERVICES,
         client_type='oidc'
     )
