@@ -930,6 +930,7 @@ def test_config_with_required_request_uri():
                                 'token_endpoint_auth_signing_alg', 'userinfo_signed_response_alg'}
 
 
+
 def test_config_logout_uri():
     client_config = {
         "client_id": "client_id",
