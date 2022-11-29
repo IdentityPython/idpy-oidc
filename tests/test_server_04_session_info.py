@@ -1,6 +1,6 @@
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.session.info import ClientSessionInfo
-from idpyoidc.server.session.info import SessionInfo
+from idpyoidc.server.session.info import NodeInfo
 from idpyoidc.server.session.info import UserSessionInfo
 
 AUTH_REQ = AuthorizationRequest(
@@ -13,7 +13,7 @@ AUTH_REQ = AuthorizationRequest(
 
 
 def test_session_info_subordinate():
-    si = SessionInfo()
+    si = NodeInfo()
     si.add_subordinate("subordinate_1")
     si.add_subordinate("subordinate_2")
     assert set(si.subordinate) == {"subordinate_1", "subordinate_2"}
@@ -28,22 +28,22 @@ def test_session_info_subordinate():
 
 
 def test_session_info_no_subordinate():
-    si = SessionInfo()
+    si = NodeInfo()
     assert si.subordinate == []
 
 
 def test_user_session_info_to_json():
-    usi = UserSessionInfo(user_id="uid")
+    usi = UserSessionInfo("uid")
 
     _jstr = usi.dump()
 
     usi2 = UserSessionInfo().load(_jstr)
 
-    assert usi2.user_id == "uid"
+    assert usi2.id == "uid"
 
 
 def test_user_session_info_to_json_with_sub():
-    usi = UserSessionInfo(uid="uid")
+    usi = UserSessionInfo("uid")
     usi.add_subordinate("client_id")
 
     _jstr = usi.dump()
@@ -54,9 +54,9 @@ def test_user_session_info_to_json_with_sub():
 
 
 def test_client_session_info():
-    csi = ClientSessionInfo(client_id="clientID")
+    csi = ClientSessionInfo("clientID")
 
     _jstr = csi.dump()
 
     _csi2 = ClientSessionInfo().load(_jstr)
-    assert _csi2.client_id == "clientID"
+    assert _csi2.id == "clientID"

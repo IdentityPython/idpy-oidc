@@ -1,6 +1,10 @@
-========================
-Configuration directives
-========================
+*************
+Configuration
+*************
+
+================================
+General Configuration directives
+================================
 
 ------
 issuer
@@ -87,6 +91,34 @@ simply map it to an empty list. E.g.::
 
 *Note*: For OIDC the `openid` scope must be present in this mapping.
 
+The default set is::
+
+    {
+        "openid": ["sub"],
+        "profile": [
+            "name",
+            "given_name",
+            "family_name",
+            "middle_name",
+            "nickname",
+            "profile",
+            "picture",
+            "website",
+            "gender",
+            "birthdate",
+            "zoneinfo",
+            "locale",
+            "updated_at",
+            "preferred_username",
+        ],
+        "email": ["email", "email_verified"],
+        "address": ["address"],
+        "phone": ["phone_number", "phone_number_verified"],
+        "offline_access": [],
+    }
+
+*Note*: If you define `scopes_to_claims` in the configuration you MUST list
+ALL the mappings you want. Not just the changes you want to make to the default.
 
 --------------
 allowed_scopes
@@ -422,7 +454,8 @@ keys
 ----
 
 JWK Set (JWKS) files
---------------------
+####################
+
 see: [cryptojwt documentation](https://cryptojwt.readthedocs.io/en/latest/keyhandling.html<https://cryptojwt.readthedocs.io/en/latest/keyhandling.html)
 
 
@@ -714,11 +747,15 @@ the following::
         }
     }
 
-==============
+================================
+Special Configuration directives
+================================
+
+--------------
 Token exchange
-==============
+--------------
 There are two possible ways to configure Token Exchange in OIDC-OP, globally and per-client.
-For the first case the configuration is passed in the Token Exchange handler throught the
+For the first case the configuration is passed in the Token Exchange handler through the
 `urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
 
 If present, the token exchange configuration should contain a `policy` dictionary
@@ -836,4 +873,14 @@ For example::
             )
 
         return request
+
+
+==================================
+idpyoidc\.server\.configure module
+==================================
+
+.. automodule:: idpyoidc.server.configure
+    :members:
+    :undoc-members:
+    :show-inheritance:
 

@@ -150,7 +150,7 @@ class TestSessionManager:
         )
 
         _user_info_1 = self.session_manager.get_user_session_info(session_key_1)
-        assert _user_info_1.subordinate == ["client_1"]
+        assert _user_info_1.subordinate == ['diana;;client_1']
         _client_info_1 = self.session_manager.get_client_session_info(session_key_1)
         assert len(_client_info_1.subordinate) == 1
         # grant = self.session_manager.get_grant(session_key_1)
@@ -170,7 +170,7 @@ class TestSessionManager:
         )
 
         _user_info_2 = self.session_manager.get_user_session_info(session_key_2)
-        assert _user_info_2.subordinate == ["client_1", "client_2"]
+        assert _user_info_2.subordinate == ["diana;;client_1", "diana;;client_2"]
 
         grant_1 = self.session_manager.get_grant(session_key_1)
         grant_2 = self.session_manager.get_grant(session_key_2)
@@ -348,8 +348,11 @@ class TestSessionManager:
         assert set(_session_info.keys()) == {
             "client_id",
             "grant_id",
-            "session_id",
             "user_id",
+            "user",
+            "client",
+            "grant",
+            "branch_id"
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -370,9 +373,12 @@ class TestSessionManager:
 
         assert set(_session_info.keys()) == {
             "client_id",
-            "session_id",
+            "branch_id",
             "grant_id",
             "user_id",
+            "user",
+            "client",
+            "grant"
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -646,25 +652,23 @@ class TestSessionManager:
 
         assert isinstance(res, list)
 
-        res = self.session_manager.grants(user_id="diana", client_id="client_1")
+        res = self.session_manager.grants(path=["diana", "client_1"])
 
         assert isinstance(res, list)
 
         try:
-            self.session_manager.grants(
-                user_id="diana",
-            )
+            self.session_manager.grants(path=["diana"])
         except AttributeError:
             pass
         else:
             raise Exception("get_authentication_events MUST return a list of AuthnEvent")
 
-        # and now cove add_grant
+        # and now add_grant
         grant = self.session_manager[_session_id]
         grant_kwargs = grant.parameter
         for i in ("not_before", "used"):
             grant_kwargs.pop(i)
-        self.session_manager.add_grant("diana", "client_1", **grant_kwargs)
+        self.session_manager.add_grant(["diana", "client_1"], **grant_kwargs)
 
     def test_find_latest_idtoken(self):
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")

@@ -1,32 +1,28 @@
 import hashlib
 import logging
 import os
-import uuid
 from typing import Callable
 from typing import List
 from typing import Optional
+import uuid
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.encrypter import get_crypt_config
-from idpyoidc.encrypter import init_encrypter
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
-from idpyoidc.server.session.database import NoSuchClientSession
-from idpyoidc.server.token import Token
+from idpyoidc.server.session.grant_manager import GrantManager
 from idpyoidc.util import rndstr
-
-from ..token import UnknownToken
-from ..token import WrongTokenClass
-from ..token import handler
-from ..token.handler import TokenHandler
 from .database import Database
-from .grant import ExchangeGrant
 from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
+from ..token import UnknownToken
+from ..token import WrongTokenClass
+from ..token import handler
+from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +49,7 @@ class PairWiseID(object):
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
             elif not os.path.isfile(filename) and os.path.exists(
-                filename
+                    filename
             ):  # Not a file, Something else
                 raise ConfigurationError("Salt filename points to something that is not a file")
             else:
@@ -82,24 +78,38 @@ def ephemeral_id(*args, **kwargs):
     return uuid.uuid4().hex
 
 
-class SessionManager(Database):
+class SessionManager(GrantManager):
     parameter = Database.parameter.copy()
     # parameter.update({"salt": ""})
     init_args = ["handler"]
 
     def __init__(
-        self,
-        handler: TokenHandler,
-        conf: Optional[dict] = None,
-        sub_func: Optional[dict] = None,
-        remember_token: Optional[Callable] = None,
-        remove_inactive_token: Optional[bool] = False,
+            self,
+            handler: TokenHandler,
+            conf: Optional[dict] = None,
+            sub_func: Optional[dict] = None,
+            remember_token: Optional[Callable] = None,
+            remove_inactive_token: Optional[bool] = False,
     ):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
         session_params = self.conf.get("session_params") or {}
         _crypt_config = get_crypt_config(session_params)
-        super(SessionManager, self).__init__(_crypt_config)
+        super(SessionManager, self).__init__(handler, _crypt_config)
+
+        self.node_type = session_params.get("node_type", ["user", "client", "grant"])
+        # Make sure node_type is a list and must contain at least one element.
+        if not isinstance(self.node_type, list):
+            raise ValueError("Wrong type of value for SessionManager node_type")
+        if len(self.node_type) == 0:
+            raise ValueError("SessionManager node_type must at least contain one value")
+
+        self.node_info_class = session_params.get("node_info_class",
+                                                  {
+                                                      "user": UserSessionInfo,
+                                                      "client": ClientSessionInfo,
+                                                      "grant": Grant
+                                                  })
 
         self.token_handler = handler
         self.remember_token = remember_token
@@ -124,17 +134,6 @@ class SessionManager(Database):
 
         self.auth_req_id_map = {}
 
-    def get_salt(self):
-        """returns the original salt assigned in init"""
-        return self.crypt_config["kwargs"]["salt"]
-
-    def __setattr__(self, key, value):
-        if key in ("_key", "_salt"):
-            if hasattr(self, key):
-                # not first time we configure it!
-                raise AttributeError(f"{key} is a ReadOnly attribute that can't be overwritten!")
-        super().__setattr__(key, value)
-
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
         if isinstance(usi, UserSessionInfo):
@@ -149,23 +148,29 @@ class SessionManager(Database):
         :param token_value:
         :return:
         """
-        user_id, client_id, grant_id = self.decrypt_session_id(session_id)
-        grant = self.get([user_id, client_id, grant_id])
+        grant = self.get(self.decrypt_branch_id(session_id))
         for token in grant.issued_token:
             if token.value == token_value:
                 return token
 
         return None  # pragma: no cover
 
+    def make_path(self, **kwargs):
+        _path = []
+        for typ in self.node_type[:-1]:
+            _id_type = f"{typ}_id"
+            _path.append(kwargs[_id_type])
+        return _path
+
     def create_grant(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -187,32 +192,35 @@ class SessionManager(Database):
             sector_identifier = ""
             _claims = {}
 
-        grant = Grant(
+        if self.node_type[0] == "user":
+            kwargs = {
+                "sub": self.sub_func[sub_type](
+                    user_id, salt=self.get_salt(), sector_identifier=sector_identifier)
+            }
+        else:
+            kwargs = {}
+
+        return self.add_grant(
+            path=self.make_path(user_id=user_id, client_id=client_id),
+            token_usage_rules=token_usage_rules,
             authorization_request=auth_req,
             authentication_event=authn_event,
-            sub=self.sub_func[sub_type](
-                user_id, salt=self.get_salt(), sector_identifier=sector_identifier
-            ),
-            usage_rules=token_usage_rules,
             scope=scopes,
             claims=_claims,
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
+            **kwargs
         )
 
-        self.set([user_id, client_id, grant.id], grant)
-
-        return self.encrypted_session_id(user_id, client_id, grant.id)
-
     def create_exchange_grant(
-        self,
-        exchange_request: TokenExchangeRequest,
-        original_session_id: str,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            exchange_request: TokenExchangeRequest,
+            original_session_id: str,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -224,26 +232,24 @@ class SessionManager(Database):
         :return:
         """
 
-        grant = ExchangeGrant(
-            scope=scopes,
-            original_session_id=original_session_id,
+        return self.add_exchange_grant(
             exchange_request=exchange_request,
+            original_branch_id=original_session_id,
+            path=self.make_path(user_id=user_id, client_id=client_id),
+            token_usage_rules=token_usage_rules,
             sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
-            usage_rules=token_usage_rules,
+            scope=scopes
         )
-        self.set([user_id, client_id, grant.id], grant)
-
-        return self.encrypted_session_id(user_id, client_id, grant.id)
 
     def create_session(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -258,21 +264,6 @@ class SessionManager(Database):
         :param token_usage_rules: Rules for how tokens can be used
         :return: Session key
         """
-
-        try:
-            _usi = self.get([user_id])
-        except KeyError:
-            _usi = UserSessionInfo(user_id=user_id)
-            self.set([user_id], _usi)
-
-        if not client_id:
-            client_id = auth_req["client_id"]
-
-        try:
-            self.get([user_id, client_id])
-        except (NoSuchClientSession, ValueError):
-            client_info = ClientSessionInfo(client_id=client_id)
-            self.set([user_id, client_id], client_info)
 
         return self.create_grant(
             auth_req=auth_req,
@@ -285,14 +276,14 @@ class SessionManager(Database):
         )
 
     def create_exchange_session(
-        self,
-        exchange_request: TokenExchangeRequest,
-        original_session_id: str,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            exchange_request: TokenExchangeRequest,
+            original_session_id: str,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -308,21 +299,6 @@ class SessionManager(Database):
         :return: Session key
         """
 
-        try:
-            _usi = self.get([user_id])
-        except KeyError:
-            _usi = UserSessionInfo(user_id=user_id)
-            self.set([user_id], _usi)
-
-        if not client_id:
-            client_id = exchange_request["client_id"]
-
-        try:
-            self.get([user_id, client_id])
-        except (NoSuchClientSession, ValueError):
-            client_info = ClientSessionInfo(client_id=client_id)
-            self.set([user_id, client_id], client_info)
-
         return self.create_exchange_grant(
             exchange_request=exchange_request,
             original_session_id=original_session_id,
@@ -333,12 +309,6 @@ class SessionManager(Database):
             scopes=scopes,
         )
 
-    def __getitem__(self, session_id: str):
-        return self.get(self.decrypt_session_id(session_id))
-
-    def __setitem__(self, session_id: str, value):
-        return self.set(self.decrypt_session_id(session_id), value)
-
     def get_client_session_info(self, session_id: str) -> ClientSessionInfo:
         """
         Return client connected information for a user session.
@@ -346,8 +316,8 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        csi = self.get([_user_id, _client_id])
+        _id, csi = self.get_node_info(session_id, node_type='client')
+
         if isinstance(csi, ClientSessionInfo):
             return csi
         else:  # pragma: no cover
@@ -360,8 +330,8 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        usi = self.get([_user_id])
+        _id, usi = self.get_node_info(session_id, node_type='user')
+
         if isinstance(usi, UserSessionInfo):
             return usi
         else:  # pragma: no cover
@@ -374,8 +344,8 @@ class SessionManager(Database):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        grant = self.get([_user_id, _client_id, _grant_id])
+        _id, grant = self.get_node_info(session_id, node_type='grant')
+
         if isinstance(grant, Grant):
             return grant
         else:  # pragma: no cover
@@ -400,10 +370,10 @@ class SessionManager(Database):
             grant.revoke_token(value=token.value)
 
     def get_authentication_events(
-        self,
-        session_id: Optional[str] = "",
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            session_id: Optional[str] = "",
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ) -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
@@ -414,15 +384,13 @@ class SessionManager(Database):
         :return: None if no authentication event could be found or an AuthnEvent instance.
         """
         if session_id:
-            user_id, client_id, _ = self.decrypt_session_id(session_id)
+            cid, c_info = self.get_node_info(session_id, node_type='client')
         elif user_id and client_id:
-            pass
+            c_info = self.get([user_id, client_id])
         else:
             raise AttributeError("Must have session_id or user_id and client_id")
 
-        c_info = self.get([user_id, client_id])
-
-        _grants = [self.get([user_id, client_id, gid]) for gid in c_info.subordinate]
+        _grants = [self.get(self.unpack_branch_key(gid)) for gid in c_info.subordinate]
         return [g.authentication_event for g in _grants]
 
     def get_authorization_request(self, session_id):
@@ -439,27 +407,12 @@ class SessionManager(Database):
 
         :param session_id: Session identifier
         """
-        parts = self.decrypt_session_id(session_id)
-        if len(parts) == 2:
-            _user_id, _client_id = parts
-        elif len(parts) == 3:
-            _user_id, _client_id, _ = parts
-        else:
-            raise ValueError("Invalid session ID")
 
-        _info = self.get([_user_id, _client_id])
-        logger.debug(f"revoke_client_session: {_user_id}:{_client_id}")
-        self.set([_user_id, _client_id], _info.revoke())
-
-        # revoked all grants
-        for gid in _info.subordinate:
-            _grant = self.get([_user_id, _client_id, gid])
-            _grant.revoke()
+        self.revoke_sub_tree(session_id, 1)
 
     def client_session_is_revoked(self, session_id: str):
-        _user_id, _client_id, _ = self.decrypt_session_id(session_id)
-        _client_inst = self.get([_user_id, _client_id])
-        return _client_inst.revoked
+        _c_info = self.get_client_session_info(session_id)
+        return _c_info.revoked
 
     def revoke_grant(self, session_id: str):
         """
@@ -467,43 +420,40 @@ class SessionManager(Database):
 
         :param session_id: A session identifier
         """
-        _path = self.decrypt_session_id(session_id)
-        _info = self.get(_path)
-        _info.revoke()
-        self.set(_path, _info)
+        self._revoke_tree(self.get_grant(session_id))
 
-    def grants(
-        self,
-        session_id: Optional[str] = "",
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
-    ) -> List[Grant]:
-        """
-        Find all grant connected to a user session
-
-        :param client_id:
-        :param user_id:
-        :param session_id: A session identifier
-        :return: A list of grants
-        """
-        if session_id:
-            user_id, client_id, _ = self.decrypt_session_id(session_id)
-        elif user_id and client_id:
-            pass
-        else:
-            raise AttributeError("Must have session_id or user_id and client_id")
-
-        _csi = self.get([user_id, client_id])
-        return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
+    # def grants(
+    #         self,
+    #         session_id: Optional[str] = "",
+    #         user_id: Optional[str] = "",
+    #         client_id: Optional[str] = "",
+    # ) -> List[Grant]:
+    #     """
+    #     Find all grant connected to a user session
+    #
+    #     :param client_id:
+    #     :param user_id:
+    #     :param session_id: A session identifier
+    #     :return: A list of grants
+    #     """
+    #     if session_id:
+    #         user_id, client_id, _ = self.decrypt_session_id(session_id)
+    #     elif user_id and client_id:
+    #         pass
+    #     else:
+    #         raise AttributeError("Must have session_id or user_id and client_id")
+    #
+    #     _csi = self.get([user_id, client_id])
+    #     return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
 
     def get_session_info(
-        self,
-        session_id: str,
-        user_session_info: bool = False,
-        client_session_info: bool = False,
-        grant: bool = False,
-        authentication_event: bool = False,
-        authorization_request: bool = False,
+            self,
+            session_id: str,
+            user_session_info: bool = False,
+            client_session_info: bool = False,
+            grant: bool = False,
+            authentication_event: bool = False,
+            authorization_request: bool = False,
     ) -> dict:
         """
         Returns information connected to a session.
@@ -517,55 +467,25 @@ class SessionManager(Database):
         :param authorization_request: Whether the authorization_request should part of the response
         :return: A dictionary with session information
         """
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        _grant = None
-        res = {
-            "session_id": session_id,
-            "user_id": _user_id,
-            "client_id": _client_id,
-            "grant_id": _grant_id,
-        }
-        if user_session_info:
-            res["user_session_info"] = self.get([_user_id])
-        if client_session_info:
-            res["client_session_info"] = self.get([_user_id, _client_id])
-        if grant:
-            res["grant"] = self.get([_user_id, _client_id, _grant_id])
+        res = self.branch_info(session_id)
 
         if authentication_event:
-            if grant:
-                res["authentication_event"] = res["grant"]["authentication_event"]
-            else:
-                _grant = self.get([_user_id, _client_id, _grant_id])
-                res["authentication_event"] = _grant.authentication_event
+            res["authentication_event"] = res["grant"].authentication_event
 
         if authorization_request:
-            if grant:
-                res["authorization_request"] = res["grant"].authorization_request
-            elif _grant:
-                res["authorization_request"] = _grant.authorization_request
-            else:
-                _grant = self.get([_user_id, _client_id, _grant_id])
-                res["authorization_request"] = _grant.authorization_request
+            res["authorization_request"] = res["grant"].authorization_request
 
         return res
 
-    def _compatible_sid(self, sid):
-        # To be backward compatible is this an old time sid
-        p = self.unpack_session_key(sid)
-        if len(p) == 3:
-            sid = self.encrypted_session_id(*p)
-        return sid
-
     def get_session_info_by_token(
-        self,
-        token_value: str,
-        user_session_info: Optional[bool] = False,
-        client_session_info: Optional[bool] = False,
-        grant: Optional[bool] = False,
-        authentication_event: Optional[bool] = False,
-        authorization_request: Optional[bool] = False,
-        handler_key: Optional[str] = "",
+            self,
+            token_value: str,
+            user_session_info: Optional[bool] = False,
+            client_session_info: Optional[bool] = False,
+            grant: Optional[bool] = False,
+            authentication_event: Optional[bool] = False,
+            authorization_request: Optional[bool] = False,
+            handler_key: Optional[str] = "",
     ) -> dict:
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
@@ -595,29 +515,20 @@ class SessionManager(Database):
         sid = _token_info.get("sid")
         return self._compatible_sid(sid)
 
-    def add_grant(self, user_id: str, client_id: str, **kwargs) -> Grant:
-        """
-        Creates and adds a grant to a user session.
-
-        :param user_id: User identifier
-        :param client_id: Client identifier
-        :param kwargs: Keyword arguments to the Grant class initialization
-        :return: A Grant instance
-        """
-        args = {k: v for k, v in kwargs.items() if k in Grant.parameter}
-        _grant = Grant(**args)
-        self.set([user_id, client_id, _grant.id], _grant)
-        _client_session_info = self.get([user_id, client_id])
-        _client_session_info.subordinate.append(_grant.id)
-        self.set([user_id, client_id], _client_session_info)
-        return _grant
-
     def remove_session(self, session_id: str):
-        _user_id, _client_id, _grant_id = self.decrypt_session_id(session_id)
-        self.delete([_user_id, _client_id, _grant_id])
+        self.remove_branch(session_id)
 
-    def flush(self):
-        super().flush()
+    def session_key(self, *args):
+        return self.branch_key(*args)
+
+    def decrypt_session_id(self, key):
+        return self.decrypt_branch_id(key)
+
+    def encrypted_session_id(self, *args):
+        return self.encrypted_branch_id(*args)
+
+    def unpack_session_key(self, key):
+        return self.unpack_branch_key(key)
 
 
 def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):

@@ -12,12 +12,11 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.session.token import TOKEN_MAP
 from idpyoidc.server.token import Token as TokenHandler
 from idpyoidc.util import importer
-
-from ...message.oauth2 import TokenExchangeRequest
 from . import MintingNotAllowed
 from .claims import claims_match
 from .token import Item
 from .token import SessionToken
+from ...message.oauth2 import TokenExchangeRequest
 from ...util import qualified_name
 
 logger = logging.getLogger(__name__)
@@ -32,11 +31,11 @@ class GrantMessage(ImpExp):
     }
 
     def __init__(
-        self,
-        scope: Optional[str] = "",
-        authorization_details: Optional[dict] = None,
-        claims: Optional[list] = None,
-        resources: Optional[list] = None,
+            self,
+            scope: Optional[str] = "",
+            authorization_details: Optional[dict] = None,
+            claims: Optional[list] = None,
+            resources: Optional[list] = None,
     ):
         ImpExp.__init__(self)
         self.scope = scope
@@ -105,24 +104,24 @@ class Grant(Item):
     }
 
     def __init__(
-        self,
-        scope: Optional[list] = None,
-        claims: Optional[dict] = None,
-        resources: Optional[list] = None,
-        authorization_details: Optional[dict] = None,
-        authorization_request: Optional[Message] = None,
-        authentication_event: Optional[AuthnEvent] = None,
-        issued_token: Optional[list] = None,
-        usage_rules: Optional[dict] = None,
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        revoked: bool = False,
-        token_map: Optional[dict] = None,
-        sub: Optional[str] = "",
-        extra: Optional[Dict[str, str]] = None,
-        remember_token: Optional[Callable] = None,
-        remove_inactive_token: Optional[bool] = False,
+            self,
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            authorization_details: Optional[dict] = None,
+            authorization_request: Optional[Message] = None,
+            authentication_event: Optional[AuthnEvent] = None,
+            issued_token: Optional[list] = None,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            revoked: bool = False,
+            token_map: Optional[dict] = None,
+            sub: Optional[str] = "",
+            extra: Optional[Dict[str, str]] = None,
+            remember_token: Optional[Callable] = None,
+            remove_inactive_token: Optional[bool] = False,
     ):
         Item.__init__(
             self,
@@ -150,7 +149,7 @@ class Grant(Item):
         else:
             self.token_map = token_map
 
-    def get(self) -> object:
+    def get_message(self) -> object:
         return GrantMessage(
             scope=self.scope,
             claims=self.claims,
@@ -180,24 +179,23 @@ class Grant(Item):
         return False
 
     def payload_arguments(
-        self,
-        session_id: str,
-        endpoint_context,
-        item: SessionToken,
-        claims_release_point: str,
-        extra_payload: Optional[dict] = None,
-        secondary_identifier: str = "",
+            self,
+            session_id: str,
+            endpoint_context,
+            item: SessionToken,
+            claims_release_point: str,
+            extra_payload: Optional[dict] = None,
+            secondary_identifier: str = "",
     ) -> dict:
         """
 
         :param session_id: Session ID
         :param endpoint_context: EndPoint Context
+        :param item: A SessionToken instance
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
-        :param scope: scope from the request
         :param extra_payload:
         :param secondary_identifier: Used if the claims returned are also based on rules for
             another release_point
-        :param item: A SessionToken instance
         :type item: SessionToken
         :return: dictionary containing information to place in a token value
         """
@@ -235,9 +233,11 @@ class Grant(Item):
                 secondary_identifier=secondary_identifier,
             )
 
-        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
-        payload.update(user_info)
+        if endpoint_context.session_manager.node_type[0] == "user":
+            user_id, _, _ = endpoint_context.session_manager.decrypt_branch_id(session_id)
+            user_info = endpoint_context.claims_interface.get_user_claims(user_id,
+                                                                          _claims_restriction)
+            payload.update(user_info)
 
         # Should I add the acr value
         if self.add_acr_value(claims_release_point):
@@ -248,19 +248,19 @@ class Grant(Item):
         return payload
 
     def mint_token(
-        self,
-        session_id: str,
-        endpoint_context: object,
-        token_class: str,
-        token_handler: TokenHandler = None,
-        based_on: Optional[SessionToken] = None,
-        usage_rules: Optional[dict] = None,
-        scope: Optional[list] = None,
-        token_type: Optional[str] = "",
-        expires_in: Optional[int] = 0,
-        not_before: Optional[int] = 0,
-        claims: Optional[List[str]] = None,
-        **kwargs,
+            self,
+            session_id: str,
+            endpoint_context: object,
+            token_class: str,
+            token_handler: TokenHandler = None,
+            based_on: Optional[SessionToken] = None,
+            usage_rules: Optional[dict] = None,
+            scope: Optional[list] = None,
+            token_type: Optional[str] = "",
+            expires_in: Optional[int] = 0,
+            not_before: Optional[int] = 0,
+            claims: Optional[List[str]] = None,
+            **kwargs,
     ) -> Optional[SessionToken]:
         """
 
@@ -383,7 +383,7 @@ class Grant(Item):
         return None
 
     def revoke_token(
-        self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True
+            self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True
     ):
         remain = []
         for t in self.issued_token:
@@ -478,22 +478,22 @@ class ExchangeGrant(Grant):
     type = "exchange_grant"
 
     def __init__(
-        self,
-        scope: Optional[list] = None,
-        claims: Optional[dict] = None,
-        resources: Optional[list] = None,
-        authorization_details: Optional[dict] = None,
-        issued_token: Optional[list] = None,
-        usage_rules: Optional[dict] = None,
-        exchange_request: Optional[TokenExchangeRequest] = None,
-        original_session_id: str = "",
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        revoked: bool = False,
-        token_map: Optional[dict] = None,
-        users: list = None,
-        sub: Optional[str] = "",
+            self,
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            authorization_details: Optional[dict] = None,
+            issued_token: Optional[list] = None,
+            usage_rules: Optional[dict] = None,
+            exchange_request: Optional[TokenExchangeRequest] = None,
+            original_branch_id: str = "",
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            revoked: bool = False,
+            token_map: Optional[dict] = None,
+            users: list = None,
+            sub: Optional[str] = "",
     ):
         Grant.__init__(
             self,
@@ -516,4 +516,4 @@ class ExchangeGrant(Grant):
             "access_token": {"supports_minting": ["access_token"], "expires_in": 60}
         }
         self.exchange_request = exchange_request
-        self.original_session_id = original_session_id
+        self.original_branch_id = original_branch_id

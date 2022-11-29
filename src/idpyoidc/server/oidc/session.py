@@ -149,9 +149,7 @@ class Session(Endpoint):
     def logout_all_clients(self, sid):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        _session_info = _mngr.get_session_info(
-            sid, user_session_info=True, client_session_info=True, grant=True
-        )
+        _session_info = _mngr.get_session_info(sid)
 
         # Front-/Backchannel logout ?
         _cdb = _context.cdb
@@ -165,12 +163,14 @@ class Session(Endpoint):
         bc_logouts = {}
         fc_iframes = {}
         _rel_sid = []
-        for _client_id in _session_info["user_session_info"].subordinate:
+        for _client_key in _session_info["user"].subordinate:
+            _path = _mngr.unpack_branch_key(_client_key)
+            _client_id = _path[-1]
             # I prefer back-channel. Should it be configurable ?
             if "backchannel_logout_uri" in _cdb[_client_id]:
-                _cli = _mngr.get([_user_id, _client_id])
+                _cli = _mngr.get(_path)
                 for gid in _cli.subordinate:
-                    grant = _mngr.get([_user_id, _client_id, gid])
+                    grant = _mngr.get(_mngr.unpack_branch_key(gid))
                     # Has to be connected to an authentication event
                     if not grant.authentication_event:
                         continue
@@ -182,9 +182,9 @@ class Session(Endpoint):
                             bc_logouts[_client_id] = _spec
                         break
             elif "frontchannel_logout_uri" in _cdb[_client_id]:
-                _cli = _mngr.get([_user_id, _client_id])
+                _cli = _mngr.get(_path)
                 for gid in _cli.subordinate:
-                    grant = _mngr.get([_user_id, _client_id, gid])
+                    grant = _mngr.get(_mngr.unpack_branch_key(gid))
                     # Has to be connected to an authentication event
                     if not grant.authentication_event:
                         continue
@@ -324,7 +324,7 @@ class Session(Endpoint):
             )
 
         payload = {
-            "sid": _session_info["session_id"],
+            "sid": _session_info["branch_id"],
         }
 
         # redirect user to OP logout verification page

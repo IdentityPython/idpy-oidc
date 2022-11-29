@@ -356,7 +356,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
@@ -414,7 +414,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = [
             "access_token",
             "refresh_token",
@@ -585,9 +585,9 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -661,9 +661,9 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -764,7 +764,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())

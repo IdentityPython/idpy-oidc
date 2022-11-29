@@ -239,7 +239,7 @@ class CIBATokenHelper(AccessTokenHelper):
             token = self._mint_token(
                 token_class="access_token",
                 grant=grant,
-                session_id=_session_info["session_id"],
+                session_id=_session_info["branch_id"],
                 client_id=_session_info["client_id"],
                 token_type=token_type,
             )
@@ -255,7 +255,7 @@ class CIBATokenHelper(AccessTokenHelper):
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                 )
             except MintingNotAllowed as err:
@@ -264,14 +264,14 @@ class CIBATokenHelper(AccessTokenHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         if "openid" in _authn_req["scope"]:
             try:
                 _idtoken = self._mint_token(
                     token_class="id_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                 )
             except (JWEException, NoSuitableSigningKeys) as err:
