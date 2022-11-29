@@ -16,16 +16,16 @@ from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.configure import Configuration
-from idpyoidc.client.work_condition.oauth2 import WorkCondition as OAUTH2_Specs
-from idpyoidc.client.work_condition.oidc import WorkCondition as OIDC_Specs
+from idpyoidc.client.work_environment.oauth2 import WorkEnvironment as OAUTH2_Specs
+from idpyoidc.client.work_environment.oidc import WorkEnvironment as OIDC_Specs
 from idpyoidc.util import rndstr
 from .configure import get_configuration
-from .state_interface import StateInterface
-from .work_condition import WorkCondition
-from .work_condition import work_condition_dump
-from .work_condition import work_condition_load
-from .work_condition.transform import preferred_to_registered
-from .work_condition.transform import supported_to_preferred
+from .current import Current
+from .work_environment import WorkEnvironment
+from .work_environment import work_environment_dump
+from .work_environment import work_environment_load
+from .work_environment.transform import preferred_to_registered
+from .work_environment.transform import supported_to_preferred
 from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
@@ -99,17 +99,17 @@ class ServiceContext(ImpExp):
         "iss_hash": None,
         "issuer": None,
         'keyjar': KeyJar,
-        "work_condition": WorkCondition,
+        "work_environment": WorkEnvironment,
         "provider_info": None,
         "requests_dir": None,
         "registration_response": None,
-        "state": StateInterface,
+        "cstate": Current,
         # 'usage': None,
         "verify_args": None,
     }
 
     special_load_dump = {
-        "specs": {"load": work_condition_load, "dump": work_condition_dump},
+        "specs": {"load": work_environment_load, "dump": work_environment_dump},
     }
 
     def __init__(self,
@@ -117,7 +117,7 @@ class ServiceContext(ImpExp):
                  base_url: Optional[str] = "",
                  keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
-                 state: Optional[StateInterface] = None,
+                 cstate: Optional[Current] = None,
                  client_type: Optional[str] = 'oauth2',
                  **kwargs):
         ImpExp.__init__(self)
@@ -126,14 +126,14 @@ class ServiceContext(ImpExp):
         self.client_get = client_get
 
         if not client_type or client_type == "oidc":
-            self.work_condition = OIDC_Specs()
+            self.work_environment = OIDC_Specs()
         elif client_type == "oauth2":
-            self.work_condition = OAUTH2_Specs()
+            self.work_environment = OAUTH2_Specs()
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 
         self.entity_id = config.conf.get("client_id", "")
-        self.state = state or StateInterface()
+        self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
@@ -166,7 +166,7 @@ class ServiceContext(ImpExp):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.keyjar = self.work_condition.load_conf(config.conf, supports=self.supports(),
+        self.keyjar = self.work_environment.load_conf(config.conf, supports=self.supports(),
                                                     keyjar=keyjar)
 
         _response_types = self.get_preference(
@@ -227,9 +227,9 @@ class ServiceContext(ImpExp):
         _item_typ = CLI_REG_MAP.get(typ)
         _alg = ''
         if _item_typ:
-            _alg = self.work_condition.get_usage(_item_typ[attr])
+            _alg = self.work_environment.get_usage(_item_typ[attr])
             if not _alg:
-                _alg = self.work_condition.get_preference(_item_typ[attr])
+                _alg = self.work_environment.get_preference(_item_typ[attr])
 
         if not _alg:
             _item_typ = PROVIDER_INFO_MAP.get(typ)
@@ -266,10 +266,10 @@ class ServiceContext(ImpExp):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.work_condition.get_usage("client_id")
+        return self.work_environment.get_usage("client_id")
 
     def collect_usage(self):
-        return self.work_condition.use
+        return self.work_environment.use
 
     def supports(self):
         res = {}
@@ -277,23 +277,23 @@ class ServiceContext(ImpExp):
             services = self.client_get('services')
             for service in services.values():
                 res.update(service.supports())
-        res.update(self.work_condition.supports())
+        res.update(self.work_environment.supports())
         return res
 
     def prefers(self):
-        return self.work_condition.prefer
+        return self.work_environment.prefer
 
     def get_preference(self, claim, default=None):
-        return self.work_condition.get_preference(claim, default=default)
+        return self.work_environment.get_preference(claim, default=default)
 
     def set_preference(self, key, value):
-        self.work_condition.set_preference(key, value)
+        self.work_environment.set_preference(key, value)
 
     def get_usage(self, claim, default: Optional[str] = None):
-        return self.work_condition.get_usage(claim, default)
+        return self.work_environment.get_usage(claim, default)
 
     def set_usage(self, claim, value):
-        return self.work_condition.set_usage(claim, value)
+        return self.work_environment.set_usage(claim, value)
 
     def _callback_per_service(self):
         _cb = {}
@@ -329,7 +329,7 @@ class ServiceContext(ImpExp):
             self.set_preference('redirect_uris', list(_redirect_uris))
 
     def prefer_or_support(self, claim):
-        if claim in self.work_condition.prefer:
+        if claim in self.work_environment.prefer:
             return 'prefer'
         else:
             for service in self.client_get('services').values():
@@ -337,20 +337,20 @@ class ServiceContext(ImpExp):
                 if _res:
                     return _res
 
-        if claim in self.work_condition.supported(claim):
+        if claim in self.work_environment.supported(claim):
             return 'support'
         return None
 
     def map_supported_to_preferred(self, info: Optional[dict] = None):
-        self.work_condition.prefer = supported_to_preferred(self.supports(),
-                                                            self.work_condition.prefer,
+        self.work_environment.prefer = supported_to_preferred(self.supports(),
+                                                            self.work_environment.prefer,
                                                             base_url=self.base_url,
                                                             info=info)
-        return self.work_condition.prefer
+        return self.work_environment.prefer
 
     def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
-        self.work_condition.use = preferred_to_registered(
-            self.work_condition.prefer,
+        self.work_environment.use = preferred_to_registered(
+            self.work_environment.prefer,
             supported=self.supports(),
             registration_response=registration_response)
-        return self.work_condition.use
+        return self.work_environment.use

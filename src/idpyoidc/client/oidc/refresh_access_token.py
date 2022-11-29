@@ -8,8 +8,8 @@ class RefreshAccessToken(refresh_access_token.RefreshAccessToken):
     error_msg = oidc.ResponseMessage
 
     def get_authn_method(self):
-        _work_condition = self.client_get("service_context").work_condition
+        _work_environment = self.client_get("service_context").work_environment
         try:
-            return _work_condition.get_usage("token_endpoint_auth_method")
+            return _work_environment.get_usage("token_endpoint_auth_method")
         except KeyError:
             return self.default_authn_method

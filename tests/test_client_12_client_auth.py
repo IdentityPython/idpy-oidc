@@ -153,11 +153,11 @@ class TestBearerHeader(object):
     def test_construct_with_token(self, entity):
         authz_service = entity.client_get("service", "authorization")
         srv_cntx = authz_service.client_get("service_context")
-        _state = srv_cntx.state.create_state("Issuer")
+        _state = srv_cntx.cstate.create_state(iss="Issuer")
         req = AuthorizationRequest(
             state=_state, response_type="code", redirect_uri="https://example.com", scope=["openid"]
         )
-        srv_cntx.state.store_item(req, "auth_request", _state)
+        srv_cntx.cstate.update(_state, req)
 
         # Add a state and bind a code to it
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
@@ -192,10 +192,10 @@ class TestBearerBody(object):
     def test_construct_with_state(self, entity):
         _auth_service = entity.client_get("service", "authorization")
         _cntx = _auth_service.client_get("service_context")
-        _key = _cntx.state.create_state(iss="Issuer")
+        _key = _cntx.cstate.create_state(iss="Issuer")
 
         resp = AuthorizationResponse(code="code", state=_key)
-        _cntx.state.store_item(resp, "auth_response", _key)
+        _cntx.cstate.update(_key, resp)
 
         atr = AccessTokenResponse(
             access_token="2YotnFZFEjr1zCsicMWpAA",
@@ -204,7 +204,7 @@ class TestBearerBody(object):
             example_parameter="example_value",
             scope=["inner", "outer"],
         )
-        _cntx.state.store_item(atr, "token_response", _key)
+        _cntx.cstate.update(_key, atr)
 
         request = ResourceRequest()
         http_args = BearerBody().construct(request, service=_auth_service, key=_key)
@@ -215,7 +215,7 @@ class TestBearerBody(object):
         authz_service = entity.client_get("service", "authorization")
         _cntx = authz_service.client_get("service_context")
 
-        _key = _cntx.state.create_state(iss="Issuer")
+        _key = _cntx.cstate.create_state(iss="Issuer")
         resp1 = AuthorizationResponse(code="auth_grant", state=_key)
         response = authz_service.parse_response(resp1.to_urlencoded(), "urlencoded")
         authz_service.update_service_context(response, key=_key)

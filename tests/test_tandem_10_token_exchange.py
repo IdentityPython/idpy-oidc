@@ -269,8 +269,8 @@ class TestEndpoint(object):
         _nonce = rndstr(24),
         _context = self.client_1.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.state.create_state(_context.get("issuer"))
-        _context.state.store_nonce2state(_nonce, _state)
+        _state = _context.cstate.create_state(iss=_context.get("issuer"))
+        _context.cstate.bind_key(_nonce, _state)
 
         req_args = {
             "response_type": ["code"],

@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from idpyoidc.client.service import Service
 from idpyoidc.message.oauth2 import Message
@@ -22,11 +23,14 @@ class CheckID(Service):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct]
 
-    def oidc_pre_construct(self, request_args=None, **kwargs):
-        request_args = self.client_get("service_context").state.multiple_extend_request_args(
-            request_args,
+    def oidc_pre_construct(self, request_args: Optional[dict]=None, **kwargs):
+        _args = self.client_get("service_context").cstate.get_set(
             kwargs["state"],
-            ["id_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
+            claim=["id_token"]
         )
+        if request_args:
+            request_args.update()
+        else:
+            request_args = _args
+
         return request_args, {}

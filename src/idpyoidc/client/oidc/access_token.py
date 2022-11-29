@@ -5,8 +5,8 @@ from typing import Union
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
-from idpyoidc.client.work_condition import get_client_authn_methods
-from idpyoidc.client.work_condition import get_signing_algs
+from idpyoidc.client.work_environment import get_client_authn_methods
+from idpyoidc.client.work_environment import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
@@ -62,32 +62,32 @@ class AccessToken(access_token.AccessToken):
         except KeyError:
             pass
 
-        _verify_args = _context.work_condition.get_usage("verify_args")
+        _verify_args = _context.work_environment.get_usage("verify_args")
         if _verify_args:
             if _verify_args:
                 kwargs.update(_verify_args)
 
         return kwargs
 
-    def update_service_context(self, resp, key="", **kwargs):
-        _state_interface = self.client_get("service_context").state
+    def update_service_context(self, resp, key: Optional[str] ="", **kwargs):
+        _cstate = self.client_get("service_context").cstate
         try:
             _idt = resp[verified_claim_name("id_token")]
         except KeyError:
             pass
         else:
             try:
-                if _state_interface.get_state_by_nonce(_idt["nonce"]) != key:
+                if _cstate.get_base_key(_idt["nonce"]) != key:
                     raise ParameterError('Someone has messed with "nonce"')
             except KeyError:
                 raise ValueError("Invalid nonce value")
 
-            _state_interface.store_sub2state(_idt["sub"], key)
+            _cstate.bind_key(_idt["sub"], key)
 
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
 
-        _state_interface.store_item(resp, "token_response", key)
+        _cstate.update(key, resp)
 
     def get_authn_method(self):
         _context = self.client_get("service_context")

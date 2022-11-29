@@ -270,15 +270,9 @@ def find_token(request, token_type, service, **kwargs):
     try:
         return kwargs["access_token"]
     except KeyError:
-        # I should pick the latest acquired token, this should be the right
-        # order for that.
+        # Get the latest acquired access token.
         _state = kwargs.get("state", kwargs.get("key"))
-        _arg = service.client_get("service_context").state.multiple_extend_request_args(
-            {},
-            _state,
-            ["access_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
-        )
+        _arg = service.client_get("service_context").cstate.get_set(_state, claim=[token_type])
         return _arg.get("access_token")
 
 
@@ -410,7 +404,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
         Pick signing key based on signing algorithm to be used
 
         :param algorithm: Signing algorithm
-        :param service_context: A :py:class:`idpyoidc.client.service_context.ServiceContext` instance
+        :param service_context: A :py:class:`idpyoidc.client.service_context.ServiceContext`
+        instance
         :return: A key
         """
         return service_context.keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)

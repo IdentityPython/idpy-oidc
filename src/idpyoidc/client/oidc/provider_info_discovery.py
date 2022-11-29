@@ -2,7 +2,7 @@ import logging
 
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.oauth2 import server_metadata
-from idpyoidc.client.work_condition.transform import supported_to_preferred
+from idpyoidc.client.work_environment.transform import supported_to_preferred
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -25,18 +25,18 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     :param kwargs: Possible extra keyword arguments
     :return: A possibly augmented set of request arguments.
     """
-    _work_condition = service.client_get("service_context").work_condition
+    _work_environment = service.client_get("service_context").work_environment
     if "redirect_uris" not in request_args:
         # Callbacks is a dictionary with callback type 'code', 'implicit',
         # 'form_post' as keys.
-        _callback = _work_condition.get_preference('callback')
+        _callback = _work_environment.get_preference('callback')
         if _callback:
             # Filter out local additions.
             _uris = [v for k, v in _callback.items() if not k.startswith("__")]
             request_args["redirect_uris"] = _uris
         else:
-            request_args["redirect_uris"] = _work_condition.get_preference(
-                "redirect_uris", _work_condition.supports.get('redirect_uris'))
+            request_args["redirect_uris"] = _work_environment.get_preference(
+                "redirect_uris", _work_environment.supports.get('redirect_uris'))
 
     return request_args, {}
 
@@ -52,7 +52,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     def __init__(self, client_get, conf=None):
         server_metadata.ServerMetadata.__init__(self, client_get, conf=conf)
 
-    def update_service_context(self, resp, **kwargs):
+    def update_service_context(self, resp, key, **kwargs):
         _context = self.client_get("service_context")
         self._update_service_context(resp) # set endpoints and import keys
         _context.map_supported_to_preferred(resp)

@@ -298,7 +298,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").work_condition.set_usage("verify_args", {
+        self.service.client_get("service_context").work_environment.set_usage("verify_args", {
             "allow_sign_alg_none": allow_sign_alg_none
         })
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -407,13 +407,13 @@ class TestAccessTokenRequest(object):
         # add some history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state", response_type="code"
-        ).to_json()
+        )
 
-        _stat_interface = entity.client_get("service_context").state
-        _stat_interface.store_item(auth_request, "auth_request", "state")
+        _current = entity.client_get("service_context").cstate
+        _current.update("state", auth_request)
 
-        auth_response = AuthorizationResponse(code="access_code").to_json()
-        _stat_interface.store_item(auth_response, "auth_response", "state")
+        auth_response = AuthorizationResponse(code="access_code")
+        _current.update("state", auth_response)
 
     def test_construct(self):
         req_args = {"foo": "bar"}
@@ -464,11 +464,11 @@ class TestAccessTokenRequest(object):
         }
 
     def test_id_token_nonce_match(self):
-        _state_interface = self.service.client_get("service_context").state
-        _state_interface.store_nonce2state("nonce", "state")
+        _cstate = self.service.client_get("service_context").cstate
+        _cstate.bind_key("nonce", "state")
         resp = AccessTokenResponse()
         resp[verified_claim_name("id_token")] = {"nonce": "nonce"}
-        _state_interface.store_nonce2state("nonce2", "state2")
+        _cstate.bind_key("nonce2", "state2")
         with pytest.raises(ParameterError):
             self.service.update_service_context(resp, key="state2")
 
@@ -730,19 +730,19 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.client_get("service_context")
-        assert _context.work_condition.use == {}
+        assert _context.work_environment.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
         with responses.RequestsMock() as rsps:
             rsps.add("GET", resp["jwks_uri"], body=iss_jwks, status=200)
 
-            self.service.update_service_context(resp)
+            self.service.update_service_context(resp, '')
 
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.client_get("service_context").work_condition.use.copy()
+        use_copy = self.service.client_get("service_context").work_environment.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
@@ -790,19 +790,19 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.client_get("service_context")
-        assert _context.work_condition.use == {}
+        assert _context.work_environment.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
         with responses.RequestsMock() as rsps:
             rsps.add("GET", resp["jwks_uri"], body=iss_jwks, status=200)
 
-            self.service.update_service_context(resp)
+            self.service.update_service_context(resp, '')
 
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.client_get("service_context").work_condition.use.copy()
+        use_copy = self.service.client_get("service_context").work_environment.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
@@ -882,7 +882,7 @@ class TestRegistration(object):
                                     'userinfo_signed_response_alg'}
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").work_condition.set_preference(
+        self.service.client_get("service_context").work_environment.set_preference(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
@@ -928,7 +928,6 @@ def test_config_with_required_request_uri():
                                 "request_uris", 'default_max_age', 'request_object_signing_alg',
                                 'subject_type', 'token_endpoint_auth_method',
                                 'token_endpoint_auth_signing_alg', 'userinfo_signed_response_alg'}
-
 
 
 def test_config_logout_uri():
@@ -997,16 +996,16 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://example.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").work_condition.use = {
+        entity.client_get("service_context").work_environment.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
         }
 
-        _state_interface = self.service.client_get("service_context").state
+        _cstate = self.service.client_get("service_context").cstate
         # Add history
-        auth_response = AuthorizationResponse(code="access_code").to_json()
-        _state_interface.store_item(auth_response, "auth_response", "abcde")
+        auth_response = AuthorizationResponse(code="access_code")
+        _cstate.update("abcde", auth_response)
 
         idtval = {"nonce": "KUEYfRM2VzKDaaKD", "sub": "diana", "iss": ISS, "aud": "client_id"}
         idt = create_jws(idtval)
@@ -1015,8 +1014,8 @@ class TestUserInfo(object):
 
         token_response = AccessTokenResponse(
             access_token="access_token", id_token=idt, __verified_id_token=ver_idt
-        ).to_json()
-        _state_interface.store_item(token_response, "token_response", "abcde")
+        )
+        _cstate.update("abcde", token_response)
 
     def test_construct(self):
         _req = self.service.construct(state="abcde")
@@ -1143,10 +1142,8 @@ class TestCheckSession(object):
         self.service = entity.client_get("service", "check_session")
 
     def test_construct(self):
-        _state_interface = self.service.client_get("service_context").state
-        _state_interface.store_item(
-            json.dumps({"id_token": "a.signed.jwt"}), "token_response", "abcde"
-        )
+        _cstate = self.service.client_get("service_context").cstate
+        _cstate.update("abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, CheckSessionRequest)
         assert len(_req) == 1
@@ -1173,10 +1170,8 @@ class TestCheckID(object):
         self.service = entity.client_get("service", "check_id")
 
     def test_construct(self):
-        _state_interface = self.service.client_get("service_context").state
-        _state_interface.store_item(
-            json.dumps({"id_token": "a.signed.jwt"}), "token_response", "abcde"
-        )
+        _cstate = self.service.client_get("service_context").cstate
+        _cstate.set("abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, CheckIDRequest)
         assert len(_req) == 1
@@ -1207,9 +1202,8 @@ class TestEndSession(object):
         self.service = entity.client_get("service", "end_session")
 
     def test_construct(self):
-        self.service.client_get("service_context").state.store_item(
-            json.dumps({"id_token": "a.signed.jwt"}), "token_response", "abcde"
-        )
+        self.service.client_get("service_context").cstate.update(
+            "abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, EndSessionRequest)
         assert len(_req) == 3

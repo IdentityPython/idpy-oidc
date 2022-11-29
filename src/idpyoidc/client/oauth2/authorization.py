@@ -49,12 +49,12 @@ class Authorization(Service):
     def update_service_context(self, resp, key="", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.client_get("service_context").state.store_item(resp, "auth_response", key)
+        self.client_get("service_context").cstate.update(key, resp)
 
     def store_auth_request(self, request_args=None, **kwargs):
         """Store the authorization request in the state DB."""
         _key = get_state_parameter(request_args, kwargs)
-        self.client_get("service_context").state.store_item(request_args, "auth_request", _key)
+        self.client_get("service_context").cstate.update(_key, request_args)
         return request_args
 
     def gather_request_args(self, **kwargs):
@@ -87,9 +87,8 @@ class Authorization(Service):
                 pass
             else:
                 if _key:
-                    item = self.client_get("service_context").state.get_item(
-                        oauth2.AuthorizationRequest, "auth_request", _key
-                    )
+                    item = self.client_get("service_context").cstate.get_set(
+                        _key, message=oauth2.AuthorizationRequest)
                     try:
                         response["scope"] = item["scope"]
                     except KeyError:

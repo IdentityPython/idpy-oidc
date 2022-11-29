@@ -2,8 +2,8 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
-import responses
 from cryptojwt.key_jar import init_key_jar
+import responses
 
 from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oidc import AccessTokenResponse
@@ -326,10 +326,11 @@ class TestRPHandler(object):
         assert set(resp.keys()) == {"state", "code"}
         aresp = (
             client.client_get("service", "authorization")
-            .client_get("service_context")
-            .state.get_item(AuthorizationResponse, "auth_response", res["state"])
+            .client_get("service_context").cstate.get(res["state"])
         )
-        assert set(aresp.keys()) == {"state", "code"}
+        assert set(aresp.keys()) == {
+            "state", "code", 'iss', 'client_id',
+            'scope', 'nonce', 'response_type', 'redirect_uri'}
 
     def test_get_client_authn_method(self):
         rph_1 = RPHandler(
@@ -361,7 +362,7 @@ class TestRPHandler(object):
         _context = client.client_get("service_context")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        _nonce = _session["auth_request"]["nonce"]
+        _nonce = _session["nonce"]
         _iss = _session["iss"]
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
@@ -406,15 +407,23 @@ class TestRPHandler(object):
             atresp = (
                 client.client_get("service", "accesstoken")
                 .client_get("service_context")
-                .state.get_item(AccessTokenResponse, "token_response", res["state"])
+                .cstate.get(res["state"])
             )
             assert set(atresp.keys()) == {
+                "__expires_at",
+                "__verified_id_token",
                 "access_token",
+                'client_id',
+                'code',
                 "expires_in",
                 "id_token",
-                "token_type",
-                "__verified_id_token",
-                "__expires_at",
+                'iss',
+                'nonce',
+                'redirect_uri',
+                'response_type',
+                'scope',
+                'state',
+                "token_type"
             }
 
     def test_access_and_id_token(self):
@@ -426,7 +435,7 @@ class TestRPHandler(object):
         _session = rph_1.get_session_information(res["state"])
         client = rph_1.issuer2rp[_session["iss"]]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
+        _nonce = _session["nonce"]
         _iss = _session["iss"]
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
@@ -475,7 +484,7 @@ class TestRPHandler(object):
         _session = rph_1.get_session_information(res["state"])
         client = rph_1.issuer2rp[_session["iss"]]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
+        _nonce = _session["nonce"]
         _iss = _session["iss"]
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
@@ -524,7 +533,7 @@ class TestRPHandler(object):
         _session = rph_1.get_session_information(res["state"])
         client = rph_1.issuer2rp[_session["iss"]]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
+        _nonce = _session["nonce"]
         _iss = _session["iss"]
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
@@ -586,7 +595,7 @@ class TestRPHandler(object):
         _session = rph_1.get_session_information(res["state"])
         client = rph_1.issuer2rp[_session["iss"]]
         # _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
+        _nonce = _session["nonce"]
         _iss = _session["iss"]
         _aud = client.get_client_id()
         idval = {
