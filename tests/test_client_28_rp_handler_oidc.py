@@ -373,7 +373,7 @@ class TestRPHandler(object):
         res = self.rph.begin(issuer_id="linkedin")
         cli1 = self.rph.get_client_from_session_key(state=res["state"])
         _session = self.rph.get_session_information(res["state"])
-        cli2 = self.rph.issuer2rp[_session["iss"]]
+        cli2 = self.rph.issuer2rp[_session['iss']]
         assert cli1 == cli2
         # redo
         self.rph.do_provider_info(state=res["state"])
@@ -384,42 +384,47 @@ class TestRPHandler(object):
     def test_finalize_auth(self):
         res = self.rph.begin(issuer_id="linkedin")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
 
         auth_response = AuthorizationResponse(code="access_code", state=res["state"])
-        resp = self.rph.finalize_auth(client, _session["iss"], auth_response.to_dict())
+        resp = self.rph.finalize_auth(client, _session['iss'], auth_response.to_dict())
         assert set(resp.keys()) == {"state", "code"}
-        aresp = client.client_get("service_context").state.get_item(
-            AuthorizationResponse, "auth_response", res["state"]
-        )
-        assert set(aresp.keys()) == {"state", "code"}
+        _state = client.client_get("service_context").cstate.get(res["state"])
+        assert set(_state.keys()) == {'client_id',
+                                      'code',
+                                      'iss',
+                                      'nonce',
+                                      'redirect_uri',
+                                      'response_type',
+                                      'scope',
+                                      'state'}
 
     def test_get_client_authn_method(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         authn_method = self.rph.get_client_authn_method(client, "token_endpoint")
         assert authn_method == ''
 
         res = self.rph.begin(issuer_id="linkedin")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         authn_method = self.rph.get_client_authn_method(client, "token_endpoint")
         assert authn_method == "client_secret_post"
 
     def test_get_tokens(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
 
         _github_id = iss_id("github")
         _context = client.client_get("service_context")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -446,7 +451,7 @@ class TestRPHandler(object):
             client.client_get("service", "accesstoken").endpoint = _url
 
             auth_response = AuthorizationResponse(code="access_code", state=res["state"])
-            resp = self.rph.finalize_auth(client, _session["iss"], auth_response.to_dict())
+            resp = self.rph.finalize_auth(client, _session['iss'], auth_response.to_dict())
 
             resp = self.rph.get_tokens(res["state"], client)
             assert set(resp.keys()) == {
@@ -458,27 +463,31 @@ class TestRPHandler(object):
                 "__expires_at",
             }
 
-            atresp = client.client_get("service_context").state.get_item(
-                AccessTokenResponse, "token_response", res["state"]
-            )
-            assert set(atresp.keys()) == {
-                "access_token",
-                "expires_in",
-                "id_token",
-                "token_type",
-                "__verified_id_token",
-                "__expires_at",
-            }
+            _curr = client.client_get("service_context").cstate.get(res["state"])
+            assert set(_curr.keys()) == {'__expires_at',
+                                         '__verified_id_token',
+                                         'access_token',
+                                         'client_id',
+                                         'code',
+                                         'expires_in',
+                                         'id_token',
+                                         'iss',
+                                         'nonce',
+                                         'redirect_uri',
+                                         'response_type',
+                                         'scope',
+                                         'state',
+                                         'token_type'}
 
     def test_access_and_id_token(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -510,7 +519,7 @@ class TestRPHandler(object):
             client.client_get("service", "accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
             resp = self.rph.get_access_and_id_token(auth_response, client=client)
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -518,12 +527,12 @@ class TestRPHandler(object):
     def test_access_and_id_token_by_reference(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -555,7 +564,7 @@ class TestRPHandler(object):
             client.client_get("service", "accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            _ = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
+            _ = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
             resp = self.rph.get_access_and_id_token(state=res["state"])
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -563,12 +572,12 @@ class TestRPHandler(object):
     def test_get_user_info(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -600,7 +609,7 @@ class TestRPHandler(object):
             client.client_get("service", "accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
 
             token_resp = self.rph.get_access_and_id_token(auth_response, client=client)
 
@@ -621,15 +630,15 @@ class TestRPHandler(object):
     def test_userinfo_in_id_token(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
         idval = {
             "nonce": _nonce,
             "sub": "EndUserSubject",
-            "iss": _iss,
+            'iss': _iss,
             "aud": _aud,
             "given_name": "Diana",
             "family_name": "Krall",
@@ -654,12 +663,12 @@ class TestRPHandlerTier2(object):
         self.rph = RPHandler(BASE_URL, CLIENT_CONFIG, keyjar=CLI_KEY)
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         _context = client.client_get("service_context")
-        _nonce = _session["auth_request"]["nonce"]
-        _iss = _session["iss"]
+        _nonce = _session["nonce"]
+        _iss = _session['iss']
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
 
         _github_id = iss_id("github")
         _context.keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
@@ -693,7 +702,7 @@ class TestRPHandlerTier2(object):
             client.client_get("service", "accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
 
             token_resp = self.rph.get_access_and_id_token(auth_response, client=client)
 
@@ -713,7 +722,7 @@ class TestRPHandlerTier2(object):
 
     def test_init_authorization(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
         res = self.rph.init_authorization(client, req_args={"scope": ["openid", "email"]})
         part = urlsplit(res["url"])
         _qp = parse_qs(part.query)
@@ -721,7 +730,7 @@ class TestRPHandlerTier2(object):
 
     def test_refresh_access_token(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
 
         _info = {"access_token": "2nd_accessTok", "token_type": "Bearer", "expires_in": 3600}
         at = AccessTokenResponse(**_info)
@@ -741,7 +750,7 @@ class TestRPHandlerTier2(object):
 
     def test_get_user_info(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session["iss"]]
+        client = self.rph.issuer2rp[_session['iss']]
 
         _url = "https://github.com/userinfo"
         with responses.RequestsMock() as rsps:
@@ -823,7 +832,7 @@ class MockOP(object):
 def construct_access_token_response(nonce, issuer, client_id, key_jar):
     _aud = client_id
 
-    idval = {"nonce": nonce, "sub": "EndUserSubject", "iss": issuer, "aud": _aud}
+    idval = {"nonce": nonce, "sub": "EndUserSubject", 'iss': issuer, "aud": _aud}
 
     idts = IdToken(**idval)
     _signed_jwt = idts.to_jwt(
@@ -894,7 +903,7 @@ class TestRPHandlerWithMockOP(object):
 
         # Faking
         resp = construct_access_token_response(
-            _session["auth_request"]["nonce"],
+            _session["nonce"],
             issuer=self.issuer,
             client_id=CLIENT_CONFIG["github"]["client_id"],
             key_jar=GITHUB_KEY,
@@ -920,7 +929,7 @@ class TestRPHandlerWithMockOP(object):
 
         # do the rest (= get access token and user info)
         # assume code flow
-        resp = self.rph.finalize(_session["iss"], auth_response.to_dict())
+        resp = self.rph.finalize(_session['iss'], auth_response.to_dict())
 
         assert set(resp.keys()) == {"userinfo", "state", "token", "id_token", "session_state"}
 

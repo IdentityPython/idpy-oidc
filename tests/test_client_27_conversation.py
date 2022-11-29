@@ -404,7 +404,7 @@ def test_conversation():
     resp = provider_info_service.parse_response(provider_info_response)
 
     assert isinstance(resp, ProviderConfigurationResponse)
-    provider_info_service.update_service_context(resp)
+    provider_info_service.update_service_context(resp, '')
 
     _pi = entity.client_get("service_context").provider_info
     assert _pi["issuer"] == OP_BASEURL
@@ -481,7 +481,7 @@ def test_conversation():
     NONCE = "UvudLKz287YByZdsY3AJoPAlEXQkJ0dK"
 
     auth_service = entity.client_get("service", "authorization")
-    _state_interface = service_context.state
+    _cstate = service_context.cstate
 
     info = auth_service.get_request_parameters(request_args={"state": STATE, "nonce": NONCE})
 
@@ -511,7 +511,7 @@ def test_conversation():
 
     _resp = auth_service.parse_response(_authz_rep.to_urlencoded())
     auth_service.update_service_context(_resp, key=STATE)
-    _item = _state_interface.get_item(AuthorizationResponse, "auth_response", STATE)
+    _item = _cstate.get(STATE)
     assert _item["code"] == "Z0FBQUFBQmFkdFFjUVpFWE81SHU5N1N4N01"
 
     # =================== Access token ====================
@@ -562,18 +562,22 @@ def test_conversation():
 
     token_service.update_service_context(_resp, key=STATE)
 
-    _item = _state_interface.get_item(AccessTokenResponse, "token_response", STATE)
+    _item = _cstate.get(STATE)
 
-    assert set(_item.keys()) == {
-        "state",
-        "scope",
-        "access_token",
-        "token_type",
-        "id_token",
-        "__verified_id_token",
-        "expires_in",
-        "__expires_at",
-    }
+    assert set(_item.keys()) == {'__expires_at',
+                                 '__verified_id_token',
+                                 'access_token',
+                                 'client_id',
+                                 'code',
+                                 'expires_in',
+                                 'id_token',
+                                 'iss',
+                                 'nonce',
+                                 'redirect_uri',
+                                 'response_type',
+                                 'scope',
+                                 'state',
+                                 'token_type'}
 
     assert _item["token_type"] == "Bearer"
     assert _item["access_token"] == "Z0FBQUFBQmFkdFF"
@@ -594,5 +598,5 @@ def test_conversation():
     assert isinstance(_resp, OpenIDSchema)
     assert _resp.to_dict() == {"sub": "1b2fc9341a16ae4e30082965d537"}
 
-    _item = _state_interface.get_item(OpenIDSchema, "user_info", STATE)
-    assert _item.to_dict() == {"sub": "1b2fc9341a16ae4e30082965d537"}
+    _item = _cstate.get_set(STATE, message=OpenIDSchema)
+    assert _item == {"sub": "1b2fc9341a16ae4e30082965d537"}

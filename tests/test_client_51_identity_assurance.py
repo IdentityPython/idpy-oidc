@@ -36,14 +36,14 @@ class TestUserInfo(object):
         entity.client_get("service_context").issuer = "https://server.otherop.com"
         self.service = entity.client_get("service", "userinfo")
 
-        entity.client_get("service_context").work_condition.use = {
+        entity.client_get("service_context").work_environment.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
         }
 
     def test_unpack_aggregated_response(self):
-        _state_interface = self.service.client_get("service_context").state
+        _cstate = self.service.client_get("service_context").cstate
         # Add history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb",
@@ -56,12 +56,12 @@ class TestUserInfo(object):
                 }
             },
         )
-        _state = _state_interface.create_state("issuer")
+        _state = _cstate.create_state(iss="issuer")
         auth_request["state"] = _state
-        _state_interface.store_item(auth_request, "auth_request", _state)
+        _cstate.update(_state, auth_request)
 
-        auth_response = AuthorizationResponse(code="access_code").to_json()
-        _state_interface.store_item(auth_response, "auth_response", "abcde")
+        auth_response = AuthorizationResponse(code="access_code")
+        _cstate.update("abcde", auth_response)
 
         _distributed_respone = {
             "iss": "https://server.otherop.com",

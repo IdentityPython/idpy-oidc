@@ -1,20 +1,20 @@
 import os
 from typing import Optional
 
-from idpyoidc.client import work_condition
+from idpyoidc.client import work_environment
 
 
-class WorkCondition(work_condition.WorkCondition):
-    parameter = work_condition.WorkCondition.parameter.copy()
+class WorkEnvironment(work_environment.WorkEnvironment):
+    parameter = work_environment.WorkEnvironment.parameter.copy()
     parameter.update({
         "requests_dir": None
     })
 
     _supports = {
         "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
-        "id_token_signing_alg_values_supported": work_condition.get_signing_algs,
-        "id_token_encryption_alg_values_supported": work_condition.get_encryption_algs,
-        "id_token_encryption_enc_values_supported": work_condition.get_encryption_encs,
+        "id_token_signing_alg_values_supported": work_environment.get_signing_algs,
+        "id_token_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "id_token_encryption_enc_values_supported": work_environment.get_encryption_encs,
         "acr_values_supported": None,
         "subject_types_supported": ["public", "pairwise", "ephemeral"],
         "application_type": "web",
@@ -43,7 +43,7 @@ class WorkCondition(work_condition.WorkCondition):
                  prefer: Optional[dict] = None,
                  callback_path: Optional[dict] = None
                  ):
-        work_condition.WorkCondition.__init__(self, prefer=prefer, callback_path=callback_path)
+        work_environment.WorkEnvironment.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def verify_rules(self):
         if self.get_preference("request_parameter_supported") and self.get_preference(

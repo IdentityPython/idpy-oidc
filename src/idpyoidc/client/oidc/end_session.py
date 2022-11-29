@@ -52,20 +52,14 @@ class EndSession(Service):
         :param kwargs:
         :return:
         """
-        request_args = self.client_get("service_context").state.multiple_extend_request_args(
-            request_args,
-            kwargs["state"],
-            ["id_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
-            orig=True,
-        )
+
+        _args = self.client_get('service_context').cstate.get_set(kwargs["state"],
+                                                                 claim=['id_token'])
 
         try:
-            request_args["id_token_hint"] = request_args["id_token"]
+            request_args["id_token_hint"] = _args["id_token"]
         except KeyError:
             pass
-        else:
-            del request_args["id_token"]
 
         return request_args, {}
 
@@ -85,8 +79,6 @@ class EndSession(Service):
             request_args["state"] = rndstr(32)
 
         # As a side effect bind logout state to session state
-        self.client_get("service_context").state.store_logout_state2state(
-            request_args["state"], kwargs["state"]
-        )
+        self.client_get("service_context").cstate.bind_key(request_args["state"], kwargs["state"])
 
         return request_args, {}

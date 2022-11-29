@@ -184,9 +184,9 @@ class TestAuthorization(object):
         _info = self.service.get_request_parameters(request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
-        self.service.client_get("service_context").state.store_item(msg, "request", _state)
+        self.service.client_get("service_context").cstate.set(_state, msg)
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
         response = self.service.parse_response(resp1.to_urlencoded(), "urlencoded", state=_state)
         self.service.update_service_context(response, key=_state)
-        assert self.service.client_get("service_context").state.get_state(_state)
+        assert self.service.client_get("service_context").cstate.get(_state)

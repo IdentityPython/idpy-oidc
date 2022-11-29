@@ -3,11 +3,11 @@ from typing import Callable
 from cryptojwt.utils import importer
 import pytest
 
-from idpyoidc.client.work_condition.oidc import WorkCondition as WorkConditionOIDC
-from idpyoidc.client.work_condition.transform import REGISTER2PREFERRED
-from idpyoidc.client.work_condition.transform import create_registration_request
-from idpyoidc.client.work_condition.transform import preferred_to_registered
-from idpyoidc.client.work_condition.transform import supported_to_preferred
+from idpyoidc.client.work_environment.oidc import WorkEnvironment as WorkEnvironmentOIDC
+from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
+from idpyoidc.client.work_environment.transform import create_registration_request
+from idpyoidc.client.work_environment.transform import preferred_to_registered
+from idpyoidc.client.work_environment.transform import supported_to_preferred
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
 
@@ -15,7 +15,7 @@ from idpyoidc.message.oidc import RegistrationRequest
 class TestTransform:
     @pytest.fixture(autouse=True)
     def setup(self):
-        supported = WorkConditionOIDC._supports.copy()
+        supported = WorkEnvironmentOIDC._supports.copy()
         for service in [
             'idpyoidc.client.oidc.access_token.AccessToken',
             'idpyoidc.client.oidc.authorization.Authorization',
@@ -260,8 +260,8 @@ class TestTransform2:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.work_condition = WorkConditionOIDC()
-        supported = self.work_condition._supports.copy()
+        self.work_environment = WorkEnvironmentOIDC()
+        supported = self.work_environment._supports.copy()
         for service in [
             'idpyoidc.client.oidc.access_token.AccessToken',
             'idpyoidc.client.oidc.authorization.Authorization',
@@ -295,7 +295,7 @@ class TestTransform2:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(preference, self.supported)
+        self.work_environment.load_conf(preference, self.supported)
 
     def test_registration_response(self):
         OP_BASEURL = 'https://example.com'
@@ -323,7 +323,7 @@ class TestTransform2:
         }
 
         pref = supported_to_preferred(supported=self.supported,
-                                      preference=self.work_condition.prefer,
+                                      preference=self.work_environment.prefer,
                                       base_url='https://example.com',
                                       info=provider_info_response)
 

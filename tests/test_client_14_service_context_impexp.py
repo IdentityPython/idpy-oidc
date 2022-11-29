@@ -19,7 +19,7 @@ def test_client_info_init():
         "requests_dir": "requests",
     }
     ci = ServiceContext(config=config, client_type='oidc')
-    ci.work_condition.load_conf(config, supports=ci.supports())
+    ci.work_environment.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
@@ -109,7 +109,7 @@ class TestClientInfo(object):
         self.service_context = ServiceContext(config=config)
 
     def test_registration_userinfo_sign_enc_algs(self):
-        self.service_context.work_condition.use = {
+        self.service_context.work_environment.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -128,7 +128,7 @@ class TestClientInfo(object):
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
 
     def test_registration_request_object_sign_enc_algs(self):
-        self.service_context.work_condition.use = {
+        self.service_context.work_environment.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -150,7 +150,7 @@ class TestClientInfo(object):
         assert srvcntx.get_sign_alg("request_object") == "RS384"
 
     def test_registration_id_token_sign_enc_algs(self):
-        self.service_context.work_condition.use = {
+        self.service_context.work_environment.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",

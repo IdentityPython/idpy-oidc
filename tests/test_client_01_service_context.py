@@ -37,11 +37,11 @@ class TestServiceContext:
         _alg = self.service_context.get_sign_alg("id_token")
         assert _alg is None
 
-        self.service_context.work_condition.set_preference("id_token_signed_response_alg", "RS384")
+        self.service_context.work_environment.set_preference("id_token_signed_response_alg", "RS384")
         _alg = self.service_context.get_sign_alg("id_token")
         assert _alg == "RS384"
 
-        self.service_context.work_condition.prefer = {}
+        self.service_context.work_environment.prefer = {}
         self.service_context.provider_info["id_token_signing_alg_values_supported"] = [
             "RS256",
             "ES256",
@@ -53,15 +53,15 @@ class TestServiceContext:
         _alg_enc = self.service_context.get_enc_alg_enc("userinfo")
         assert _alg_enc == {"alg": None, "enc": None}
 
-        self.service_context.work_condition.set_preference("userinfo_encrypted_response_alg",
+        self.service_context.work_environment.set_preference("userinfo_encrypted_response_alg",
                                                            "RSA1_5")
-        self.service_context.work_condition.set_preference("userinfo_encrypted_response_enc",
+        self.service_context.work_environment.set_preference("userinfo_encrypted_response_enc",
                                                            "A128CBC+HS256")
 
         _alg_enc = self.service_context.get_enc_alg_enc("userinfo")
         assert _alg_enc == {"alg": "RSA1_5", "enc": "A128CBC+HS256"}
 
-        self.service_context.work_condition.prefer = {}
+        self.service_context.work_environment.prefer = {}
         self.service_context.provider_info["userinfo_encryption_alg_values_supported"] = [
             "RSA1_5",
             "A128KW",

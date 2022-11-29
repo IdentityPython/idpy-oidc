@@ -16,18 +16,18 @@ from idpyoidc.impexp import ImpExp
 from idpyoidc.util import qualified_name
 
 
-def work_condition_dump(info, exclude_attributes):
+def work_environment_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
 
 
-def work_condition_load(item: dict, **kwargs):
+def work_environment_load(item: dict, **kwargs):
     _class_name = list(item.keys())[0]  # there is only one
     _cls = importer(_class_name)
     _cls = _cls().load(item[_class_name])
     return _cls
 
 
-class WorkCondition(ImpExp):
+class WorkEnvironment(ImpExp):
     parameter = {
         "prefer": None,
         "use": None,

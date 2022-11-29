@@ -203,7 +203,7 @@ class Service(ImpExp):
 
         return request_args
 
-    def update_service_context(self, resp, key="", **kwargs):
+    def update_service_context(self, resp: Message, key: Optional[str] = '', **kwargs):
         """
         A method run after the response has been parsed and verified.
 

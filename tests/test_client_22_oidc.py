@@ -61,7 +61,7 @@ class TestClient(object):
             "nonce": "nonce",
         }
 
-        self.client.client_get("service_context").state.create_state("issuer", "ABCDE")
+        self.client.client_get("service_context").cstate.set("ABCDE", {'iss': "issuer"})
 
         msg = self.client.client_get("service", "authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
@@ -71,14 +71,15 @@ class TestClient(object):
         _context = self.client.client_get("service_context")
         auth_request = AuthorizationRequest(redirect_uri="https://example.com/cli/authz_cb")
 
-        _state = _context.state.create_state("issuer")
+        _state = _context.cstate.create_key()
+        _context.cstate.set(_state, {'iss': "issuer"})
         auth_request["state"] = _state
 
-        _context.state.store_item(auth_request, "auth_request", _state)
+        _context.cstate.update(_state, auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
 
-        _context.state.store_item(auth_response, "auth_response", _state)
+        _context.cstate.update(_state, auth_response)
 
         # Bind access code to state
         req_args = {}
@@ -97,19 +98,19 @@ class TestClient(object):
 
     def test_construct_refresh_token_request(self):
         _context = self.client.client_get("service_context")
-        _context.state.create_state("issuer", "ABCDE")
+        _context.cstate.set("ABCDE", {'iss':"issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
         )
 
-        _context.state.store_item(auth_request, "auth_request", "ABCDE")
+        _context.cstate.update("ABCDE", auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
-        _context.state.store_item(auth_response, "auth_response", "ABCDE")
+        _context.cstate.set("ABCDE", auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        _context.state.store_item(token_response, "token_response", "ABCDE")
+        _context.cstate.update("ABCDE", token_response)
 
         req_args = {}
         msg = self.client.client_get("service", "refresh_token").construct(
@@ -125,23 +126,24 @@ class TestClient(object):
 
     def test_do_userinfo_request_init(self):
         _context = self.client.client_get("service_context")
-        _context.state.create_state("issuer", "ABCDE")
+        _state = _context.cstate.create_key()
+        _context.cstate.set(_state, {'iss': "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
         )
 
-        _context.state.store_item(auth_request, "auth_request", "ABCDE")
+        _context.cstate.update(_state, auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
-        _context.state.store_item(auth_response, "auth_response", "ABCDE")
+        _context.cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        _context.state.store_item(token_response, "token_response", "ABCDE")
+        _context.cstate.update(_state, token_response)
 
         _srv = self.client.client_get("service", "userinfo")
         _srv.endpoint = "https://example.com/userinfo"
-        _info = _srv.get_request_parameters(state="ABCDE")
+        _info = _srv.get_request_parameters(state=_state)
         assert _info
         assert _info["headers"] == {"Authorization": "Bearer access"}
         assert _info["url"] == "https://example.com/userinfo"

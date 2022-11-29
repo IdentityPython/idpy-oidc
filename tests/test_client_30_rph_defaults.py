@@ -35,7 +35,7 @@ class TestRPHandler(object):
 
         _context = client.client_get("service_context")
 
-        assert set(_context.work_condition.prefer.keys()) == {
+        assert set(_context.work_environment.prefer.keys()) == {
             'application_type',
             'callback_uris',
             'id_token_encryption_alg_values_supported',
@@ -95,7 +95,7 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.work_condition.use.keys()) == {'application_type',
+        assert set(_context.work_environment.use.keys()) == {'application_type',
                                                            'callback_uris',
                                                            'client_id',
                                                            'client_secret',

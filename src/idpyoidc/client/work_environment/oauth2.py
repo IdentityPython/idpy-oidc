@@ -1,9 +1,9 @@
 from typing import Optional
 
-from idpyoidc.client import work_condition
+from idpyoidc.client import work_environment
 
 
-class WorkCondition(work_condition.WorkCondition):
+class WorkEnvironment(work_environment.WorkEnvironment):
     _supports = {
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
@@ -31,4 +31,4 @@ class WorkCondition(work_condition.WorkCondition):
     def __init__(self,
                  prefer: Optional[dict] = None,
                  callback_path: Optional[dict] = None):
-        work_condition.WorkCondition.__init__(self, prefer=prefer, callback_path=callback_path)
+        work_environment.WorkEnvironment.__init__(self, prefer=prefer, callback_path=callback_path)

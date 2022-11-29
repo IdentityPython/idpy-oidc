@@ -162,10 +162,10 @@ class Registration(Service):
                 continue
 
             try:
-                request_args[prop] = _context.work_condition.get_usage(prop)
+                request_args[prop] = _context.work_environment.get_usage(prop)
             except KeyError:
                 try:
-                    request_args[prop] = _context.work_condition.get_preference[prop]
+                    request_args[prop] = _context.work_environment.get_preference[prop]
                 except KeyError:
                     pass
         return request_args, {}

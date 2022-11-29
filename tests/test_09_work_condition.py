@@ -3,10 +3,10 @@ from typing import Callable
 from cryptojwt.utils import importer
 import pytest as pytest
 
-from idpyoidc.client.work_condition.oidc import WorkCondition as WorkConditionOIDC
-from idpyoidc.client.work_condition.transform import create_registration_request
-from idpyoidc.client.work_condition.transform import preferred_to_registered
-from idpyoidc.client.work_condition.transform import supported_to_preferred
+from idpyoidc.client.work_environment.oidc import WorkEnvironment as WorkEnvironmentOIDC
+from idpyoidc.client.work_environment.transform import create_registration_request
+from idpyoidc.client.work_environment.transform import preferred_to_registered
+from idpyoidc.client.work_environment.transform import supported_to_preferred
 
 KEYSPEC = [
     {"type": "RSA", "use": ["sig"]},
@@ -14,12 +14,12 @@ KEYSPEC = [
 ]
 
 
-class TestWorkCondition:
+class TestWorkEnvironment:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.work_condition = WorkConditionOIDC()
-        supported = self.work_condition._supports.copy()
+        self.work_environment = WorkEnvironmentOIDC()
+        supported = self.work_environment._supports.copy()
         for service in [
             'idpyoidc.client.oidc.access_token.AccessToken',
             'idpyoidc.client.oidc.authorization.Authorization',
@@ -57,9 +57,9 @@ class TestWorkCondition:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(client_conf, self.supported)
-        assert self.work_condition.get_preference('jwks') is None
-        assert self.work_condition.get_preference('jwks_uri') is None
+        self.work_environment.load_conf(client_conf, self.supported)
+        assert self.work_environment.get_preference('jwks') is None
+        assert self.work_environment.get_preference('jwks_uri') is None
 
     def test_load_jwks(self):
         # Symmetric and asymmetric keys published as JWKS
@@ -76,9 +76,9 @@ class TestWorkCondition:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(client_conf, self.supported)
-        assert self.work_condition.get_preference('jwks') is not None
-        assert self.work_condition.get_preference('jwks_uri') is None
+        self.work_environment.load_conf(client_conf, self.supported)
+        assert self.work_environment.get_preference('jwks') is not None
+        assert self.work_environment.get_preference('jwks_uri') is None
 
     def test_load_jwks_uri1(self):
         # Symmetric and asymmetric keys published through a jwks_uri
@@ -93,9 +93,9 @@ class TestWorkCondition:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(client_conf, self.supported)
-        assert self.work_condition.get_preference('jwks') is None
-        assert self.work_condition.get_preference(
+        self.work_environment.load_conf(client_conf, self.supported)
+        assert self.work_environment.get_preference('jwks') is None
+        assert self.work_environment.get_preference(
             'jwks_uri') == f"{client_conf['base_url']}{client_conf['keys']['uri_path']}"
 
     def test_load_jwks_uri2(self):
@@ -112,9 +112,9 @@ class TestWorkCondition:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(client_conf, self.supported)
-        assert self.work_condition.get_preference('jwks') is None
-        assert self.work_condition.get_preference('jwks_uri') == client_conf['jwks_uri']
+        self.work_environment.load_conf(client_conf, self.supported)
+        assert self.work_environment.get_preference('jwks') is None
+        assert self.work_environment.get_preference('jwks_uri') == client_conf['jwks_uri']
 
     def test_registration_response(self):
         client_conf = {
@@ -130,7 +130,7 @@ class TestWorkCondition:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_condition.load_conf(client_conf, self.supported)
+        self.work_environment.load_conf(client_conf, self.supported)
 
         OP_BASEURL = 'https://example.com'
         provider_info_response = {
@@ -157,7 +157,7 @@ class TestWorkCondition:
         }
 
         pref = supported_to_preferred(supported=self.supported,
-                                      preference=self.work_condition.prefer,
+                                      preference=self.work_environment.prefer,
                                       base_url='https://example.com',
                                       info=provider_info_response)
 

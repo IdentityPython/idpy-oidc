@@ -27,7 +27,7 @@ def test_request_object_encryption():
         "client_secret": "abcdefghijklmnop",
     }
     service_context = ServiceContext(keyjar=KEYJAR, config=conf)
-    _condition = service_context.work_condition
+    _condition = service_context.work_environment
     _condition.set_usage("request_object_encryption_alg", "RSA1_5")
     _condition.set_usage("request_object_encryption_enc", "A128CBC-HS256")
 
