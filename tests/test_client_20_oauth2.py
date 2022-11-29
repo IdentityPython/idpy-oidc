@@ -2,9 +2,9 @@ import os
 import sys
 import time
 
-import pytest
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
+import pytest
 
 from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.exception import OidcServiceError
@@ -65,7 +65,7 @@ class TestClient(object):
             "response_type": ["code"],
         }
 
-        self.client.client_get("service_context").state.create_state("issuer", key="ABCDE")
+        self.client.client_get("service_context").cstate.set("ABCDE", {"iss": 'issuer'})
         msg = self.client.client_get("service", "authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
@@ -75,19 +75,17 @@ class TestClient(object):
         # Bind access code to state
         req_args = {}
         _context = self.client.client_get("service_context")
-        _context.state.create_state("issuer", "ABCDE")
+        _context.cstate.set("ABCDE", {"issuer": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="ABCDE"
         )
 
-        _context.state.store_item(auth_request, "auth_request", "ABCDE")
+        _context.cstate.update("ABCDE", auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
 
-        self.client.client_get("service_context").state.store_item(
-            auth_response, "auth_response", "ABCDE"
-        )
+        self.client.client_get("service_context").cstate.update("ABCDE", auth_response)
 
         msg = self.client.client_get("service", "accesstoken").construct(
             request_args=req_args, state="ABCDE"
@@ -105,21 +103,22 @@ class TestClient(object):
 
     def test_construct_refresh_token_request(self):
         _context = self.client.client_get("service_context")
-        _context.state.create_state("issuer", "ABCDE")
+        _state = "ABCDE"
+        _context.cstate.set(_state, {'iss': "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
         )
 
-        _context.state.store_item(auth_request, "auth_request", "ABCDE")
+        _context.cstate.update(_state, auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
 
-        _context.state.store_item(auth_response, "auth_response", "ABCDE")
+        _context.cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
 
-        _context.state.store_item(token_response, "token_response", "ABCDE")
+        _context.cstate.update(_state, token_response)
 
         req_args = {}
         msg = self.client.client_get("service", "refresh_token").construct(
@@ -165,6 +164,7 @@ class TestClient(object):
 
 BASE_URL = "https://example.com"
 
+
 class TestClient2(object):
     @pytest.fixture(autouse=True)
     def create_client(self):
@@ -190,7 +190,7 @@ class TestClient2(object):
             },
         }
         rp_conf = RPHConfiguration(conf)
-        rp_handler = RPHandler(base_url=BASE_URL,config=rp_conf)
+        rp_handler = RPHandler(base_url=BASE_URL, config=rp_conf)
         self.client = rp_handler.init_client(issuer="client_1")
         assert self.client
 

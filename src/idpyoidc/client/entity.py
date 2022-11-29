@@ -145,11 +145,11 @@ class Entity(object):
         return self
 
     def get_client_id(self):
-        _val = self._service_context.work_condition.get_usage('client_id')
+        _val = self._service_context.work_environment.get_usage('client_id')
         if _val:
             return _val
         else:
-            return self._service_context.work_condition.get_preference('client_id')
+            return self._service_context.work_environment.get_preference('client_id')
 
     def setup_client_authn_methods(self, config):
         self._service_context.client_authn_method = client_auth_setup(
@@ -157,18 +157,18 @@ class Entity(object):
         )
 
     def backward_compatibility(self, config):
-        _work_condition = self._service_context.work_condition
+        _work_environment = self._service_context.work_environment
         _uris = config.get("redirect_uris")
         if _uris:
-            _work_condition.set_preference("redirect_uris", _uris)
+            _work_environment.set_preference("redirect_uris", _uris)
 
         _dir = config.conf.get("requests_dir")
         if _dir:
-            _work_condition.set_preference('requests_dir', _dir)
+            _work_environment.set_preference('requests_dir', _dir)
 
         _pref = config.get("client_preferences", {})
         for key, val in _pref.items():
-            _work_condition.set_preference(key, val)
+            _work_environment.set_preference(key, val)
 
         auth_request_args = config.conf.get("request_args", {})
         if auth_request_args:
@@ -182,12 +182,12 @@ class Entity(object):
                 "preference": service.supports(),
             }
         res[""] = {
-            "preference": self._service_context.work_condition.supports,
+            "preference": self._service_context.work_environment.supports,
         }
         return res
 
     def prefers(self):
-        return self._service_context.work_condition.prefers()
+        return self._service_context.work_environment.prefers()
 
     def use(self):
-        return self._service_context.work_condition.get_use()
+        return self._service_context.work_environment.get_use()

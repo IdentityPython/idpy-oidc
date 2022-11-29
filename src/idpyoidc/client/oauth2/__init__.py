@@ -194,12 +194,7 @@ class Client(Entity):
         if "error" in response:
             pass
         else:
-            try:
-                kwargs["key"] = kwargs["state"]
-            except KeyError:
-                pass
-
-            service.update_service_context(response, **kwargs)
+            service.update_service_context(response, key=kwargs.get('state'), **kwargs)
         return response
 
     def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):

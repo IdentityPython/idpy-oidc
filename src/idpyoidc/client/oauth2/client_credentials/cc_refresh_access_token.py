@@ -1,3 +1,5 @@
+from typing import Optional
+
 from idpyoidc.client.service import Service
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -22,14 +24,8 @@ class CCRefreshAccessToken(Service):
     def cc_pre_construct(self, request_args=None, **kwargs):
         _state_id = kwargs.get("state", "cc")
         parameters = ["refresh_token"]
-        _state_interface = self.client_get("service_context").state
-        _args = _state_interface.extend_request_args(
-            {}, oauth2.AccessTokenResponse, "token_response", _state_id, parameters
-        )
-
-        _args = _state_interface.extend_request_args(
-            _args, oauth2.AccessTokenResponse, "refresh_token_response", _state_id, parameters
-        )
+        _current = self.client_get("service_context").cstate
+        _args = _current.get_set(_state_id, claim=parameters)
 
         if request_args is None:
             request_args = _args
@@ -48,7 +44,7 @@ class CCRefreshAccessToken(Service):
 
         return request_args
 
-    def update_service_context(self, resp, key="cc", **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.client_get("service_context").state.store_item(resp, "token_response", key)
+        self.client_get("service_context").cstate.update(key, resp)

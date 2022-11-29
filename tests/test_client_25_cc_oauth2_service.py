@@ -63,9 +63,7 @@ class TestRP:
         # since no state attribute is involved, a key is minted
         _key = rndstr(16)
         _srv.update_service_context(_response, key=_key)
-        info = _srv.client_get("service_context").state.get_item(
-            AccessTokenResponse, "token_response", _key
-        )
+        info = _srv.client_get("service_context").cstate.get(_key)
         assert "__expires_at" in info
 
     def test_refresh_token_get_request(self):
@@ -80,8 +78,7 @@ class TestRP:
             }
         )
         _srv = self.entity.client_get("service", "refresh_token")
-        _id = rndstr(16)
-        _info = _srv.get_request_parameters(state_id=_id)
+        _info = _srv.get_request_parameters(state='')
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
         assert _info["body"] == "grant_type=refresh_token"
@@ -109,9 +106,7 @@ class TestRP:
         # since no state attribute is involved, a key is minted
         _key = rndstr(16)
         _srv.update_service_context(_response, key=_key)
-        info = _srv.client_get("service_context").state.get_item(
-            AccessTokenResponse, "token_response", _key
-        )
+        info = _srv.client_get("service_context").cstate.get(_key)
         assert "__expires_at" in info
 
         # Move from token to refresh token service
@@ -130,9 +125,7 @@ class TestRP:
 
         _response = _srv.parse_response(refresh_response.to_json(), sformat="json")
         _srv.update_service_context(_response, key=_key)
-        info = _srv.client_get("service_context").state.get_item(
-            AccessTokenResponse, "token_response", _key
-        )
+        info = _srv.client_get("service_context").cstate.get(_key)
         assert "__expires_at" in info
 
     def test_2nd_refresh_token_parse_response(self):
@@ -154,9 +147,7 @@ class TestRP:
         # since no state attribute is involved, a key is minted
         _key = rndstr(16)
         _srv.update_service_context(_response, key=_key)
-        info = _srv.client_get("service_context").state.get_item(
-            AccessTokenResponse, "token_response", _key
-        )
+        info = _srv.client_get("service_context").cstate.get(_key)
         assert "__expires_at" in info
 
         # Move from token to refresh token service
@@ -175,9 +166,7 @@ class TestRP:
 
         _response = _srv.parse_response(refresh_response.to_json(), sformat="json")
         _srv.update_service_context(_response, key=_key)
-        info = _srv.client_get("service_context").state.get_item(
-            AccessTokenResponse, "token_response", _key
-        )
+        info = _srv.client_get("service_context").cstate.get(_key)
         assert "__expires_at" in info
 
         _request_info = _srv.get_request_parameters(request_args=request_args, state=_key)

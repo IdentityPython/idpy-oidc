@@ -88,7 +88,7 @@ class StateInterface(ImpExp):
         Get the state connected to a given key.
 
         :param key: Key into the state database
-        :return: A :py:class:´idpyoidc.client.state_interface.State` instance
+        :return: A :py:class:´idpyoidc.client.current.Current` instance
         """
         _data = self._db.get(key)
         if not _data:
@@ -155,7 +155,7 @@ class StateInterface(ImpExp):
         :param item_cls: The :py:class:`idpyoidc.message.Message` subclass
             that describes the item
         :param item_type: The type of item, this is one of the parameter
-            names in the :py:class:`idpyoidc.client.state_interface.State` class.
+            names in the :py:class:`idpyoidc.client.current.Current` class.
         :param key: The key to the information in the database
         :param parameters: A list of parameters who's values this method
             will return.
@@ -302,7 +302,7 @@ class StateInterface(ImpExp):
         """
         Find the state value by providing the logout state value.
         Will raise an exception if the logout state value is absent from the
-        state data base.
+        state database.
 
         :param logout_state: The logout state value
         :return: The state value
@@ -324,7 +324,7 @@ class StateInterface(ImpExp):
         """
         Find the state value by providing the logout state value.
         Will raise an exception if the logout state value is absent from the
-        state data base.
+        state database.
 
         :param sid: The session ID value
         :return: The state value
@@ -346,7 +346,7 @@ class StateInterface(ImpExp):
         """
         Find the state value by providing the subject id value.
         Will raise an exception if the subject id value is absent from the
-        state data base.
+        state database.
 
         :param sub: The Subject ID value
         :return: The state value

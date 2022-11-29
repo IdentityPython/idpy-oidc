@@ -51,13 +51,11 @@ class TestClient(object):
     def test_construct_accesstoken_request(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").state.create_state(ISSUER)
+        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state=_state
         )
-        client_1.client_get("service_context").state.store_item(
-            auth_request, "auth_request", _state
-        )
+        client_1.client_get("service_context").cstate.update(_state, auth_request)
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
@@ -65,9 +63,7 @@ class TestClient(object):
         client_2.client_get("service_context").load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").state.store_item(
-            auth_response, "auth_response", _state
-        )
+        client_2.client_get("service_context").cstate.update(_state, auth_response)
 
         # Bind access code to state
         req_args = {}
@@ -87,15 +83,13 @@ class TestClient(object):
     def test_construct_refresh_token_request(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").state.create_state(ISSUER)
+        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state=_state
         )
 
-        client_1.client_get("service_context").state.store_item(
-            auth_request, "auth_request", _state
-        )
+        client_1.client_get("service_context").cstate.update(_state,auth_request)
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
@@ -103,14 +97,10 @@ class TestClient(object):
         client_2.client_get("service_context").load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").state.store_item(
-            auth_response, "auth_response", _state
-        )
+        client_2.client_get("service_context").cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.client_get("service_context").state.store_item(
-            token_response, "token_response", _state
-        )
+        client_2.client_get("service_context").cstate.update(_state,token_response )
 
         # Back to Client 1
         _state_dump = client_2.client_get("service_context").dump()
@@ -131,7 +121,7 @@ class TestClient(object):
     def test_do_userinfo_request_init(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").state.create_state(ISSUER)
+        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
@@ -143,14 +133,10 @@ class TestClient(object):
         client_2.client_get("service_context").load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").state.store_item(
-            auth_response, "auth_response", _state
-        )
+        client_2.client_get("service_context").cstate.update(_state,auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.client_get("service_context").state.store_item(
-            token_response, "token_response", _state
-        )
+        client_2.client_get("service_context").cstate.update(_state,token_response)
 
         # Back to Client 1
         _state_dump = client_2.client_get("service_context").dump()

@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from idpyoidc.client import work_condition
+from idpyoidc.client import work_environment
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
@@ -32,9 +32,9 @@ class Authorization(authorization.Authorization):
     error_msg = oidc.ResponseMessage
 
     _supports = {
-        "request_object_signing_alg_values_supported": work_condition.get_signing_algs,
-        "request_object_encryption_alg_values_supported": work_condition.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": work_condition.get_encryption_encs,
+        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
+        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
         "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
                                      'code id_token', 'code idtoken token'],
         'request_parameter_supported': None,
@@ -67,16 +67,17 @@ class Authorization(authorization.Authorization):
             self.default_request_args['scope'] = ['openid']
 
     def set_state(self, request_args, **kwargs):
+        _context = self.client_get("service_context")
         try:
             _state = kwargs["state"]
         except KeyError:
             try:
                 _state = request_args["state"]
             except KeyError:
-                _state = ""
+                _state = _context.cstate.create_key()
 
-        _context = self.client_get("service_context")
-        request_args["state"] = _context.state.create_state(_context.issuer, _state)
+        request_args["state"] = _state
+        _context.cstate.set(_state, {'iss': _context.issuer})
         return request_args, {}
 
     def update_service_context(self, resp, key="", **kwargs):
@@ -84,13 +85,11 @@ class Authorization(authorization.Authorization):
 
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        _context.state.store_item(resp.to_json(), "auth_response", key)
+        _context.cstate.update(key, resp)
 
     def get_request_from_response(self, response):
         _context = self.client_get("service_context")
-        return _context.state.get_item(
-            oauth2.AuthorizationRequest, "auth_request", response["state"]
-        )
+        return _context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
 
     def post_parse_response(self, response, **kwargs):
         response = authorization.Authorization.post_parse_response(self, response, **kwargs)
@@ -99,8 +98,8 @@ class Authorization(authorization.Authorization):
         if _idt:
             # If there is a verified ID Token then we have to do nonce
             # verification.
-            _request = self.get_request_from_response(response)
-            _req_nonce = _request.get("nonce")
+            _req_nonce = self.client_get("service_context").cstate.get_set(
+                response["state"], claim=['nonce']).get('nonce')
             if _req_nonce:
                 _id_token_nonce = _idt.get("nonce")
                 if not _id_token_nonce:
@@ -182,7 +181,7 @@ class Authorization(authorization.Authorization):
         if not alg:
             _context = self.client_get("service_context")
             try:
-                alg = _context.work_condition.get_usage("request_object_signing_alg")
+                alg = _context.work_environment.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
@@ -272,13 +271,13 @@ class Authorization(authorization.Authorization):
         if "openid" in req["scope"]:
             _response_type = req["response_type"][0]
             if "id_token" in _response_type or "code" in _response_type:
-                _context.state.store_nonce2state(req["nonce"], req["state"])
+                _context.cstate.bind_key(req["nonce"], req["state"])
 
         if "offline_access" in req["scope"]:
             if "prompt" not in req:
                 req["prompt"] = "consent"
 
-        _context.state.store_item(req, "auth_request", req["state"])
+        _context.cstate.update(req["state"], req)
 
         # Overrides what's in the configuration
         _request_param = kwargs.get("request_param")

@@ -74,7 +74,7 @@ class TestPKCE256:
 
     def test_add_code_challenge_default_values(self):
         auth_serv = self.entity.client_get("service", "authorization")
-        _state_key = self.entity.client_get("service_context").state.create_state(iss="Issuer")
+        _state_key = self.entity.client_get("service_context").cstate.create_state(iss="Issuer")
         request_args, _ = add_code_challenge({"state": _state_key}, auth_serv)
 
         # default values are length:64 method:S256
@@ -86,7 +86,7 @@ class TestPKCE256:
 
     def test_authorization_and_pkce(self):
         auth_serv = self.entity.client_get("service", "authorization")
-        _state = self.entity.client_get("service_context").state.create_state(iss="Issuer")
+        _state = self.entity.client_get("service_context").cstate.create_state(iss="Issuer")
 
         request = auth_serv.construct_request({"state": _state, "response_type": "code"})
         assert set(request.keys()) == {
@@ -103,9 +103,7 @@ class TestPKCE256:
         request = authz_service.construct_request({"state": "state", "response_type": "code"})
         _state = request["state"]
         auth_response = AuthorizationResponse(code="access code")
-        self.entity.client_get("service_context").state.store_item(
-            auth_response, "auth_response", _state
-        )
+        self.entity.client_get("service_context").cstate.update(_state, auth_response)
 
         token_service = self.entity.client_get("service", "accesstoken")
         request = token_service.construct_request(state=_state)
