@@ -1,6 +1,6 @@
 from typing import Optional
 
-from idpyoidc.client import work_environment
+from idpyoidc import work_environment
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
