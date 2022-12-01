@@ -247,8 +247,12 @@ class EndpointContext(OidcContext):
         self.dev_auth_db = None
         self.claims_interface = init_service(conf["claims_interface"], self.server_get)
 
-        self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),
-                                                      keyjar=keyjar)
+        if isinstance(conf, OPConfiguration):
+            self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),
+                                                          keyjar=keyjar)
+        else: # OidcConfig
+            self.keyjar = self.work_environment.load_conf(conf, supports=self.supports(),
+                                                          keyjar=keyjar)
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(
@@ -391,13 +395,25 @@ class EndpointContext(OidcContext):
     def set_provider_info(self):
         prefers = self.work_environment.prefer
         supported = self.supports()
-        _info = {}
+        _info = {'issuer': self.issuer}
         for key, spec in ProviderConfigurationResponse.c_param.items():
             _val = prefers.get(key, None)
-            if _val is None:
+            if not _val and _val != False:
                 _val = supported.get(key, None)
-                if _val is None:
+                if not _val and _val != False:
                     continue
             _info[key] = _val
 
         self.provider_info = _info
+
+    def get_preference(self, claim, default=None):
+        return self.work_environment.get_preference(claim, default=default)
+
+    def set_preference(self, key, value):
+        self.work_environment.set_preference(key, value)
+
+    def get_usage(self, claim, default: Optional[str] = None):
+        return self.work_environment.get_usage(claim, default)
+
+    def set_usage(self, claim, value):
+        return self.work_environment.set_usage(claim, value)

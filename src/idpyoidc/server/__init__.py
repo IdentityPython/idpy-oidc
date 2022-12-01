@@ -57,6 +57,7 @@ class Server(ImpExp):
             cookie_handler=cookie_handler,
             httpc=httpc,
         )
+        self.endpoint_context.set_provider_info()
         self.endpoint_context.authz = self.setup_authz()
         # _cap = get_provider_capabilities(conf, self.endpoint)
         # self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)

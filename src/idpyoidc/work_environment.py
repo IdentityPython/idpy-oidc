@@ -13,6 +13,7 @@ from cryptojwt.utils import importer
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
+from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
 
@@ -133,32 +134,33 @@ class WorkEnvironment(ImpExp):
         else:
             return keyjar, _uri_path
 
+    def get_base_url(self, configuration: dict):
+        raise NotImplemented()
+
+    def get_id(self, configuration: dict):
+        raise NotImplemented()
+
+    def add_extra_keys(self, keyjar, id):
+        return None
+
+    def get_jwks(self, keyjar):
+        return None
+
     def handle_keys(self, configuration: dict, keyjar: Optional[KeyJar] = None):
         _jwks = _jwks_uri = None
-        _id = self.get_preference('client_id')
+        _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
 
-        _secret = self.get_preference('client_secret')
-        if _secret:
-            keyjar.add_symmetric(issuer_id=_id, key=_secret)
-            keyjar.add_symmetric(issuer_id='', key=_secret)
+        self.add_extra_keys(keyjar, _id)
 
         # now that keys are in the Key Jar, now for how to publish it
         if 'jwks_uri' in configuration:  # simple
             _jwks_uri = configuration.get('jwks_uri')
         elif uri_path:
-            _jwks_uri = f"{configuration.get('base_url')}{uri_path}"
+            _base_url = self.get_base_url(configuration)
+            _jwks_uri = add_path(_base_url, uri_path)
         else:  # jwks or nothing
-            #  if only the client secret, no need to publish as a JWKS
-            try:
-                _own_keys = keyjar.get_issuer_keys('')
-            except IssuerNotFound:
-                pass
-            else:
-                if len(_own_keys) == 1 and isinstance(_own_keys[0], SYMKey):
-                    pass
-                else:
-                    _jwks = keyjar.export_jwks()
+            _jwks = self.get_jwks(keyjar)
 
         return {'keyjar': keyjar, 'jwks': _jwks, 'jwks_uri': _jwks_uri}
 

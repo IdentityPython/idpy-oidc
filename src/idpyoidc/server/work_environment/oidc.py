@@ -1,7 +1,7 @@
-import os
 from typing import Optional
 
-from idpyoidc import work_environment
+from idpyoidc import work_environment as WE
+from idpyoidc.server import work_environment
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
@@ -17,9 +17,9 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         "display_values_supported": None,
         "encrypt_id_token_supported": None,
         "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
-        "id_token_signing_alg_values_supported": work_environment.get_signing_algs,
-        "id_token_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "id_token_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "id_token_signing_alg_values_supported": WE.get_signing_algs,
+        "id_token_encryption_alg_values_supported": WE.get_encryption_algs,
+        "id_token_encryption_enc_values_supported": WE.get_encryption_encs,
         "initiate_login_uri": None,
         "jwks": None,
         "jwks_uri": None,
@@ -28,7 +28,8 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         "scopes_supported": ["openid"],
         "service_documentation": None,
         "op_tos_uri": None,
-        "ui_locales_supported": None
+        "ui_locales_supported": None,
+        # "version": '3.0'
         #  "verify_args": None,
     }
 
@@ -56,12 +57,3 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         if not self.get_preference('encrypt_id_token_supported'):
             self.set_preference('id_token_encryption_alg_values_supported', [])
             self.set_preference('id_token_encryption_enc_values_supported', [])
-
-    def locals(self, info):
-        requests_dir = info.get("requests_dir")
-        if requests_dir:
-            # make sure the path exists. If not, then create it.
-            if not os.path.isdir(requests_dir):
-                os.makedirs(requests_dir)
-
-            self.set("requests_dir", requests_dir)

@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 from cryptojwt.utils import as_bytes
 
 # from idpyoidc.defaults import PREFERENCE2SUPPORTED
+from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
+
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import ClientRegistrationErrorResponse
@@ -136,20 +138,22 @@ class Registration(Endpoint):
         _seed = kwargs.get("seed") or rndstr(32)
         self.seed = as_bytes(_seed)
 
-    def match_client_request(self, request):
-        _context = self.server_get("endpoint_context")
-        # for _pref, _prov in PREFERENCE2SUPPORTED.items():
-        #     if _pref in request:
-        #         if _pref in ["response_types", "default_acr_values"]:
-        #             if not match_sp_sep(request[_pref], _context.provider_info[_prov]):
-        #                 raise CapabilitiesMisMatch(_pref)
-        #         else:
-        #             if isinstance(request[_pref], str):
-        #                 if request[_pref] not in _context.provider_info[_prov]:
-        #                     raise CapabilitiesMisMatch(_pref)
-        #             else:
-        #                 if not set(request[_pref]).issubset(set(_context.provider_info[_prov])):
-        #                     raise CapabilitiesMisMatch(_pref)
+    def match_client_request(self, request: dict) -> list:
+        err = []
+        _provider_info = self.server_get("endpoint_context").provider_info
+        for key, val in request.items():
+            if key not in REGISTER2PREFERRED:
+                continue
+            _pi_key = REGISTER2PREFERRED.get(key, key)
+            if isinstance(val, str):
+                if val not in _provider_info[_pi_key]:
+                    logger.error(f"CapabilitiesMisMatch: {key}")
+                    err.append(key)
+            else:
+                if not set(val).issubset(set(_provider_info[_pi_key])):
+                    logger.error(f"CapabilitiesMisMatch: {key}")
+                    err.append(key)
+        return err
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
@@ -377,12 +381,11 @@ class Registration(Endpoint):
             return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
-        try:
-            self.match_client_request(request)
-        except CapabilitiesMisMatch as err:
+        faulty_claims = self.match_client_request(request)
+        if faulty_claims:
             return ResponseMessage(
                 error="invalid_request",
-                error_description="Don't support proposed %s" % err,
+                error_description=f"Don't support proposed {faulty_claims}"
             )
 
         _context = self.server_get("endpoint_context")
