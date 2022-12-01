@@ -1,8 +1,14 @@
-from idpyoidc.message.oidc import ProviderConfigurationResponse
-from idpyoidc.server.client_authn import CLIENT_AUTHN_METHOD
+from idpyoidc import work_environment
 
 
-def get_client_authn_methods():
-    return list(CLIENT_AUTHN_METHOD.keys())
+class WorkEnvironment(work_environment.WorkEnvironment):
 
+    def get_base_url(self, configuration: dict):
+        _base = configuration.get('base_url')
+        if not _base:
+            _base = configuration.get('issuer')
 
+        return _base
+
+    def get_id(self, configuration: dict):
+        return configuration.get('issuer')

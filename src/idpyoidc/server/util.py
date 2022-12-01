@@ -51,12 +51,6 @@ def build_endpoints(conf, server_get, issuer):
         _instance.endpoint_path = _path
         _instance.full_path = "{}/{}".format(_url, _path)
 
-        # if _instance.endpoint_name:
-        #     try:
-        #         _instance.endpoint_info[_instance.endpoint_name] = _instance.full_path
-        #     except TypeError:
-        #         _instance.endpoint_info = {_instance.endpoint_name: _instance.full_path}
-
         endpoint[_instance.name] = _instance
 
     return endpoint
@@ -135,9 +129,9 @@ def allow_refresh_token(endpoint_context):
 
     # Is refresh_token grant type supported
     _token_supported = False
-    _cap = endpoint_context.conf.get("capabilities")
-    if _cap:
-        if "refresh_token" in _cap["grant_types_supported"]:
+    _supported = endpoint_context.get_preference("grant_types_supported")
+    if _supported:
+        if "refresh_token" in _supported:
             # self.allow_refresh = kwargs.get("allow_refresh", True)
             _token_supported = True
 

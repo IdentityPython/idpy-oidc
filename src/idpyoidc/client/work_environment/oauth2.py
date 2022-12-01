@@ -23,7 +23,6 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         "software_version": None
     }
 
-
     callback_path = {}
 
     callback_uris = ["redirect_uris"]

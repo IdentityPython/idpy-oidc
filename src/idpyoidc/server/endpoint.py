@@ -135,12 +135,6 @@ class Endpoint(object):
             self.client_authn_method = ["none"]  # Ignore default value
         return kwargs
 
-    def get_provider_info_attributes(self):
-        _pia = construct_provider_info(self.provider_info_attributes, **self.kwargs)
-        if self.endpoint_name:
-            _pia[self.endpoint_name] = self.full_path
-        return _pia
-
     def process_verify_error(self, exception):
         _error = "invalid_request"
         return self.error_cls(error=_error, error_description="%s" % exception)

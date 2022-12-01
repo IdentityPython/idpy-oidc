@@ -1,5 +1,7 @@
 import logging
 
+from idpyoidc import work_environment
+
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import TokenErrorResponse
@@ -31,7 +33,7 @@ class Token(token.Token):
             "client_secret_jwt",
             "private_key_jwt",
         ],
-        "token_endpoint_auth_signing_alg_values_supported": None,
+        "token_endpoint_auth_signing_alg_values_supported": work_environment.get_signing_algs,
     }
 
     # auth_method_attribute = "token_endpoint_auth_methods_supported"
