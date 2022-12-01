@@ -36,7 +36,8 @@ class BackChannelAuthentication(Endpoint):
     response_placement = "url"
     endpoint_name = "backchannel_authentication_endpoint"
     name = "backchannel_authentication"
-    provider_info_attributes = {
+
+    _supports = {
         "backchannel_token_delivery_modes_supported": ["poll", "ping", "push"],
         "backchannel_authentication_request_signing_alg_values_supported": None,
         "backchannel_user_code_parameter_supported": True,

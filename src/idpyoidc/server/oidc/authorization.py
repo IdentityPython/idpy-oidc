@@ -2,6 +2,7 @@ import logging
 from typing import Callable
 from urllib.parse import urlsplit
 
+from idpyoidc import work_environment
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import verified_claim_name
@@ -74,32 +75,19 @@ class Authorization(authorization.Authorization):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
-    provider_info_attributes = {
+    _supports = {
         "claims_parameter_supported": True,
-        "client_authn_method": ["request_param", "public"],
+        "encrypt_request_object_supported": None,
+        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
+        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
-        "response_types_supported": [
-            "code",
-            "token",
-            "id_token",
-            "code token",
-            "code id_token",
-            "id_token token",
-            "code id_token token",
-        ],
-        "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": None,
-        "request_object_encryption_alg_values_supported": None,
-        "request_object_encryption_enc_values_supported": None,
-        "grant_types_supported": ["authorization_code", "implicit"],
-        "claim_types_supported": ["normal", "aggregated", "distributed"],
-    }
-    metadata_claims = {
-
-    }
-    default_capabilities = {
-        "client_authn_method": ["request_param", "public"],
+        "require_request_uri_registration": False,
+        "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
+                                     'code id_token', 'code idtoken token'],
+        "response_modes_supported": ['query', 'fragment', 'form_post'],
+        "subject_types_supported": ["public", "pairwise", "ephemeral"],
     }
 
     def __init__(self, server_get: Callable, **kwargs):

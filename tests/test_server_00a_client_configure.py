@@ -9,7 +9,7 @@ from tests import full_path
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
-extra = {
+EXTRA = {
     "token_usage_rules": {
         "authorization_code": {
             "expires_in": 600,
@@ -106,7 +106,7 @@ def test_verify_oidc_client_information_complext():
         }
     }
 
-    client_conf["client1"].update(extra)
+    client_conf["client1"].update(EXTRA)
 
     res = verify_oidc_client_information(client_conf, server_get=server.server_get)
     assert res

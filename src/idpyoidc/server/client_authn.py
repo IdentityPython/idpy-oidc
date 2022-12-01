@@ -5,6 +5,12 @@ from typing import Dict
 from typing import Optional
 from typing import Union
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from idpyoidc.server.endpoint_context import EndpointContext
+
+
 from cryptojwt.exception import BadSignature
 from cryptojwt.exception import Invalid
 from cryptojwt.exception import MissingKey
@@ -17,7 +23,6 @@ from idpyoidc.message import Message
 from idpyoidc.message.oidc import JsonWebToken
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.server.constant import JWT_BEARER
-from idpyoidc.server.endpoint_context import EndpointContext
 from idpyoidc.server.exception import BearerTokenAuthenticationError
 from idpyoidc.server.exception import ClientAuthenticationError
 from idpyoidc.server.exception import InvalidClient
@@ -44,7 +49,7 @@ class ClientAuthnMethod(object):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -122,7 +127,7 @@ class NoneAuthn(ClientAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -144,7 +149,7 @@ class PublicAuthn(ClientAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -169,7 +174,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -202,7 +207,7 @@ class ClientSecretPost(ClientSecretBasic):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -226,7 +231,7 @@ class BearerHeader(ClientSecretBasic):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -257,7 +262,7 @@ class BearerBody(ClientSecretPost):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -284,7 +289,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -353,7 +358,7 @@ class ClientSecretJWT(JWSAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -375,7 +380,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -402,7 +407,7 @@ class RequestParam(ClientAuthnMethod):
 
     def _verify(
         self,
-        endpoint_context: EndpointContext,
+        endpoint_context: "EndpointContext",
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
@@ -453,7 +458,7 @@ def valid_client_info(cinfo):
 
 
 def verify_client(
-    endpoint_context: EndpointContext,
+    endpoint_context: "EndpointContext",
     request: Union[dict, Message],
     http_info: Optional[dict] = None,
     get_client_id_from_token: Optional[Callable] = None,

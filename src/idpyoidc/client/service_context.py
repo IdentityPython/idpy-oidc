@@ -19,11 +19,11 @@ from idpyoidc.client.configure import Configuration
 from idpyoidc.client.work_environment.oauth2 import WorkEnvironment as OAUTH2_Specs
 from idpyoidc.client.work_environment.oidc import WorkEnvironment as OIDC_Specs
 from idpyoidc.util import rndstr
+from idpyoidc.work_environment import WorkEnvironment
+from idpyoidc.work_environment import work_environment_dump
+from idpyoidc.work_environment import work_environment_load
 from .configure import get_configuration
 from .current import Current
-from .work_environment import WorkEnvironment
-from .work_environment import work_environment_dump
-from .work_environment import work_environment_load
 from .work_environment.transform import preferred_to_registered
 from .work_environment.transform import supported_to_preferred
 from ..impexp import ImpExp
@@ -167,7 +167,7 @@ class ServiceContext(ImpExp):
             setattr(self, key, val)
 
         self.keyjar = self.work_environment.load_conf(config.conf, supports=self.supports(),
-                                                    keyjar=keyjar)
+                                                      keyjar=keyjar)
 
         _response_types = self.get_preference(
             'response_types_supported',
@@ -343,9 +343,9 @@ class ServiceContext(ImpExp):
 
     def map_supported_to_preferred(self, info: Optional[dict] = None):
         self.work_environment.prefer = supported_to_preferred(self.supports(),
-                                                            self.work_environment.prefer,
-                                                            base_url=self.base_url,
-                                                            info=info)
+                                                              self.work_environment.prefer,
+                                                              base_url=self.base_url,
+                                                              info=info)
         return self.work_environment.prefer
 
     def map_preferred_to_registered(self, registration_response: Optional[dict] = None):

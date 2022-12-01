@@ -8,14 +8,13 @@ import pytest
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.oidc import OIC_ISSUER
 from idpyoidc.client.oidc.webfinger import WebFinger
-from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 
 __author__ = "Roland Hedberg"
 
-ENTITY = Entity(config={"base_url":"https://example.com"})
+ENTITY = Entity(config={"base_url": "https://example.com"})
 
 
 def test_query():
