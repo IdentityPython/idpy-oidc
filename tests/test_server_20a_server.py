@@ -127,19 +127,20 @@ def test_capabilities_default():
         "code id_token token",
     }
     assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is True
-    assert server.endpoint_context.jwks_uri == "https://127.0.0.1:443/static/jwks.json"
+    assert server.endpoint_context.get_preference('jwks_uri') == \
+           "https://127.0.0.1:443/static/jwks.json"
 
 
 def test_capabilities_subset1():
     _cnf = deepcopy(CONF)
-    _cnf["capabilities"] = {"response_types_supported": ["code"]}
+    _cnf["response_types_supported"] = ["code"]
     server = Server(_cnf)
     assert server.endpoint_context.provider_info["response_types_supported"] == ["code"]
 
 
 def test_capabilities_subset2():
     _cnf = deepcopy(CONF)
-    _cnf["capabilities"] = {"response_types_supported": ["code", "id_token"]}
+    _cnf["response_types_supported"] = ["code", "id_token"]
     server = Server(_cnf)
     assert set(server.endpoint_context.provider_info["response_types_supported"]) == {
         "code",
@@ -149,7 +150,7 @@ def test_capabilities_subset2():
 
 def test_capabilities_bool():
     _cnf = deepcopy(CONF)
-    _cnf["capabilities"] = {"request_uri_parameter_supported": False}
+    _cnf["request_uri_parameter_supported"] = False
     server = Server(_cnf)
     assert server.endpoint_context.provider_info["request_uri_parameter_supported"] is False
 

@@ -51,7 +51,7 @@ CAPABILITIES = {
 }
 
 
-class TestEndpoint(object):
+class TestProviderConfigEndpoint(object):
     @pytest.fixture
     def conf(self):
         return {
@@ -91,33 +91,12 @@ class TestEndpoint(object):
         assert _msg
         assert _msg["token_endpoint"] == "https://example.com/token"
         assert _msg["jwks_uri"] == "https://example.com/static/jwks.json"
-        assert set(_msg["claims_supported"]) == {
-            "gender",
-            "zoneinfo",
-            "website",
-            "phone_number_verified",
-            "middle_name",
-            "family_name",
-            "nickname",
-            "email",
-            "preferred_username",
-            "profile",
-            "name",
-            "phone_number",
-            "given_name",
-            "email_verified",
-            "sub",
-            "locale",
-            "picture",
-            "address",
-            "updated_at",
-            "birthdate",
-        }
+        assert "claims_supported" not in _msg  # No default for this
         assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
 
     def test_scopes_supported(self, conf):
         scopes_supported = ["openid", "random", "profile"]
-        conf["capabilities"]["scopes_supported"] = scopes_supported
+        conf["scopes_supported"] = scopes_supported
 
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         endpoint = server.server_get("endpoint", "provider_config")
@@ -126,20 +105,3 @@ class TestEndpoint(object):
         assert isinstance(msg, dict)
         _msg = json.loads(msg["response"])
         assert set(_msg["scopes_supported"]) == set(scopes_supported)
-        assert set(_msg["claims_supported"]) == {
-            "zoneinfo",
-            "gender",
-            "sub",
-            "middle_name",
-            "given_name",
-            "nickname",
-            "preferred_username",
-            "name",
-            "updated_at",
-            "birthdate",
-            "locale",
-            "profile",
-            "family_name",
-            "picture",
-            "website",
-        }
