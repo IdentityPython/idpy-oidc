@@ -6,7 +6,7 @@ from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
 from idpyoidc.client.work_environment import get_client_authn_methods
-from idpyoidc.client.work_environment import get_signing_algs
+from idpyoidc.work_environment import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name

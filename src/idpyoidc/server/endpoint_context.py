@@ -11,12 +11,15 @@ from jinja2 import FileSystemLoader
 
 import requests
 from idpyoidc.context import OidcContext
+from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
 from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.util import get_http_params
+from idpyoidc.server.work_environment.oauth2 import WorkEnvironment as OAUTH2_Env
+from idpyoidc.server.work_environment.oidc import WorkEnvironment as OIDC_Env
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 
@@ -119,10 +122,18 @@ class EndpointContext(OidcContext):
         cwd: Optional[str] = "",
         cookie_handler: Optional[Any] = None,
         httpc: Optional[Any] = None,
+        server_type: Optional[str] = ''
     ):
-        OidcContext.__init__(self, conf, keyjar, entity_id=conf.get("issuer", ""))
+        OidcContext.__init__(self, conf, entity_id=conf.get("issuer", ""))
         self.conf = conf
         self.server_get = server_get
+
+        if not server_type or server_type == "oidc":
+            self.work_environment = OIDC_Env()
+        elif server_type == "oauth2":
+            self.work_environment = OAUTH2_Env()
+        else:
+            raise ValueError(f"Unknown server type: {server_type}")
 
         _client_db = conf.get("client_db")
         if _client_db:
@@ -151,7 +162,7 @@ class EndpointContext(OidcContext):
         self.httpc = httpc or requests
         self.idtoken = None
         self.issuer = ""
-        self.jwks_uri = None
+        # self.jwks_uri = None
         self.login_hint_lookup = None
         self.login_hint2acrs = None
         self.par_db = {}
@@ -198,15 +209,15 @@ class EndpointContext(OidcContext):
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
-        # self.setup = {}
-        _keys_conf = conf.get("key_conf")
-        if _keys_conf:
-            jwks_uri_path = _keys_conf["uri_path"]
-
-            if self.issuer.endswith("/"):
-                self.jwks_uri = "{}{}".format(self.issuer, jwks_uri_path)
-            else:
-                self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
+        # # self.setup = {}
+        # _keys_conf = conf.get("key_conf")
+        # if _keys_conf:
+        #     jwks_uri_path = _keys_conf["uri_path"]
+        #
+        #     if self.issuer.endswith("/"):
+        #         self.jwks_uri = "{}{}".format(self.issuer, jwks_uri_path)
+        #     else:
+        #         self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
 
         for item in [
             "cookie_handler",
@@ -235,6 +246,9 @@ class EndpointContext(OidcContext):
         self.set_scopes_handler()
         self.dev_auth_db = None
         self.claims_interface = init_service(conf["claims_interface"], self.server_get)
+
+        self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),
+                                                      keyjar=keyjar)
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(
@@ -365,3 +379,25 @@ class EndpointContext(OidcContext):
 
             self.login_hint_lookup = init_service(_conf)
             self.login_hint_lookup.userinfo = _userinfo
+
+    def supports(self):
+        res = {}
+        if self.server_get:
+            for endpoint in self.server_get('endpoints').values():
+                res.update(endpoint.supports())
+        res.update(self.work_environment.supports())
+        return res
+
+    def set_provider_info(self):
+        prefers = self.work_environment.prefer
+        supported = self.supports()
+        _info = {}
+        for key, spec in ProviderConfigurationResponse.c_param.items():
+            _val = prefers.get(key, None)
+            if _val is None:
+                _val = supported.get(key, None)
+                if _val is None:
+                    continue
+            _info[key] = _val
+
+        self.provider_info = _info

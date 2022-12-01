@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from idpyoidc.client import work_environment
+from idpyoidc import work_environment
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG

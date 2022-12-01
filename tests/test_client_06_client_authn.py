@@ -21,7 +21,7 @@ from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.work_environment import WorkEnvironment
+from idpyoidc.work_environment import WorkEnvironment
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest

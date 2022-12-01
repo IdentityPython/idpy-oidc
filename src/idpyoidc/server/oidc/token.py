@@ -23,7 +23,8 @@ class Token(token.Token):
     endpoint_name = "token_endpoint"
     name = "token"
     default_capabilities = None
-    provider_info_attributes = {
+
+    _supports = {
         "token_endpoint_auth_methods_supported": [
             "client_secret_post",
             "client_secret_basic",
@@ -32,7 +33,9 @@ class Token(token.Token):
         ],
         "token_endpoint_auth_signing_alg_values_supported": None,
     }
-    auth_method_attribute = "token_endpoint_auth_methods_supported"
+
+    # auth_method_attribute = "token_endpoint_auth_methods_supported"
+
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,

@@ -6,37 +6,30 @@ from idpyoidc import work_environment
 
 class WorkEnvironment(work_environment.WorkEnvironment):
     parameter = work_environment.WorkEnvironment.parameter.copy()
-    parameter.update({
-        "requests_dir": None
-    })
 
     _supports = {
+        "acr_values_supported": None,
+        "claim_types_supported": None,
+        "claims_locales_supported": None,
+        "claims_supported": None,
+        "contacts": None,
+        "default_max_age": 86400,
+        "display_values_supported": None,
+        "encrypt_id_token_supported": None,
         "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
         "id_token_signing_alg_values_supported": work_environment.get_signing_algs,
         "id_token_encryption_alg_values_supported": work_environment.get_encryption_algs,
         "id_token_encryption_enc_values_supported": work_environment.get_encryption_encs,
-        "acr_values_supported": None,
-        "subject_types_supported": ["public", "pairwise", "ephemeral"],
-        "application_type": "web",
-        "contacts": None,
-        "client_name": None,
-        "logo_uri": None,
-        "client_uri": None,
-        "policy_uri": None,
-        "tos_uri": None,
+        "initiate_login_uri": None,
         "jwks": None,
         "jwks_uri": None,
-        "sector_identifier_uri": None,
-        "default_max_age": 86400,
+        "op_policy_uri": None,
         "require_auth_time": None,
-        "initiate_login_uri": None,
-        "client_id": None,
-        "client_secret": None,
         "scopes_supported": ["openid"],
+        "service_documentation": None,
+        "op_tos_uri": None,
+        "ui_locales_supported": None
         #  "verify_args": None,
-        "requests_dir": None,
-        "encrypt_id_token_supported": None,
-        "callback_uris": None
     }
 
     def __init__(self,

@@ -89,8 +89,9 @@ class Endpoint(object):
     response_placement = "body"
     client_authn_method = ""
     default_capabilities = None
-    provider_info_attributes = None
     auth_method_attribute = ""
+
+    _supports = {}
 
     def __init__(self, server_get: Callable, **kwargs):
         self.server_get = server_get
@@ -447,3 +448,12 @@ class Endpoint(object):
             else:
                 res.append(self.server_get("endpoint", t).full_path)
         return set(res)
+
+    def supports(self):
+        res = {}
+        for key, val in self._supports.items():
+            if isinstance(val, Callable):
+                res[key] = val()
+            else:
+                res[key] = val
+        return res
