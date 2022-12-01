@@ -45,6 +45,10 @@ class Server(ImpExp):
     ):
         ImpExp.__init__(self)
         self.conf = conf
+
+        self.endpoint = do_endpoints(conf, self.server_get)
+
+        # endpoint context MUST be done after do_endpoints !!
         self.endpoint_context = EndpointContext(
             conf=conf,
             server_get=self.server_get,
@@ -54,13 +58,11 @@ class Server(ImpExp):
             httpc=httpc,
         )
         self.endpoint_context.authz = self.setup_authz()
+        # _cap = get_provider_capabilities(conf, self.endpoint)
+        # self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
 
         self.setup_authentication(self.endpoint_context)
 
-        self.endpoint = do_endpoints(conf, self.server_get)
-        _cap = get_provider_capabilities(conf, self.endpoint)
-
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(

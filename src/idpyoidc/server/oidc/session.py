@@ -80,7 +80,8 @@ class Session(Endpoint):
     response_placement = "url"
     endpoint_name = "end_session_endpoint"
     name = "session"
-    provider_info_attributes = {
+
+    _supports = {
         "frontchannel_logout_supported": True,
         "frontchannel_logout_session_required": True,
         "backchannel_logout_supported": True,

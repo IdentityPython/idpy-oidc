@@ -175,7 +175,6 @@ class TestWorkEnvironment:
                                                     'request_object_signing_alg',
                                                     'response_types',
                                                     'subject_type',
-                                                    'token_endpoint_auth_method',
                                                     'token_endpoint_auth_signing_alg',
                                                     'userinfo_signed_response_alg'}
 
@@ -214,7 +213,6 @@ class TestWorkEnvironment:
                                       'id_token_signed_response_alg',
                                       'jwks',
                                       'jwks_uri',
-                                      'keyjar',
                                       'logo_uri',
                                       'redirect_uris',
                                       'request_object_signing_alg',

@@ -41,6 +41,7 @@ class TestTransform:
         self.supported = supported
 
     def test_supported(self):
+        assert 'token_endpoint_auth_methods_supported' not in self.supported
         # These are all the available configuration parameters
         assert set(self.supported.keys()) == {
             'acr_values_supported',
@@ -86,7 +87,8 @@ class TestTransform:
             'scopes_supported',
             'sector_identifier_uri',
             'subject_types_supported',
-            'token_endpoint_auth_methods_supported',
+            'token_endpoint_auth_method',
+            # 'token_endpoint_auth_methods_supported',
             'token_endpoint_auth_signing_alg_values_supported',
             'tos_uri',
             'userinfo_encryption_alg_values_supported',
@@ -96,58 +98,56 @@ class TestTransform:
     def test_oidc_setup(self):
         # This is OP specified stuff
         assert set(ProviderConfigurationResponse.c_param.keys()).difference(
-            set(self.supported)) == {
-                   'authorization_endpoint',
-                   'check_session_iframe',
-                   'claim_types_supported',
-                   'claims_locales_supported',
-                   'claims_parameter_supported',
-                   'claims_supported',
-                   'display_values_supported',
-                   'end_session_endpoint',
-                   'error',
-                   'error_description',
-                   'error_uri',
-                   'issuer',
-                   'op_policy_uri',
-                   'op_tos_uri',
-                   'registration_endpoint',
-                   # 'request_parameter_supported',
-                   # 'request_uri_parameter_supported',
-                   'require_request_uri_registration',
-                   'service_documentation',
-                   'token_endpoint',
-                   'ui_locales_supported',
-                   'userinfo_endpoint'}
+            set(self.supported)) == {'authorization_endpoint',
+                                     'check_session_iframe',
+                                     'claim_types_supported',
+                                     'claims_locales_supported',
+                                     'claims_parameter_supported',
+                                     'claims_supported',
+                                     'display_values_supported',
+                                     'end_session_endpoint',
+                                     'error',
+                                     'error_description',
+                                     'error_uri',
+                                     'issuer',
+                                     'op_policy_uri',
+                                     'op_tos_uri',
+                                     'registration_endpoint',
+                                     'require_request_uri_registration',
+                                     'service_documentation',
+                                     'token_endpoint',
+                                     'token_endpoint_auth_methods_supported',
+                                     'ui_locales_supported',
+                                     'userinfo_endpoint'}
 
         # parameters that are not mapped against what the OP's provider info says
         assert set(self.supported).difference(
-            set(ProviderConfigurationResponse.c_param.keys())) == {
-                   'application_type',
-                   'backchannel_logout_uri',
-                   'callback_uris',
-                   'client_id',
-                   'client_name',
-                   'client_secret',
-                   'client_uri',
-                   'contacts',
-                   'default_max_age',
-                   'encrypt_id_token_supported',
-                   'encrypt_request_object_supported',
-                   'encrypt_userinfo_supported',
-                   'frontchannel_logout_uri',
-                   'initiate_login_uri',
-                   'jwks',
-                   'logo_uri',
-                   'policy_uri',
-                   'post_logout_redirect_uris',
-                   'redirect_uris',
-                   'request_parameter',
-                   'request_uris',
-                   'requests_dir',
-                   'require_auth_time',
-                   'sector_identifier_uri',
-                   'tos_uri'}
+            set(ProviderConfigurationResponse.c_param.keys())) == {'application_type',
+                                                                   'backchannel_logout_uri',
+                                                                   'callback_uris',
+                                                                   'client_id',
+                                                                   'client_name',
+                                                                   'client_secret',
+                                                                   'client_uri',
+                                                                   'contacts',
+                                                                   'default_max_age',
+                                                                   'encrypt_id_token_supported',
+                                                                   'encrypt_request_object_supported',
+                                                                   'encrypt_userinfo_supported',
+                                                                   'frontchannel_logout_uri',
+                                                                   'initiate_login_uri',
+                                                                   'jwks',
+                                                                   'logo_uri',
+                                                                   'policy_uri',
+                                                                   'post_logout_redirect_uris',
+                                                                   'redirect_uris',
+                                                                   'request_parameter',
+                                                                   'request_uris',
+                                                                   'requests_dir',
+                                                                   'require_auth_time',
+                                                                   'sector_identifier_uri',
+                                                                   'token_endpoint_auth_method',
+                                                                   'tos_uri'}
 
         preference = {}
         pref = supported_to_preferred(supported=self.supported, preference=preference,
@@ -168,7 +168,7 @@ class TestTransform:
                                     'response_types_supported',
                                     'scopes_supported',
                                     'subject_types_supported',
-                                    'token_endpoint_auth_methods_supported',
+                                    'token_endpoint_auth_method',
                                     'token_endpoint_auth_signing_alg_values_supported',
                                     'userinfo_encryption_alg_values_supported',
                                     'userinfo_encryption_enc_values_supported',
@@ -182,7 +182,7 @@ class TestTransform:
                 reg_claim.append(key)
 
         assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
-            'post_logout_redirect_uri'}
+            'post_logout_redirect_uri', 'token_endpoint_auth_method'}
 
         # Which ones are list -> singletons
 
@@ -242,7 +242,7 @@ class TestTransform:
                                     'response_types_supported',
                                     'scopes_supported',
                                     'subject_types_supported',
-                                    'token_endpoint_auth_methods_supported',
+                                    'token_endpoint_auth_method',
                                     'token_endpoint_auth_signing_alg_values_supported',
                                     'userinfo_encryption_alg_values_supported',
                                     'userinfo_encryption_enc_values_supported',
@@ -340,7 +340,6 @@ class TestTransform2:
                                                     'request_object_signing_alg',
                                                     'response_types',
                                                     'subject_type',
-                                                    'token_endpoint_auth_method',
                                                     'token_endpoint_auth_signing_alg',
                                                     'userinfo_signed_response_alg'}
 
