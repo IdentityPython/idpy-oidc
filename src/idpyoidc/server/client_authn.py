@@ -490,7 +490,7 @@ def verify_client(
     client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:
-        allowed_methods = list(methods.keys())
+        allowed_methods = list(methods.keys())  # If not specific for this endpoint then all
 
     _method = None
     for _method in (methods[meth] for meth in allowed_methods):

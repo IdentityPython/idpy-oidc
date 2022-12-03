@@ -4,14 +4,14 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-import pytest
-import responses
-import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
+import pytest
+import responses
+import yaml
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -863,7 +863,15 @@ class TestEndpoint(object):
                 "scope": AUTH_REQ.get("scope"),
             }
         )
-        assert "__verified_request" in _req
+        assert set(_req.keys()) == {'__verified_request',
+                                    'aud',
+                                    'client_id',
+                                    'iat',
+                                    'iss',
+                                    'redirect_uri',
+                                    'response_type',
+                                    'scope',
+                                    'state'}
 
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
@@ -1464,7 +1472,8 @@ class TestUserAuthn(object):
         )
 
         kakor = [{
-            'value': '{"sub": "adam", "sid": "Z0FBQUFBQmlhVl", "state": "state_identifier", "client_id": "client 12345"}',
+            'value': '{"sub": "adam", "sid": "Z0FBQUFBQmlhVl", "state": "state_identifier", '
+                     '"client_id": "client 12345"}',
             'type': '',
             'timestamp': '1651070251'}]
 

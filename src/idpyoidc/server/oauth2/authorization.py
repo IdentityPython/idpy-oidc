@@ -14,6 +14,7 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
+from idpyoidc import work_environment
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -41,6 +42,7 @@ from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
 from idpyoidc.util import split_uri
 from idpyoidc.util import importer
+
 
 logger = logging.getLogger(__name__)
 
@@ -335,15 +337,16 @@ class Authorization(Endpoint):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
-    metadata_claims = {
+
+    _supports = {
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
         "response_types_supported": ["code", "token", "code token"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": None,
-        "request_object_encryption_alg_values_supported": None,
-        "request_object_encryption_enc_values_supported": None,
+        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
+        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
         "grant_types_supported": ["authorization_code", "implicit"],
         "scopes_supported": [],
     }

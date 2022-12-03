@@ -178,7 +178,7 @@ class Endpoint(object):
                         verify=_context.httpc_params["verify"],
                         **kwargs
                     )
-                elif self.request_format == "url":
+                elif self.request_format == "url":  # A whole URL not just the query part
                     parts = urlparse(request)
                     scheme, netloc, path, params, query, fragment = parts[:6]
                     req = _cls_inst.deserialize(query, "urlencoded")

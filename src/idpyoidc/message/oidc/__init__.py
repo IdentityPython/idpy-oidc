@@ -451,8 +451,6 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
         match."""
         super(AuthorizationRequest, self).verify(**kwargs)
 
-        clear_verified_claims(self)
-
         args = {}
         for arg in ["keyjar", "opponent_id", "sender", "alg", "encalg", "encenc"]:
             try:
