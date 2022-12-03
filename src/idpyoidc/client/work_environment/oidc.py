@@ -2,9 +2,9 @@ import os
 from typing import Optional
 
 from idpyoidc import work_environment
+from idpyoidc.client import work_environment as client_work_environment
 
-
-class WorkEnvironment(work_environment.WorkEnvironment):
+class WorkEnvironment(client_work_environment.WorkEnvironment):
     parameter = work_environment.WorkEnvironment.parameter.copy()
     parameter.update({
         "requests_dir": None

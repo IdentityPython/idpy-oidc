@@ -42,13 +42,6 @@ RESPONSE_TYPES_SUPPORTED = [
 ]
 
 CAPABILITIES = {
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ],
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -85,7 +78,40 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "capabilities": CAPABILITIES,
+            "subject_types_supported": ["public", "pairwise", "ephemeral"],
+            'claims_supported': [
+                "address",
+                "birthdate",
+                "email",
+                "email_verified",
+                "eduperson_scoped_affiliation",
+                "family_name",
+                "gender",
+                "given_name",
+                "locale",
+                "middle_name",
+                "name",
+                "nickname",
+                "phone_number",
+                "phone_number_verified",
+                "picture",
+                "preferred_username",
+                "profile",
+                "sub",
+                "updated_at",
+                "website",
+                "zoneinfo"],
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+            ],
+            "claim_types_supported": [
+                "normal",
+                "aggregated",
+                "distributed",
+            ],
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {
@@ -130,11 +156,6 @@ class TestEndpoint(object):
                     "path": "userinfo",
                     "class": userinfo.UserInfo,
                     "kwargs": {
-                        "claim_types_supported": [
-                            "normal",
-                            "aggregated",
-                            "distributed",
-                        ],
                         "client_authn_method": ["bearer_header", "bearer_body"],
                     },
                 },
@@ -235,28 +256,28 @@ class TestEndpoint(object):
         assert set(
             self.endpoint.server_get("endpoint_context").provider_info["claims_supported"]
         ) == {
-            "address",
-            "birthdate",
-            "email",
-            "email_verified",
-            "eduperson_scoped_affiliation",
-            "family_name",
-            "gender",
-            "given_name",
-            "locale",
-            "middle_name",
-            "name",
-            "nickname",
-            "phone_number",
-            "phone_number_verified",
-            "picture",
-            "preferred_username",
-            "profile",
-            "sub",
-            "updated_at",
-            "website",
-            "zoneinfo",
-        }
+                   "address",
+                   "birthdate",
+                   "email",
+                   "email_verified",
+                   "eduperson_scoped_affiliation",
+                   "family_name",
+                   "gender",
+                   "given_name",
+                   "locale",
+                   "middle_name",
+                   "name",
+                   "nickname",
+                   "phone_number",
+                   "phone_number_verified",
+                   "picture",
+                   "preferred_username",
+                   "profile",
+                   "sub",
+                   "updated_at",
+                   "website",
+                   "zoneinfo",
+               }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)

@@ -290,33 +290,11 @@ class TestEndpoint(object):
     def test_init(self):
         assert self.endpoint[1]
         assert set(
-            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
-        ) == {
-            "address",
-            "birthdate",
-            "email",
-            "email_verified",
-            "eduperson_scoped_affiliation",
-            "family_name",
-            "gender",
-            "given_name",
-            "locale",
-            "middle_name",
-            "name",
-            "nickname",
-            "phone_number",
-            "phone_number_verified",
-            "picture",
-            "preferred_username",
-            "profile",
-            "sub",
-            "updated_at",
-            "website",
-            "zoneinfo",
-        }
+            self.endpoint[1].server_get("endpoint_context").provider_info["scopes_supported"]
+        ) == {"openid"}
         assert set(
-            self.endpoint[1].server_get("endpoint_context").provider_info["claims_supported"]
-        ) == set(self.endpoint[2].server_get("endpoint_context").provider_info["claims_supported"])
+            self.endpoint[1].server_get("endpoint_context").provider_info["scopes_supported"]
+        ) == set(self.endpoint[2].server_get("endpoint_context").provider_info["scopes_supported"])
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)

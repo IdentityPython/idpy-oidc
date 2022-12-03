@@ -135,10 +135,10 @@ class WorkEnvironment(ImpExp):
             return keyjar, _uri_path
 
     def get_base_url(self, configuration: dict):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_id(self, configuration: dict):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def add_extra_keys(self, keyjar, id):
         return None

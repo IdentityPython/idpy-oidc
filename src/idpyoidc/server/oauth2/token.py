@@ -7,12 +7,15 @@ from cryptojwt.jwe.exception import JWEException
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
+from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
 from idpyoidc.server.session import MintingNotAllowed
+from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)

@@ -3,6 +3,7 @@ import logging
 from typing import List
 from typing import Optional
 
+from idpyoidc import work_environment
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
@@ -30,7 +31,10 @@ class Authorization(Service):
 
     _supports = {
         "response_types_supported": ["code", 'token'],
-        "response_modes_supported": ['query', 'fragment']
+        "response_modes_supported": ['query', 'fragment'],
+        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
+        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
     }
 
     _callback_path = {

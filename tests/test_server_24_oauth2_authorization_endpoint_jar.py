@@ -125,20 +125,24 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
-            "capabilities": CAPABILITIES,
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+            ],
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+            "response_modes_supported": ["query", "fragment", "form_post"],
+            "claims_parameter_supported": True,
+            "request_parameter_supported": True,
+            "request_uri_parameter_supported": True,
+            "request_cls": JWTSecuredAuthorizationRequest,
             "endpoint": {
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
-                    "kwargs": {
-                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-                        "response_modes_supported": ["query", "fragment", "form_post"],
-                        "claims_parameter_supported": True,
-                        "request_parameter_supported": True,
-                        "request_uri_parameter_supported": True,
-                        "request_cls": JWTSecuredAuthorizationRequest,
-                    },
+                    "kwargs": {},
                 }
             },
             "authentication": {

@@ -6,6 +6,7 @@ import sys
 from idpyoidc import verified_claim_name
 from idpyoidc.exception import MissingAttribute
 from idpyoidc.exception import VerificationError
+from idpyoidc.message import Message
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -16,7 +17,6 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_BOOLEAN
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +108,19 @@ class AccessTokenRequest(Message):
     c_default = {"grant_type": "authorization_code"}
 
 
+CLAIMS_WITH_VERIFIED = ["request"]
+
+
+def clear_verified_claims(msg):
+    for claim in CLAIMS_WITH_VERIFIED:
+        _vc_name = verified_claim_name(claim)
+        try:
+            del msg[_vc_name]
+        except KeyError:
+            pass
+    return msg
+
+
 class AuthorizationRequest(Message):
     """
     An authorization request
@@ -119,6 +132,7 @@ class AuthorizationRequest(Message):
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "redirect_uri": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING,
+        "request": SINGLE_OPTIONAL_STRING,
     }
 
     def merge(self, request_object, treatement="strict", whitelist=None):
@@ -148,6 +162,52 @@ class AuthorizationRequest(Message):
                     del self[param]
 
         self.update(request_object)
+
+    def verify(self, **kwargs):
+        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+        specification MAY be included in the OpenID Request Object without also
+        passing them as OAuth 2.0 Authorization Request parameters, with one
+        exception: The scope parameter MUST always be present in OAuth 2.0
+        Authorization Request parameters.
+        All parameter values that are present both in the OAuth 2.0
+        Authorization Request and in the OpenID Request Object MUST exactly
+        match."""
+        super(AuthorizationRequest, self).verify(**kwargs)
+
+        clear_verified_claims(self)
+
+        args = {}
+        for arg in ["keyjar", "opponent_id", "sender", "alg", "encalg", "encenc"]:
+            try:
+                args[arg] = kwargs[arg]
+            except KeyError:
+                pass
+
+        if "opponent_id" not in kwargs:
+            args["opponent_id"] = self["client_id"]
+
+        if "request" in self:
+            if isinstance(self["request"], str):
+                # Try to decode the JWT, checks the signature
+                oidr = AuthorizationRequest().from_jwt(str(self["request"]), **args)
+
+                # check if something is change in the original message
+                for key, val in oidr.items():
+                    if key in self:
+                        if self[key] != val:
+                            # log but otherwise ignore
+                            logger.warning("{} != {}".format(self[key], val))
+
+                # remove all claims
+                _keys = list(self.keys())
+                for key in _keys:
+                    if key not in oidr:
+                        del self[key]
+
+                self.update(oidr)
+
+                # replace the JWT with the parsed and verified instance
+                self[verified_claim_name("request")] = oidr
 
 
 class AuthorizationResponse(ResponseMessage):
