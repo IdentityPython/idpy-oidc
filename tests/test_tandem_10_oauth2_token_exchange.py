@@ -43,16 +43,6 @@ RESPONSE_TYPES_SUPPORTED = [
     ["none"],
 ]
 
-CAPABILITIES = {
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ],
-}
-
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
     redirect_uri="https://example.com/cb",
@@ -103,7 +93,19 @@ class TestEndpoint(object):
         server_conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "capabilities": CAPABILITIES,
+            "subject_types_supported": ["public", "pairwise", "ephemeral"],
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+            ],
+            "client_authn_method": [
+                "client_secret_basic",
+                "client_secret_post",
+                "client_secret_jwt",
+                "private_key_jwt",
+            ],
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
@@ -123,14 +125,7 @@ class TestEndpoint(object):
                 "token": {
                     "path": "token",
                     "class": "idpyoidc.server.oidc.token.Token",
-                    "kwargs": {
-                        "client_authn_method": [
-                            "client_secret_basic",
-                            "client_secret_post",
-                            "client_secret_jwt",
-                            "private_key_jwt",
-                        ],
-                    },
+                    "kwargs": {},
                 },
             },
             "authentication": {
@@ -298,7 +293,7 @@ class TestEndpoint(object):
             "redirect_uri": areq["redirect_uri"],
             "grant_type": "authorization_code",
             "client_id": self.client_1.get_client_id(),
-            "client_secret": _context.get("client_secret"),
+            "client_secret": _context.get_usage("client_secret"),
         }
 
         _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)

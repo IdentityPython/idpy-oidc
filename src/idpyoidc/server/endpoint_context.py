@@ -323,36 +323,6 @@ class EndpointContext(OidcContext):
                 else:
                     self._sub_func[key] = args["function"]
 
-    def create_providerinfo(self, capabilities):
-        """
-        Dynamically create the provider info response
-
-        :param capabilities:
-        :return:
-        """
-
-        _provider_info = capabilities
-        _provider_info["issuer"] = self.issuer
-        _provider_info["version"] = "3.0"
-
-        # acr_values
-        if self.authn_broker:
-            acr_values = self.authn_broker.get_acr_values()
-            if acr_values is not None:
-                _provider_info["acr_values_supported"] = acr_values
-
-        if self.jwks_uri and self.keyjar:
-            _provider_info["jwks_uri"] = self.jwks_uri
-
-        if "scopes_supported" not in _provider_info:
-            _provider_info["scopes_supported"] = self.scopes_handler.get_allowed_scopes()
-        if "claims_supported" not in _provider_info:
-            _provider_info["claims_supported"] = list(
-                self.scopes_handler.scopes_to_claims(_provider_info["scopes_supported"]).keys()
-            )
-
-        return _provider_info
-
     def set_remember_token(self):
         ses_par = self.conf.get("session_params") or {}
 
@@ -395,7 +365,12 @@ class EndpointContext(OidcContext):
     def set_provider_info(self):
         prefers = self.work_environment.prefer
         supported = self.supports()
-        _info = {'issuer': self.issuer}
+        _info = {'issuer': self.issuer, 'version': "3.0"}
+
+        for endp in self.server_get('endpoints').values():
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+
         for key, spec in ProviderConfigurationResponse.c_param.items():
             _val = prefers.get(key, None)
             if not _val and _val != False:
@@ -403,6 +378,13 @@ class EndpointContext(OidcContext):
                 if not _val and _val != False:
                     continue
             _info[key] = _val
+
+        # acr_values
+        if 'acr_values_supported' not in _info:
+            if self.authn_broker:
+                acr_values = self.authn_broker.get_acr_values()
+                if acr_values is not None:
+                    _info["acr_values_supported"] = acr_values
 
         self.provider_info = _info
 

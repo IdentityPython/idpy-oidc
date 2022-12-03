@@ -268,7 +268,7 @@ class TestAuthorizationRequest(object):
             "&response_type=code&client_id=0123456789"
         )
         ar = AuthorizationRequest().deserialize(query, "urlencoded")
-        assert ar.verify()
+        ar.verify()
 
     def test_load_dict(self):
         bib = {
