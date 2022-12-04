@@ -34,11 +34,17 @@ from idpyoidc.message.oauth2 import ResourceRequest
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 CLIENT_ID = "A"
 
+KEYSPEC = [
+    {"type": "RSA", "use": ["sig"]},
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
+]
+
 CLIENT_CONF = {
     "issuer": "https://example.com/as",
     # "redirect_uris": ["https://example.com/cli/authz_cb"],
     "client_secret": "white boarding pass",
     "client_id": CLIENT_ID,
+    "key_conf": {'key_defs': KEYSPEC}
 }
 
 KEY_CONF = {
@@ -441,6 +447,7 @@ class TestClientSecretJWT_TE(object):
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
 
+        # No preference -> default == RS256
         _service_context.registration_response = {}
 
         token_service = entity.get_service("")
@@ -448,6 +455,7 @@ class TestClientSecretJWT_TE(object):
         # Since I have an RSA key this doesn't fail
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
+        _rsa_key = entity.keyjar.get(key_use='sig', key_type='rsa', issuer_id='')[0]
         _jws = factory(request["client_assertion"])
         assert _jws.jwt.headers["alg"] == "RS256"
         _rsa_key = _service_context.keyjar.get_signing_key(key_type="RSA")[0]
@@ -471,6 +479,7 @@ class TestClientSecretJWT_TE(object):
         ]
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 
+        _ec_key = entity.keyjar.get(key_use='sig', key_type='ec', issuer_id='')[0]
         _jws = factory(request["client_assertion"])
         # Should be ES256 since I have a key for ES256
         assert _jws.jwt.headers["alg"] == "ES256"

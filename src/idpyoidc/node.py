@@ -28,15 +28,22 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
+        _client_id = config.get('client_id', "")
         self.entity_id = entity_id or config.get('entity_id', "")
         if not self.entity_id:
-            self.entity_id = config.get('issuer', "")
+            self.entity_id = _client_id
 
         if keyjar or key_conf or config.get('key_conf') or config.get('jwks') or config.get('keys'):
             self.keyjar = self._keyjar(keyjar, conf=config, entity_id=self.entity_id,
                                        key_conf=key_conf)
+            if _client_id:
+                self.keyjar.add_symmetric('', _client_id)
         else:
-            self.keyjar = None
+            if _client_id:
+                self.keyjar = KeyJar()
+                self.keyjar.add_symmetric('', _client_id)
+            else:
+                self.keyjar = None
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 

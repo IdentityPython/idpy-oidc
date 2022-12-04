@@ -6,6 +6,8 @@ import responses
 
 from idpyoidc.client.entity import Entity
 
+KEYSPEC = [{"type": "RSA", "use": ["sig"]}]
+
 
 class TestClientInfo(object):
     @pytest.fixture(autouse=True)
@@ -29,7 +31,7 @@ class TestClientInfo(object):
         keyspec = {"file": {"rsa": [file_path]}}
         self.entity.import_keys(keyspec)
 
-        # Now there should be 2, the second a RSA key for signing
+        # Now there should be 3, 2 RSA keys
         assert len(self.entity.keyjar.get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):
