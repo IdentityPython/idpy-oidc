@@ -5,6 +5,8 @@ from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
 
+from cryptojwt.exception import IssuerNotFound
+
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import MissingRequiredValue
 from idpyoidc.exception import ParameterError
@@ -142,12 +144,42 @@ class Endpoint(object):
         _error = "invalid_request"
         return self.error_cls(error=_error, error_description="%s" % exception)
 
+    def find_client_keys(self, iss):
+        return False
+
+    def verify_request(self, request, keyjar, client_id, verify_args, lap=0):
+        # verify that the request message is correct, may have to do it twice
+        try:
+            if verify_args is None:
+                request.verify(keyjar=keyjar, opponent_id=client_id)
+            else:
+                request.verify(keyjar=keyjar, opponent_id=client_id, **verify_args)
+        except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
+            _error = "invalid_request"
+            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
+                if len(err.args) > 1:
+                    if err.args[1] == "initiate_login_uri":
+                        _error = "invalid_client_metadata"
+
+            return self.error_cls(error=_error, error_description="%s" % err)
+        except IssuerNotFound as err:
+            if lap:
+                return self.error_cls(error=err)
+            client_id =self.find_client_keys(err.args[0])
+            if not client_id:
+                return self.error_cls(error=err)
+            else:
+                # Fund a client ID I believe will work
+                self.verify_request(request=request, keyjar=keyjar, client_id=client_id,
+                                    verify_args=verify_args, lap=1)
+        return None
+
     def parse_request(
-        self,
-        request: Union[Message, dict, str],
-        http_info: Optional[dict] = None,
-        verify_args: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Union[Message, dict, str],
+            http_info: Optional[dict] = None,
+            verify_args: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -197,20 +229,11 @@ class Endpoint(object):
         else:
             _client_id = req.get("client_id")
 
-        # verify that the request message is correct
-        try:
-            if verify_args is None:
-                req.verify(keyjar=_keyjar, opponent_id=_client_id)
-            else:
-                req.verify(keyjar=_keyjar, opponent_id=_client_id, **verify_args)
-        except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
-            _error = "invalid_request"
-            if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
-                if len(err.args) > 1:
-                    if err.args[1] == "initiate_login_uri":
-                        _error = "invalid_client_metadata"
-
-            return self.error_cls(error=_error, error_description="%s" % err)
+        # verify that the request message is correct, may have to do it twice
+        err_response = self.verify_request(request=req, keyjar=_keyjar, client_id=_client_id,
+                                           verify_args=verify_args)
+        if err_response:
+            return err_response
 
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
 
@@ -237,7 +260,7 @@ class Endpoint(object):
 
         authn_info = verify_client(
             context=self.upstream_get("context"),
-            keyjar=self.upstream_get('attribute','keyjar'),
+            keyjar=self.upstream_get('attribute', 'keyjar'),
             request=request,
             http_info=http_info,
             **kwargs
@@ -252,7 +275,7 @@ class Endpoint(object):
         return authn_info
 
     def do_post_parse_request(
-        self, request: Message, client_id: Optional[str] = "", **kwargs
+            self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
         _context = self.upstream_get("context")
         for meth in self.post_parse_request:
@@ -262,7 +285,7 @@ class Endpoint(object):
         return request
 
     def do_pre_construct(
-        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.pre_construct:
@@ -271,10 +294,10 @@ class Endpoint(object):
         return response_args
 
     def do_post_construct(
-        self,
-        response_args: Union[Message, dict],
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Union[Message, dict],
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.post_construct:
@@ -283,10 +306,10 @@ class Endpoint(object):
         return response_args
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs
     ) -> Union[Message, dict]:
         """
 
@@ -297,10 +320,10 @@ class Endpoint(object):
         return {}
 
     def construct(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ):
         """
         Construct the response
@@ -318,19 +341,19 @@ class Endpoint(object):
         return self.do_post_construct(response, request, **kwargs)
 
     def response_info(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
     def do_response(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        error: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            error: Optional[str] = "",
+            **kwargs
     ) -> dict:
         """
         :param response_args: Information to use when constructing the response

@@ -36,7 +36,7 @@ class Unit(ImpExp):
             self.keyjar = self._keyjar(keyjar, conf=config, entity_id=self.entity_id,
                                        key_conf=key_conf)
         else:
-            self.keyjar = KeyJar()
+            self.keyjar = None
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 
@@ -45,7 +45,7 @@ class Unit(ImpExp):
             self.keyjar.httpc_params = self.httpc_params
 
     def unit_get(self, what, *arg):
-        _func = getattr(self, "get_{}".format(what), None)
+        _func = getattr(self, f"get_{what}", None)
         if _func:
             return _func(*arg)
         return None
@@ -102,9 +102,12 @@ class Unit(ImpExp):
             return keyjar
 
 
-def find_topmost_unit(unit):
-    while hasattr(unit, 'upstream_get'):
-        unit = unit.upstream_get('unit')
+def topmost_unit(unit):
+    if hasattr(unit, 'upstream_get'):
+        if unit.upstream_get:
+            next_unit = unit.upstream_get('unit')
+            if next_unit:
+                unit = topmost_unit(next_unit)
 
     return unit
 

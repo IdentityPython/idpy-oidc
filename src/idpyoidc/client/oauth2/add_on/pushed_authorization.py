@@ -19,6 +19,8 @@ def push_authorization(request_args, service, **kwargs):
 
     _context = service.upstream_get("context")
     method_args = _context.add_on["pushed_authorization"]
+    if method_args['apply'] is False:
+        return request_args
 
     # construct the message body
     if method_args["body_format"] == "urlencoded":
@@ -36,8 +38,10 @@ def push_authorization(request_args, service, **kwargs):
         _body = _msg.to_urlencoded()
 
     # Send it to the Pushed Authorization Request Endpoint
-    resp = method_args["http_client"].get(
-        _context.provider_info["pushed_authorization_request_endpoint"], data=_body
+    resp = method_args["http_client"](
+        method="GET",
+        url=_context.provider_info["pushed_authorization_request_endpoint"],
+        data=_body
     )
 
     if resp.status_code == 200:
@@ -73,6 +77,7 @@ def add_support(
         "signing_algorithm": signing_algorithm,
         "http_client": http_client,
         "merge_rule": merge_rule,
+        'apply': True
     }
 
     _service.post_construct.append(push_authorization)
