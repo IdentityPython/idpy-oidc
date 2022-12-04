@@ -196,7 +196,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -205,7 +205,7 @@ class TestEndpoint(object):
     def _mint_access_token(self, grant, session_id, token_ref):
         access_token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -216,7 +216,7 @@ class TestEndpoint(object):
     def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now

@@ -89,21 +89,21 @@ class Session(Endpoint):
         "check_session_iframe": None,
     }
 
-    def __init__(self, server_get, **kwargs):
+    def __init__(self, upstream_get, **kwargs):
         _csi = kwargs.get("check_session_iframe")
         if _csi and not _csi.startswith("http"):
-            kwargs["check_session_iframe"] = add_path(server_get("context").issuer, _csi)
-        Endpoint.__init__(self, server_get, **kwargs)
+            kwargs["check_session_iframe"] = add_path(upstream_get("context").issuer, _csi)
+        Endpoint.__init__(self, upstream_get, **kwargs)
         self.iv = as_bytes(rndstr(24))
 
     def _encrypt_sid(self, sid):
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(self.upstream_get("context").symkey))
         enc_msg = encrypter.encrypt(as_bytes(sid), iv=self.iv)
         return as_unicode(b64e(enc_msg))
 
     def _decrypt_sid(self, enc_msg):
         _msg = b64d(as_bytes(enc_msg))
-        encrypter = AES_GCMEncrypter(key=as_bytes(self.server_get("context").symkey))
+        encrypter = AES_GCMEncrypter(key=as_bytes(self.upstream_get("context").symkey))
         ctx, tag = split_ctx_and_tag(_msg)
         return as_unicode(encrypter.decrypt(as_bytes(ctx), iv=self.iv, tag=as_bytes(tag)))
 
@@ -115,7 +115,7 @@ class Session(Endpoint):
         :return: Tuple with logout URI and signed logout token
         """
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         try:
             back_channel_logout_uri = cinfo["backchannel_logout_uri"]
@@ -135,7 +135,10 @@ class Session(Endpoint):
         except KeyError:
             alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
 
-        _jws = JWT(_context.keyjar, iss=_context.issuer, lifetime=86400, sign_alg=alg)
+        _jws = JWT(self.upstream_get('attribute', 'keyjar'),
+                   iss=_context.issuer,
+                   lifetime=86400,
+                   sign_alg=alg)
         _jws.with_jti = True
         _logout_token = _jws.pack(payload=payload, recv=cinfo["client_id"])
 
@@ -143,12 +146,12 @@ class Session(Endpoint):
 
     def clean_sessions(self, usids):
         # Revoke all sessions
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for sid in usids:
             _context.session_manager.revoke_client_session(sid)
 
     def logout_all_clients(self, sid):
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _mngr = _context.session_manager
         _session_info = _mngr.get_session_info(sid)
 
@@ -217,14 +220,14 @@ class Session(Endpoint):
             else:
                 alg = self.kwargs["signing_alg"]
 
-            sign_keys = self.server_get("context").keyjar.get_signing_key(alg2keytype(alg))
+            sign_keys = self.upstream_get('attribute', 'keyjar').get_signing_key(alg2keytype(alg))
             _info = _jwt.verify_compact(keys=sign_keys, sigalg=alg)
             return _info
         else:
             raise ValueError("Not a signed JWT")
 
     def logout_from_client(self, sid):
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _cdb = _context.cdb
         _session_information = _context.session_manager.get_session_info(sid, grant=True)
         _client_id = _session_information["client_id"]
@@ -257,7 +260,7 @@ class Session(Endpoint):
         :param kwargs:
         :return:
         """
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _mngr = _context.session_manager
 
         if "post_logout_redirect_uri" in request:
@@ -338,7 +341,7 @@ class Session(Endpoint):
         logger.debug("JWS payload: {}".format(payload))
         # From me to me
         _jws = JWT(
-            _context.keyjar,
+            self.upstream_get('attribute', 'keyjar'),
             iss=_context.issuer,
             lifetime=86400,
             sign_alg=self.kwargs["signing_alg"],
@@ -371,9 +374,9 @@ class Session(Endpoint):
             request["access_token"] = auth_info["token"]
 
         if isinstance(request, dict):
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             request = self.request_cls(**request)
-            if not request.verify(keyjar=_context.keyjar, sigalg=""):
+            if not request.verify(keyjar=self.upstream_get('attribute', 'keyjar'), sigalg=""):
                 raise InvalidRequest("Request didn't verify")
             # id_token_signing_alg_values_supported
             try:
@@ -398,7 +401,7 @@ class Session(Endpoint):
 
         bcl = _res.get("blu")
         if bcl:
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             # take care of Back channel logout first
             for _cid, spec in bcl.items():
                 _url, sjwt = spec
@@ -421,7 +424,7 @@ class Session(Endpoint):
         return _res["flu"].values() if _res.get("flu") else []
 
     def kill_cookies(self):
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _handler = _context.cookie_handler
         session_mngmnt = _handler.make_cookie_content(
             value="", name=_handler.name["session_management"], max_age=-1

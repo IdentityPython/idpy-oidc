@@ -18,10 +18,10 @@ class CCAccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
-    def __init__(self, superior_get, conf=None):
-        Service.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
 
     def update_service_context(self, resp, key: Optional[str] = "cc", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.superior_get("context").cstate.update(key, resp)
+        self.upstream_get("context").cstate.update(key, resp)

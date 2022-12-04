@@ -9,6 +9,7 @@ from cryptojwt import KeyJar
 
 from idpyoidc.impexp import ImpExp
 from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.node import Unit
 from idpyoidc.server import authz
 from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import ASConfiguration
@@ -26,15 +27,15 @@ from idpyoidc.server.util import build_endpoints
 logger = logging.getLogger(__name__)
 
 
-def do_endpoints(conf, server_get):
+def do_endpoints(conf, upstream_get):
     _endpoints = conf.get("endpoint")
     if _endpoints:
-        return build_endpoints(_endpoints, server_get=server_get, issuer=conf["issuer"])
+        return build_endpoints(_endpoints, upstream_get=upstream_get, issuer=conf["issuer"])
     else:
         return {}
 
 
-class Server(ImpExp):
+class Server(Unit):
     parameter = {"endpoint": [Endpoint], "context": EndpointContext}
 
     def __init__(
@@ -43,20 +44,24 @@ class Server(ImpExp):
             keyjar: Optional[KeyJar] = None,
             cwd: Optional[str] = "",
             cookie_handler: Optional[Any] = None,
-            httpc: Optional[Any] = None,
-            parent_get: Optional[Callable] = None
+            httpc: Optional[Callable] = None,
+            upstream_get: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            entity_id: Optional[str] = "",
+            key_conf: Optional[dict] = None
     ):
-        ImpExp.__init__(self)
+        Unit.__init__(self, config=conf, keyjar=keyjar, httpc=httpc, upstream_get=upstream_get,
+                      httpc_params=httpc_params, entity_id=entity_id, key_conf=key_conf)
+
+        self.upstream_get = upstream_get
         self.conf = conf
         self.endpoint_context = EndpointContext(
             conf=conf,
-            server_get=self.server_get,
-            keyjar=keyjar,
+            upstream_get=self.server_get, # points to me
             cwd=cwd,
-            cookie_handler=cookie_handler,
-            httpc=httpc,
+            cookie_handler=cookie_handler
         )
-        self.parent_get = parent_get
+
         self.endpoint_context.authz = self.setup_authz()
 
         self.setup_authentication(self.endpoint_context)
@@ -80,7 +85,7 @@ class Server(ImpExp):
 
         self.setup_client_authn_methods()
         for endpoint_name, _ in self.endpoint.items():
-            self.endpoint[endpoint_name].server_get = self.server_get
+            self.endpoint[endpoint_name].upstream_get = self.server_get
 
         _token_endp = self.endpoint.get("token")
         if _token_endp:
@@ -102,6 +107,15 @@ class Server(ImpExp):
             return _func(*arg)
         return None
 
+    def get_attribute(self, attribute, *args):
+        try:
+            getattr(self, attribute)
+        except AttributeError:
+            if self.upstream_get:
+                return self.upstream_get(attribute)
+            else:
+                return None
+
     def get_endpoints(self, *arg):
         return self.endpoint
 
@@ -111,10 +125,16 @@ class Server(ImpExp):
         except KeyError:
             return None
 
+    def get_context(self, *arg):
+        return self.endpoint_context
+
     def get_endpoint_context(self, *arg):
         return self.endpoint_context
 
     def get_server(self, *args):
+        return self
+
+    def get_entity(self, *args):
         return self
 
     def setup_authz(self):

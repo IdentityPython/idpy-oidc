@@ -27,26 +27,25 @@ class AccessToken(access_token.AccessToken):
         "token_endpoint_auth_signing_alg_values_supported": get_signing_algs
     }
 
-    def __init__(self, client_get, conf: Optional[dict] = None):
-        access_token.AccessToken.__init__(self, client_get, conf=conf)
-    def __init__(self, superior_get, conf: Optional[dict] = None):
-        access_token.AccessToken.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf: Optional[dict] = None):
+        access_token.AccessToken.__init__(self, upstream_get, conf=conf)
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.superior_get("context")
-        _entity = self.superior_get("entity")
+        _context = self.upstream_get("context")
+        _entity = self.upstream_get("entity")
 
         kwargs = {
             "client_id": _entity.get_client_id(),
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
             "skew": _context.clock_skew,
         }
@@ -72,7 +71,7 @@ class AccessToken(access_token.AccessToken):
         return kwargs
 
     def update_service_context(self, resp, key: Optional[str] ="", **kwargs):
-        _cstate = self.superior_get("context").cstate
+        _cstate = self.upstream_get("context").cstate
         try:
             _idt = resp[verified_claim_name("id_token")]
         except KeyError:
@@ -92,7 +91,5 @@ class AccessToken(access_token.AccessToken):
         _cstate.update(key, resp)
 
     def get_authn_method(self):
-        try:
-            return self.superior_get("service_context").behaviour["token_endpoint_auth_method"]
-        except KeyError:
-            return self.default_authn_method
+        return self.upstream_get("context").get_preference("token_endpoint_auth_method",
+                                                           self.default_authn_method)

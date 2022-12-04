@@ -90,8 +90,8 @@ class Authorization(authorization.Authorization):
         "subject_types_supported": ["public", "pairwise", "ephemeral"],
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        authorization.Authorization.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        authorization.Authorization.__init__(self, upstream_get, **kwargs)
         # self.pre_construct.append(self._pre_construct)
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
@@ -102,7 +102,7 @@ class Authorization(authorization.Authorization):
         else:
             _login_hint = request_info.get("login_hint")
             if _login_hint:
-                _context = self.server_get("context")
+                _context = self.upstream_get("context")
                 if _context.login_hint_lookup:
                     kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
         return kwargs

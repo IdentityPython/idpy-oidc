@@ -544,6 +544,6 @@ class SessionManager(GrantManager):
         return self.unpack_branch_key(key)
 
 
-def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
-    _token_handler = handler.factory(server_get, **token_handler_args)
+def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
+    _token_handler = handler.factory(upstream_get, **token_handler_args)
     return SessionManager(_token_handler, sub_func=sub_func, conf=conf)

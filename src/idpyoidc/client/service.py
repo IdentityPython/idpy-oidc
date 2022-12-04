@@ -63,17 +63,20 @@ class Service(ImpExp):
         "response_cls": object,
     }
 
-    init_args = ["superior_get"]
+    init_args = ["upstream_get"]
 
     _supports = {}
     _callback_path = {}
 
     def __init__(
-        self, superior_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
+            self,
+            upstream_get: Callable,
+            conf: Optional[Union[dict, Configuration]] = None,
+            **kwargs
     ):
         ImpExp.__init__(self)
 
-        self.superior_get = superior_get
+        self.upstream_get = upstream_get
         self.default_request_args = {}
 
         if conf:
@@ -115,7 +118,7 @@ class Service(ImpExp):
         """
         ar_args = kwargs.copy()
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         _use = _context.collect_usage()
         if not _use:
             _use = _context.map_preferred_to_registered()
@@ -210,7 +213,7 @@ class Service(ImpExp):
         """
         pass
 
-    def construct(self, request_args=None, **kwargs):
+    def construct(self, request_args: Optional[dict] = None, **kwargs):
         """
         Instantiate the request as a message class instance with
         attribute values gathered in a pre_construct method or in the
@@ -266,7 +269,7 @@ class Service(ImpExp):
 
         if authn_method:
             LOGGER.debug("Client authn method: %s", authn_method)
-            _context = self.superior_get("context")
+            _context = self.upstream_get("context")
             try:
                 _func = _context.client_authn_method[authn_method]
             except KeyError:  # not one of the common
@@ -302,7 +305,7 @@ class Service(ImpExp):
         if self.endpoint:
             return self.endpoint
 
-        return self.superior_get("context").provider_info[self.endpoint_name]
+        return self.upstream_get("context").provider_info[self.endpoint_name]
 
     def get_authn_header(
             self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
@@ -359,7 +362,7 @@ class Service(ImpExp):
 
         for meth in self.construct_extra_headers:
             _headers = meth(
-                self.superior_get("context"),
+                self.upstream_get("context"),
                 headers=_headers,
                 request=request,
                 authn_method=authn_method,
@@ -406,7 +409,7 @@ class Service(ImpExp):
         _info = {"method": method, "request": request}
 
         _args = kwargs.copy()
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if _context.issuer:
             _args["iss"] = _context.issuer
 
@@ -482,10 +485,10 @@ class Service(ImpExp):
         :return: dictionary with arguments to the verify call
         """
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         kwargs = {
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
             "client_id": _context.get_client_id(),
         }
@@ -497,17 +500,17 @@ class Service(ImpExp):
         return kwargs
 
     def _do_jwt(self, info):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         args = {"allowed_sign_algs": _context.get_sign_alg(self.service_name)}
         enc_algs = _context.get_enc_alg_enc(self.service_name)
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
-        _jwt = JWT(key_jar=_context.keyjar, **args)
+        _jwt = JWT(key_jar=self.upstream_get('attribute','keyjar'), **args)
         _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
 
         try:
             resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
@@ -659,12 +662,12 @@ class Service(ImpExp):
         return list(self._callback_path.keys())
 
 
-def init_services(service_definitions, superior_get):
+def init_services(service_definitions, upstream_get):
     """
     Initiates a set of services
 
     :param service_definitions: A dictionary containing service definitions
-    :param superior_get: A function that returns different things from the base entity.
+    :param upstream_get: A function that returns different things from the base entity.
     :return: A dictionary, with service name as key and the service instance as
         value.
     """
@@ -675,7 +678,7 @@ def init_services(service_definitions, superior_get):
         except KeyError:
             kwargs = {}
 
-        kwargs.update({"superior_get": superior_get})
+        kwargs.update({"upstream_get": upstream_get})
 
         if isinstance(service_configuration["class"], str):
             _cls = importer(service_configuration["class"])

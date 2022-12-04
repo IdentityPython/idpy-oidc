@@ -51,23 +51,23 @@ class TestClient(object):
     def test_construct_accesstoken_request(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
+        _state = client_1.get_context().cstate.create_state(iss=ISSUER)
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state=_state
         )
-        client_1.client_get("service_context").cstate.update(_state, auth_request)
+        client_1.get_context().cstate.update(_state, auth_request)
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
-        _state_dump = client_1.client_get("service_context").dump()
-        client_2.client_get("service_context").load(_state_dump)
+        _state_dump = client_1.get_context().dump()
+        client_2.get_context().load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").cstate.update(_state, auth_response)
+        client_2.get_context().cstate.update(_state, auth_response)
 
         # Bind access code to state
         req_args = {}
-        msg = client_2.client_get("service", "accesstoken").construct(
+        msg = client_2.get_service("accesstoken").construct(
             request_args=req_args, state=_state
         )
         assert isinstance(msg, AccessTokenRequest)
@@ -83,31 +83,31 @@ class TestClient(object):
     def test_construct_refresh_token_request(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
+        _state = client_1.get_context().cstate.create_state(iss=ISSUER)
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state=_state
         )
 
-        client_1.client_get("service_context").cstate.update(_state,auth_request)
+        client_1.get_context().cstate.update(_state,auth_request)
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
-        _state_dump = client_1.client_get("service_context").dump()
-        client_2.client_get("service_context").load(_state_dump)
+        _state_dump = client_1.get_context().dump()
+        client_2.get_context().load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").cstate.update(_state, auth_response)
+        client_2.get_context().cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.client_get("service_context").cstate.update(_state,token_response )
+        client_2.get_context().cstate.update(_state,token_response )
 
         # Back to Client 1
-        _state_dump = client_2.client_get("service_context").dump()
-        client_1.client_get("service_context").load(_state_dump)
+        _state_dump = client_2.get_context().dump()
+        client_1.get_context().load(_state_dump)
 
         req_args = {}
-        msg = client_1.client_get("service", "refresh_token").construct(
+        msg = client_1.get_service("refresh_token").construct(
             request_args=req_args, state=_state
         )
         assert isinstance(msg, RefreshAccessTokenRequest)
@@ -121,7 +121,7 @@ class TestClient(object):
     def test_do_userinfo_request_init(self):
         # Client 1 starts
         client_1 = RP(config=CONF)
-        _state = client_1.client_get("service_context").cstate.create_state(iss=ISSUER)
+        _state = client_1.get_context().cstate.create_state(iss=ISSUER)
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
@@ -129,20 +129,20 @@ class TestClient(object):
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
-        _state_dump = client_1.client_get("service_context").dump()
-        client_2.client_get("service_context").load(_state_dump)
+        _state_dump = client_1.get_context().dump()
+        client_2.get_context().load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.client_get("service_context").cstate.update(_state,auth_response)
+        client_2.get_context().cstate.update(_state,auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.client_get("service_context").cstate.update(_state,token_response)
+        client_2.get_context().cstate.update(_state,token_response)
 
         # Back to Client 1
-        _state_dump = client_2.client_get("service_context").dump()
-        client_1.client_get("service_context").load(_state_dump)
+        _state_dump = client_2.get_context().dump()
+        client_1.get_context().load(_state_dump)
 
-        _srv = client_1.client_get("service", "userinfo")
+        _srv = client_1.get_service("userinfo")
         _srv.endpoint = "https://example.com/userinfo"
         _info = _srv.get_request_parameters(state=_state)
         assert _info

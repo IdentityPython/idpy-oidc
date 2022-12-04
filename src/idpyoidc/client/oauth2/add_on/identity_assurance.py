@@ -73,7 +73,7 @@ def add_support(
 
     # Access token request should use DPoP header
     _service = services["userinfo"]
-    _context = _service.superior_get("context")
+    _context = _service.upstream_get("context")
     _context.add_on["identity_assurance"] = {
         "verified_claims_supported": True,
         "trust_frameworks_supported": trust_frameworks_supported,

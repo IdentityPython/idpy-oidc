@@ -113,17 +113,16 @@ class ServiceContext(ImpExp):
     }
 
     def __init__(self,
-                 client_get: Optional[Callable] = None,
                  base_url: Optional[str] = "",
-                 keyjar: Optional[KeyJar] = None,
                  config: Optional[Union[dict, Configuration]] = None,
                  cstate: Optional[Current] = None,
+                 upstream_get: Optional[Callable] = None,
                  client_type: Optional[str] = 'oauth2',
                  **kwargs):
         ImpExp.__init__(self)
         config = get_configuration(config)
         self.config = config
-        self.client_get = client_get
+        self.upstream_get = upstream_get
 
         if not client_type or client_type == "oidc":
             self.work_environment = OIDC_Specs()

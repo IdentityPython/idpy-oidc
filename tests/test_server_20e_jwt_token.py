@@ -211,7 +211,7 @@ class TestEndpoint(object):
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
-        self.endpoint = server.server_get("endpoint", "session")
+        self.endpoint = server.get_endpoint("session")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -229,7 +229,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -415,7 +415,7 @@ class TestEndpointWebID(object):
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
-        self.endpoint = server.server_get("endpoint", "session")
+        self.endpoint = server.get_endpoint("session")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -433,7 +433,7 @@ class TestEndpointWebID(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now

@@ -24,7 +24,7 @@ class TestRPHandler(object):
 
     def test_init_client(self):
         client = self.rph.init_client("")
-        assert set(client.client_get("services").keys()) == {
+        assert set(client.get_services().keys()) == {
             "registration",
             "provider_info",
             "authorization",
@@ -33,7 +33,7 @@ class TestRPHandler(object):
             "refresh_token",
         }
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
 
         assert set(_context.work_environment.prefer.keys()) == {
             'application_type',
@@ -49,8 +49,9 @@ class TestRPHandler(object):
             'userinfo_encryption_alg_values_supported',
             'userinfo_encryption_enc_values_supported'}
 
-        assert list(_context.keyjar.owners()) == ["", BASE_URL]
-        keys = _context.keyjar.get_issuer_keys("")
+        _keyjar = client.get_attribute('keyjar')
+        assert list(_keyjar.owners()) == ["", BASE_URL]
+        keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 2
 
         assert _context.base_url == BASE_URL
@@ -80,10 +81,10 @@ class TestRPHandler(object):
 
             issuer = self.rph.do_provider_info(client)
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
 
         # Calculating request so I can build a reasonable response
-        _req = client.client_get("service", "registration").construct_request()
+        _req = client.get_service("registration").construct_request()
 
         with responses.RequestsMock() as rsps:
             request_uri = _context.get("provider_info")["registration_endpoint"]
@@ -152,13 +153,13 @@ class TestRPHandler(object):
 
             issuer = self.rph.do_provider_info(client)
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
         # Calculating request so I can build a reasonable response
         # Publishing a JWKS instead of a JWKS_URI
         _context.jwks_uri = ""
         _context.jwks = _context.keyjar.export_jwks()
 
-        _req = client.client_get("service", "registration").construct_request()
+        _req = client.get_service("registration").construct_request()
 
         with responses.RequestsMock() as rsps:
             request_uri = _context.get("provider_info")["registration_endpoint"]

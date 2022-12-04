@@ -40,14 +40,14 @@ class TestDPoPWithoutUserinfo:
 
         self.client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
 
-        self.client.client_get("service_context").provider_info = {
+        self.client.get_context().provider_info = {
             "authorization_endpoint": "https://example.com/auth",
             "token_endpoint": "https://example.com/token",
             "dpop_signing_alg_values_supported": ["RS256", "ES256"],
         }
 
     def test_add_header(self):
-        token_serv = self.client.client_get("service", "accesstoken")
+        token_serv = self.client.get_service("accesstoken")
         req_args = {
             "grant_type": "authorization_code",
             "code": "SplxlOBeZQQYbYS6WxSbIA",
@@ -99,7 +99,7 @@ class TestDPoPWithUserinfo:
         }
         self.client = Client(keyjar=CLI_KEY, config=config, services=services)
 
-        self.client.client_get("service_context").provider_info = {
+        self.client.get_context().provider_info = {
             "authorization_endpoint": "https://example.com/auth",
             "token_endpoint": "https://example.com/token",
             "dpop_signing_alg_values_supported": ["RS256", "ES256"],
@@ -107,7 +107,7 @@ class TestDPoPWithUserinfo:
         }
 
     def test_add_header_token(self):
-        token_serv = self.client.client_get("service", "accesstoken")
+        token_serv = self.client.get_service("accesstoken")
         req_args = {
             "grant_type": "authorization_code",
             "code": "SplxlOBeZQQYbYS6WxSbIA",
@@ -130,7 +130,7 @@ class TestDPoPWithUserinfo:
         assert _header["jwk"]["crv"] == "P-256"
 
     def test_add_header_userinfo(self):
-        userinfo_serv = self.client.client_get("service", "userinfo")
+        userinfo_serv = self.client.get_service("userinfo")
         req_args = {}
         access_token = "access.token.sign"
         headers = userinfo_serv.get_headers(

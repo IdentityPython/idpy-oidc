@@ -31,12 +31,12 @@ EXAMPLE_MSG = {
 }
 
 
-def pre(args, request, endpoint_context):
+def pre(args, request, context):
     args.update({"name": "{}, {}".format(args["family_name"], args["given_name"])})
     return args
 
 
-def post(cis, request, endpoint_context):
+def post(cis, request, context):
     cis["request"] = request
     return cis
 
@@ -108,7 +108,7 @@ class TestEndpoint(object):
 
     def test_parse_jwt(self):
         self.endpoint.request_format = "jwt"
-        kj = self.endpoint_context.keyjar
+        kj = self.endpoint.upstream_get('attribute','keyjar')
         request = REQ.to_jwt(kj.get_signing_key("RSA"), "RS256")
         req = self.endpoint.parse_request(request)
         assert req == REQ

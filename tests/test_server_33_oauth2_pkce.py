@@ -242,8 +242,8 @@ class TestEndpoint(object):
     def create_endpoint(self, conf):
         server = create_server(conf)
         self.session_manager = server.endpoint_context.session_manager
-        self.authn_endpoint = server.server_get("endpoint", "authorization")
-        self.token_endpoint = server.server_get("endpoint", "token")
+        self.authn_endpoint = server.get_endpoint("authorization")
+        self.token_endpoint = server.get_endpoint("token")
 
     def test_unsupported_code_challenge_methods(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["dada"]
@@ -306,8 +306,8 @@ class TestEndpoint(object):
     def test_not_essential(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["essential"] = False
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint", "authorization")
-        token_endpoint = server.server_get("endpoint", "token")
+        authn_endpoint = server.get_endpoint("authorization")
+        token_endpoint = server.get_endpoint("token")
         _authn_req = AUTH_REQ.copy()
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -324,10 +324,10 @@ class TestEndpoint(object):
     def test_essential_per_client(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["essential"] = False
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint", "authorization")
-        token_endpoint = server.server_get("endpoint", "token")
+        authn_endpoint = server.get_endpoint("authorization")
+        token_endpoint = server.get_endpoint("token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.server_get("context")
+        endpoint_context = server.get_context()
         endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = True
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -339,10 +339,10 @@ class TestEndpoint(object):
     def test_not_essential_per_client(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["essential"] = True
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint", "authorization")
-        token_endpoint = server.server_get("endpoint", "token")
+        authn_endpoint = server.get_endpoint("authorization")
+        token_endpoint = server.get_endpoint("token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.server_get("context")
+        endpoint_context = server.get_context()
         endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = False
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
@@ -372,7 +372,7 @@ class TestEndpoint(object):
     def test_unsupported_code_challenge_method(self, conf):
         conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["plain"]
         server = create_server(conf)
-        authn_endpoint = server.server_get("endpoint", "authorization")
+        authn_endpoint = server.get_endpoint("authorization")
 
         _cc_info = _code_challenge()
         _authn_req = AUTH_REQ.copy()
@@ -438,9 +438,9 @@ def test_missing_authz_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.server_get("endpoints"))
+    add_pkce_support(server.get_endpoints())
 
-    assert "pkce" not in server.server_get("context").args
+    assert "pkce" not in server.get_context().args
 
 
 def test_missing_token_endpoint():
@@ -463,6 +463,6 @@ def test_missing_token_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.server_get("endpoints"))
+    add_pkce_support(server.get_endpoints())
 
-    assert "pkce" not in server.server_get("context").args
+    assert "pkce" not in server.get_context().args

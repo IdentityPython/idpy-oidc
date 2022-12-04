@@ -19,29 +19,29 @@ from ...message.oauth2 import JWTAccessToken
 class JWTToken(Token):
 
     def __init__(
-            self,
-            token_class,
-            # keyjar: KeyJar = None,
-            issuer: str = None,
-            aud: Optional[list] = None,
-            alg: str = "ES256",
-            lifetime: int = DEFAULT_TOKEN_LIFETIME,
-            server_get: Callable = None,
-            token_type: str = "Bearer",
-            profile: Optional[Union[Message, str]] = JWTAccessToken,
-            with_jti: Optional[bool] = False,
-            **kwargs
+        self,
+        token_class,
+        # keyjar: KeyJar = None,
+        issuer: str = None,
+        aud: Optional[list] = None,
+        alg: str = "ES256",
+        lifetime: int = DEFAULT_TOKEN_LIFETIME,
+        upstream_get: Callable = None,
+        token_type: str = "Bearer",
+        profile: Optional[Union[Message, str]] = JWTAccessToken,
+        with_jti: Optional[bool] = False,
+        **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
         self.lifetime = lifetime
 
         self.kwargs = kwargs
-        _context = server_get("context")
-        # self.key_jar = keyjar or _context.keyjar
+        _context = upstream_get("context")
+        # self.key_jar = keyjar or upstream_get('attribute','keyjar')
         self.issuer = issuer or _context.issuer
         self.cdb = _context.cdb
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
         self.def_aud = aud or []
         self.alg = alg
@@ -85,13 +85,13 @@ class JWTToken(Token):
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         if usage_rules and "expires_in" in usage_rules:
             lifetime = usage_rules.get("expires_in")
         else:
             lifetime = self.lifetime
         signer = JWT(
-            key_jar=_context.keyjar,
+            key_jar=self.upstream_get('attribute','keyjar'),
             iss=self.issuer,
             lifetime=lifetime,
             sign_alg=self.alg,
@@ -112,8 +112,9 @@ class JWTToken(Token):
         return signer.pack(payload)
 
     def get_payload(self, token):
-        _context = self.server_get("context")
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
+        _context = self.upstream_get("context")
+        verifier = JWT(key_jar=self.upstream_get('attribute','keyjar'),
+                       allowed_sign_algs=[self.alg])
         try:
             _payload = verifier.unpack(token)
         except JWSException:

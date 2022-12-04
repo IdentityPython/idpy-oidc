@@ -181,7 +181,7 @@ class Grant(Item):
     def payload_arguments(
             self,
             session_id: str,
-            endpoint_context,
+            context,
             item: SessionToken,
             claims_release_point: str,
             scope: Optional[dict] = None,
@@ -191,7 +191,7 @@ class Grant(Item):
         """
 
         :param session_id: Session ID
-        :param endpoint_context: EndPoint Context
+        :param context: EndPoint Context
         :param item: A SessionToken instance
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
         :param extra_payload:
@@ -231,16 +231,16 @@ class Grant(Item):
         if item.claims:
             _claims_restriction = item.claims
         else:
-            _claims_restriction = endpoint_context.claims_interface.get_claims(
+            _claims_restriction = context.claims_interface.get_claims(
                 session_id,
                 scopes=payload["scope"],
                 claims_release_point=claims_release_point,
                 secondary_identifier=secondary_identifier,
             )
 
-        if endpoint_context.session_manager.node_type[0] == "user":
-            user_id, _, _ = endpoint_context.session_manager.decrypt_branch_id(session_id)
-            user_info = endpoint_context.claims_interface.get_user_claims(user_id,
+        if context.session_manager.node_type[0] == "user":
+            user_id, _, _ = context.session_manager.decrypt_branch_id(session_id)
+            user_info = context.claims_interface.get_user_claims(user_id,
                                                                           _claims_restriction)
             payload.update(user_info)
 
@@ -255,7 +255,7 @@ class Grant(Item):
     def mint_token(
             self,
             session_id: str,
-            endpoint_context: object,
+        context: object,
             token_class: str,
             token_handler: TokenHandler = None,
             based_on: Optional[SessionToken] = None,
@@ -270,7 +270,7 @@ class Grant(Item):
         """
 
         :param session_id:
-        :param endpoint_context:
+        :param context:
         :param token_type:
         :param token_handler:
         :param based_on:
@@ -343,9 +343,9 @@ class Grant(Item):
                 **class_args,
             )
             if token_handler is None:
-                token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
+                token_handler = context.session_manager.token_handler.handler[token_class]
 
-            if token_class in endpoint_context.claims_interface.claims_release_points:
+            if token_class in context.claims_interface.claims_release_points:
                 claims_release_point = token_class
             else:
                 claims_release_point = ""
@@ -361,7 +361,7 @@ class Grant(Item):
 
             token_payload = self.payload_arguments(
                 session_id,
-                endpoint_context,
+                context,
                 item=item,
                 claims_release_point=claims_release_point,
                 scope=scope,
@@ -455,19 +455,19 @@ DEFAULT_USAGE = {
 }
 
 
-def get_usage_rules(token_type, endpoint_context, grant, client_id):
+def get_usage_rules(token_type, context, grant, client_id):
     """
     The order of importance:
     Grant, Client, EndPointContext, Default
 
     :param token_type: The type of token
-    :param endpoint_context: An EndpointContext instance
+    :param context: An EndpointContext instance
     :param grant: A Grant instance
     :param client_id: The client identifier
     :return: Usage specification
     """
 
-    _usage = endpoint_context.authz.usage_rules_for(client_id, token_type)
+    _usage = context.authz.usage_rules_for(client_id, token_type)
     if not _usage:
         _usage = DEFAULT_USAGE[token_type]
 

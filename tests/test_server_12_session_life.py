@@ -97,7 +97,7 @@ class TestSession:
 
         code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -145,7 +145,7 @@ class TestSession:
 
         grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -156,7 +156,7 @@ class TestSession:
 
         refresh_token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
             based_on=tok,
@@ -182,7 +182,7 @@ class TestSession:
 
         access_token_2 = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -330,7 +330,7 @@ class TestSessionJWTToken:
         # Constructing an authorization code is now done by
         code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -378,7 +378,7 @@ class TestSessionJWTToken:
 
         grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -390,7 +390,7 @@ class TestSessionJWTToken:
 
         refresh_token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=self.session_manager.token_handler["refresh_token"],
             based_on=tok,
@@ -424,7 +424,7 @@ class TestSessionJWTToken:
 
         access_token_2 = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now

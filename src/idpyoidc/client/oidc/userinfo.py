@@ -49,8 +49,8 @@ class UserInfo(Service):
         "encrypt_userinfo_supported": None
     }
 
-    def __init__(self, superior_get, conf=None):
-        Service.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
@@ -60,7 +60,7 @@ class UserInfo(Service):
         if "access_token" in request_args:
             pass
         else:
-            request_args = self.superior_get("context").cstate.get_set(
+            request_args = self.upstream_get("context").cstate.get_set(
                 kwargs["state"],
                 claim=["access_token"]
             )
@@ -68,7 +68,7 @@ class UserInfo(Service):
         return request_args, {}
 
     def post_parse_response(self, response, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         _current = _context.cstate
         _args = _current.get_set(kwargs["state"], claim=[verified_claim_name("id_token")])
 
@@ -89,7 +89,8 @@ class UserInfo(Service):
                 if "JWT" in spec:
                     try:
                         aggregated_claims = Message().from_jwt(
-                            spec["JWT"].encode("utf-8"), keyjar=_context.keyjar
+                            spec["JWT"].encode("utf-8"),
+                            keyjar=self.upstream_get('attribute', 'keyjar')
                         )
                     except MissingSigningKey as err:
                         logger.warning(
@@ -111,18 +112,19 @@ class UserInfo(Service):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         kwargs = {
             "client_id": _context.get_client_id(),
             "iss": _context.issuer,
-            "keyjar": _context.keyjar,
+            "keyjar": self.upstream_get('attribute', 'keyjar'),
             "verify": True,
             "skew": _context.clock_skew,
         }

@@ -164,7 +164,7 @@ class TestEndpoint(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         server.endpoint_context.cdb["client_id"] = {}
-        self.endpoint = server.server_get("endpoint", "registration")
+        self.endpoint = server.get_endpoint("registration")
 
     def test_parse(self):
         _req = self.endpoint.parse_request(CLI_REQ.to_json())

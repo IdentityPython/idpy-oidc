@@ -84,14 +84,14 @@ class DPoPProof(Message):
             return None
 
 
-def post_parse_request(request, client_id, endpoint_context, **kwargs):
+def post_parse_request(request, client_id, context, **kwargs):
     """
     Expect http_info attribute in kwargs. http_info should be a dictionary
     containing HTTP information.
 
     :param request:
     :param client_id:
-    :param endpoint_context:
+    :param context:
     :param kwargs:
     :return:
     """
@@ -119,14 +119,14 @@ def post_parse_request(request, client_id, endpoint_context, **kwargs):
     return request
 
 
-def token_args(endpoint_context, client_id, token_args: Optional[dict] = None):
-    dpop_jkt = endpoint_context.cdb[client_id]["dpop_jkt"]
+def token_args(context, client_id, token_args: Optional[dict] = None):
+    dpop_jkt = context.cdb[client_id]["dpop_jkt"]
     _jkt = list(dpop_jkt.keys())[0]
-    if "dpop_jkt" in endpoint_context.cdb[client_id]:
+    if "dpop_jkt" in context.cdb[client_id]:
         if token_args is None:
             token_args = {"cnf": {"jkt": _jkt}}
         else:
-            token_args.update({"cnf": {"jkt": endpoint_context.cdb[client_id]["dpop_jkt"]}})
+            token_args.update({"cnf": {"jkt": context.cdb[client_id]["dpop_jkt"]}})
 
     return token_args
 
@@ -137,17 +137,17 @@ def add_support(endpoint, **kwargs):
     _token_endp.post_parse_request.append(post_parse_request)
 
     # Endpoint Context stuff
-    # _endp.endpoint_context.token_args_methods.append(token_args)
+    # _endp.context.token_args_methods.append(token_args)
     _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
     if not _algs_supported:
         _algs_supported = ["RS256"]
 
-    _token_endp.server_get("context").provider_info[
+    _token_endp.upstream_get("context").provider_info[
         "dpop_signing_alg_values_supported"
     ] = _algs_supported
 
-    _endpoint_context = _token_endp.server_get("context")
-    _endpoint_context.dpop_enabled = True
+    _context = _token_endp.upstream_get("context")
+    _context.dpop_enabled = True
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header
@@ -163,7 +163,7 @@ class DPoPClientAuth(ClientAuthnMethod):
 
     def verify(self, authorization_info, **kwargs):
         client_info = basic_authn(authorization_info)
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
             return {"client_id": client_info["id"]}
         else:

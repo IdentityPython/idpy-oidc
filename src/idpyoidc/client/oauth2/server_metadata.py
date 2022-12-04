@@ -24,8 +24,8 @@ class ServerMetadata(Service):
 
     _supports = {}
 
-    def __init__(self, superior_get, conf=None):
-        Service.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
 
     def get_endpoint(self):
         """
@@ -34,7 +34,7 @@ class ServerMetadata(Service):
         :return: Service endpoint
         """
         try:
-            _iss = self.superior_get("context").issuer
+            _iss = self.upstream_get("context").issuer
         except AttributeError:
             _iss = self.endpoint
 
@@ -69,7 +69,7 @@ class ServerMetadata(Service):
         # In some cases we can live with the two URLs not being
         # the same. But this is an excepted that has to be explicit
         try:
-            self.superior_get("context").allow["issuer_mismatch"]
+            self.upstream_get("context").allow["issuer_mismatch"]
         except KeyError:
             if _issuer != _pcr_issuer:
                 raise OidcServiceError(
@@ -86,7 +86,7 @@ class ServerMetadata(Service):
             # a name ending in '_endpoint' so I can look specifically
             # for those
             if key.endswith("_endpoint"):
-                _srv = self.superior_get("service_by_endpoint_name", key)
+                _srv = self.upstream_get("service_by_endpoint_name", key)
                 if _srv:
                     _srv.endpoint = val
 
@@ -99,7 +99,7 @@ class ServerMetadata(Service):
         :param service_context: Information collected/used by services
         """
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         # Verify that the issuer value received is the same as the
         # url that was used as service endpoint (without the .well-known part)
         if "issuer" in resp:
@@ -115,7 +115,7 @@ class ServerMetadata(Service):
         # If I already have a Key Jar then I'll add then provider keys to
         # that. Otherwise a new Key Jar is minted
         try:
-            _keyjar = _context.keyjar
+            _keyjar = self.upstream_get('attribute', 'keyjar')
         except KeyError:
             _keyjar = KeyJar()
 
@@ -125,8 +125,6 @@ class ServerMetadata(Service):
             _keyjar.load_keys(_pcr_issuer, jwks_uri=resp["jwks_uri"])
         elif "jwks" in resp:
             _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
-
-        _context.keyjar = _keyjar
 
     def update_service_context(self, resp, **kwargs):
         return self._update_service_context(resp)

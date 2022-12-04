@@ -41,8 +41,8 @@ class TestService:
         self.service_context = self.entity.get_service_context()
         self.service_context.map_supported_to_preferred()
 
-    def client_get(self, *args):
-        if args[0] == "service_context":
+    def upstream_get(self, *args):
+        if args[0] == "context":
             return self.service_context
 
     def test_1(self):
@@ -112,7 +112,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service_context.keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_json()
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
@@ -124,7 +124,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service_context.keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )
@@ -138,7 +138,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service_context.keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )
@@ -184,9 +184,9 @@ class TestAuthorization(object):
         _info = self.service.get_request_parameters(request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
-        self.service.client_get("service_context").cstate.set(_state, msg)
+        self.service.upstream_get("service_context").cstate.set(_state, msg)
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
         response = self.service.parse_response(resp1.to_urlencoded(), "urlencoded", state=_state)
         self.service.update_service_context(response, key=_state)
-        assert self.service.client_get("service_context").cstate.get(_state)
+        assert self.service.upstream_get("service_context").cstate.get(_state)

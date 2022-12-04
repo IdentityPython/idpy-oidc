@@ -110,7 +110,7 @@ class TestGrant:
     @pytest.fixture(autouse=True)
     def create_session_manager(self):
         self.server = Server(conf=conf)
-        self.endpoint_context = self.server.server_get("endpoint_context")
+        self.endpoint_context = self.server.get_context()
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -134,14 +134,14 @@ class TestGrant:
 
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -158,14 +158,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -173,7 +173,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -190,14 +190,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -219,14 +219,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -234,7 +234,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -256,14 +256,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -276,7 +276,7 @@ class TestGrant:
 
         access_token_2 = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -295,14 +295,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -333,7 +333,7 @@ class TestGrant:
         with pytest.raises(ValueError):
             grant.mint_token(
                 session_id,
-                endpoint_context=self.endpoint_context,
+                context=self.endpoint_context,
                 token_class="authorization_code",
                 token_handler=TOKEN_HANDLER["authorization_code"],
             )
@@ -350,14 +350,14 @@ class TestGrant:
         grant.token_map = token_map
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -365,7 +365,7 @@ class TestGrant:
 
         grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="my_token",
             token_handler=DefaultToken("my_token", typ="M"),
         )
@@ -404,14 +404,14 @@ class TestGrant:
 
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -452,7 +452,7 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -461,7 +461,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -477,7 +477,7 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -486,7 +486,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -494,7 +494,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -506,7 +506,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -522,14 +522,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -537,7 +537,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -554,14 +554,14 @@ class TestGrant:
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -569,7 +569,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,

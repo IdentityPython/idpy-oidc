@@ -156,7 +156,7 @@ class TestEndpoint(object):
         assert claims == {}
 
     def test_get_claims_userinfo_3(self):
-        _module = self.server.server_get("endpoint", "userinfo")
+        _module = self.server.get_endpoint("userinfo")
         session_id = self._create_session(AREQ)
         _module.kwargs = {
             "base_claims": {"email": None, "email_verified": None},
@@ -178,7 +178,7 @@ class TestEndpoint(object):
         }
 
     def test_get_claims_introspection_3(self):
-        _module = self.server.server_get("endpoint", "introspection")
+        _module = self.server.get_endpoint("introspection")
         _module.kwargs = {
             "base_claims": {"email": None, "email_verified": None},
             "enable_claims_per_client": True,
@@ -206,8 +206,8 @@ class TestEndpoint(object):
         self.session_manager.token_handler["id_token"].kwargs = {}
         self.session_manager.token_handler["access_token"].kwargs = {}
 
-        self.server.server_get("endpoint", "userinfo").kwargs = {}
-        self.server.server_get("endpoint", "introspection").kwargs = {}
+        self.server.get_endpoint("userinfo").kwargs = {}
+        self.server.get_endpoint("introspection").kwargs = {}
 
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
@@ -226,7 +226,7 @@ class TestEndpoint(object):
             "base_claims": {"email": None, "email_verified": None}
         }
 
-        self.server.server_get("endpoint", "userinfo").kwargs = {
+        self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
         self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
@@ -234,7 +234,7 @@ class TestEndpoint(object):
             "email",
         ]
 
-        self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
+        self.server.get_endpoint("introspection").kwargs = {"add_claims_by_scope": True}
 
         self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
 
@@ -258,7 +258,7 @@ class TestEndpoint(object):
             "base_claims": {"email": None, "email_verified": None}
         }
 
-        self.server.server_get("endpoint", "userinfo").kwargs = {
+        self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
         self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
@@ -266,7 +266,7 @@ class TestEndpoint(object):
             "email",
         ]
 
-        self.server.server_get("endpoint", "introspection").kwargs = {"add_claims_by_scope": True}
+        self.server.get_endpoint("introspection").kwargs = {"add_claims_by_scope": True}
 
         self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
 

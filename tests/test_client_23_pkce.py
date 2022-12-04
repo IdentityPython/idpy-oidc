@@ -67,14 +67,14 @@ class TestPKCE256:
                              client_type='oauth2')
 
         if "add_ons" in config:
-            do_add_ons(config["add_ons"], self.entity.client_get("services"))
-        _context = self.entity.get_service_context()
+            do_add_ons(config["add_ons"], self.entity.get_services())
+        _context = self.entity.get_context()
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
 
     def test_add_code_challenge_default_values(self):
-        auth_serv = self.entity.client_get("service", "authorization")
-        _state_key = self.entity.client_get("service_context").cstate.create_state(iss="Issuer")
+        auth_serv = self.entity.get_service("authorization")
+        _state_key = self.entity.get_context().cstate.create_state(iss="Issuer")
         request_args, _ = add_code_challenge({"state": _state_key}, auth_serv)
 
         # default values are length:64 method:S256
@@ -86,7 +86,7 @@ class TestPKCE256:
 
     def test_authorization_and_pkce(self):
         auth_serv = self.entity.client_get("service", "authorization")
-        _state = self.entity.client_get("service_context").cstate.create_state(iss="Issuer")
+        _state = self.entity.get_context().state.create_state(iss="Issuer")
 
         request = auth_serv.construct_request({"state": _state, "response_type": "code"})
         assert set(request.keys()) == {
@@ -99,13 +99,16 @@ class TestPKCE256:
         }
 
     def test_access_token_and_pkce(self):
-        authz_service = self.entity.client_get("service", "authorization")
+        authz_service = self.entity.get_service("authorization")
         request = authz_service.construct_request({"state": "state", "response_type": "code"})
         _state = request["state"]
         auth_response = AuthorizationResponse(code="access code")
-        self.entity.client_get("service_context").cstate.update(_state, auth_response)
+        _context = self.entity.get_context()
+        _context.cstate.update(_state, auth_response)
+        auth_serv = self.entity.get_service("authorization")
+        _state = _context.cstate.create_state(iss="Issuer")
 
-        token_service = self.entity.client_get("service", "accesstoken")
+        token_service = self.entity.get_service("accesstoken")
         request = token_service.construct_request(state=_state)
         assert set(request.keys()) == {
             "client_id",
@@ -134,10 +137,10 @@ class TestPKCE384:
         }
         self.entity = Entity(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
         if "add_ons" in config:
-            do_add_ons(config["add_ons"], self.entity.client_get("services"))
+            do_add_ons(config["add_ons"], self.entity.get_services())
 
     def test_add_code_challenge_spec_values(self):
-        auth_serv = self.entity.client_get("service", "authorization")
+        auth_serv = self.entity.get_service("authorization")
         request_args, _ = add_code_challenge({"state": "state"}, auth_serv)
         assert set(request_args.keys()) == {"code_challenge", "code_challenge_method", "state"}
         assert request_args["code_challenge_method"] == "S384"

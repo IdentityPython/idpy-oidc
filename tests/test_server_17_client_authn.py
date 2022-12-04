@@ -48,10 +48,10 @@ class Endpoint_2(Endpoint):
 class Endpoint_3(Endpoint):
     name = "endpoint_3"
 
-    def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
+    def __init__(self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
         Endpoint.__init__(
             self,
-            server_get,
+            upstream_get,
             add_claims_by_scope=add_claims_by_scope,
             **kwargs,
         )
@@ -252,7 +252,7 @@ class TestPrivateKeyJWT:
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack(
-            {"aud": [self.server.server_get("endpoint", "endpoint_1").full_path]}
+            {"aud": [self.server.get_endpoint("endpoint_1").full_path]}
         )
 
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
@@ -260,19 +260,19 @@ class TestPrivateKeyJWT:
         # This should be OK
         assert self.method.is_usable(request=request)
         self.method.verify(
-            request=request, endpoint=self.server.server_get("endpoint", "endpoint_1")
+            request=request, endpoint=self.server.get_endpoint("endpoint_1")
         )
 
         # This should NOT be OK
         with pytest.raises(InvalidToken):
             self.method.verify(
-                request=request, endpoint=self.server.server_get("endpoint", "authorization")
+                request=request, endpoint=self.server.get_endpoint("authorization")
             )
 
         # This should NOT be OK because this is the second time the token appears
         with pytest.raises(InvalidToken):
             self.method.verify(
-                request=request, endpoint=self.server.server_get("endpoint", "endpoint_1")
+                request=request, endpoint=self.server.get_endpoint("endpoint_1")
             )
 
     def test_private_key_jwt_auth_endpoint(self):
@@ -287,7 +287,7 @@ class TestPrivateKeyJWT:
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack(
-            {"aud": [self.server.server_get("endpoint", "endpoint_2").full_path]}
+            {"aud": [self.server.get_endpoint("endpoint_2").full_path]}
         )
 
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
@@ -295,7 +295,7 @@ class TestPrivateKeyJWT:
         assert self.method.is_usable(request=request)
         authn_info = self.method.verify(
             request=request,
-            endpoint=self.server.server_get("endpoint", "endpoint_2"),
+            endpoint=self.server.get_endpoint("endpoint_2"),
         )
 
         assert authn_info["client_id"] == client_id
@@ -400,7 +400,7 @@ class TestJWSAuthnMethod:
 
         assert self.method.verify(
             request=request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
             key_type="client_secret",
         )
 
@@ -437,7 +437,7 @@ class TestJWSAuthnMethod:
 
         assert self.method.verify(
             request=request,
-            endpoint=self.server.server_get("endpoint", "endpoint_3"),
+            endpoint=self.server.get_endpoint("endpoint_3"),
             key_type="client_secret",
         )
 
@@ -475,7 +475,7 @@ class TestVerify:
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server.endpoint = do_endpoints(CONF, self.server.server_get)
-        self.endpoint_context = self.server.server_get("context")
+        self.endpoint_context = self.server.get_context()
 
     def test_verify_per_client(self):
         self.server.endpoint_context.cdb[client_id]["client_authn_method"] = ["public"]
@@ -484,7 +484,7 @@ class TestVerify:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_4"),
+            endpoint=self.server.get_endpoint("endpoint_4"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
@@ -500,22 +500,23 @@ class TestVerify:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_4"),
+            endpoint=self.server.get_endpoint("endpoint_4"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
-        res = verify_client(
-            self.endpoint_context,
-            request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
-        )
-        assert res == {}
+        with pytest.raises(ClientAuthenticationError) as e:
+            verify_client(
+                self.endpoint_context,
+                request,
+                endpoint=self.server.get_endpoint("endpoint_1"),
+            )
+        assert e.value.args[0] == "Failed to verify client"
 
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_post"
@@ -525,7 +526,7 @@ class TestVerify:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_post"
@@ -547,7 +548,7 @@ class TestVerify:
             self.endpoint_context,
             request,
             http_info=http_info,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert res["method"] == "client_secret_jwt"
         assert res["client_id"] == "client_id"
@@ -559,7 +560,7 @@ class TestVerify:
             self.endpoint_context,
             request,
             get_client_id_from_token=get_client_id_from_token,
-            endpoint=self.server.server_get("endpoint", "endpoint_3"),
+            endpoint=self.server.get_endpoint("endpoint_3"),
         )
         assert set(res.keys()) == {"token", "method", "client_id"}
         assert res["method"] == "bearer_body"
@@ -567,7 +568,7 @@ class TestVerify:
     # def test_verify_client_client_secret_post(self):
     #     request = {"client_id": client_id, "client_secret": client_secret}
     #     res = verify_client(
-    #         self.endpoint_context, request, endpoint=self.server.server_get("endpoint",
+    #         self.endpoint_context, request, endpoint=self.server.upstream_get("endpoint",
     #         "endpoint_1"),
     #     )
     #     assert set(res.keys()) == {"method", "client_id"}
@@ -583,7 +584,7 @@ class TestVerify:
             self.endpoint_context,
             request={},
             http_info=http_info,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_basic"
@@ -600,7 +601,7 @@ class TestVerify:
             request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
-            endpoint=self.server.server_get("endpoint", "endpoint_2"),
+            endpoint=self.server.get_endpoint("endpoint_2"),
         )
         assert set(res.keys()) == {"token", "method", "client_id"}
         assert res["method"] == "bearer_header"
@@ -612,7 +613,7 @@ class TestVerify2:
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server.endpoint = do_endpoints(CONF, self.server.server_get)
-        self.endpoint_context = self.server.server_get("context")
+        self.endpoint_context = self.server.get_context()
 
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()
@@ -630,7 +631,7 @@ class TestVerify2:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert res["method"] == "client_secret_jwt"
         assert res["client_id"] == "client_id"
@@ -642,7 +643,7 @@ class TestVerify2:
             self.endpoint_context,
             request,
             get_client_id_from_token=get_client_id_from_token,
-            endpoint=self.server.server_get("endpoint", "endpoint_3"),
+            endpoint=self.server.get_endpoint("endpoint_3"),
         )
         assert set(res.keys()) == {"token", "method", "client_id"}
         assert res["method"] == "bearer_body"
@@ -652,7 +653,7 @@ class TestVerify2:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_post"
@@ -667,7 +668,7 @@ class TestVerify2:
             self.endpoint_context,
             {},
             http_info=http_info,
-            endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            endpoint=self.server.get_endpoint("endpoint_1"),
         )
         assert set(res.keys()) == {"method", "client_id"}
         assert res["method"] == "client_secret_basic"
@@ -684,7 +685,7 @@ class TestVerify2:
             request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
-            endpoint=self.server.server_get("endpoint", "endpoint_2"),
+            endpoint=self.server.get_endpoint("endpoint_2"),
         )
         assert set(res.keys()) == {"token", "method", "client_id"}
         assert res["method"] == "bearer_header"
@@ -695,7 +696,7 @@ class TestVerify2:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_2"),
+            endpoint=self.server.get_endpoint("endpoint_2"),
         )
         assert res["method"] == "none"
         assert res["client_id"] == "client_id"
@@ -706,7 +707,7 @@ class TestVerify2:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_4"),
+            endpoint=self.server.get_endpoint("endpoint_4"),
         )
         assert res == {"client_id": "client_id", "method": "public"}
 
@@ -716,7 +717,7 @@ class TestVerify2:
         res = verify_client(
             self.endpoint_context,
             request,
-            endpoint=self.server.server_get("endpoint", "endpoint_4"),
+            endpoint=self.server.get_endpoint("endpoint_4"),
         )
         assert res == {"client_id": None, "method": "none"}
 
@@ -737,7 +738,7 @@ def test_client_auth_setup():
 
     request = {"redirect_uris": ["https://example.com/cb"]}
     res = verify_client(
-        server.endpoint_context, request, endpoint=server.server_get("endpoint", "endpoint_4")
+        server.endpoint_context, request, endpoint=server.get_endpoint("endpoint_4")
     )
 
     assert res == {"client_id": "client_id", "method": "custom"}

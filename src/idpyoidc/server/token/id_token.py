@@ -27,15 +27,15 @@ DEF_SIGN_ALG = {
 }
 
 
-def include_session_id(endpoint_context, client_id, where):
+def include_session_id(context, client_id, where):
     """
 
-    :param endpoint_context:
+    :param context:
     :param client_id:
     :param where: front or back
     :return:
     """
-    _pinfo = endpoint_context.provider_info
+    _pinfo = context.provider_info
 
     # Am the OP supposed to support {dir}-channel log out and if so can
     # it pass sid in logout token and ID Token
@@ -50,7 +50,7 @@ def include_session_id(endpoint_context, client_id, where):
 
     # Does the client support back-channel logout ?
     try:
-        endpoint_context.cdb[client_id]["{}channel_logout_uri".format(where)]
+        context.cdb[client_id]["{}channel_logout_uri".format(where)]
     except KeyError:
         return False
 
@@ -58,7 +58,7 @@ def include_session_id(endpoint_context, client_id, where):
 
 
 def get_sign_and_encrypt_algorithms(
-    endpoint_context, client_info, payload_type, sign=False, encrypt=False
+    context, client_info, payload_type, sign=False, encrypt=False
 ):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
@@ -66,10 +66,10 @@ def get_sign_and_encrypt_algorithms(
             args["sign_alg"] = client_info["{}_signed_response_alg".format(payload_type)]
         except KeyError:  # Fall back to default
             try:
-                args["sign_alg"] = endpoint_context.jwx_def["signing_alg"][payload_type]
+                args["sign_alg"] = context.jwx_def["signing_alg"][payload_type]
             except KeyError:
                 _def_sign_alg = DEF_SIGN_ALG[payload_type]
-                _supported = endpoint_context.provider_info.get(
+                _supported = context.provider_info.get(
                     "{}_signing_alg_values_supported".format(payload_type)
                 )
 
@@ -86,9 +86,9 @@ def get_sign_and_encrypt_algorithms(
             args["enc_alg"] = client_info["%s_encrypted_response_alg" % payload_type]
         except KeyError:
             try:
-                args["enc_alg"] = endpoint_context.jwx_def["encryption_alg"][payload_type]
+                args["enc_alg"] = context.jwx_def["encryption_alg"][payload_type]
             except KeyError:
-                _supported = endpoint_context.provider_info.get(
+                _supported = context.provider_info.get(
                     "{}_encryption_alg_values_supported".format(payload_type)
                 )
                 if _supported:
@@ -98,9 +98,9 @@ def get_sign_and_encrypt_algorithms(
             args["enc_enc"] = client_info["%s_encrypted_response_enc" % payload_type]
         except KeyError:
             try:
-                args["enc_enc"] = endpoint_context.jwx_def["encryption_enc"][payload_type]
+                args["enc_enc"] = context.jwx_def["encryption_enc"][payload_type]
             except KeyError:
-                _supported = endpoint_context.provider_info.get(
+                _supported = context.provider_info.get(
                     "{}_encryption_enc_values_supported".format(payload_type)
                 )
                 if _supported:
@@ -120,12 +120,12 @@ class IDToken(Token):
         self,
         token_class: Optional[str] = "id_token",
         lifetime: Optional[int] = 300,
-        server_get: Callable = None,
+        upstream_get: Callable = None,
         **kwargs,
     ):
         Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
-        self.server_get = server_get
+        self.upstream_get = upstream_get
         self.kwargs = kwargs
         self.scope_to_claims = None
         self.provider_info = construct_provider_info(self.default_capabilities, **kwargs)
@@ -150,7 +150,7 @@ class IDToken(Token):
         :return: IDToken instance
         """
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _mngr = _context.session_manager
         session_information = _mngr.get_session_info(session_id, grant=True)
         grant = session_information["grant"]
@@ -236,7 +236,7 @@ class IDToken(Token):
         :return: IDToken as a signed and/or encrypted JWT
         """
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         client_info = _context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(
@@ -255,7 +255,11 @@ class IDToken(Token):
         if lifetime is None:
             lifetime = self.lifetime
 
-        _jwt = JWT(_context.keyjar, iss=_context.issuer, lifetime=lifetime, **alg_dict)
+        _jwt = JWT(
+            self.upstream_get('attribute', 'keyjar'),
+            iss=_context.issuer,
+            lifetime=lifetime,
+            **alg_dict)
 
         return _jwt.pack(_payload, recv=client_id)
 
@@ -269,7 +273,7 @@ class IDToken(Token):
         usage_rules: Optional[dict] = None,
         **kwargs,
     ) -> str:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
@@ -307,7 +311,7 @@ class IDToken(Token):
         :return: tuple of token type and session id
         """
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         _jwt = factory(token)
         if not _jwt:
@@ -318,7 +322,9 @@ class IDToken(Token):
         client_info = _context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(_context, client_info, "id_token", sign=True)
 
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=alg_dict["sign_alg"])
+        verifier = JWT(
+            key_jar=self.upstream_get('attribute', 'keyjar'),
+            allowed_sign_algs=alg_dict["sign_alg"])
         try:
             _payload = verifier.unpack(token)
         except JWSException:

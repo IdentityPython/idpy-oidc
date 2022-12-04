@@ -134,10 +134,10 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        server.endpoint_context.keyjar.add_symmetric(
+        server.get_attribute('attribute', 'keyjar').add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
-        server.endpoint = do_endpoints(conf, server.server_get)
+        server.endpoint = do_endpoints(conf, server.upstream_get)
         self.session_manager = server.endpoint_context.session_manager
         self.user_id = USER_ID
         self.server = server
@@ -193,7 +193,7 @@ class TestEndpoint(object):
         assert _usage_rules["refresh_token"] == {}
 
     def test_factory(self):
-        _mod = factory("Implicit", server_get=self.server.server_get)
+        _mod = factory("Implicit", upstream_get=self.server.upstream_get)
         assert isinstance(_mod, Implicit)
 
     def test_call(self):

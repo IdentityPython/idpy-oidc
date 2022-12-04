@@ -128,7 +128,7 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_idtoken(self):
         self.server = Server(conf)
-        # self.endpoint_context = EndpointContext(conf=conf, server_get=self.server_get)
+        # self.endpoint_context = EndpointContext(conf=conf, upstream_get=self.upstream_get)
         self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
@@ -141,7 +141,8 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        self.server.get_attribute('keyjar').add_symmetric("client_1", "hemligtochintekort",
+                                                          ["sig", "enc"])
         self.claims_interface = self.endpoint_context.claims_interface
 
         self.user_id = USER_ID

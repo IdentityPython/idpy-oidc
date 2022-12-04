@@ -18,12 +18,12 @@ class CheckSession(Service):
     synchronous = True
     service_name = "check_session"
 
-    def __init__(self, superior_get, conf=None):
-        Service.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
-        _args = self.superior_get("context").cstate.get_set(kwargs["state"],
+        _args = self.upstream_get("context").cstate.get_set(kwargs["state"],
                                                                   claim=["id_token"])
         if request_args:
             request_args.update(_args)

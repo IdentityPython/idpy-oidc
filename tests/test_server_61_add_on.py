@@ -145,10 +145,10 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint = server.server_get("endpoint", "authorization")
+        self.endpoint = server.get_endpoint("authorization")
 
     def test_process_request(self):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         assert _context.add_on["extra_args"] == {"authorization": {"iss": "issuer"}}
 
         _pr_resp = self.endpoint.parse_request(AUTH_REQ)

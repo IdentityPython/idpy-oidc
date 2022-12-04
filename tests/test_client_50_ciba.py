@@ -39,7 +39,7 @@ class TestDPoPWithoutUserinfo:
 
         self.client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
 
-        self.client.client_get("service_context").provider_info = {
+        self.client.upstream_get("context").provider_info = {
             "authorization_endpoint": "https://example.com/auth",
             "token_endpoint": "https://example.com/token",
             "dpop_signing_alg_values_supported": ["RS256", "ES256"],

@@ -93,8 +93,8 @@ class Endpoint(object):
 
     _supports = {}
 
-    def __init__(self, server_get: Callable, **kwargs):
-        self.server_get = server_get
+    def __init__(self, upstream_get: Callable, **kwargs):
+        self.upstream_get = upstream_get
         self.pre_construct = []
         self.post_construct = []
         self.post_parse_request = []
@@ -160,7 +160,8 @@ class Endpoint(object):
         LOGGER.debug("- {} -".format(self.endpoint_name))
         LOGGER.info("Request: %s" % sanitize(request))
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
+        _keyjar = self.upstream_get('attribute', 'keyjar')
 
         if http_info is None:
             http_info = {}
@@ -174,7 +175,7 @@ class Endpoint(object):
                     req = _cls_inst.deserialize(
                         request,
                         "jwt",
-                        keyjar=self.server_get("keyjar"),
+                        keyjar=_keyjar,
                         verify=_context.httpc_params["verify"],
                         **kwargs
                     )
@@ -196,14 +197,12 @@ class Endpoint(object):
         else:
             _client_id = req.get("client_id")
 
-        keyjar = self.server_get("keyjar")
-
         # verify that the request message is correct
         try:
             if verify_args is None:
-                req.verify(keyjar=keyjar, opponent_id=_client_id)
+                req.verify(keyjar=_keyjar, opponent_id=_client_id)
             else:
-                req.verify(keyjar=keyjar, opponent_id=_client_id, **verify_args)
+                req.verify(keyjar=_keyjar, opponent_id=_client_id, **verify_args)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
             _error = "invalid_request"
             if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
@@ -237,7 +236,7 @@ class Endpoint(object):
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
         authn_info = verify_client(
-            endpoint_context=self.server_get("context"),
+            context=self.upstream_get("context"),
             request=request,
             http_info=http_info,
             **kwargs
@@ -254,19 +253,19 @@ class Endpoint(object):
     def do_post_parse_request(
         self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(request, client_id, endpoint_context=_context, **kwargs)
+            request = meth(request, client_id, context=_context, **kwargs)
         return request
 
     def do_pre_construct(
         self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.pre_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request, context=_context, **kwargs)
 
         return response_args
 
@@ -276,9 +275,9 @@ class Endpoint(object):
         request: Optional[Union[Message, dict]] = None,
         **kwargs
     ) -> dict:
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for meth in self.post_construct:
-            response_args = meth(response_args, request, endpoint_context=_context, **kwargs)
+            response_args = meth(response_args, request, context=_context, **kwargs)
 
         return response_args
 
@@ -435,12 +434,12 @@ class Endpoint(object):
 
     def allowed_target_uris(self):
         res = []
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         for t in self.allowed_targets:
             if t == "":
                 res.append(_context.issuer)
             else:
-                res.append(self.server_get("endpoint", t).full_path)
+                res.append(self.upstream_get("endpoint", t).full_path)
         return set(res)
 
     def supports(self):

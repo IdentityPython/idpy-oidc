@@ -2,6 +2,9 @@ import json
 import logging
 from typing import Callable
 from typing import Optional
+from typing import Union
+
+from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.client import oauth2
 from idpyoidc.client.client_auth import BearerHeader
@@ -77,28 +80,34 @@ class RP(oauth2.Client):
 
     def __init__(
             self,
-            keyjar=None,
-            verify_ssl=True,
-            config=None,
-            httpc=None,
-            services=None,
-            httpc_params=None,
-            superior_get: Optional[Callable] = None,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            context: Optional[OidcContext] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = '',
+            verify_ssl: Optional[bool] = True,
+            jwks_uri: Optional[str] = "",
             **kwargs
     ):
-        self.superior_get = superior_get
+        self.upstream_get = upstream_get
         _srvs = services or DEFAULT_OIDC_SERVICES
 
         oauth2.Client.__init__(
             self,
             keyjar=keyjar,
-            verify_ssl=verify_ssl,
             config=config,
-            httpc=httpc,
             services=_srvs,
+            httpc=httpc,
             httpc_params=httpc_params,
-            client_type="oidc",
-            superior_get=superior_get,
+            upstream_get=upstream_get,
+            key_conf=key_conf,
+            entity_id=entity_id,
+            verify_ssl=verify_ssl,
+            jwks_uri=jwks_uri,
             **kwargs
         )
 
@@ -124,20 +133,20 @@ class RP(oauth2.Client):
                     if "access_token" in spec:
                         cauth = BearerHeader()
                         httpc_params = cauth.construct(
-                            service=self.superior_get("service", "userinfo"),
+                            service=self.get_service("userinfo"),
                             access_token=spec["access_token"],
                         )
-                        _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
+                        _resp = self.httpc.send(spec["endpoint"], "GET", **httpc_params)
                     else:
                         if callback:
                             token = callback(spec["endpoint"])
                             cauth = BearerHeader()
                             httpc_params = cauth.construct(
-                                service=self.superior_get("service", "userinfo"), access_token=token
+                                service=self.get_service("userinfo"), access_token=token
                             )
-                            _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
+                            _resp = self.httpc.send(spec["endpoint"], "GET", **httpc_params)
                         else:
-                            _resp = self.http.send(spec["endpoint"], "GET")
+                            _resp = self.httpc.send(spec["endpoint"], "GET")
 
                     if _resp.status_code == 200:
                         _uinfo = json.loads(_resp.text)

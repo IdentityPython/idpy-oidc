@@ -81,7 +81,7 @@ class TestProviderConfigEndpoint(object):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
         self.endpoint_context = server.endpoint_context
-        self.endpoint = server.server_get("endpoint", "provider_config")
+        self.endpoint = server.get_endpoint("provider_config")
 
     def test_do_response(self):
         args = self.endpoint.process_request()
@@ -99,7 +99,7 @@ class TestProviderConfigEndpoint(object):
         conf["scopes_supported"] = scopes_supported
 
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint = server.server_get("endpoint", "provider_config")
+        endpoint = server.get_endpoint("provider_config")
         args = endpoint.process_request()
         msg = endpoint.do_response(args["response_args"])
         assert isinstance(msg, dict)

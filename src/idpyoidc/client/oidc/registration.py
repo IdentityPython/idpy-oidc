@@ -23,13 +23,13 @@ class Registration(Service):
 
     callback_path = {}
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.add_client_preference]
         self.post_construct = [self.oidc_post_construct]
 
     def add_client_preference(self, request_args=None, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         _use = _context.map_preferred_to_registered()
         for prop, spec in self.msg_type.c_param.items():
             if prop in request_args:
@@ -64,7 +64,7 @@ class Registration(Service):
         # if "token_endpoint_auth_method" not in resp:
         #     resp["token_endpoint_auth_method"] = "client_secret_basic"
 
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         _context.map_preferred_to_registered(resp)
         _keyjar = _context.keyjar
 

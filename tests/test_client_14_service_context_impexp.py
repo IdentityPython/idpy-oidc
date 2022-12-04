@@ -122,7 +122,7 @@ class TestClientInfo(object):
         }
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
-            self.service_context.dump(exclude_attributes=["service_context"])
+            self.service_context.dump(exclude_attributes=["context"])
         )
         assert srvcntx.get_sign_alg("userinfo") is None
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
@@ -142,7 +142,7 @@ class TestClientInfo(object):
         }
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
-            self.service_context.dump(exclude_attributes=["service_context"])
+            self.service_context.dump(exclude_attributes=["context"])
         )
         res = srvcntx.get_enc_alg_enc("userinfo")
         # 'sign':'RS256' is an added default
@@ -167,7 +167,7 @@ class TestClientInfo(object):
         }
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
-            self.service_context.dump(exclude_attributes=["service_context"])
+            self.service_context.dump(exclude_attributes=["context"])
         )
 
         # 'sign':'RS256' is an added default
@@ -235,7 +235,7 @@ class TestClientInfo(object):
         }
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
-            self.service_context.dump(exclude_attributes=["service_context"])
+            self.service_context.dump(exclude_attributes=["context"])
         )
 
         assert verify_alg_support(srvcntx, "RS256", "id_token", "signing_alg")
@@ -256,7 +256,7 @@ class TestClientInfo(object):
         self.service_context.import_keys(keyspec)
 
         srvcntx = ServiceContext(base_url=BASE_URL).load(
-            self.service_context.dump(exclude_attributes=["service_context"])
+            self.service_context.dump(exclude_attributes=["context"])
         )
 
         # Now there should be 2, the second a RSA key for signing
@@ -272,7 +272,7 @@ class TestClientInfo(object):
         keyspec = {"file": {"rsa": [file_path]}}
         self.service_context.import_keys(keyspec)
 
-        _sc_state = self.service_context.dump(exclude_attributes=["service_context"])
+        _sc_state = self.service_context.dump(exclude_attributes=["context"])
         _jsc_state = json.dumps(_sc_state)
         _o_state = json.loads(_jsc_state)
         srvcntx = ServiceContext(base_url=BASE_URL).load(_o_state)
@@ -302,7 +302,7 @@ class TestClientInfo(object):
             self.service_context.keyjar.update()
 
             srvcntx = ServiceContext(base_url=BASE_URL).load(
-                self.service_context.dump(exclude_attributes=["service_context"])
+                self.service_context.dump(exclude_attributes=["context"])
             )
 
             # Now there should be one belonging to https://example.com

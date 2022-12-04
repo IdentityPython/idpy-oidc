@@ -31,9 +31,6 @@ class TestEntity:
         assert _srv.service_name == ""
         assert _srv.request_body_type == "urlencoded"
 
-        _srv = self.entity.client_get("service", "")
-        assert _srv.service_name == ""
-
     def test_get_service_unsupported(self):
         _srv = self.entity.get_service("foobar")
         assert _srv is None
@@ -47,8 +44,6 @@ class TestEntity:
         _srv.endpoint_name = "flux_endpoint"
         _fsrv = self.entity.get_service_by_endpoint_name("flux_endpoint")
         assert _srv == _fsrv
-        _fsrv2 = self.entity.client_get("service_by_endpoint_name", "flux_endpoint")
-        assert _fsrv == _fsrv2
 
     def test_get_service_context(self):
         _context = self.entity.get_service_context()

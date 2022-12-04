@@ -88,12 +88,12 @@ class TestAuthorization(object):
         }
         entity = Entity(services=DEFAULT_OIDC_SERVICES, keyjar=make_keyjar(), config=client_config,
                         client_type='oidc')
-        _context = entity.client_get("service_context")
+        _context = entity.get_context()
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
         self.context = _context
-        self.service = entity.client_get("service", "authorization")
+        self.service = entity.get_service("authorization")
 
     def test_construct(self):
         req_args = {"foo": "bar", "response_type": "code", "state": "state"}
@@ -220,7 +220,7 @@ class TestAuthorization(object):
 
         assert os.path.isfile(os.path.join(_dirname, "request123456.jwt"))
 
-        _context = self.service.client_get("service_context")
+        _context = self.service.upstream_get("context")
         _context.set_usage("redirect_uris", ["https://example.com/cb"])
         _context.set_usage("request_uris", ["https://example.com/request123456.jwt"])
         _context.base_url = "https://example.com/"
@@ -298,7 +298,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.client_get("service_context").work_environment.set_usage("verify_args", {
+        self.service.upstream_get("context").work_environment.set_usage("verify_args", {
             "allow_sign_alg_none": allow_sign_alg_none
         })
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -326,12 +326,12 @@ class TestAuthorizationCallback(object):
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                         client_type='oidc')
-        _context = entity.client_get("service_context")
+        _context = entity.get_context()
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
 
-        self.service = entity.client_get("service", "authorization")
+        self.service = entity.get_service("authorization")
 
     def test_construct_code(self):
         req_args = {"foo": "bar", "response_type": "code", "state": "state"}
@@ -401,15 +401,15 @@ class TestAccessTokenRequest(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "accesstoken")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("accesstoken")
 
         # add some history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state", response_type="code"
         )
 
-        _current = entity.client_get("service_context").cstate
+        _current = entity.get_context().cstate
         _current.update("state", auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
@@ -464,7 +464,7 @@ class TestAccessTokenRequest(object):
         }
 
     def test_id_token_nonce_match(self):
-        _cstate = self.service.client_get("service_context").cstate
+        _cstate = self.service.get_context().cstate
         _cstate.bind_key("nonce", "state")
         resp = AccessTokenResponse()
         resp[verified_claim_name("id_token")] = {"nonce": "nonce"}
@@ -526,8 +526,8 @@ class TestProviderInfo(object):
             }
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, client_type='oidc')
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "provider_info")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("provider_info")
 
     def test_construct(self):
         _req = self.service.construct()
@@ -729,7 +729,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        _context = self.service.client_get("service_context")
+        _context = self.service.get_context()
         assert _context.work_environment.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
@@ -742,7 +742,7 @@ class TestProviderInfo(object):
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.client_get("service_context").work_environment.use.copy()
+        use_copy = self.service.upstream_get("context").work_environment.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
@@ -789,7 +789,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        _context = self.service.client_get("service_context")
+        _context = self.service.upstream_get("context")
         assert _context.work_environment.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
@@ -802,7 +802,7 @@ class TestProviderInfo(object):
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.client_get("service_context").work_environment.use.copy()
+        use_copy = self.service.upstream_get("context").work_environment.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
@@ -863,8 +863,8 @@ class TestRegistration(object):
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                         client_type='oidc')
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "registration")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("registration")
 
     def test_construct(self):
         _req = self.service.construct()
@@ -882,7 +882,7 @@ class TestRegistration(object):
                                     'userinfo_signed_response_alg'}
 
     def test_config_with_post_logout(self):
-        self.service.client_get("service_context").work_environment.set_preference(
+        self.service.upstream_get("context").work_environment.set_preference(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
@@ -915,7 +915,7 @@ def test_config_with_required_request_uri():
     }
     entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                     client_type='oidc')
-    entity.client_get("service_context").issuer = "https://example.com"
+    entity.get_context().issuer = "https://example.com"
 
     pi_service = entity.client_get("service", "provider_info")
     pi_service.match_preferences({"require_request_uri_registration": True})
@@ -953,7 +953,7 @@ def test_config_logout_uri():
     }
     entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                     client_type='oidc')
-    _context = entity.client_get("service_context")
+    _context = entity.get_context()
     _context.issuer = "https://example.com"
 
     pi_service = entity.client_get("service", "provider_info")
@@ -993,16 +993,16 @@ class TestUserInfo(object):
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                         client_type='oidc')
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "userinfo")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("userinfo")
 
-        entity.client_get("service_context").work_environment.use = {
+        entity.get_context().work_environment.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
         }
 
-        _cstate = self.service.client_get("service_context").cstate
+        _cstate = self.service.get_context().cstate
         # Add history
         auth_response = AuthorizationResponse(code="access_code")
         _cstate.update("abcde", auth_response)
@@ -1094,7 +1094,7 @@ class TestUserInfo(object):
     def test_unpack_signed_response(self):
         resp = OpenIDSchema(sub="diana", given_name="Diana", family_name="krall", iss=ISS)
         sk = ISS_KEY.get_signing_key("rsa", issuer_id=ISS)
-        alg = self.service.client_get("service_context").get_sign_alg("userinfo")
+        alg = self.service.upstream_get("context").get_sign_alg("userinfo")
         _resp = self.service.parse_response(
             resp.to_jwt(sk, algorithm=alg), state="abcde", sformat="jwt"
         )
@@ -1104,7 +1104,7 @@ class TestUserInfo(object):
         # Add encryption key
         _kj = build_keyjar([{"type": "RSA", "use": ["enc"]}], issuer_id="")
         # Own key jar gets the private key
-        self.service.client_get("service_context").keyjar.import_jwks(
+        self.service.upstream_get("service_context").keyjar.import_jwks(
             _kj.export_jwks(private=True), issuer_id=""
         )
         # opponent gets the public key
@@ -1114,7 +1114,7 @@ class TestUserInfo(object):
             sub="diana", given_name="Diana", family_name="krall", iss=ISS, aud="client_id"
         )
         enckey = ISS_KEY.get_encrypt_key("rsa", issuer_id="client_id")
-        algspec = self.service.client_get("service_context").get_enc_alg_enc(
+        algspec = self.service.upstream_get("context").get_enc_alg_enc(
             self.service.service_name
         )
 
@@ -1138,11 +1138,11 @@ class TestCheckSession(object):
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.check_session.CheckSession"}}
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "check_session")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("check_session")
 
     def test_construct(self):
-        _cstate = self.service.client_get("service_context").cstate
+        _cstate = self.service.upstream_get("service_context").cstate
         _cstate.update("abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, CheckSessionRequest)
@@ -1166,11 +1166,11 @@ class TestCheckID(object):
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.check_id.CheckID"}}
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "check_id")
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("check_id")
 
     def test_construct(self):
-        _cstate = self.service.client_get("service_context").cstate
+        _cstate = self.service.upstream_get("service_context").cstate
         _cstate.set("abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, CheckIDRequest)
@@ -1195,14 +1195,14 @@ class TestEndSession(object):
         }
         services = {"checksession": {"class": "idpyoidc.client.oidc.end_session.EndSession"}}
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
-        _context = entity.client_get("service_context")
+        _context = entity.get_context()
         _context.issuer = "https://example.com"
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
-        self.service = entity.client_get("service", "end_session")
+        self.service = entity.get_service("end_session")
 
     def test_construct(self):
-        self.service.client_get("service_context").cstate.update(
+        self.service.upstream_get("service_context").cstate.update(
             "abcde", {"id_token": "a.signed.jwt"})
         _req = self.service.construct(state="abcde")
         assert isinstance(_req, EndSessionRequest)
@@ -1235,11 +1235,11 @@ def test_authz_service_conf():
     }
     entity = Entity(keyjar=make_keyjar(), config=client_config, services=services,
                     client_type='oidc')
-    _context = entity.client_get("service_context")
+    _context = entity.get_context()
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
     _context.map_preferred_to_registered()
-    service = entity.client_get("service", "authorization")
+    service = entity.get_service("authorization")
 
     req = service.construct()
     assert "claims" in req
@@ -1258,7 +1258,7 @@ def test_jwks_uri_conf():
     }
     entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
                     client_type='oidc')
-    _context = entity.client_get("service_context")
+    _context = entity.get_context()
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
     _context.map_preferred_to_registered()
@@ -1284,7 +1284,7 @@ def test_jwks_uri_arg():
         services=DEFAULT_OIDC_SERVICES,
         client_type='oidc'
     )
-    _context = entity.client_get("service_context")
+    _context = entity.get_context()
     _context.issuer = "https://example.com"
     _context.map_supported_to_preferred()
     _context.map_preferred_to_registered()

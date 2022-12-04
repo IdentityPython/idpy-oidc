@@ -16,14 +16,15 @@ def push_authorization(request_args, service, **kwargs):
     :param kwargs: Extra keyword arguments.
     """
 
-    _context = service.superior_get("context")
+    _context = service.upstream_get("context")
     method_args = _context.add_on["pushed_authorization"]
 
     # construct the message body
     if method_args["body_format"] == "urlencoded":
         _body = request_args.to_urlencoded()
     else:
-        _jwt = JWT(key_jar=_context.keyjar, iss=_context.base_url)
+        _jwt = JWT(key_jar=service.upstream_get('attribute','keyjar'),
+                   iss=_context.base_url)
         _jws = _jwt.pack(request_args.to_dict())
 
         _msg = Message(request=_jws)
@@ -66,7 +67,7 @@ def add_support(
         http_client = requests
 
     _service = services["authorization"]
-    _service.superior_get("context").add_on["pushed_authorization"] = {
+    _service.upstream_get("context").add_on["pushed_authorization"] = {
         "body_format": body_format,
         "signing_algorithm": signing_algorithm,
         "http_client": http_client,

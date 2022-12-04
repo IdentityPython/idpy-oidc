@@ -65,8 +65,8 @@ class TestClient(object):
             "response_type": ["code"],
         }
 
-        self.client.client_get("service_context").cstate.set("ABCDE", {"iss": 'issuer'})
-        msg = self.client.client_get("service", "authorization").construct(request_args=req_args)
+        self.client.get_context.cstate.set("ABCDE", {"iss": 'issuer'})
+        msg = self.client.get_service("authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
         assert msg["redirect_uri"] == "https://example.com/auth_cb"
@@ -74,7 +74,7 @@ class TestClient(object):
     def test_construct_accesstoken_request(self):
         # Bind access code to state
         req_args = {}
-        _context = self.client.client_get("service_context")
+        _context = self.client.get_context()
         _context.cstate.set("ABCDE", {"issuer": "issuer"})
 
         auth_request = AuthorizationRequest(
@@ -85,9 +85,9 @@ class TestClient(object):
 
         auth_response = AuthorizationResponse(code="access_code")
 
-        self.client.client_get("service_context").cstate.update("ABCDE", auth_response)
+        self.client.get_context().cstate.update("ABCDE", auth_response)
 
-        msg = self.client.client_get("service", "accesstoken").construct(
+        msg = self.client.get_service("accesstoken").construct(
             request_args=req_args, state="ABCDE"
         )
 
@@ -102,7 +102,7 @@ class TestClient(object):
         }
 
     def test_construct_refresh_token_request(self):
-        _context = self.client.client_get("service_context")
+        _context = self.client.get_context()
         _state = "ABCDE"
         _context.cstate.set(_state, {'iss': "issuer"})
 
@@ -121,7 +121,7 @@ class TestClient(object):
         _context.cstate.update(_state, token_response)
 
         req_args = {}
-        msg = self.client.client_get("service", "refresh_token").construct(
+        msg = self.client.get_service("refresh_token").construct(
             request_args=req_args, state="ABCDE"
         )
         assert isinstance(msg, RefreshAccessTokenRequest)
@@ -136,7 +136,7 @@ class TestClient(object):
         err = ResponseMessage(error="Illegal")
         http_resp = MockResponse(400, err.to_urlencoded())
         resp = self.client.parse_request_response(
-            self.client.client_get("service", "authorization"), http_resp
+            self.client.get_service("authorization"), http_resp
         )
 
         assert resp["error"] == "Illegal"
@@ -147,7 +147,7 @@ class TestClient(object):
         http_resp = MockResponse(500, err.to_urlencoded())
         with pytest.raises(ParseError):
             self.client.parse_request_response(
-                self.client.client_get("service", "authorization"), http_resp
+                self.client.get_service("authorization"), http_resp
             )
 
     def test_error_response_2(self):
@@ -158,7 +158,7 @@ class TestClient(object):
 
         with pytest.raises(OidcServiceError):
             self.client.parse_request_response(
-                self.client.client_get("service", "authorization"), http_resp
+                self.client.get_service("authorization"), http_resp
             )
 
 
@@ -201,7 +201,7 @@ class TestClient2(object):
             "response_type": ["code"],
         }
 
-        _context = self.client.client_get("service_context")
-        assert len(_context.keyjar) == 2  # one issuer
-        assert len(_context.keyjar[""]) == 2
-        assert len(_context.keyjar.get("sig")) == 2
+        _keyjar = self.client.get_attribute('keyjar')
+        assert len(_keyjar) == 1  # one issuer
+        assert len(_keyjar[""]) == 2
+        assert len(_keyjar.get("sig")) == 2

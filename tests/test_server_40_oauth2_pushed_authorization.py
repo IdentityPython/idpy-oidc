@@ -177,8 +177,8 @@ class TestEndpoint(object):
             self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
         )
 
-        self.pushed_authorization_endpoint = server.server_get("endpoint", "pushed_authorization")
-        self.authorization_endpoint = server.server_get("endpoint", "authorization")
+        self.pushed_authorization_endpoint = server.get_endpoint("pushed_authorization")
+        self.authorization_endpoint = server.get_endpoint("authorization")
 
     def test_init(self):
         assert self.pushed_authorization_endpoint

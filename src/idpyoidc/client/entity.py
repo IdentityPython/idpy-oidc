@@ -5,6 +5,7 @@ from typing import Union
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.configure import get_configuration
@@ -12,6 +13,8 @@ from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.context import OidcContext
+from idpyoidc.node import Unit
 
 logger = logging.getLogger(__name__)
 
@@ -70,54 +73,47 @@ def redirect_uris_from_callback_uris(callback_uris):
     return res
 
 
-class Entity(object):
-
+class Entity(Unit):
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
             config: Optional[Union[dict, Configuration]] = None,
             services: Optional[dict] = None,
+            jwks_uri: Optional[str] = "",
+            httpc: Optional[Callable] = None,
             httpc_params: Optional[dict] = None,
             client_type: Optional[str] = "oauth2",
             context: Optional[OidcContext] = None,
-            superior_get: Optional[Callable] = None
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = ''
     ):
-        self.extra = {}
-        if httpc_params:
-            self.httpc_params = httpc_params
+        Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
+                      httpc_params=httpc_params, config=config, key_conf=key_conf,
+                      entity_id=entity_id)
+
+        if context:
+            self._service_context = context
         else:
-            self.httpc_params = {"verify": True}
+            self._service_context = ServiceContext(config=config, jwks_uri=jwks_uri,
+                                                   upstream_get=self.unit_get)
 
-        config = get_configuration(config)
-
-        if config:
-            _srvs = config.conf.get("services")
+        if services:
+            _srvs = services
+        elif config:
+            _srvs = config.get("services")
         else:
             _srvs = None
 
         if not _srvs:
             _srvs = DEFAULT_OAUTH2_SERVICES
 
-        self._service = init_services(service_definitions=_srvs, superior_get=self.entity_get)
-
-        self._service_context = ServiceContext(
-            keyjar=keyjar, config=config, httpc_params=self.httpc_params,
-            client_type=client_type, client_get=self.client_get
-        )
+        self._service = init_services(service_definitions=_srvs, upstream_get=self.unit_get)
 
         self.keyjar = self._service_context.get_preference('keyjar')
 
         self.setup_client_authn_methods(config)
-        self.superior_get = superior_get
-
-        # Deal with backward compatibility
-        self.backward_compatibility(config)
-
-    def entity_get(self, what, *arg):
-        _func = getattr(self, "get_{}".format(what), None)
-        if _func:
-            return _func(*arg)
-        return None
+        self.upstream_get = upstream_get
 
     def get_services(self, *arg):
         return self._service
@@ -151,52 +147,15 @@ class Entity(object):
         else:
             return self._service_context.work_environment.get_preference('client_id')
 
-    def get_keyjar(self):
-        if self.get_service_context().keyjar:
-            return self.get_service_context().keyjar
-        else:
-            return self.superior_get('application', 'keyjar')
-
     def setup_client_authn_methods(self, config):
         if config and "client_authn_methods" in config:
             self._service_context.client_authn_method = client_auth_setup(
                 config.get("client_authn_methods")
             )
         else:
-            self._service_context.client_authn_method = {}
-
-    def backward_compatibility(self, config):
-        _work_environment = self._service_context.work_environment
-        _uris = config.get("redirect_uris")
-        if _uris:
-            _work_environment.set_preference("redirect_uris", _uris)
-
-        _dir = config.conf.get("requests_dir")
-        if _dir:
-            _work_environment.set_preference('requests_dir', _dir)
-
-        _pref = config.get("client_preferences", {})
-        for key, val in _pref.items():
-            _work_environment.set_preference(key, val)
-
-        auth_request_args = config.conf.get("request_args", {})
-        if auth_request_args:
-            authz_serv = self.get_service('authorization')
-            authz_serv.default_request_args.update(auth_request_args)
-
-    def config_args(self):
-        res = {}
-        for id, service in self._service.items():
-            res[id] = {
-                "preference": service.supports(),
-            }
-        res[""] = {
-            "preference": self._service_context.work_environment.supports,
-        }
-        return res
-
-    def prefers(self):
-        return self._service_context.work_environment.prefers()
-
-    def use(self):
-        return self._service_context.work_environment.get_use()
+            _default_methods = set(
+                [s.default_authn_method for s in self._service.db.values() if
+                 s.default_authn_method])
+            _methods = {m: CLIENT_AUTHN_METHOD[m] for m in _default_methods if
+                        m in CLIENT_AUTHN_METHOD}
+            self._service_context.client_authn_method = client_auth_setup(_methods)

@@ -155,7 +155,7 @@ def test_conversation():
 
     entity = Entity(config=config, keyjar=RP_KEYJAR, client_type='oidc')
 
-    assert set(entity.client_get("services").keys()) == {
+    assert set(entity.get_services().keys()) == {
         "accesstoken",
         "authorization",
         "webfinger",
@@ -165,11 +165,11 @@ def test_conversation():
         "provider_info",
         'end_session',
     }
-    service_context = entity.client_get("service_context")
+    service_context = entity.get_context()
 
     # ======================== WebFinger ========================
 
-    webfinger_service = entity.client_get("service", "webfinger")
+    webfinger_service = entity.get_service("webfinger")
     info = webfinger_service.get_request_parameters(request_args={"resource": "foobar@example.org"})
 
     assert (
@@ -202,10 +202,10 @@ def test_conversation():
     ]
 
     webfinger_service.update_service_context(resp=response)
-    entity.client_get("service_context").issuer = OP_BASEURL
+    entity.get_context().issuer = OP_BASEURL
 
     # =================== Provider info discovery ====================
-    provider_info_service = entity.client_get("service", "provider_info")
+    provider_info_service = entity.get_service("provider_info")
     info = provider_info_service.get_request_parameters()
 
     assert info["url"] == "https://example.org/op/.well-known/openid" "-configuration"
@@ -406,13 +406,13 @@ def test_conversation():
     assert isinstance(resp, ProviderConfigurationResponse)
     provider_info_service.update_service_context(resp, '')
 
-    _pi = entity.client_get("service_context").provider_info
+    _pi = entity.get_context().provider_info
     assert _pi["issuer"] == OP_BASEURL
     assert _pi["authorization_endpoint"] == "https://example.org/op/authorization"
     assert _pi["registration_endpoint"] == "https://example.org/op/registration"
 
     # =================== Client registration ====================
-    registration_service = entity.client_get("service", "registration")
+    registration_service = entity.get_service("registration")
     info = registration_service.get_request_parameters()
 
     assert info["url"] == "https://example.org/op/registration"
@@ -480,7 +480,7 @@ def test_conversation():
     STATE = "Oh3w3gKlvoM2ehFqlxI3HIK5"
     NONCE = "UvudLKz287YByZdsY3AJoPAlEXQkJ0dK"
 
-    auth_service = entity.client_get("service", "authorization")
+    auth_service = entity.get_service("authorization")
     _cstate = service_context.cstate
 
     info = auth_service.get_request_parameters(request_args={"state": STATE, "nonce": NONCE})
@@ -516,7 +516,7 @@ def test_conversation():
 
     # =================== Access token ====================
 
-    token_service = entity.client_get("service", "accesstoken")
+    token_service = entity.get_service("accesstoken")
     request_args = {"state": STATE, "redirect_uri": service_context.get_usage("redirect_uris")[0]}
 
     info = token_service.get_request_parameters(request_args=request_args)
@@ -584,7 +584,7 @@ def test_conversation():
 
     # =================== User info ====================
 
-    userinfo_service = entity.client_get("service", "userinfo")
+    userinfo_service = entity.get_service("userinfo")
     info = userinfo_service.get_request_parameters(state=STATE)
 
     assert info["url"] == "https://example.org/op/userinfo"

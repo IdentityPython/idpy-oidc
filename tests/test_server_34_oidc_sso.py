@@ -202,7 +202,7 @@ class TestUserAuthn(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint", "authorization")
+        self.endpoint = server.get_endpoint("authorization")
         self.endpoint_context = endpoint_context
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
@@ -211,7 +211,7 @@ class TestUserAuthn(object):
     def test_sso(self):
         request = self.endpoint.parse_request(AUTH_REQ_DICT)
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("endpoint_context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
         # info = self.endpoint.process_request(request)
 
@@ -224,7 +224,7 @@ class TestUserAuthn(object):
         # second login - from 2nd client
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("endpoint_context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
         sid2 = info["session_id"]
 
@@ -237,7 +237,7 @@ class TestUserAuthn(object):
         # third login - from 3rd client
         request = self.endpoint.parse_request(AUTH_REQ_3.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("endpoint_context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=None)
 
         assert set(info.keys()) == {"session_id", "identity", "user"}
@@ -250,7 +250,7 @@ class TestUserAuthn(object):
 
         request = self.endpoint.parse_request(AUTH_REQ_4.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("endpoint_context").cdb[request["client_id"]]
 
         # Parse cookies once before setup_auth
         kakor = self.endpoint_context.cookie_handler.parse_cookie(
@@ -267,12 +267,12 @@ class TestUserAuthn(object):
         # Fifth login - from 2nd client - wrong cookie
         request = self.endpoint.parse_request(AUTH_REQ_2.to_dict())
         redirect_uri = request["redirect_uri"]
-        cinfo = self.endpoint.server_get("endpoint_context").cdb[request["client_id"]]
+        cinfo = self.endpoint.upstream_get("endpoint_context").cdb[request["client_id"]]
         info = self.endpoint.setup_auth(request, redirect_uri, cinfo, cookie=kakor)
         # No valid login cookie so new session
         assert info["session_id"] != sid2
 
-        user_session_info = self.endpoint.server_get("endpoint_context").session_manager.get(
+        user_session_info = self.endpoint.upstream_get("endpoint_context").session_manager.get(
             ["diana"]
         )
         assert len(user_session_info.subordinate) == 3
@@ -285,13 +285,13 @@ class TestUserAuthn(object):
         # Should be one grant for each of client_2 and client_3 and
         # 2 grants for client_1
 
-        csi1 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi1 = self.endpoint.upstream_get("endpoint_context").session_manager.get(
             ["diana", "client_1"]
         )
-        csi2 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi2 = self.endpoint.upstream_get("endpoint_context").session_manager.get(
             ["diana", "client_2"]
         )
-        csi3 = self.endpoint.server_get("endpoint_context").session_manager.get(
+        csi3 = self.endpoint.upstream_get("endpoint_context").session_manager.get(
             ["diana", "client_3"]
         )
 

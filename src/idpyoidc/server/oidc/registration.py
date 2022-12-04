@@ -7,8 +7,10 @@ from typing import List
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
+from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 
+from idpyoidc.client.oidc import PREFERENCE2PROVIDER
 # from idpyoidc.defaults import PREFERENCE2SUPPORTED
 from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
 
@@ -140,7 +142,7 @@ class Registration(Endpoint):
 
     def match_client_request(self, request: dict) -> list:
         err = []
-        _provider_info = self.server_get("context").provider_info
+        _provider_info = self.upstream_get("context").provider_info
         for key, val in request.items():
             if key not in REGISTER2PREFERRED:
                 continue
@@ -158,7 +160,7 @@ class Registration(Endpoint):
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
             ignore = []
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _cinfo = _context.cdb[client_id].copy()
         logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
@@ -221,6 +223,23 @@ class Registration(Endpoint):
                         error_description="%s pointed to illegal URL" % item,
                     )
 
+        _keyjar = self.upstream_get('attribute', 'keyjar')
+        # Do I have the necessary keys
+        for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
+            if item in request:
+                if request[item] in _context.provider_info[PREFERENCE2PROVIDER[item]]:
+                    ktyp = alg2keytype(request[item])
+                    # do I have this ktyp and for EC type keys the curve
+                    if ktyp not in ["none", "oct"]:
+                        _k = []
+                        for iss in ["", _context.issuer]:
+                            _k.extend(
+                                _keyjar.get_signing_key(ktyp, alg=request[item], issuer_id=iss)
+                            )
+                        if not _k:
+                            logger.warning('Lacking support for "{}"'.format(request[item]))
+                            del _cinfo[item]
+
         t = {"jwks_uri": "", "jwks": None}
 
         for item in ["jwks_uri", "jwks"]:
@@ -229,10 +248,10 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
 
         n_keys = 0
-        for kb in _context.keyjar.get(client_id, []):
+        for kb in _keyjar.get(client_id, []):
             n_keys += len(kb.keys())
         msg = "found {} keys for client_id={}"
         logger.debug(msg.format(n_keys, client_id))
@@ -298,8 +317,8 @@ class Registration(Endpoint):
         """
         si_url = request["sector_identifier_uri"]
         try:
-            res = self.server_get("context").httpc.get(
-                si_url, **self.server_get("context").httpc_params
+            res = self.upstream_get("context").httpc.get(
+                si_url, **self.upstream_get("context").httpc_params
             )
             logger.debug("sector_identifier_uri => %s", sanitize(res.text))
         except Exception as err:
@@ -324,7 +343,7 @@ class Registration(Endpoint):
         _rat = rndstr(32)
 
         cinfo["registration_access_token"] = _rat
-        endpoint = self.server_get("endpoints")
+        endpoint = self.upstream_get("endpoints")
         cinfo["registration_client_uri"] = "{}?client_id={}".format(
             endpoint["registration_read"].full_path, client_id
         )
@@ -370,7 +389,7 @@ class Registration(Endpoint):
                 error_description=f"Don't support proposed {faulty_claims}"
             )
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         if new_id:
             if self.kwargs.get("client_id_generator"):
                 cid_generator = importer(self.kwargs["client_id_generator"]["class"])
@@ -388,7 +407,7 @@ class Registration(Endpoint):
 
         _cinfo = {"client_id": client_id, "client_salt": rndstr(8)}
 
-        if self.server_get("endpoint", "registration_read"):
+        if self.upstream_get("endpoint", "registration_read"):
             self.add_registration_api(_cinfo, client_id, _context)
 
         if new_id:
@@ -416,7 +435,7 @@ class Registration(Endpoint):
 
         # Add the client_secret as a symmetric key to the key jar
         if client_secret:
-            _context.keyjar.add_symmetric(client_id, str(client_secret))
+            self.upstream_get('attribute', 'keyjar').add_symmetric(client_id, str(client_secret))
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
@@ -443,7 +462,7 @@ class Registration(Endpoint):
         if "error" in reg_resp:
             return reg_resp
         else:
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             _cookie = _context.new_cookie(
                 name=_context.cookie_handler.name["register"],
                 client_id=reg_resp["client_id"],

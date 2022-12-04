@@ -63,12 +63,12 @@ class ClientConfiguration(RegistrationResponse):
 
 
 def verify_oidc_client_information(
-    conf: dict, server_get: Optional[Callable] = None, **kwargs
+    conf: dict, upstream_get: Optional[Callable] = None, **kwargs
 ) -> dict:
     res = {}
     for key, item in conf.items():
         _rr = ClientConfiguration(**item)
-        _rr.verify(server_get=server_get, **kwargs)
+        _rr.verify(upstream_get=upstream_get, **kwargs)
         if _rr.extra():
             logger.info(f"Extras: {_rr.extra()}")
         res[key] = _rr

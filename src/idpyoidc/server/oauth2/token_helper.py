@@ -62,7 +62,7 @@ class TokenEndpointHelper(object):
             token_args: Optional[dict] = None,
             token_type: Optional[str] = "",
     ) -> SessionToken:
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
@@ -81,7 +81,7 @@ class TokenEndpointHelper(object):
 
         token = grant.mint_token(
             session_id,
-            endpoint_context=_context,
+            context=_context,
             token_class=token_class,
             token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
@@ -159,7 +159,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Access Token")
 
@@ -310,7 +310,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("context").session_manager
+        _mngr = self.endpoint.upstream_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"
@@ -339,7 +339,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Refresh Token")
 
@@ -433,13 +433,11 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("context")
-        try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
+        _context = self.endpoint.upstream_get("context")
 
-        request.verify(keyjar=keyjar, opponent_id=client_id)
+        request.verify(
+            keyjar=self.endpoint.upstream_get('sttribute', 'keyjar'),
+            opponent_id=client_id)
 
         _mngr = _context.session_manager
         try:
@@ -498,19 +496,17 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def post_parse_request(self, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         if "token_exchange" in _context.cdb[request["client_id"]]:
             config = _context.cdb[request["client_id"]]["token_exchange"]
         else:
             config = self.config
 
         try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
-
-        try:
-            request.verify(keyjar=keyjar, opponent_id=client_id)
+            request.verify(
+                keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
+                opponent_id=client_id
+            )
         except (
                 MissingRequiredAttribute,
                 ValueError,
@@ -567,7 +563,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return resp
 
     def _enforce_policy(self, request, token, config):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         subject_token_types_supported = config.get(
             "subject_token_types_supported", self.token_types_mapping.keys()
         )
@@ -638,7 +634,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return TokenExchangeResponse(**response_args)
 
     def process_request(self, request, **kwargs):
-        _context = self.endpoint.server_get("context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         try:
             _handler_key = self.token_types_mapping[request["subject_token_type"]]

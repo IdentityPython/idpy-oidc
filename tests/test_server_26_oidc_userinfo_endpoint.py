@@ -215,7 +215,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
-        self.endpoint = self.server.server_get("endpoint", "userinfo")
+        self.endpoint = self.server.get_endpoint("userinfo")
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -235,7 +235,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint.server_get("endpoint_context"),
+            context=self.endpoint.upstream_get("context"),
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -245,7 +245,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info(session_id, grant=True)
         return grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint.server_get("endpoint_context"),
+            context=self.endpoint.upstream_get("context"),
             token_class=token_class,
             token_handler=self.session_manager.token_handler[token_class],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -255,7 +255,7 @@ class TestEndpoint(object):
     def test_init(self):
         assert self.endpoint
         assert set(
-            self.endpoint.server_get("endpoint_context").provider_info["claims_supported"]
+            self.endpoint.upstream_get("context").provider_info["claims_supported"]
         ) == {
                    "address",
                    "birthdate",
@@ -342,7 +342,7 @@ class TestEndpoint(object):
         assert res
 
     def test_do_signed_response(self):
-        self.endpoint.server_get("endpoint_context").cdb["client_1"][
+        self.endpoint.upstream_get("context").cdb["client_1"][
             "userinfo_signed_response_alg"
         ] = "ES256"
 
@@ -369,9 +369,9 @@ class TestEndpoint(object):
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
-        self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
+        self.endpoint.upstream_get("context").claims_interface.add_claims_by_scope = True
         grant.claims = {
-            "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
+            "userinfo": self.endpoint.upstream_get("context").claims_interface.get_claims(
                 session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
         }
@@ -416,9 +416,9 @@ class TestEndpoint(object):
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
-        self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
+        self.endpoint.upstream_get("context").claims_interface.add_claims_by_scope = True
         grant.claims = {
-            "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
+            "userinfo": self.endpoint.upstream_get("context").claims_interface.get_claims(
                 session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
         }
@@ -438,6 +438,8 @@ class TestEndpoint(object):
         }
 
     def test_allowed_scopes(self):
+        _context = self.endpoint.upstream_get("context")
+        _context.scopes_handler.allowed_scopes = list(SCOPE2CLAIMS.keys())
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
@@ -446,9 +448,9 @@ class TestEndpoint(object):
         access_token = self._mint_token("access_token", grant, session_id)
 
         self.endpoint.kwargs["add_claims_by_scope"] = True
-        self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
+        _context.claims_interface.add_claims_by_scope = True
         grant.claims = {
-            "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
+            "userinfo": _context.claims_interface.get_claims(
                 session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
         }
@@ -466,6 +468,42 @@ class TestEndpoint(object):
             "name",
             "sub"
         }
+
+    def test_allowed_scopes_per_client(self):
+        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
+            **SCOPE2CLAIMS,
+            "research_and_scholarship_2": [
+                "name",
+                "given_name",
+                "family_name",
+                "email",
+                "email_verified",
+                "sub",
+                "eduperson_scoped_affiliation",
+            ],
+        }
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(SCOPE2CLAIMS.keys())
+
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ["openid", "research_and_scholarship_2"]
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+
+        self.endpoint.kwargs["add_claims_by_scope"] = True
+        self.endpoint.upstream_get("context").claims_interface.add_claims_by_scope = True
+        grant.claims = {
+            "userinfo": self.endpoint.upstream_get("context").claims_interface.get_claims(
+                session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
+            )
+        }
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+        args = self.endpoint.process_request(_req, http_info=http_info)
+
+        assert set(args["response_args"].keys()) == {"sub"}
 
     def test_wrong_type_of_token(self):
         _auth_req = AUTH_REQ.copy()
@@ -591,7 +629,7 @@ class TestEndpoint(object):
 
     def test_process_request_absent_userinfo_conf(self):
         # consider to have a configuration without userinfo defined in
-        ec = self.endpoint.server_get("endpoint_context")
+        ec = self.endpoint.upstream_get("context")
         ec.userinfo = None
 
         session_id = self._create_session(AUTH_REQ)

@@ -216,7 +216,7 @@ class TestEndpoint(_TestEndpoint):
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         endpoint_context.userinfo = USERINFO
         self.session_manager = endpoint_context.session_manager
-        self.token_endpoint = server.server_get("endpoint", "token")
+        self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
         self.endpoint_context = endpoint_context
 
@@ -243,7 +243,7 @@ class TestEndpoint(_TestEndpoint):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -263,7 +263,7 @@ class TestEndpoint(_TestEndpoint):
 
         _token = grant.mint_token(
             _session_info,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             based_on=token_ref,  # Means the token (tok) was used to mint this token
@@ -896,7 +896,7 @@ class TestEndpoint(_TestEndpoint):
         grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.token_endpoint.server_get("endpoint_context")
+        _cntx = self.token_endpoint.upstream_get("endpoint_context")
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -920,7 +920,7 @@ class TestEndpoint(_TestEndpoint):
         grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
-        _cntx = self.token_endpoint.server_get("endpoint_context")
+        _cntx = self.token_endpoint.upstream_get("endpoint_context")
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -1030,7 +1030,7 @@ class TestOldTokens(object):
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = endpoint_context.session_manager
-        self.token_endpoint = server.server_get("endpoint", "token")
+        self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
         self.endpoint_context = endpoint_context
 
@@ -1054,7 +1054,7 @@ class TestOldTokens(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -1118,7 +1118,7 @@ class TestOldTokens(object):
         payload = _handler.load_custom_claims(payload)
 
         # payload.update(kwargs)
-        _context = _handler.server_get("endpoint_context")
+        _context = _handler.upstream_get("endpoint_context")
         signer = JWT(
             key_jar=_context.keyjar,
             iss=_handler.issuer,

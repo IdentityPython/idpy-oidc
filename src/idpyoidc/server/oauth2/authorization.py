@@ -93,7 +93,7 @@ def max_age(request):
 
 
 def verify_uri(
-        endpoint_context: EndpointContext,
+    context: EndpointContext,
         request: Union[dict, Message],
         uri_type: str,
         client_id: Optional[str] = None,
@@ -103,7 +103,7 @@ def verify_uri(
     MUST NOT contain a fragment
     MAY contain query component
 
-    :param endpoint_context: An EndpointContext instance
+    :param context: An EndpointContext instance
     :param request: The authorization request
     :param uri_type: redirect_uri or post_logout_redirect_uri
     :return: An error response if the redirect URI is faulty otherwise
@@ -128,7 +128,7 @@ def verify_uri(
     (_base, _query) = split_uri(_redirect_uri)
 
     # Get the clients registered redirect uris
-    client_info = endpoint_context.cdb.get(_cid)
+    client_info = context.cdb.get(_cid)
     if client_info is None:
         raise KeyError("No such client")
 
@@ -194,10 +194,10 @@ def join_query(base, query):
         return base
 
 
-def get_uri(endpoint_context, request, uri_type):
+def get_uri(context, request, uri_type):
     """verify that the redirect URI is reasonable.
 
-    :param endpoint_context: An EndpointContext instance
+    :param context: An EndpointContext instance
     :param request: The Authorization request
     :param uri_type: 'redirect_uri' or 'post_logout_redirect_uri'
     :return: redirect_uri
@@ -205,13 +205,13 @@ def get_uri(endpoint_context, request, uri_type):
     uri = ""
 
     if uri_type in request:
-        verify_uri(endpoint_context, request, uri_type)
+        verify_uri(context, request, uri_type)
         uri = request[uri_type]
     else:
         uris = f"{uri_type}s"
         client_id = str(request["client_id"])
-        if client_id in endpoint_context.cdb:
-            _specs = endpoint_context.cdb[client_id].get(uris)
+        if client_id in context.cdb:
+            _specs = context.cdb[client_id].get(uris)
             if not _specs:
                 raise ParameterError(f"Missing '{uri_type}' and none registered")
 
@@ -267,12 +267,12 @@ def authn_args_gather(
     return authn_args
 
 
-def check_unknown_scopes_policy(request_info, client_id, endpoint_context):
-    if not endpoint_context.conf["capabilities"].get("deny_unknown_scopes"):
+def check_unknown_scopes_policy(request_info, client_id, context):
+    if not context.conf["capabilities"].get("deny_unknown_scopes"):
         return
 
     scope = request_info["scope"]
-    filtered_scopes = set(endpoint_context.scopes_handler.filter_scopes(scope, client_id=client_id))
+    filtered_scopes = set(context.scopes_handler.filter_scopes(scope, client_id=client_id))
     scopes = set(scope)
     # this prevents that authz would be released for unavailable scopes
     if scopes != filtered_scopes:
@@ -354,15 +354,13 @@ class Authorization(Endpoint):
         "client_authn_method": ["request_param", "public"],
     }
 
-    def __init__(self, server_get, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
-
-        self.resource_indicators_config = kwargs.get("resource_indicators", None)
+    def __init__(self, upstream_get, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
 
-    def filter_request(self, endpoint_context, req):
+    def filter_request(self, context, req):
         return req
 
     def extra_response_args(self, aresp):
@@ -389,7 +387,7 @@ class Authorization(Endpoint):
         usage_rules = grant.usage_rules.get(token_class, {})
         token = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.server_get("context"),
+            context=self.upstream_get("context"),
             token_class=token_class,
             based_on=based_on,
             usage_rules=usage_rules,
@@ -402,32 +400,32 @@ class Authorization(Endpoint):
         if _exp_in:
             token.expires_at = utc_time_sans_frac() + _exp_in
 
-        _mngr = self.server_get("context").session_manager
+        _mngr = self.upstream_get("context").session_manager
         _mngr.set(_mngr.unpack_session_key(session_id), grant)
 
         return token
 
-    def _do_request_uri(self, request, client_id, endpoint_context, **kwargs):
+    def _do_request_uri(self, request, client_id, context, **kwargs):
         _request_uri = request.get("request_uri")
         if _request_uri:
             # Do I do pushed authorization requests ?
-            _endp = self.server_get("endpoint", "pushed_authorization")
+            _endp = self.upstream_get("endpoint", "pushed_authorization")
             if _endp:
                 # Is it a UUID urn
                 if _request_uri.startswith("urn:uuid:"):
-                    _req = endpoint_context.par_db.get(_request_uri)
+                    _req = context.par_db.get(_request_uri)
                     if _req:
                         # One time usage
-                        del endpoint_context.par_db[_request_uri]
+                        del context.par_db[_request_uri]
                         return _req
                     else:
                         raise ValueError("Got a request_uri I can not resolve")
 
             # Do I support request_uri ?
-            if endpoint_context.provider_info.get("request_uri_parameter_supported", True) is False:
+            if context.provider_info.get("request_uri_parameter_supported", True) is False:
                 raise ServiceError("Someone is using request_uri which I'm not supporting")
 
-            _registered = endpoint_context.cdb[client_id].get("request_uris")
+            _registered = context.cdb[client_id].get("request_uris")
             # Not registered should be handled else where
             if _registered:
                 # Before matching remove a possible fragment
@@ -437,26 +435,29 @@ class Authorization(Endpoint):
                     raise ValueError("A request_uri outside the registered")
 
             # Fetch the request
-            _resp = endpoint_context.httpc.get(_request_uri, **endpoint_context.httpc_params)
+            _resp = context.httpc.get(_request_uri, **context.httpc_params)
             if _resp.status_code == 200:
-                args = {"keyjar": endpoint_context.keyjar, "issuer": client_id}
+                args = {
+                    "keyjar": self.upstream_get('attribute', 'keyjar'),
+                    "issuer": client_id
+                }
                 _ver_request = self.request_cls().from_jwt(_resp.text, **args)
                 self.allowed_request_algorithms(
                     client_id,
-                    endpoint_context,
+                    context,
                     _ver_request.jws_header.get("alg", "RS256"),
                     "sign",
                 )
                 if _ver_request.jwe_header is not None:
                     self.allowed_request_algorithms(
                         client_id,
-                        endpoint_context,
+                        context,
                         _ver_request.jws_header.get("alg"),
                         "enc_alg",
                     )
                     self.allowed_request_algorithms(
                         client_id,
-                        endpoint_context,
+                        context,
                         _ver_request.jws_header.get("enc"),
                         "enc_enc",
                     )
@@ -470,11 +471,11 @@ class Authorization(Endpoint):
 
         return request
 
-    def _post_parse_request(self, request, client_id, endpoint_context, **kwargs):
+    def _post_parse_request(self, request, client_id, context, **kwargs):
         """
         Verify the authorization request.
 
-        :param endpoint_context:
+        :param context:
         :param request:
         :param client_id:
         :param kwargs:
@@ -486,9 +487,9 @@ class Authorization(Endpoint):
                 request, error="invalid_request", error_description="Can not parse AuthzRequest"
             )
 
-        request = self.filter_request(endpoint_context, request)
+        request = self.filter_request(context, request)
 
-        _cinfo = endpoint_context.cdb.get(client_id)
+        _cinfo = context.cdb.get(client_id)
         if not _cinfo:
             logger.error("Client ID ({}) not in client database".format(request["client_id"]))
             return self.authentication_error_response(
@@ -505,7 +506,7 @@ class Authorization(Endpoint):
 
         # Get a verified redirect URI
         try:
-            redirect_uri = get_uri(endpoint_context, request, "redirect_uri")
+            redirect_uri = get_uri(context, request, "redirect_uri")
         except (RedirectURIError, ParameterError) as err:
             return self.authentication_error_response(
                 request,
@@ -555,7 +556,7 @@ class Authorization(Endpoint):
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def pick_authn_method(self, request, redirect_uri, acr=None, **kwargs):
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         auth_id = kwargs.get("auth_method_id")
         if auth_id:
             return _context.authn_broker[auth_id]
@@ -579,7 +580,7 @@ class Authorization(Endpoint):
             }
 
     def create_session(self, request, user_id, acr, time_stamp, authn_method):
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _mngr = _context.session_manager
         authn_event = create_authn_event(
             user_id,
@@ -657,7 +658,7 @@ class Authorization(Endpoint):
         authn_class_ref = res["acr"]
 
         client_id = request.get("client_id")
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         try:
             _auth_info = kwargs.get("authn", "")
             if "upm_answer" in request and request["upm_answer"] == "true":
@@ -837,7 +838,7 @@ class Authorization(Endpoint):
         if "response_type" in request and request["response_type"] == ["none"]:
             fragment_enc = False
         else:
-            _context = self.server_get("context")
+            _context = self.upstream_get("context")
             _mngr = _context.session_manager
             _sinfo = _mngr.get_session_info(sid, grant=True)
 
@@ -944,7 +945,7 @@ class Authorization(Endpoint):
         """
 
         response_info = {}
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         _mngr = _context.session_manager
 
         # Do the authorization
@@ -1013,7 +1014,7 @@ class Authorization(Endpoint):
         except Exception as err:
             return self.error_by_response_mode({}, request, "server_error", err)
 
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         logger.debug(f"resp_info: {resp_info}")
 
@@ -1089,7 +1090,7 @@ class Authorization(Endpoint):
             return request
 
         _cid = request["client_id"]
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
         cinfo = _context.cdb[_cid]
         # logger.debug("client {}: {}".format(_cid, cinfo))
 
@@ -1142,9 +1143,9 @@ class AllowedAlgorithms:
     def __init__(self, algorithm_parameters):
         self.algorithm_parameters = algorithm_parameters
 
-    def __call__(self, client_id, endpoint_context, alg, alg_type):
-        _cinfo = endpoint_context.cdb[client_id]
-        _pinfo = endpoint_context.provider_info
+    def __call__(self, client_id, context, alg, alg_type):
+        _cinfo = context.cdb[client_id]
+        _pinfo = context.provider_info
 
         _reg, _sup = self.algorithm_parameters[alg_type]
         _allowed = _cinfo.get(_reg)

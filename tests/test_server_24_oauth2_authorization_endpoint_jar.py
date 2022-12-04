@@ -193,7 +193,7 @@ class TestEndpoint(object):
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
-        self.endpoint = server.server_get("endpoint", "authorization")
+        self.endpoint = server.get_endpoint("authorization")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -205,7 +205,7 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("context").provider_info["issuer"],
+            aud=self.endpoint.upstream_get("context").provider_info["issuer"],
         )
         # -----------------
         _req = self.endpoint.parse_request(
@@ -223,7 +223,7 @@ class TestEndpoint(object):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
-            aud=self.endpoint.server_get("context").provider_info["issuer"],
+            aud=self.endpoint.upstream_get("context").provider_info["issuer"],
         )
 
         request_uri = "https://client.example.com/req"

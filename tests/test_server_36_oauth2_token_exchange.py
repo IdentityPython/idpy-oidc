@@ -204,8 +204,8 @@ class TestEndpoint(object):
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         self.endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
-        self.endpoint = server.server_get("endpoint", "token")
-        self.introspection_endpoint = server.server_get("endpoint", "introspection")
+        self.endpoint = server.get_endpoint("token")
+        self.introspection_endpoint = server.get_endpoint("introspection")
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
 
@@ -229,7 +229,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint.server_get("context"),
+            context=self.endpoint.upstream_get("context"),
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,

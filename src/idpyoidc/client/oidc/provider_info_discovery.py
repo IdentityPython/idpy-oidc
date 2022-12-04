@@ -25,7 +25,7 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     :param kwargs: Possible extra keyword arguments
     :return: A possibly augmented set of request arguments.
     """
-    _work_environment = service.superior_get("context").work_environment
+    _work_environment = service.upstream_get("context").work_environment
     if "redirect_uris" not in request_args:
         # Callbacks is a dictionary with callback type 'code', 'implicit',
         # 'form_post' as keys.
@@ -49,15 +49,16 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
 
     _supports = {}
 
-    def __init__(self, superior_get, conf=None):
-        server_metadata.ServerMetadata.__init__(self, superior_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        server_metadata.ServerMetadata.__init__(self, upstream_get, conf=conf)
 
     def update_service_context(self, resp, **kwargs):
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         self._update_service_context(resp)
         _context.map_supported_to_preferred(resp)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
-            _jwks = _context.keyjar.export_jwks_as_json(issuer=resp["issuer"])
+            _jwks = self.upstream_get('attribute', 'keyjar').export_jwks_as_json(
+                issuer=resp["issuer"])
             logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))
 
     def match_preferences(self, pcr=None, issuer=None):
@@ -73,7 +74,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
         :param pcr: Provider configuration response if available
         :param issuer: The issuer identifier
         """
-        _context = self.superior_get("context")
+        _context = self.upstream_get("context")
         if not pcr:
             pcr = _context.provider_info
 

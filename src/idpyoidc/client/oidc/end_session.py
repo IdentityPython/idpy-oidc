@@ -36,8 +36,8 @@ class EndSession(Service):
         "post_logout_redirect_uris": "session_logout"
     }
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [
             self.get_id_token_hint,
             self.add_post_logout_redirect_uri,
@@ -53,9 +53,8 @@ class EndSession(Service):
         :return:
         """
 
-        _args = self.client_get('service_context').cstate.get_set(kwargs["state"],
+        _args = self.upstream_get("context").cstate.get_set(kwargs["state"],
                                                                  claim=['id_token'])
-
         try:
             request_args["id_token_hint"] = _args["id_token"]
         except KeyError:
@@ -65,12 +64,11 @@ class EndSession(Service):
 
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
-            _uri = self.metadata.get("post_logout_redirect_uris", '')
-            if _uri:
-                if isinstance(_uri, str):
-                    request_args["post_logout_redirect_uri"] = _uri
-                else:  # assume list
-                    request_args["post_logout_redirect_uri"] = _uri[0]
+            _uri = self.upstream_get("context").get_usage("post_logout_redirect_uris")
+            if isinstance(_uri, str):
+                request_args["post_logout_redirect_uri"] = _uri
+            else:  # assume list
+                request_args["post_logout_redirect_uri"] = _uri[0]
 
         return request_args, {}
 
@@ -79,6 +77,6 @@ class EndSession(Service):
             request_args["state"] = rndstr(32)
 
         # As a side effect bind logout state to session state
-        self.client_get("service_context").cstate.bind_key(request_args["state"], kwargs["state"])
+        self.upstream_get("context").cstate.bind_key(request_args["state"], kwargs["state"])
 
         return request_args, {}

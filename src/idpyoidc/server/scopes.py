@@ -49,8 +49,8 @@ def convert_scopes2claims(scopes, allowed_claims=None, scope2claim_map=None):
 
 
 class Scopes:
-    def __init__(self, server_get, allowed_scopes=None, scopes_to_claims=None):
-        self.server_get = server_get
+    def __init__(self, upstream_get, allowed_scopes=None, scopes_to_claims=None):
+        self.upstream_get = upstream_get
         if not scopes_to_claims:
             scopes_to_claims = dict(SCOPE2CLAIMS)
         self._scopes_to_claims = scopes_to_claims
@@ -65,7 +65,7 @@ class Scopes:
         """
         allowed_scopes = self.allowed_scopes
         if client_id:
-            client = self.server_get("context").cdb.get(client_id)
+            client = self.upstream_get("context").cdb.get(client_id)
             if client is not None:
                 allowed_scopes = client.get("allowed_scopes", allowed_scopes)
         return allowed_scopes
@@ -79,7 +79,7 @@ class Scopes:
         """
         scopes_to_claims = self._scopes_to_claims
         if client_id:
-            client = self.server_get("context").cdb.get(client_id)
+            client = self.upstream_get("context").cdb.get(client_id)
             if client is not None:
                 scopes_to_claims = client.get("scopes_to_claims", scopes_to_claims)
         return scopes_to_claims

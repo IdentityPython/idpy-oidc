@@ -290,7 +290,7 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
+        _userinfo_endpoint = self.server.get_endpoint("userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = False
         del _userinfo_endpoint.kwargs["base_claims"]
@@ -311,7 +311,7 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(session_id)
 
-        _userinfo_endpoint = self.server.server_get("endpoint", "userinfo")
+        _userinfo_endpoint = self.server.get_endpoint("userinfo")
         _userinfo_endpoint.kwargs["add_claims_by_scope"] = False
         _userinfo_endpoint.kwargs["enable_claims_per_client"] = True
         del _userinfo_endpoint.kwargs["base_claims"]

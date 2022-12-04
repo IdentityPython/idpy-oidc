@@ -33,17 +33,17 @@ class TestUserInfo(object):
         KEYS = init_key_jar(key_defs=KEYSPEC)
 
         entity = Entity(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
-        entity.client_get("service_context").issuer = "https://server.otherop.com"
-        self.service = entity.client_get("service", "userinfo")
+        entity.get_context().issuer = "https://server.otherop.com"
+        self.service = entity.get_service("userinfo")
 
-        entity.client_get("service_context").work_environment.use = {
+        entity.get_context().work_environment.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
         }
 
     def test_unpack_aggregated_response(self):
-        _cstate = self.service.client_get("service_context").cstate
+        _cstate = self.service.upstream_get("context").cstate
         # Add history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb",
@@ -72,7 +72,7 @@ class TestUserInfo(object):
             },
         }
 
-        _jwt = JWT(key_jar=self.service.client_get("service_context").keyjar)
+        _jwt = JWT(key_jar=self.service.upstream_get("context").keyjar)
         _jws = _jwt.pack(payload=_distributed_respone)
 
         resp = {

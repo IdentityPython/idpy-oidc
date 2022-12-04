@@ -51,11 +51,11 @@ def init_user_info(conf, cwd: str):
     return conf["class"](**kwargs)
 
 
-def init_service(conf, server_get=None):
+def init_service(conf, upstream_get=None):
     kwargs = conf.get("kwargs", {})
 
-    if server_get:
-        kwargs["server_get"] = server_get
+    if upstream_get:
+        kwargs["upstream_get"] = upstream_get
 
     if isinstance(conf["class"], str):
         try:
@@ -117,18 +117,17 @@ class EndpointContext(OidcContext):
     def __init__(
         self,
         conf: Union[dict, OPConfiguration],
-        server_get: Callable,
-        keyjar: Optional[KeyJar] = None,
+        upstream_get: Callable,
         cwd: Optional[str] = "",
         cookie_handler: Optional[Any] = None,
         httpc: Optional[Any] = None,
-        server_type: Optional[str] = ''
+        server_type: Optional[str] = '',
         entity_id: Optional[str] = ""
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
         if not server_type or server_type == "oidc":
             self.work_environment = OIDC_Env()
@@ -249,7 +248,7 @@ class EndpointContext(OidcContext):
         self.dev_auth_db = None
         _interface = conf.get("claims_interface")
         if _interface:
-            self.claims_interface = init_service(_interface, self.server_get)
+            self.claims_interface = init_service(_interface, self.upstream_get)
 
         if isinstance(conf, OPConfiguration):
             self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),
@@ -269,10 +268,10 @@ class EndpointContext(OidcContext):
         if _spec:
             _kwargs = _spec.get("kwargs", {})
             _cls = importer(_spec["class"])
-            self.scopes_handler = _cls(self.server_get, **_kwargs)
+            self.scopes_handler = _cls(self.upstream_get, **_kwargs)
         else:
             self.scopes_handler = Scopes(
-                self.server_get,
+                self.upstream_get,
                 allowed_scopes=self.conf.get("allowed_scopes"),
                 scopes_to_claims=self.conf.get("scopes_to_claims"),
             )

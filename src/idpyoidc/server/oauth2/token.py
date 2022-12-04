@@ -38,8 +38,8 @@ class Token(Endpoint):
         "refresh_token": RefreshTokenHelper,
     }
 
-    def __init__(self, server_get, new_refresh_token=False, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get, new_refresh_token=False, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         self.post_parse_request.append(self._post_parse_request)
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
@@ -132,7 +132,7 @@ class Token(Endpoint):
             return response_args
 
         _access_token = response_args["access_token"]
-        _context = self.server_get("context")
+        _context = self.upstream_get("context")
 
         if isinstance(_helper, TokenExchangeHelper):
             _handler_key = _helper.get_handler_key(request, _context)

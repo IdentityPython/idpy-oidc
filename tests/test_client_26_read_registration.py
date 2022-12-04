@@ -41,8 +41,8 @@ class TestRegistrationRead(object):
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
 
-        self.reg_service = self.entity.client_get("service", "registration")
-        self.read_service = self.entity.client_get("service", "registration_read")
+        self.reg_service = self.entity.get_service("registration")
+        self.read_service = self.entity.get_service("registration_read")
 
     def test_construct(self):
         self.reg_service.endpoint = "{}/registration".format(ISS)

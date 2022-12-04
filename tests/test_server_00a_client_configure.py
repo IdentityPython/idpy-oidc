@@ -108,7 +108,7 @@ def test_verify_oidc_client_information_complext():
 
     client_conf["client1"].update(EXTRA)
 
-    res = verify_oidc_client_information(client_conf, server_get=server.server_get)
+    res = verify_oidc_client_information(client_conf, upstream_get=server.upstream_get)
     assert res
     for cli, _cli_conf in res.items():
         print(_cli_conf.extra())
@@ -135,5 +135,5 @@ def test_verify_oidc_client_information_2():
         }
     }
 
-    res = verify_oidc_client_information(client_conf, server_get=server.server_get)
+    res = verify_oidc_client_information(client_conf, upstream_get=server.upstream_get)
     assert res
