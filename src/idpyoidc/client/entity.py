@@ -73,7 +73,7 @@ def redirect_uris_from_callback_uris(callback_uris):
     return res
 
 
-class Entity(Unit):
+class Entity(Unit):  # This is a Client
     parameter = {
         'entity_id': None,
         'jwks_uri': None,
@@ -97,9 +97,15 @@ class Entity(Unit):
             key_conf: Optional[dict] = None,
             entity_id: Optional[str] = ''
     ):
+        if config is None:
+            config = {}
+
+        self.entity_id = entity_id or config.get('entity_id')
+        self.client_id = config.get('client_id', entity_id)
+
         Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
                       httpc_params=httpc_params, config=config, key_conf=key_conf,
-                      entity_id=entity_id)
+                      client_id=self.client_id)
 
         if context:
             self.context = context

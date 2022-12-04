@@ -4,6 +4,7 @@ import traceback
 from typing import Optional
 
 from cryptojwt import as_unicode
+from cryptojwt import KeyJar
 from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
@@ -17,7 +18,6 @@ from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class RPHandler(object):
+
     def __init__(
             self,
             base_url: Optional[str] = "",
@@ -201,7 +202,9 @@ class RPHandler(object):
         if _context.iss_hash:
             self.hash2issuer[_context.iss_hash] = issuer
         # If non persistent
-        _keyjar = client.get_attribute('keyjar')
+        _keyjar = client.keyjar
+        if not _keyjar:
+            _keyjar = client.keyjar = KeyJar()
         _keyjar.load(self.keyjar.dump())
         # If persistent nothings has to be copied
 

@@ -93,7 +93,7 @@ class TestClientSecretBasic:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        self.method = ClientSecretBasic(server.server_get)
+        self.method = ClientSecretBasic(server.unit_get)
 
     def test_client_secret_basic(self):
         _token = "{}:{}".format(client_id, client_secret)
@@ -127,7 +127,7 @@ class TestClientSecretPost:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        self.method = ClientSecretPost(server.server_get)
+        self.method = ClientSecretPost(server.unit_get)
 
     def test_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
@@ -150,7 +150,7 @@ class TestClientSecretJWT:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        self.method = ClientSecretJWT(server.server_get)
+        self.method = ClientSecretJWT(server.unit_get)
 
     def test_client_secret_jwt(self):
         client_keyjar = KeyJar()
@@ -178,7 +178,7 @@ class TestPrivateKeyJWT:
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = PrivateKeyJWT(server.server_get)
+        self.method = PrivateKeyJWT(server.unit_get)
 
     def test_private_key_jwt(self):
         # Own dynamic keys
@@ -266,7 +266,7 @@ class TestBearerHeader:
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = BearerHeader(server.server_get)
+        self.method = BearerHeader(server.unit_get)
 
     def test_bearerheader(self):
         authorization_info = "Bearer 1234567890"
@@ -288,7 +288,7 @@ class TestBearerBody:
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = BearerBody(server.server_get)
+        self.method = BearerBody(server.unit_get)
 
     def test_bearer_body(self):
         request = {"access_token": "1234567890"}
@@ -307,7 +307,7 @@ class TestJWSAuthnMethod:
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = JWSAuthnMethod(server.server_get)
+        self.method = JWSAuthnMethod(server.unit_get)
 
     def test_jws_authn_method_wrong_key(self):
         client_keyjar = KeyJar()

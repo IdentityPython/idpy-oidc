@@ -202,7 +202,7 @@ class TestCollectUserInfo:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(server.server_get)
+        self.claims_interface = ClaimsInterface(server.unit_get)
         self.user_id = "diana"
         self.server = server
 
@@ -427,7 +427,7 @@ class TestCollectUserInfoCustomScopes:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
         self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(self.server.server_get)
+        self.claims_interface = ClaimsInterface(self.server.unit_get)
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):

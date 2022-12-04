@@ -78,7 +78,7 @@ class TestEndpoint(object):
 
         server.endpoint_context.cdb["client_id"] = {}
         self.endpoint_context = server.endpoint_context
-        _endpoints = do_endpoints(conf, server.server_get)
+        _endpoints = do_endpoints(conf, server.unit_get)
         self.endpoint = _endpoints[""]
 
     def test_parse_urlencoded(self):

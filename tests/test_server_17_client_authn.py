@@ -130,8 +130,8 @@ class TestClientSecretBasic:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        server.endpoint = do_endpoints(CONF, server.server_get)
-        self.method = ClientSecretBasic(server.server_get)
+        server.endpoint = do_endpoints(CONF, server.unit_get)
+        self.method = ClientSecretBasic(server.unit_get)
 
     def test_client_secret_basic(self):
         _token = "{}:{}".format(client_id, client_secret)
@@ -165,7 +165,7 @@ class TestClientSecretPost:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        self.method = ClientSecretPost(server.server_get)
+        self.method = ClientSecretPost(server.unit_get)
 
     def test_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
@@ -188,7 +188,7 @@ class TestClientSecretJWT:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
         self.endpoint_context = server.endpoint_context
-        self.method = ClientSecretJWT(server.server_get)
+        self.method = ClientSecretJWT(server.unit_get)
 
     def test_client_secret_jwt(self):
         client_keyjar = KeyJar()
@@ -214,10 +214,10 @@ class TestPrivateKeyJWT:
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        server.endpoint = do_endpoints(CONF, server.server_get)
+        server.endpoint = do_endpoints(CONF, server.unit_get)
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = PrivateKeyJWT(server.server_get)
+        self.method = PrivateKeyJWT(server.unit_get)
 
     def test_private_key_jwt(self):
         # Own dynamic keys
@@ -307,10 +307,10 @@ class TestBearerHeader:
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        server.endpoint = do_endpoints(CONF, server.server_get)
+        server.endpoint = do_endpoints(CONF, server.unit_get)
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = BearerHeader(server.server_get)
+        self.method = BearerHeader(server.unit_get)
 
     def test_bearerheader(self):
         authorization_info = "Bearer 1234567890"
@@ -330,10 +330,10 @@ class TestBearerBody:
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        server.endpoint = do_endpoints(CONF, server.server_get)
+        server.endpoint = do_endpoints(CONF, server.unit_get)
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = BearerBody(server.server_get)
+        self.method = BearerBody(server.unit_get)
 
     def test_bearer_body(self):
         request = {"access_token": "1234567890"}
@@ -350,10 +350,10 @@ class TestJWSAuthnMethod:
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        server.endpoint = do_endpoints(CONF, server.server_get)
+        server.endpoint = do_endpoints(CONF, server.unit_get)
         self.server = server
         self.endpoint_context = server.endpoint_context
-        self.method = JWSAuthnMethod(server.server_get)
+        self.method = JWSAuthnMethod(server.unit_get)
 
     def test_jws_authn_method_wrong_key(self):
         client_keyjar = KeyJar()
@@ -474,7 +474,7 @@ class TestVerify:
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        self.server.endpoint = do_endpoints(CONF, self.server.server_get)
+        self.server.endpoint = do_endpoints(CONF, self.server.unit_get)
         self.endpoint_context = self.server.get_context()
 
     def test_verify_per_client(self):
@@ -612,7 +612,7 @@ class TestVerify2:
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
         self.server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-        self.server.endpoint = do_endpoints(CONF, self.server.server_get)
+        self.server.endpoint = do_endpoints(CONF, self.server.unit_get)
         self.endpoint_context = self.server.get_context()
 
     def test_verify_client_jws_authn_method(self):
@@ -742,7 +742,7 @@ def test_client_auth_setup():
     conf["endpoint"]["registration"]["kwargs"]["client_authn_method"] = ["custom"]
     server = Server(conf=conf, keyjar=KEYJAR)
     server.endpoint_context.cdb[client_id] = {"client_secret": client_secret}
-    server.endpoint = do_endpoints(CONF, server.server_get)
+    server.endpoint = do_endpoints(CONF, server.unit_get)
 
     request = {"redirect_uris": ["https://example.com/cb"]}
     res = verify_client(

@@ -50,14 +50,18 @@ class Server(Unit):
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None
     ):
+        self.entity_id = entity_id or conf.get('entity_id')
+        self.issuer = conf.get('issuer', self.entity_id)
+
         Unit.__init__(self, config=conf, keyjar=keyjar, httpc=httpc, upstream_get=upstream_get,
-                      httpc_params=httpc_params, entity_id=entity_id, key_conf=key_conf)
+                      httpc_params=httpc_params, key_conf=key_conf,
+                      issuer_id=self.issuer)
 
         self.upstream_get = upstream_get
         self.conf = conf
         self.endpoint_context = EndpointContext(
             conf=conf,
-            upstream_get=self.server_get, # points to me
+            upstream_get=self.unit_get,  # points to me
             cwd=cwd,
             cookie_handler=cookie_handler
         )
@@ -66,14 +70,14 @@ class Server(Unit):
 
         self.setup_authentication(self.endpoint_context)
 
-        self.endpoint = do_endpoints(conf, self.server_get)
+        self.endpoint = do_endpoints(conf, self.unit_get)
         _cap = get_provider_capabilities(conf, self.endpoint)
 
         self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(
-            self.server_get,
+            self.unit_get,
             self.endpoint_context.th_args,
             sub_func=self.endpoint_context._sub_func,
             conf=self.conf,
@@ -85,14 +89,14 @@ class Server(Unit):
 
         self.setup_client_authn_methods()
         for endpoint_name, _ in self.endpoint.items():
-            self.endpoint[endpoint_name].upstream_get = self.server_get
+            self.endpoint[endpoint_name].upstream_get = self.unit_get
 
         _token_endp = self.endpoint.get("token")
         if _token_endp:
             _token_endp.allow_refresh = allow_refresh_token(self.endpoint_context)
 
         self.endpoint_context.claims_interface = init_service(
-            conf["claims_interface"], self.server_get
+            conf["claims_interface"], self.unit_get
         )
 
         _id_token_handler = self.endpoint_context.session_manager.token_handler.handler.get(
@@ -100,12 +104,6 @@ class Server(Unit):
         )
         if _id_token_handler:
             self.endpoint_context.provider_info.update(_id_token_handler.provider_info)
-
-    def server_get(self, what, *arg):
-        _func = getattr(self, "get_{}".format(what), None)
-        if _func:
-            return _func(*arg)
-        return None
 
     def get_endpoints(self, *arg):
         return self.endpoint
@@ -131,15 +129,15 @@ class Server(Unit):
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
         if authz_spec:
-            return init_service(authz_spec, self.server_get)
+            return init_service(authz_spec, self.unit_get)
         else:
-            return authz.Implicit(self.server_get)
+            return authz.Implicit(self.unit_get)
 
     def setup_authentication(self, target):
         _conf = self.conf.get("authentication")
         if _conf:
             target.authn_broker = populate_authn_broker(
-                _conf, self.server_get, target.template_handler
+                _conf, self.unit_get, target.template_handler
             )
         else:
             target.authn_broker = {}
@@ -169,5 +167,5 @@ class Server(Unit):
 
     def setup_client_authn_methods(self):
         self.endpoint_context.client_authn_method = client_auth_setup(
-            self.server_get, self.conf.get("client_authn_methods")
+            self.unit_get, self.conf.get("client_authn_methods")
         )

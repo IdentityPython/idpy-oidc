@@ -18,8 +18,9 @@ class Unit(ImpExp):
                  httpc: Optional[object] = None,
                  httpc_params: Optional[dict] = None,
                  config: Optional[Union[Configuration, dict]] = None,
-                 entity_id: Optional[str] = "",
-                 key_conf: Optional[dict] = None
+                 key_conf: Optional[dict] = None,
+                 issuer_id: Optional[str] = '',
+                 client_id: Optional[str] = ''
                  ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
@@ -28,20 +29,16 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
-        _client_id = config.get('client_id', "")
-        self.entity_id = entity_id or config.get('entity_id', "")
-        if not self.entity_id:
-            self.entity_id = _client_id
-
         if keyjar or key_conf or config.get('key_conf') or config.get('jwks') or config.get('keys'):
-            self.keyjar = self._keyjar(keyjar, conf=config, entity_id=self.entity_id,
-                                       key_conf=key_conf)
-            if _client_id:
-                self.keyjar.add_symmetric('', _client_id)
+            # Should be either one
+            id = issuer_id or client_id
+            self.keyjar = self._keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
+            if client_id:
+                self.keyjar.add_symmetric('', client_id)
         else:
-            if _client_id:
+            if client_id:
                 self.keyjar = KeyJar()
-                self.keyjar.add_symmetric('', _client_id)
+                self.keyjar.add_symmetric('', client_id)
             else:
                 self.keyjar = None
 
@@ -80,8 +77,9 @@ class Unit(ImpExp):
     def _keyjar(self,
                 keyjar: Optional[KeyJar] = None,
                 conf: Optional[Union[dict, Configuration]] = None,
-                entity_id: Optional[str] = "",
-                key_conf: Optional[dict] = None):
+                key_conf: Optional[dict] = None,
+                id: Optional[str] = "",
+                ):
         if keyjar is None:
             if key_conf:
                 keys_args = {k: v for k, v in key_conf.items() if k != "uri_path"}
@@ -100,9 +98,9 @@ class Unit(ImpExp):
             else:
                 _keyjar = None
 
-            if _keyjar and "" in _keyjar and entity_id:
+            if _keyjar and "" in _keyjar and id:
                 # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
+                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), id)
 
             return _keyjar
         else:
@@ -129,17 +127,24 @@ class ClientUnit(Unit):
                  keyjar: Optional[KeyJar] = None,
                  context: Optional[ImpExp] = None,
                  config: Optional[Union[Configuration, dict]] = None,
-                 jwks_uri: Optional[str] = "",
+                 # jwks_uri: Optional[str] = "",
                  entity_id: Optional[str] = "",
                  key_conf: Optional[dict] = None
                  ):
+        if config is None:
+            config = {}
+
+        self.entity_id = entity_id or config.get('entity_id')
+        self.client_id = config.get('client_id', entity_id)
+
         Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
-                      httpc_params=httpc_params, config=config, entity_id=entity_id,
+                      httpc_params=httpc_params, config=config, client_id=self.client_id,
                       key_conf=key_conf)
 
         self.context = context or None
 
 
+# Neither client nor Server
 class Collection(Unit):
 
     def __init__(self,
@@ -153,8 +158,13 @@ class Collection(Unit):
                  functions: Optional[dict] = None,
                  metadata: Optional[dict] = None
                  ):
+        if config is None:
+            config = {}
 
-        Unit.__init__(self, upstream_get, keyjar, httpc, httpc_params, config, entity_id, key_conf)
+        self.entity_id = entity_id or config.get('entity_id')
+
+        Unit.__init__(self, upstream_get, keyjar, httpc, httpc_params, config,
+                      issuer_id=self.entity_id, key_conf=key_conf)
 
         _args = {
             'upstream_get': self.unit_get
