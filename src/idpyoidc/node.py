@@ -29,12 +29,14 @@ class Unit(ImpExp):
             config = {}
 
         self.entity_id = entity_id or config.get('entity_id', "")
+        if not self.entity_id:
+            self.entity_id = config.get('issuer', "")
 
-        if keyjar or key_conf or config.get('key_conf') or config.get('jwks'):
+        if keyjar or key_conf or config.get('key_conf') or config.get('jwks') or config.get('keys'):
             self.keyjar = self._keyjar(keyjar, conf=config, entity_id=self.entity_id,
                                        key_conf=key_conf)
         else:
-            self.keyjar = None
+            self.keyjar = KeyJar()
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 
@@ -61,6 +63,9 @@ class Unit(ImpExp):
                 return self.upstream_get("attribute", attr)
             else:
                 return val
+
+    def set_attribute(self, attr, val):
+        setattr(self, attr, val)
 
     def get_unit(self, *args):
         return self
@@ -122,7 +127,7 @@ class ClientUnit(Unit):
                       httpc_params=httpc_params, config=config, entity_id=entity_id,
                       key_conf=key_conf)
 
-        self._service_context = context or None
+        self.context = context or None
 
 
 class Collection(Unit):

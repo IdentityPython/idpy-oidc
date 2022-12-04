@@ -1,4 +1,5 @@
 import pytest
+from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oauth2 import AuthorizationResponse
@@ -44,6 +45,8 @@ class TestService:
     def upstream_get(self, *args):
         if args[0] == "context":
             return self.service_context
+        elif args[0] == 'attribute' and args[1] == 'keyjar':
+            return self.upstream_get('attribute','keyjar')
 
     def test_1(self):
         assert self.service

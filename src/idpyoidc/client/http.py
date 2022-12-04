@@ -4,7 +4,7 @@ from http.cookiejar import FileCookieJar
 from http.cookies import CookieError
 from http.cookies import SimpleCookie
 
-import requests
+from requests import request
 from idpyoidc.client.exception import NonFatalException
 from idpyoidc.client.util import sanitize
 from idpyoidc.client.util import set_cookie
@@ -94,7 +94,7 @@ class HTTPLib(object):
 
         try:
             # Do the request
-            r = requests.request(method, url, **_kwargs)
+            r = request(method, url, **_kwargs)
         except Exception as err:
             logger.error(
                 "http_request failed: %s, url: %s, htargs: %s, method: %s"

@@ -452,7 +452,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         return signing_key
 
-    def _get_audience_and_algorithm(self, context, **kwargs):
+    def _get_audience_and_algorithm(self, context, keyjar, **kwargs):
         algorithm = None
 
         # audience for the signed JWT depends on which endpoint
@@ -468,7 +468,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 else:
                     for alg in algs:  # pick the first one I support and have keys for
                         if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
-                                alg, context
+                                alg, keyjar
                         ):
                             algorithm = alg
                             break
@@ -485,7 +485,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _context = service.upstream_get("context")
         _entity = service.upstream_get("entity")
         _keyjar = service.upstream_get('attribute', 'keyjar')
-        audience, algorithm = self._get_audience_and_algorithm(_context, **kwargs)
+        audience, algorithm = self._get_audience_and_algorithm(_context, _keyjar, **kwargs)
 
         if "kid" in kwargs:
             signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"],

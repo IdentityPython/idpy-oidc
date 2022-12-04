@@ -136,7 +136,7 @@ class RP(oauth2.Client):
                             service=self.get_service("userinfo"),
                             access_token=spec["access_token"],
                         )
-                        _resp = self.httpc.send(spec["endpoint"], "GET", **httpc_params)
+                        _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
                     else:
                         if callback:
                             token = callback(spec["endpoint"])
@@ -144,9 +144,9 @@ class RP(oauth2.Client):
                             httpc_params = cauth.construct(
                                 service=self.get_service("userinfo"), access_token=token
                             )
-                            _resp = self.httpc.send(spec["endpoint"], "GET", **httpc_params)
+                            _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
                         else:
-                            _resp = self.httpc.send(spec["endpoint"], "GET")
+                            _resp = self.httpc("GET", spec["endpoint"])
 
                     if _resp.status_code == 200:
                         _uinfo = json.loads(_resp.text)

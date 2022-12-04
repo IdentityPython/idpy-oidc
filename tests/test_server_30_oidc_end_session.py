@@ -336,7 +336,7 @@ class TestEndpoint(object):
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("context").keyjar)
+        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute",'keyjar'))
 
         msg2 = Message(id_token_hint=id_token)
         msg2[verified_claim_name("id_token_hint")] = msg[verified_claim_name("id_token")]
@@ -403,7 +403,7 @@ class TestEndpoint(object):
         post_logout_redirect_uri = "https://demo.example.com/log_out"
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("context").keyjar)
+        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute",'keyjar'))
 
         with pytest.raises(RedirectURIError):
             self.session_endpoint.process_request(

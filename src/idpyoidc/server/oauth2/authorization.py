@@ -435,7 +435,7 @@ class Authorization(Endpoint):
                     raise ValueError("A request_uri outside the registered")
 
             # Fetch the request
-            _resp = context.httpc.get(_request_uri, **context.httpc_params)
+            _resp = context.httpc('GET', _request_uri, **context.httpc_params)
             if _resp.status_code == 200:
                 args = {
                     "keyjar": self.upstream_get('attribute', 'keyjar'),

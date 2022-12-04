@@ -129,7 +129,7 @@ class Client(Entity):
         )
 
     def set_client_id(self, client_id):
-        self._service_context.set("client_id", client_id)
+        self.get_context().set("client_id", client_id)
 
     def get_response(
             self,
@@ -152,7 +152,7 @@ class Client(Entity):
         :return:
         """
         try:
-            resp = self.httpc(url, method, data=body, headers=headers)
+            resp = self.httpc(method, url, data=body, headers=headers)
         except Exception as err:
             logger.error("Exception on request: {}".format(err))
             raise

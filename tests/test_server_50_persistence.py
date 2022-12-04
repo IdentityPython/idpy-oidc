@@ -205,9 +205,11 @@ class TestEndpoint(object):
         server1 = Server(
             OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
         )
+
         server2 = Server(
             OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
         )
+        # The top most part (Server class instance) is not
 
         server1.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
@@ -218,6 +220,7 @@ class TestEndpoint(object):
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
 
+        # make server2 endpoint context a copy of server 1 endpoint context
         _store = server1.endpoint_context.dump()
         server2.endpoint_context.load(
             _store,
@@ -294,12 +297,12 @@ class TestEndpoint(object):
             self.endpoint[1].server_get("endpoint_context").provider_info["scopes_supported"]
         ) == {"openid"}
         assert set(
-            self.endpoint[1].upstream_get("endpoint_context").provider_info["claims_supported"]
-        ) == set(self.endpoint[2].upstream_get("endpoint_context").provider_info["claims_supported"])
+            self.endpoint[1].upstream_get("context").provider_info["claims_supported"]
+        ) == set(self.endpoint[2].upstream_get("context").provider_info["claims_supported"])
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = self.endpoint[1].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[1].upstream_get("context").authz(session_id, AUTH_REQ)
         # grant, session_id = self._do_grant(AUTH_REQ, index=1)
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
@@ -315,7 +318,7 @@ class TestEndpoint(object):
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = self.endpoint[1].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[1].upstream_get("context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=1)
         access_token = self._mint_access_token(grant, session_id, code, 1)
 
@@ -328,7 +331,7 @@ class TestEndpoint(object):
 
     def test_process_request_not_allowed(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[2].upstream_get("context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
@@ -362,7 +365,7 @@ class TestEndpoint(object):
 
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[2].upstream_get("context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
@@ -380,12 +383,12 @@ class TestEndpoint(object):
         assert res
 
     def test_do_signed_response(self):
-        self.endpoint[2].upstream_get("endpoint_context").cdb["client_1"][
+        self.endpoint[2].upstream_get("context").cdb["client_1"][
             "userinfo_signed_response_alg"
         ] = "ES256"
 
         session_id = self._create_session(AUTH_REQ, index=2)
-        grant = self.endpoint[2].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[2].upstream_get("context").authz(session_id, AUTH_REQ)
         code = self._mint_code(grant, session_id, index=2)
         access_token = self._mint_access_token(grant, session_id, code, 2)
 
@@ -404,13 +407,13 @@ class TestEndpoint(object):
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
         session_id = self._create_session(_auth_req, index=2)
-        grant = self.endpoint[2].upstream_get("endpoint_context").authz(session_id, _auth_req)
+        grant = self.endpoint[2].upstream_get("context").authz(session_id, _auth_req)
 
         self._dump_restore(2, 1)
 
         grant.claims = {
             "userinfo": self.endpoint[1]
-            .upstream_get("endpoint_context")
+            .upstream_get("context")
             .claims_interface.get_claims(
                 session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
             )
@@ -448,7 +451,7 @@ class TestEndpoint(object):
         it show that flush and loads method will keep order, anyway.
         """
         session_id = self._create_session(AUTH_REQ, index=1)
-        grant = self.endpoint[1].upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.endpoint[1].upstream_get("context").authz(session_id, AUTH_REQ)
         sman = self.session_manager[1]
         session_dump = sman.dump()
 

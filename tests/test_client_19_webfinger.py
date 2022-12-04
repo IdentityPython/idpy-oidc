@@ -261,7 +261,7 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct_resource_config(self):
-        wf = WebFinger(ENTITY.entity_get, rel=OIC_ISSUER)
+        wf = WebFinger(ENTITY.unit_get, rel=OIC_ISSUER)
         wf.upstream_get("context").config["resource"] = "acct:carol@example.com"
         request_args = {}
         _info = wf.get_request_parameters(request_args=request_args)
@@ -273,7 +273,7 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct_no_resource(self):
-        wf = WebFinger(ENTITY.entity_get, rel=OIC_ISSUER)
+        wf = WebFinger(ENTITY.unit_get, rel=OIC_ISSUER)
         try:
             del wf.upstream_get("context").config["resource"]
         except KeyError:

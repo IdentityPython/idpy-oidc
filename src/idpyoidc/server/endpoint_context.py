@@ -9,7 +9,8 @@ from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 
-import requests
+from requests import request
+
 from idpyoidc.context import OidcContext
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.server.configure import OPConfiguration
@@ -160,7 +161,7 @@ class EndpointContext(OidcContext):
         self.cookie_handler = cookie_handler
         self.claims_interface = None
         self.endpoint_to_authn_method = {}
-        self.httpc = httpc or requests
+        self.httpc = httpc or request
         self.idtoken = None
         self.issuer = ""
         # self.jwks_uri = None

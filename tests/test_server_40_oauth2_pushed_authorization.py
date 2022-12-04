@@ -167,13 +167,13 @@ class TestEndpoint(object):
         endpoint_context = server.endpoint_context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
 
         self.rp_keyjar = init_key_jar(key_defs=KEYDEFS, issuer_id="s6BhdRkqt3")
         # Add RP's keys to the OP's keyjar
-        endpoint_context.keyjar.import_jwks(
+        server.keyjar.import_jwks(
             self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
         )
 

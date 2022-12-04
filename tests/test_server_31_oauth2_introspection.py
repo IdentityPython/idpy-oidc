@@ -206,9 +206,8 @@ class TestEndpoint:
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        endpoint_context.keyjar.import_jwks_as_json(
-            endpoint_context.keyjar.export_jwks_as_json(private=True),
-            endpoint_context.issuer,
+        server.keyjar.import_jwks_as_json(
+            server.keyjar.export_jwks_as_json(private=True),endpoint_context.issuer
         )
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.token_endpoint = server.get_endpoint("token")

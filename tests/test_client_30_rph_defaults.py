@@ -157,7 +157,7 @@ class TestRPHandler(object):
         # Calculating request so I can build a reasonable response
         # Publishing a JWKS instead of a JWKS_URI
         _context.jwks_uri = ""
-        _context.jwks = _context.keyjar.export_jwks()
+        _context.jwks = client.keyjar.export_jwks()
 
         _req = client.get_service("registration").construct_request()
 

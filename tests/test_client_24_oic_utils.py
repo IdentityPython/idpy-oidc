@@ -31,7 +31,7 @@ def test_request_object_encryption():
     _condition.set_usage("request_object_encryption_alg", "RSA1_5")
     _condition.set_usage("request_object_encryption_enc", "A128CBC-HS256")
 
-    _jwe = request_object_encryption(msg.to_json(), service_context, target=RECEIVER)
+    _jwe = request_object_encryption(msg.to_json(), service_context, KEYJAR, target=RECEIVER)
     assert _jwe
 
     _decryptor = factory(_jwe)

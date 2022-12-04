@@ -258,7 +258,14 @@ class Authorization(authorization.Authorization):
         _req = make_openid_request(req, **_mor_args)
 
         # Should the request be encrypted
-        return request_object_encryption(_req, _context, **kwargs)
+        _req = request_object_encryption(_req, _context,
+                                         self.upstream_get('attribute', 'keyjar'),
+                                         **kwargs)
+
+        if request_param == "request":
+            req["request"] = _req
+        else:  # MUST be request_uri
+            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
 
     def oidc_post_construct(self, req, **kwargs):
         """

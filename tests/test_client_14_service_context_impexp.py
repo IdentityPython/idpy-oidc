@@ -5,6 +5,7 @@ import pytest
 import responses
 from cryptojwt.key_jar import build_keyjar
 
+from idpyoidc.client.entity import Entity
 from idpyoidc.client.service_context import ServiceContext
 
 BASE_URL = "https://example.com"
@@ -106,7 +107,8 @@ class TestClientInfo(object):
             "base_url": "https://example.com",
             "requests_dir": "requests",
         }
-        self.service_context = ServiceContext(config=config)
+        self.entity = Entity(config=config)
+        self.service_context = self.entity.get_context()
 
     def test_registration_userinfo_sign_enc_algs(self):
         self.service_context.work_environment.use = {

@@ -231,9 +231,7 @@ def create_server(config):
     endpoint_context = server.endpoint_context
     _clients = yaml.safe_load(io.StringIO(client_yaml))
     endpoint_context.cdb = _clients["oidc_clients"]
-    endpoint_context.keyjar.import_jwks(
-        endpoint_context.keyjar.export_jwks(True, ""), config["issuer"]
-    )
+    server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), config["issuer"])
     return server
 
 

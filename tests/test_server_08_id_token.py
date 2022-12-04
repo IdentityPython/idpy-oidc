@@ -161,8 +161,8 @@ USER_ID = "diana"
 class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_session_manager(self):
-        server = Server(conf)
-        self.endpoint_context = server.endpoint_context
+        self.server = Server(conf)
+        self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -175,7 +175,7 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.endpoint_context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        self.server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = USER_ID
 
@@ -412,7 +412,7 @@ class TestEndpoint(object):
         assert _jws.jwt.headers["alg"] == "RS256"
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
 
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
@@ -452,7 +452,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -465,7 +465,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -482,7 +482,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -497,7 +497,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -520,7 +520,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -539,7 +539,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -558,7 +558,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -580,7 +580,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -598,7 +598,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -621,7 +621,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.endpoint_context.keyjar.export_jwks()
+        _jwks = self.server.keyjar.export_jwks()
         client_keyjar.import_jwks(_jwks, self.endpoint_context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)

@@ -195,8 +195,8 @@ class TestEndpoint(object):
             },
             "session_params": {"encrypter": SESSION_PARAMS},
         }
-        server = Server(conf, keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
+        self.server = Server(conf, keyjar=KEYJAR)
+        self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -211,7 +211,7 @@ class TestEndpoint(object):
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
-        self.endpoint = server.get_endpoint("session")
+        self.endpoint = self.server.get_endpoint("session")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -247,7 +247,7 @@ class TestEndpoint(object):
             "access_token", grant, session_id, code, resources=[AUTH_REQ["client_id"]]
         )
 
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
@@ -399,8 +399,8 @@ class TestEndpointWebID(object):
             "scopes_to_claims": _scope2claims,
             "session_params": SESSION_PARAMS,
         }
-        server = Server(conf, keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
+        self.server = Server(conf, keyjar=KEYJAR)
+        self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -415,7 +415,7 @@ class TestEndpointWebID(object):
         }
         self.session_manager = self.endpoint_context.session_manager
         self.user_id = "diana"
-        self.endpoint = server.get_endpoint("session")
+        self.endpoint = self.server.get_endpoint("session")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -459,7 +459,7 @@ class TestEndpointWebID(object):
             "access_token", grant, session_id, code, resources=[_auth_req["client_id"]]
         )
 
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
@@ -490,7 +490,7 @@ class TestEndpointWebID(object):
             aud=["https://audience.example.com"],
         )
 
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
@@ -521,7 +521,7 @@ class TestEndpointWebID(object):
             aud=["https://audience.example.com"],
         )
 
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
@@ -551,7 +551,7 @@ class TestEndpointWebID(object):
             claims=["name", "family_name"],
         )
 
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(access_token.value)
         assert "name" in _info
         assert "family_name" in _info
@@ -561,6 +561,6 @@ class TestEndpointWebID(object):
         _handler = master_handler["access_token"]
         assert _handler
         _jwt = _handler(aud="https://example.org")
-        _verifier = JWT(self.endpoint_context.keyjar)
+        _verifier = JWT(self.server.keyjar)
         _info = _verifier.unpack(_jwt)
         assert _info

@@ -399,7 +399,7 @@ class TestClientSecretJWT_TE(object):
         request = AccessTokenRequest()
 
         # get a kid
-        _keys = _service_context.keyjar.get_signing_key(key_type="oct")
+        _keys = entity.get_attribute('keyjar').get_issuer_keys("")
         kid = _keys[0].kid
         # token_service = entity.get_service("")
         token_service = entity.upstream_get("service", "accesstoken")

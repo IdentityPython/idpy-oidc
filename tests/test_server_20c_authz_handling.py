@@ -110,7 +110,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        server.endpoint_context.keyjar.add_symmetric(
+        server.keyjar.add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
         self.session_manager = server.endpoint_context.session_manager

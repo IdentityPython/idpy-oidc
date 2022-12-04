@@ -2,7 +2,8 @@ import logging
 
 from cryptojwt import JWT
 
-import requests
+from requests import request
+
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 
@@ -64,7 +65,7 @@ def add_support(
     """
 
     if http_client is None:
-        http_client = requests
+        http_client = request
 
     _service = services["authorization"]
     _service.upstream_get("context").add_on["pushed_authorization"] = {

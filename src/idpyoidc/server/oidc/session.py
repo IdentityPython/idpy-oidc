@@ -407,7 +407,8 @@ class Session(Endpoint):
                 _url, sjwt = spec
                 logger.info("logging out from {} at {}".format(_cid, _url))
 
-                res = _context.httpc.post(
+                res = _context.httpc(
+                    "POST",
                     _url,
                     data="logout_token={}".format(sjwt),
                     headers={"Content-Type": "application/x-www-form-urlencoded"},

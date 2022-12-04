@@ -13,16 +13,16 @@ from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.message.oidc.backchannel_authentication import NotificationRequest
 from idpyoidc.message.oidc.backchannel_authentication import TokenRequest
-from idpyoidc.server import OPConfiguration
-from idpyoidc.server import Server
-from idpyoidc.server import init_service
-from idpyoidc.server import init_user_info
-from idpyoidc.server import user_info
-from idpyoidc.server.authn_event import create_authn_event
-from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.oidc.backchannel_authentication import BackChannelAuthentication
-from idpyoidc.server.oidc.token import Token
-from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
+from idpyoidc.self.server import OPConfiguration
+from idpyoidc.self.server import Server
+from idpyoidc.self.server import init_service
+from idpyoidc.self.server import init_user_info
+from idpyoidc.self.server import user_info
+from idpyoidc.self.server.authn_event import create_authn_event
+from idpyoidc.self.server.client_authn import verify_client
+from idpyoidc.self.server.oidc.backchannel_authentication import BackChannelAuthentication
+from idpyoidc.self.server.oidc.token import Token
+from idpyoidc.self.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
@@ -129,7 +129,7 @@ SERVER_CONF = {
         "jwks_file": "private/token_jwks.json",
         "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
+            "class": "idpyoidc.self.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
                 "base_claims": {"eduperson_scoped_affiliation": None},
@@ -138,14 +138,14 @@ SERVER_CONF = {
             },
         },
         "refresh": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
+            "class": "idpyoidc.self.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
                 "aud": ["https://example.org/appl"],
             },
         },
         "id_token": {
-            "class": "idpyoidc.server.token.id_token.IDToken",
+            "class": "idpyoidc.self.server.token.id_token.IDToken",
             "kwargs": {
                 "base_claims": {
                     "email": {"essential": True},
@@ -174,7 +174,7 @@ SERVER_CONF = {
     "authentication": {
         "anon": {
             "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "idpyoidc.server.user_authn.user.NoAuthn",
+            "class": "idpyoidc.self.server.user_authn.user.NoAuthn",
             "kwargs": {"user": "diana"},
         }
     },
@@ -190,8 +190,8 @@ SERVER_CONF = {
 class TestBCAEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
-        server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
-        self.endpoint_context = server.endpoint_context
+        self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
+        self.endpoint_context = self.server.endpoint_context
         self.endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -199,33 +199,33 @@ class TestBCAEndpoint(object):
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
         }
-        self.endpoint = server.get_endpoint("backchannel_authentication")
-        self.token_endpoint = server.get_endpoint("token")
+        self.endpoint = self.server.get_endpoint("backchannel_authentication")
+        self.token_endpoint = self.server.get_endpoint("token")
 
         self.client_keyjar = build_keyjar(KEYDEFS)
-        # Add servers keys
-        self.client_keyjar.import_jwks(server.endpoint_context.keyjar.export_jwks(), ISSUER)
+        # Add self.servers keys
+        self.client_keyjar.import_jwks(self.server.keyjar.export_jwks(), ISSUER)
         # The only own key the client has a this point
         self.client_keyjar.add_symmetric("", CLIENT_SECRET, ["sig"])
         # Need to add the client_secret as a symmetric key bound to the client_id
-        server.endpoint_context.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
-        server.endpoint_context.keyjar.import_jwks(self.client_keyjar.export_jwks(), CLIENT_ID)
+        self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
+        self.server.keyjar.import_jwks(self.client_keyjar.export_jwks(), CLIENT_ID)
 
-        server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
+        self.server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
         # login_hint
-        server.endpoint_context.login_hint_lookup = init_service(
-            {"class": "idpyoidc.server.login_hint.LoginHintLookup"}, None
+        self.server.endpoint_context.login_hint_lookup = init_service(
+            {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
         )
         # userinfo
         _userinfo = init_user_info(
             {
-                "class": "idpyoidc.server.user_info.UserInfo",
+                "class": "idpyoidc.self.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
             "",
         )
-        server.endpoint_context.login_hint_lookup.userinfo = _userinfo
-        self.session_manager = server.endpoint_context.session_manager
+        self.server.endpoint_context.login_hint_lookup.userinfo = _userinfo
+        self.session_manager = self.server.endpoint_context.session_manager
 
     def test_login_hint_token(self):
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="HS256")
@@ -490,11 +490,11 @@ CLI_KEY = init_key_jar(
 class TestBCAEndpointService(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
-        self.ciba = {"server": self._create_server(), "client": self._create_ciba_client()}
+        self.ciba = {"self.server": self._create_self.server(), "client": self._create_ciba_client()}
 
-    def _create_server(self):
-        server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
-        endpoint_context = server.endpoint_context
+    def _create_self.server(self):
+        self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
+        endpoint_context = self.server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -504,29 +504,29 @@ class TestBCAEndpointService(object):
         }
 
         client_keyjar = build_keyjar(KEYDEFS)
-        # Add servers keys
-        client_keyjar.import_jwks(server.endpoint_context.keyjar.export_jwks(), ISSUER)
+        # Add self.servers keys
+        client_keyjar.import_jwks(self.server.keyjar.export_jwks(), ISSUER)
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", CLIENT_SECRET, ["sig"])
         # Need to add the client_secret as a symmetric key bound to the client_id
-        server.endpoint_context.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
-        server.endpoint_context.keyjar.import_jwks(client_keyjar.export_jwks(), CLIENT_ID)
+        self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
+        self.server.keyjar.import_jwks(client_keyjar.export_jwks(), CLIENT_ID)
 
-        server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
+        self.server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
         # login_hint
-        server.endpoint_context.login_hint_lookup = init_service(
-            {"class": "idpyoidc.server.login_hint.LoginHintLookup"}, None
+        self.server.endpoint_context.login_hint_lookup = init_service(
+            {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
         )
         # userinfo
         _userinfo = init_user_info(
             {
-                "class": "idpyoidc.server.user_info.UserInfo",
+                "class": "idpyoidc.self.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
             "",
         )
-        server.endpoint_context.login_hint_lookup.userinfo = _userinfo
-        return server
+        self.server.endpoint_context.login_hint_lookup.userinfo = _userinfo
+        return self.server
 
     def _create_ciba_client(self):
         config = {
@@ -560,13 +560,13 @@ class TestBCAEndpointService(object):
             authz_req = auth_req
         client_id = authz_req["client_id"]
         ae = create_authn_event(user_id)
-        _session_manager = self.ciba["server"].endpoint_context.session_manager
+        _session_manager = self.ciba["self.server"].endpoint_context.session_manager
         return _session_manager.create_session(
             ae, authz_req, user_id, client_id=client_id, sub_type=sub_type
         )
 
     def test_client_notification(self):
-        _keyjar = self.ciba["server"].endpoint_context.keyjar
+        _keyjar = self.ciba["self.server"].endpoint_context.keyjar
         _jwt = JWT(_keyjar, iss=CLIENT_ID, sign_alg="HS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack({"aud": [ISSUER]})
@@ -580,14 +580,14 @@ class TestBCAEndpointService(object):
             "login_hint": "mail:diana@example.org",
         }
 
-        _authn_endpoint = self.ciba["server"].upstream_get("endpoint", "backchannel_authentication")
+        _authn_endpoint = self.ciba["self.server"].upstream_get("endpoint", "backchannel_authentication")
 
         req = AuthenticationRequest(**request)
         req = _authn_endpoint.parse_request(req.to_urlencoded())
         _info = _authn_endpoint.process_request(req)
         assert _info
 
-        _session_manager = self.ciba["server"].endpoint_context.session_manager
+        _session_manager = self.ciba["self.server"].endpoint_context.session_manager
         sid = _session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
         _user_id, _client_id, _grant_id = _session_manager.decrypt_session_id(sid)
 

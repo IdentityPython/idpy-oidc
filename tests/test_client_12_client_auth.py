@@ -287,11 +287,12 @@ class TestPrivateKeyJWT(object):
 
         _keyjar = token_service.upstream_get("attribute", "keyjar")
         _keyjar.add_kb("", kb_rsa)
-        _keyjar.provider_info = {
+
+        _context = token_service.upstream_get("context")
+        _context.provider_info = {
             "issuer": "https://example.com/",
             "token_endpoint": "https://example.com/token",
         }
-        _context = token_service.upstream_get("context")
         _context.registration_response = {"token_endpoint_auth_signing_alg": "RS256"}
         token_service.endpoint = "https://example.com/token"
 
@@ -383,7 +384,7 @@ class TestClientSecretJWT_TE(object):
         request = AccessTokenRequest()
 
         # get a kid
-        _keys = _service_context.keyjar.get_issuer_keys("")
+        _keys = entity.keyjar.get_issuer_keys("")
         kid = _keys[0].kid
         token_service = entity.get_service("accesstoken")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint", kid=kid)
@@ -431,7 +432,7 @@ class TestClientSecretJWT_TE(object):
         _kb = KeyBundle()
         _rsa_key = new_rsa_key()
         _kb.append(_rsa_key)
-        _service_context.keyjar.add_kb("", _kb)
+        entity.keyjar.add_kb("", _kb)
         # Since I have a RSA key this doesn't fail
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint")
 

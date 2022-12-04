@@ -203,7 +203,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
-        self.endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.endpoint = server.get_endpoint("token")
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.session_manager = self.endpoint_context.session_manager

@@ -5,8 +5,8 @@ from typing import Union
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 
-from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.client_auth import client_auth_setup
+from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
@@ -74,6 +74,15 @@ def redirect_uris_from_callback_uris(callback_uris):
 
 
 class Entity(Unit):
+    parameter = {
+        'entity_id': None,
+        'jwks_uri': None,
+        'httpc_params': None,
+        'key_conf': None,
+        'keyjar': KeyJar,
+        'context': None
+    }
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -93,9 +102,9 @@ class Entity(Unit):
                       entity_id=entity_id)
 
         if context:
-            self._service_context = context
+            self.context = context
         else:
-            self._service_context = ServiceContext(config=config, jwks_uri=jwks_uri,
+            self.context = ServiceContext(config=config, jwks_uri=jwks_uri,
                                                    upstream_get=self.unit_get)
 
         if services:
@@ -119,10 +128,10 @@ class Entity(Unit):
         return self._service
 
     def get_service_context(self, *arg):  # Want to get rid of this
-        return self._service_context
+        return self.context
 
     def get_context(self, *arg):
-        return self._service_context
+        return self.context
 
     def get_service(self, service_name, *arg):
         try:
@@ -141,15 +150,15 @@ class Entity(Unit):
         return self
 
     def get_client_id(self):
-        _val = self._service_context.work_environment.get_usage('client_id')
+        _val = self.context.work_environment.get_usage('client_id')
         if _val:
             return _val
         else:
-            return self._service_context.work_environment.get_preference('client_id')
+            return self.context.work_environment.get_preference('client_id')
 
     def setup_client_authn_methods(self, config):
         if config and "client_authn_methods" in config:
-            self._service_context.client_authn_method = client_auth_setup(
+            self.context.client_authn_method = client_auth_setup(
                 config.get("client_authn_methods")
             )
         else:
@@ -158,4 +167,33 @@ class Entity(Unit):
                  s.default_authn_method])
             _methods = {m: CLIENT_AUTHN_METHOD[m] for m in _default_methods if
                         m in CLIENT_AUTHN_METHOD}
-            self._service_context.client_authn_method = client_auth_setup(_methods)
+            self.context.client_authn_method = client_auth_setup(_methods)
+
+    def import_keys(self, keyspec):
+        """
+        The client needs it's own set of keys. It can either dynamically
+        create them or load them from local storage.
+        This method can also fetch other entities keys provided the
+        URL points to a JWKS.
+
+        :param keyspec:
+        """
+        _keyjar = self.get_attribute('keyjar')
+        if _keyjar is None:
+            _keyjar = KeyJar()
+
+        for where, spec in keyspec.items():
+            if where == "file":
+                for typ, files in spec.items():
+                    if typ == "rsa":
+                        for fil in files:
+                            _key = RSAKey(priv_key=import_private_rsa_key_from_file(fil),
+                                          use="sig")
+                            _bundle = KeyBundle()
+                            _bundle.append(_key)
+                            _keyjar.add_kb("", _bundle)
+            elif where == "url":
+                for iss, url in spec.items():
+                    _bundle = KeyBundle(source=url)
+                    _keyjar.add_kb(iss, _bundle)
+        return _keyjar

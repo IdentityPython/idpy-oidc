@@ -892,7 +892,7 @@ class TestRPHandlerWithMockOP(object):
         p = urlparse(CLIENT_CONFIG["github"]["provider_info"]["authorization_endpoint"])
         self.mock_op.register_get_response(p.path, "Redirect", 302)
 
-        _ = client.httpc(auth_query["url"])
+        _ = client.httpc("GET", auth_query["url"])
 
         #  the user is redirected back to the RP with a positive response
         auth_response = AuthorizationResponse(code="access_code", state=auth_query["state"])

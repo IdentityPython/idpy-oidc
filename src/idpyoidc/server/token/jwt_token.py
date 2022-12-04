@@ -112,7 +112,6 @@ class JWTToken(Token):
         return signer.pack(payload)
 
     def get_payload(self, token):
-        _context = self.upstream_get("context")
         verifier = JWT(key_jar=self.upstream_get('attribute','keyjar'),
                        allowed_sign_algs=[self.alg])
         try:

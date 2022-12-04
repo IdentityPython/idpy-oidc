@@ -164,9 +164,7 @@ class TestAuthnBrokerEC:
                 "code id_token token",
             ],
         }
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
 
         self.server = server
 

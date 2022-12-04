@@ -294,8 +294,8 @@ class TestEndpoint(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["oidc_clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint_context = endpoint_context
         self.endpoint = server.get_endpoint("authorization")
@@ -304,7 +304,8 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        self.server = server
 
     def test_init(self):
         assert self.endpoint
@@ -434,7 +435,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         idt = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.upstream_get("context").keyjar,
+            keyjar=self.endpoint.upstream_get("attribute","keyjar")
         )
         assert idt
         # from config
@@ -459,7 +460,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.upstream_get("context").keyjar,
+            keyjar=self.endpoint.upstream_get("attribute","keyjar"),
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]
@@ -1243,8 +1244,8 @@ class TestACR(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["oidc_clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = endpoint_context.session_manager
@@ -1252,7 +1253,7 @@ class TestACR(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        endpoint_context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_setup_acr_claim(self):
         request = AuthorizationRequest(

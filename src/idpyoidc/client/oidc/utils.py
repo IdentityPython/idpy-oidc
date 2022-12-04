@@ -7,7 +7,7 @@ from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.util import rndstr
 
 
-def request_object_encryption(msg, service_context, **kwargs):
+def request_object_encryption(msg, service_context, keyjar, **kwargs):
     """
     Created an encrypted JSON Web token with *msg* as body.
 
@@ -49,12 +49,11 @@ def request_object_encryption(msg, service_context, **kwargs):
     if "target" not in kwargs:
         raise MissingRequiredAttribute("No target specified")
 
-    _keyjar = service_context.upstream_get('attribute', 'keyjar')
     if _kid:
-        _keys = _keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"], kid=_kid)
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"], kid=_kid)
         _jwe["kid"] = _kid
     else:
-        _keys = _keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"])
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"])
 
     return _jwe.encrypt(_keys)
 

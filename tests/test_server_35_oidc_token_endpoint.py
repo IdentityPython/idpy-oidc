@@ -202,9 +202,9 @@ def conf():
 class TestEndpoint(_TestEndpoint):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
-        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        endpoint_context = server.endpoint_context
+        endpoint_context = self.server.endpoint_context
         endpoint_context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -213,10 +213,10 @@ class TestEndpoint(_TestEndpoint):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        self.server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         endpoint_context.userinfo = USERINFO
         self.session_manager = endpoint_context.session_manager
-        self.token_endpoint = server.get_endpoint("token")
+        self.token_endpoint = self.server.get_endpoint("token")
         self.user_id = "diana"
         self.endpoint_context = endpoint_context
 
@@ -395,7 +395,7 @@ class TestEndpoint(_TestEndpoint):
             "scope",
         }
         AuthorizationResponse().from_jwt(
-            _resp["response_args"]["id_token"], _cntx.keyjar, sender=""
+            _resp["response_args"]["id_token"], self.server.get_attribute('keyjar'), sender=""
         )
 
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -449,7 +449,7 @@ class TestEndpoint(_TestEndpoint):
             "scope",
         }
         AuthorizationResponse().from_jwt(
-            _2nd_resp["response_args"]["id_token"], _cntx.keyjar, sender=""
+            _2nd_resp["response_args"]["id_token"], self.server.keyjar, sender=""
         )
 
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -508,7 +508,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
 
@@ -619,7 +619,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
 
@@ -649,7 +649,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
         idtoken = AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
 
@@ -674,7 +674,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
         idtoken = AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
 
@@ -763,7 +763,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
         assert _resp["response_args"]["scope"] == ["openid"]
@@ -959,7 +959,7 @@ class TestEndpoint(_TestEndpoint):
 
         access_token = AccessTokenRequest().from_jwt(
             _resp["response_args"]["access_token"],
-            self.endpoint_context.keyjar,
+            self.server.keyjar,
             sender="",
         )
 
@@ -1028,7 +1028,7 @@ class TestOldTokens(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = endpoint_context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
@@ -1120,7 +1120,7 @@ class TestOldTokens(object):
         # payload.update(kwargs)
         _context = _handler.upstream_get("endpoint_context")
         signer = JWT(
-            key_jar=_context.keyjar,
+            key_jar=_handler.upstream_get('attribute', 'keyjar'),
             iss=_handler.issuer,
             lifetime=300,
             sign_alg=_handler.alg,

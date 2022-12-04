@@ -237,6 +237,7 @@ class Endpoint(object):
 
         authn_info = verify_client(
             context=self.upstream_get("context"),
+            keyjar=self.upstream_get('attribute','keyjar'),
             request=request,
             http_info=http_info,
             **kwargs

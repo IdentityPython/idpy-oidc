@@ -1104,8 +1104,8 @@ class TestUserInfo(object):
         # Add encryption key
         _kj = build_keyjar([{"type": "RSA", "use": ["enc"]}], issuer_id="")
         # Own key jar gets the private key
-        self.service.upstream_get("service_context").keyjar.import_jwks(
-            _kj.export_jwks(private=True), issuer_id=""
+        self.service.upstream_get("attribute",'keyjar').import_jwks(
+            _kj.export_jwks(private=True), issuer_id="client_id"
         )
         # opponent gets the public key
         ISS_KEY.import_jwks(_kj.export_jwks(), issuer_id="client_id")

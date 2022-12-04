@@ -317,8 +317,8 @@ class Registration(Endpoint):
         """
         si_url = request["sector_identifier_uri"]
         try:
-            res = self.upstream_get("context").httpc.get(
-                si_url, **self.upstream_get("context").httpc_params
+            res = self.upstream_get("context").httpc(
+                "GET", si_url, **self.upstream_get("context").httpc_params
             )
             logger.debug("sector_identifier_uri => %s", sanitize(res.text))
         except Exception as err:

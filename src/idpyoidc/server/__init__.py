@@ -107,15 +107,6 @@ class Server(Unit):
             return _func(*arg)
         return None
 
-    def get_attribute(self, attribute, *args):
-        try:
-            getattr(self, attribute)
-        except AttributeError:
-            if self.upstream_get:
-                return self.upstream_get(attribute)
-            else:
-                return None
-
     def get_endpoints(self, *arg):
         return self.endpoint
 
