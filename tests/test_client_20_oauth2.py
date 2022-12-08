@@ -65,7 +65,7 @@ class TestClient(object):
             "response_type": ["code"],
         }
 
-        self.client.get_context.cstate.set("ABCDE", {"iss": 'issuer'})
+        self.client.get_context().cstate.set("ABCDE", {"iss": 'issuer'})
         msg = self.client.get_service("authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
@@ -183,7 +183,8 @@ class TestClient2(object):
                 "read_only": False,
             },
             "clients": {
-                "client_1": {
+                "service_1": {
+                    "client_id": "client_1",
                     "client_secret": "abcdefghijklmnop",
                     "redirect_uris": ["https://example.com/cli/authz_cb"],
                 }
@@ -191,17 +192,11 @@ class TestClient2(object):
         }
         rp_conf = RPHConfiguration(conf)
         rp_handler = RPHandler(base_url=BASE_URL, config=rp_conf)
-        self.client = rp_handler.init_client(issuer="client_1")
+        self.client = rp_handler.init_client(issuer="service_1")
         assert self.client
 
     def test_keyjar(self):
-        req_args = {
-            "state": "ABCDE",
-            "redirect_uri": "https://example.com/auth_cb",
-            "response_type": ["code"],
-        }
-
         _keyjar = self.client.get_attribute('keyjar')
-        assert len(_keyjar) == 1  # one issuer
+        assert len(_keyjar) == 2  # one issuer
         assert len(_keyjar[""]) == 2
         assert len(_keyjar.get("sig")) == 2

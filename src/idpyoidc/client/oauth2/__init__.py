@@ -71,7 +71,7 @@ class Client(Entity):
         if not client_type:
             client_type = "oauth2"
 
-        if verify_ssl in False:
+        if verify_ssl is False:
             # just ignore verify_ssl until it goes away
             if httpc_params:
                 httpc_params['verify'] = False

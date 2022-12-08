@@ -9,7 +9,7 @@ class TestDumpLoad(object):
         c = OidcContext({}, entity_id=ENTITY_ID)
         mem = c.dump()
         c2 = OidcContext().load(mem)
-        assert c2.issuer == ENTITY_ID
+        assert c2.entity_id == ENTITY_ID
 
     def test_context_with_entity_id_and_keys(self):
         c = OidcContext({"entity_id": ENTITY_ID})

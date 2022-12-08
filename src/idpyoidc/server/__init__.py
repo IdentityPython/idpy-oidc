@@ -166,6 +166,6 @@ class Server(Unit):
             self.endpoint_context.login_hint_lookup.userinfo = _userinfo
 
     def setup_client_authn_methods(self):
-        self.endpoint_context.client_authn_method = client_auth_setup(
+        self.endpoint_context.client_authn_methods = client_auth_setup(
             self.unit_get, self.conf.get("client_authn_methods")
         )

@@ -27,6 +27,7 @@ from .current import Current
 from .work_environment.transform import preferred_to_registered
 from .work_environment.transform import supported_to_preferred
 from ..impexp import ImpExp
+from ..node import Unit
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ DEFAULT_VALUE = {
 }
 
 
-class ServiceContext(ImpExp):
+class ServiceContext(Unit):
     """
     This class keeps information that a client needs to be able to talk
     to a server. Some of this information comes from configuration and some
@@ -118,6 +119,7 @@ class ServiceContext(ImpExp):
                  cstate: Optional[Current] = None,
                  upstream_get: Optional[Callable] = None,
                  client_type: Optional[str] = 'oauth2',
+                 keyjar: Optional[KeyJar] = None,
                  **kwargs):
         ImpExp.__init__(self)
         config = get_configuration(config)
@@ -272,8 +274,8 @@ class ServiceContext(ImpExp):
 
     def supports(self):
         res = {}
-        if self.client_get:
-            services = self.client_get('services')
+        if self.upstream_get:
+            services = self.upstream_get('services')
             for service in services.values():
                 res.update(service.supports())
         res.update(self.work_environment.supports())
@@ -294,9 +296,16 @@ class ServiceContext(ImpExp):
     def set_usage(self, claim, value):
         return self.work_environment.set_usage(claim, value)
 
+    def get_keyjar(self):
+        val = getattr(self, 'keyjar', None)
+        if not val:
+            return self.upstream_get('attribute', 'keyjar')
+        else:
+            return val
+
     def _callback_per_service(self):
         _cb = {}
-        for service in self.client_get('services').values():
+        for service in self.upstream_get('services').values():
             _cbs = service._callback_path.keys()
             if _cbs:
                 _cb[service.service_name] = _cbs
@@ -313,8 +322,8 @@ class ServiceContext(ImpExp):
         _base_url = self.get("base_url")
 
         _callback_uris = self.get_preference('callback_uris', {})
-        if self.client_get:
-            services = self.client_get('services')
+        if self.upstream_get:
+            services = self.upstream_get('services')
             for service in services.values():
                 _callback_uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
                                                              context=self,
@@ -331,7 +340,7 @@ class ServiceContext(ImpExp):
         if claim in self.work_environment.prefer:
             return 'prefer'
         else:
-            for service in self.client_get('services').values():
+            for service in self.upstream_get('services').values():
                 _res = service.prefer_or_support(claim)
                 if _res:
                     return _res

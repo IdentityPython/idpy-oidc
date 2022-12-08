@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.oauth2 import server_metadata
@@ -52,7 +53,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     def __init__(self, upstream_get, conf=None):
         server_metadata.ServerMetadata.__init__(self, upstream_get, conf=conf)
 
-    def update_service_context(self, resp, **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = '', **kwargs):
         _context = self.upstream_get("context")
         self._update_service_context(resp)
         _context.map_supported_to_preferred(resp)

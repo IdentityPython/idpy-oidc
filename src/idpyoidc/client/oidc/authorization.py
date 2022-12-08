@@ -57,7 +57,7 @@ class Authorization(authorization.Authorization):
 
     def __init__(self, upstream_get, conf=None, request_args: Optional[dict] = None):
         authorization.Authorization.__init__(self, upstream_get, conf=conf)
-        self.default_request_args = {"scope": ["openid"]}
+        self.default_request_args.update({"scope": ["openid"]})
         if request_args:
             self.default_request_args.update(request_args)
         self.pre_construct = [
@@ -101,7 +101,7 @@ class Authorization(authorization.Authorization):
         if _idt:
             # If there is a verified ID Token then we have to do nonce
             # verification.
-            _req_nonce = self.superior_get("context").cstate.get_set(
+            _req_nonce = self.upstream_get("context").cstate.get_set(
                 response["state"], claim=['nonce']).get('nonce')
             if _req_nonce:
                 _id_token_nonce = _idt.get("nonce")
@@ -255,17 +255,13 @@ class Authorization(authorization.Authorization):
             if k in kwargs
         }
 
-        _req = make_openid_request(req, **_mor_args)
+        _req_jwt = make_openid_request(req, **_mor_args)
 
         # Should the request be encrypted
-        _req = request_object_encryption(_req, _context,
-                                         self.upstream_get('attribute', 'keyjar'),
-                                         **kwargs)
-
-        if request_param == "request":
-            req["request"] = _req
-        else:  # MUST be request_uri
-            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+        _req_jwte = request_object_encryption(_req_jwt, _context,
+                                              self.upstream_get('attribute', 'keyjar'),
+                                              **kwargs)
+        return _req_jwte
 
     def oidc_post_construct(self, req, **kwargs):
         """

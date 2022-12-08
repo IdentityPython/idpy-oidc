@@ -115,7 +115,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
+        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_json()
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
@@ -127,7 +127,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
+        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )
@@ -141,7 +141,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('attribute','keyjar').get_signing_key()
+        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )

@@ -142,6 +142,7 @@ CLIENT_CONFIG = {
             "scopes_supported": ["user", "public_repo"],
             "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
+            'encrypt_request_object': False
         },
         "provider_info": {
             "authorization_endpoint": "https://github.com/login/oauth/authorize",
@@ -155,7 +156,7 @@ CLIENT_CONFIG = {
             "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
             "userinfo": {
                 "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-                "kwargs": {"conf": {"default_authn_method": ""}},
+                "kwargs": {"default_authn_method": ""},
             },
             "refresh_access_token": {
                 "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"

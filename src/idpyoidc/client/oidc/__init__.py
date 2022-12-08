@@ -85,7 +85,6 @@ class RP(oauth2.Client):
             services: Optional[dict] = None,
             httpc: Optional[Callable] = None,
             httpc_params: Optional[dict] = None,
-            context: Optional[OidcContext] = None,
             upstream_get: Optional[Callable] = None,
             key_conf: Optional[dict] = None,
             entity_id: Optional[str] = '',

@@ -211,8 +211,8 @@ class TestBearerBody(object):
         assert http_args is None
 
     def test_construct_with_state(self, entity):
-        _auth_service = entity.upstream_get("service", "")
-        _cntx = _auth_service.upstream_get("service_context")
+        _auth_service = entity.get_service("accesstoken")
+        _cntx = _auth_service.upstream_get("context")
         _key = _cntx.cstate.create_key()
         _cntx.cstate.set(_key, {'iss': "Issuer"})
 
@@ -260,7 +260,7 @@ class TestBearerBody(object):
 class TestClientSecretPost(object):
 
     def test_construct(self, entity):
-        _token_service = entity.upstream_get("service", "")
+        _token_service = entity.get_service("")
         request = _token_service.construct(request_args={'redirect_uri': "http://example.com",
                                                          'state': "ABCDE"})
         csp = ClientSecretPost()
@@ -277,7 +277,7 @@ class TestClientSecretPost(object):
         assert http_args is None
 
     def test_modify_1(self, entity):
-        token_service = entity.upstream_get("service", "")
+        token_service = entity.get_service("")
         request = token_service.construct(request_args={'redirect_uri': "http://example.com",
                                                         'state': "ABCDE"})
         csp = ClientSecretPost()
@@ -285,7 +285,7 @@ class TestClientSecretPost(object):
         assert "client_secret" in request
 
     def test_modify_2(self, entity):
-        _service = entity.upstream_get("service", "")
+        _service = entity.get_service("")
         request = _service.construct(request_args={'redirect_uri': "http://example.com",
                                                    'state': "ABCDE"})
         csp = ClientSecretPost()
@@ -308,7 +308,7 @@ class TestPrivateKeyJWT(object):
             key.add_kid()
 
         _context = token_service.upstream_get('context')
-        token_service.upstream_get('attribute', 'keyjar').add_kb("", kb_rsa)
+        _context.get_keyjar().add_kb("", kb_rsa)
         _context.provider_info = {
             "issuer": "https://example.com/",
             "token_endpoint": "https://example.com/token",
@@ -404,11 +404,15 @@ class TestClientSecretJWT_TE(object):
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
 
-        # get a kid
-        _keys = entity.get_attribute('keyjar').get_issuer_keys("")
-        kid = _keys[0].kid
+        # get a kid for a symmetric key
+        kid = ''
+        for _key in entity.get_attribute('keyjar').get_issuer_keys(""):
+            if _key.kty == 'oct':
+                kid = _key.kid
+                break
+
         # token_service = entity.get_service("")
-        token_service = entity.upstream_get("service", "accesstoken")
+        token_service = entity.get_service("accesstoken")
         csj.construct(request, service=token_service, authn_endpoint="token_endpoint", kid=kid)
         assert "client_assertion" in request
 

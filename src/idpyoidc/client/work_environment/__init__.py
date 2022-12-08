@@ -2,11 +2,6 @@ from cryptojwt.exception import IssuerNotFound
 from cryptojwt.jwk.hmac import SYMKey
 
 from idpyoidc import work_environment
-from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
-
-
-def get_client_authn_methods():
-    return list(CLIENT_AUTHN_METHOD.keys())
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
@@ -24,8 +19,22 @@ class WorkEnvironment(work_environment.WorkEnvironment):
     def add_extra_keys(self, keyjar, id):
         _secret = self.get_preference('client_secret')
         if _secret:
-            keyjar.add_symmetric(issuer_id=id, key=_secret)
-            keyjar.add_symmetric(issuer_id='', key=_secret)
+            _new = SYMKey(key=_secret)
+            try:
+                _id_keys = keyjar.get_issuer_keys(id)
+            except IssuerNotFound:
+                keyjar.add_symmetric(issuer_id=id, key=_secret)
+            else:
+                if _new not in _id_keys:
+                    keyjar.add_symmetric(issuer_id=id, key=_secret)
+
+            try:
+                _own_keys = keyjar.get_issuer_keys('')
+            except IssuerNotFound:
+                keyjar.add_symmetric(issuer_id='', key=_secret)
+            else:
+                if _new not in _own_keys:
+                    keyjar.add_symmetric(issuer_id='', key=_secret)
 
     def get_jwks(self, keyjar):
         _jwks = None

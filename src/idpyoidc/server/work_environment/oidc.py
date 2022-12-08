@@ -2,6 +2,7 @@ from typing import Optional
 
 from idpyoidc import work_environment as WE
 from idpyoidc.server import work_environment
+# from idpyoidc.server.client_authn import get_client_authn_methods
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
@@ -12,6 +13,7 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         "claim_types_supported": None,
         "claims_locales_supported": None,
         "claims_supported": None,
+        # "client_authn_methods": get_client_authn_methods,
         "contacts": None,
         "default_max_age": 86400,
         "display_values_supported": None,

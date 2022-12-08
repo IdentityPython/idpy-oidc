@@ -2,19 +2,21 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt import KeyBundle
 from cryptojwt import KeyJar
+from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.client_auth import client_auth_setup
-from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
+from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
-from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
-from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.context import OidcContext
 from idpyoidc.node import Unit
+from idpyoidc.server.client_authn import client_auth_class
 
 logger = logging.getLogger(__name__)
 
@@ -100,18 +102,12 @@ class Entity(Unit):  # This is a Client
         if config is None:
             config = {}
 
-        self.entity_id = entity_id or config.get('entity_id')
-        self.client_id = config.get('client_id', entity_id)
+        _id = config.get('client_id')
+        self.client_id = self.entity_id = entity_id or config.get('entity_id', _id)
 
         Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
                       httpc_params=httpc_params, config=config, key_conf=key_conf,
                       client_id=self.client_id)
-
-        if context:
-            self.context = context
-        else:
-            self.context = ServiceContext(config=config, jwks_uri=jwks_uri,
-                                                   upstream_get=self.unit_get)
 
         if services:
             _srvs = services
@@ -125,7 +121,11 @@ class Entity(Unit):  # This is a Client
 
         self._service = init_services(service_definitions=_srvs, upstream_get=self.unit_get)
 
-        self.keyjar = self._service_context.get_preference('keyjar')
+        if context:
+            self.context = context
+        else:
+            self.context = ServiceContext(config=config, jwks_uri=jwks_uri, keyjar=self.keyjar,
+                                          upstream_get=self.unit_get, client_type=client_type)
 
         self.setup_client_authn_methods(config)
         self.upstream_get = upstream_get
@@ -164,20 +164,14 @@ class Entity(Unit):  # This is a Client
 
     def setup_client_authn_methods(self, config):
         if config and "client_authn_methods" in config:
-            self.context.client_authn_method = client_auth_setup(
-                config.get("client_authn_methods")
-            )
+            _methods = config.get("client_authn_methods")
+            self.context.client_authn_methods = client_auth_setup(method_to_item(_methods))
         else:
-            _default_methods = set(
-                [s.default_authn_method for s in self._service.db.values() if
-                 s.default_authn_method])
-            _methods = {m: CLIENT_AUTHN_METHOD[m] for m in _default_methods if
-                        m in CLIENT_AUTHN_METHOD}
-            self.context.client_authn_method = client_auth_setup(_methods)
+            self.context.client_authn_methods = {}
 
     def import_keys(self, keyspec):
         """
-        The client needs it's own set of keys. It can either dynamically
+        The client needs its own set of keys. It can either dynamically
         create them or load them from local storage.
         This method can also fetch other entities keys provided the
         URL points to a JWKS.

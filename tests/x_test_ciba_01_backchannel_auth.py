@@ -540,7 +540,9 @@ class TestBCAEndpointService(object):
                 },
             },
             "client_authn_methods": {
-                "client_notification_authn": "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+                "client_notification_authn": {
+                    'class': "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+                }
             },
         }
 

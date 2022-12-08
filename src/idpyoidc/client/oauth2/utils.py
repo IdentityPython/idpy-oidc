@@ -25,7 +25,6 @@ def get_state_parameter(request_args, kwargs):
 
 def pick_redirect_uri(
         context,
-        entity,
         request_args: Optional[Union[Message, dict]] = None,
         response_type: Optional[str] = "",
 ):
@@ -81,7 +80,6 @@ def pre_construct_pick_redirect_uri(
         **kwargs
 ):
     request_args["redirect_uri"] = pick_redirect_uri(service.upstream_get("context"),
-                                                     entity=service.upstream_get("entity"),
                                                      request_args=request_args)
     return request_args, {}
 

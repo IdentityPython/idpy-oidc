@@ -1,6 +1,6 @@
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import userinfo
-from idpyoidc.client.work_environment import get_client_authn_methods
+from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_JSON
 from idpyoidc.message import SINGLE_OPTIONAL_STRING

@@ -2,10 +2,10 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
-from idpyoidc.client.work_environment import get_client_authn_methods
 from idpyoidc.work_environment import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -21,6 +21,7 @@ class AccessToken(access_token.AccessToken):
     msg_type = oidc.AccessTokenRequest
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
+    default_authn_method = "client_secret_basic"
 
     _supports = {
         "token_endpoint_auth_method": get_client_authn_methods,
@@ -89,7 +90,3 @@ class AccessToken(access_token.AccessToken):
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
 
         _cstate.update(key, resp)
-
-    def get_authn_method(self):
-        return self.upstream_get("context").get_preference("token_endpoint_auth_method",
-                                                           self.default_authn_method)

@@ -23,8 +23,19 @@ def add_issuer(conf, issuer):
 
 
 class OidcContext(ImpExp):
-    parameter = {"issuer": None}
+    parameter = {"entity_id": None}
 
     def __init__(self, config=None, entity_id=""):
         ImpExp.__init__(self)
-        self.entity_id = entity_id or config.get('client_id')
+        if entity_id:
+            self.entity_id = entity_id
+        else:
+            if config:
+                val = ''
+                for alt in ['client_id', 'issuer', 'entity_id']:
+                    val = config.get(alt)
+                    if val:
+                        break
+                self.entity_id = val
+            else:
+                self.entity_id = ''

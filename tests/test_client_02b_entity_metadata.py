@@ -23,7 +23,8 @@ CLIENT_CONFIG = {
         "userinfo_signing_alg_values_supported": ["ES256"],
         "post_logout_redirect_uris": ["https://rp.example.com/post"],
         "backchannel_logout_uri": "https://rp.example.com/back",
-        "backchannel_logout_session_required": True
+        "backchannel_logout_session_required": True,
+        "client_authn_methods": ['bearer_header']
     },
 
     "services": {
@@ -64,8 +65,9 @@ KEY_CONF = {
 
 def test_create_client():
     client = Entity(config=CLIENT_CONFIG, client_type='oidc')
-    client.get_service_context().map_supported_to_preferred()
-    _pref = client.prefers()
+    _context = client.get_context()
+    _context.map_supported_to_preferred()
+    _pref = _context.prefers()
     assert set(_pref.keys()) == {'application_type',
                                  'backchannel_logout_session_required',
                                  'backchannel_logout_uri',
@@ -110,27 +112,28 @@ def test_create_client():
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined
     d = rr.difference(set(_conf_args))
-    assert d == {'client_name',
-                 'client_uri',
-                 'default_acr_values',
-                 'frontchannel_logout_session_required',
-                 'frontchannel_logout_uri',
-                 'id_token_encrypted_response_alg',
-                 'id_token_encrypted_response_enc',
-                 'initiate_login_uri',
-                 'jwks',
-                 'jwks_uri',
-                 'logo_uri',
-                 'policy_uri',
-                 'post_logout_redirect_uri',
-                 'request_object_encryption_alg',
-                 'request_object_encryption_enc',
-                 'request_uris',
-                 'require_auth_time',
-                 'sector_identifier_uri',
-                 'tos_uri',
-                 'userinfo_encrypted_response_alg',
-                 'userinfo_encrypted_response_enc'}
+    assert d == {
+        'client_name',
+        'client_uri',
+        'default_acr_values',
+        'frontchannel_logout_session_required',
+        'frontchannel_logout_uri',
+        'id_token_encrypted_response_alg',
+        'id_token_encrypted_response_enc',
+        'initiate_login_uri',
+        'jwks',
+        'jwks_uri',
+        'logo_uri',
+        'policy_uri',
+        'post_logout_redirect_uri',
+        'request_object_encryption_alg',
+        'request_object_encryption_enc',
+        'request_uris',
+        'require_auth_time',
+        'sector_identifier_uri',
+        'tos_uri',
+        'userinfo_encrypted_response_alg',
+        'userinfo_encrypted_response_enc'}
 
 
 def test_create_client_key_conf():

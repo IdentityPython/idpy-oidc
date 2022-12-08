@@ -50,6 +50,7 @@ class TestClient(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "client_id": "client_1",
             "client_secret": "abcdefghijklmnop",
+            'client_authn_methods': ['bearer_header']
         }
         self.client = RP(config=conf)
 

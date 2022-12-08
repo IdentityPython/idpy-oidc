@@ -49,7 +49,7 @@ class WebFinger(Service):
             for link in links:
                 if link["rel"] == self.rel:
                     _href = link["href"]
-                    _context = self.client_get('service_context')
+                    _context = self.upstream_get('service_context')
                     _http_allowed = 'http_links' in _context.get("allow", default={})
 
                     if _href.startswith("http://") and not _http_allowed:

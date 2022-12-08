@@ -1,4 +1,3 @@
-import json
 import os
 
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -399,9 +398,12 @@ class TestAccessTokenRequest(object):
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
+            'client_authn_methods': ['client_secret_basic']
         }
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
-        entity.get_context().issuer = "https://example.com"
+        _context = entity.get_context()
+        _context.issuer = "https://example.com"
+        _context.provider_info = {'token_endpoint': f'{_context.issuer}/token'}
         self.service = entity.get_service("accesstoken")
 
         # add some history
@@ -455,16 +457,10 @@ class TestAccessTokenRequest(object):
         assert set(_info.keys()) == {"body", "url", "headers", "method", "request"}
         assert _info["url"] == "https://example.com/authorize"
         msg = AccessTokenRequest().from_urlencoded(self.service.get_urlinfo(_info["body"]))
-        assert msg.to_dict() == {
-            "client_id": "client_id",
-            "code": "access_code",
-            "grant_type": "authorization_code",
-            "state": "state",
-            "redirect_uri": "https://example.com/cli/authz_cb",
-        }
+        assert set(msg.keys()) == {'redirect_uri', 'grant_type', 'state', 'code', 'client_id'}
 
     def test_id_token_nonce_match(self):
-        _cstate = self.service.get_context().cstate
+        _cstate = self.service.upstream_get("context").cstate
         _cstate.bind_key("nonce", "state")
         resp = AccessTokenResponse()
         resp[verified_claim_name("id_token")] = {"nonce": "nonce"}
@@ -729,7 +725,7 @@ class TestProviderInfo(object):
             "registration_endpoint": "{}/registration".format(OP_BASEURL),
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
-        _context = self.service.get_context()
+        _context = self.service.upstream_get("context")
         assert _context.work_environment.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
@@ -917,10 +913,10 @@ def test_config_with_required_request_uri():
                     client_type='oidc')
     entity.get_context().issuer = "https://example.com"
 
-    pi_service = entity.client_get("service", "provider_info")
+    pi_service = entity.get_service("provider_info")
     pi_service.match_preferences({"require_request_uri_registration": True})
 
-    reg_service = entity.client_get("service", "registration")
+    reg_service = entity.get_service("registration")
     _req = reg_service.construct()
     assert isinstance(_req, RegistrationRequest)
     assert set(_req.keys()) == {"application_type", "response_types", "jwks",
@@ -956,11 +952,11 @@ def test_config_logout_uri():
     _context = entity.get_context()
     _context.issuer = "https://example.com"
 
-    pi_service = entity.client_get("service", "provider_info")
+    pi_service = entity.get_service("provider_info")
     _pi = {"require_request_uri_registration": True, "backchannel_logout_supported": True}
     pi_service.match_preferences(_pi)
 
-    reg_service = entity.client_get("service", "registration")
+    reg_service = entity.get_service("registration")
     _req = reg_service.construct()
     assert isinstance(_req, RegistrationRequest)
     assert set(_req.keys()) == {'application_type',
@@ -1002,7 +998,7 @@ class TestUserInfo(object):
             "userinfo_encrypted_response_enc": "A256GCM",
         }
 
-        _cstate = self.service.get_context().cstate
+        _cstate = self.service.upstream_get("context").cstate
         # Add history
         auth_response = AuthorizationResponse(code="access_code")
         _cstate.update("abcde", auth_response)
@@ -1104,7 +1100,7 @@ class TestUserInfo(object):
         # Add encryption key
         _kj = build_keyjar([{"type": "RSA", "use": ["enc"]}], issuer_id="")
         # Own key jar gets the private key
-        self.service.upstream_get("attribute",'keyjar').import_jwks(
+        self.service.upstream_get("attribute", 'keyjar').import_jwks(
             _kj.export_jwks(private=True), issuer_id="client_id"
         )
         # opponent gets the public key
@@ -1119,7 +1115,7 @@ class TestUserInfo(object):
         )
 
         enc_resp = resp.to_jwe(enckey, **algspec)
-        _resp = self.service.parse_response(enc_resp, state="abcde", sformat="jwt")
+        _resp = self.service.parse_response(enc_resp, state="abcde", sformat="jwe")
         assert _resp
 
 
@@ -1215,7 +1211,7 @@ def test_authz_service_conf():
         "client_id": "client_id",
         "client_secret": "a longesh password",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "preference": {"response_types": ["code"]},
+        "response_types": ["code"],
     }
 
     services = {
@@ -1242,7 +1238,14 @@ def test_authz_service_conf():
     service = entity.get_service("authorization")
 
     req = service.construct()
-    assert "claims" in req
+    assert set(req.keys()) == {'claims',
+                               'client_id',
+                               'nonce',
+                               'redirect_uri',
+                               'response_type',
+                               'scope',
+                               'state'}
+
     assert set(req["claims"].keys()) == {"id_token"}
 
 

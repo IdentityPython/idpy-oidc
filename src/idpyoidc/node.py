@@ -71,8 +71,11 @@ class Unit(ImpExp):
                 self.keyjar.add_symmetric('', client_id)
         else:
             if client_id:
-                self.keyjar = KeyJar()
-                self.keyjar.add_symmetric('', client_id)
+                _key = config.get("client_secret")
+                if _key:
+                    self.keyjar = KeyJar()
+                    self.keyjar.add_symmetric(client_id, _key)
+                    self.keyjar.add_symmetric('', _key)
             else:
                 self.keyjar = None
 

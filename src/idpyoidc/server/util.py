@@ -170,33 +170,3 @@ def execute(spec, **kwargs):
         else:
             return kwargs
 
-# def sector_id_from_redirect_uris(uris):
-#     if not uris:
-#         return ""
-#
-#     _parts = urlparse(uris[0])
-#     hostname = _parts.netloc
-#     scheme = _parts.scheme
-#     for uri in uris[1:]:
-#         parsed = urlparse(uri)
-#         if scheme != parsed.scheme or hostname != parsed.netloc:
-#             raise ValueError(
-#                 "All redirect_uris must have the same hostname in order to generate sector_id."
-#             )
-#
-#     return urlunsplit((scheme, hostname, "", "", ""))
-
-
-# def get_logout_id(context, user_id, client_id):
-#     _item = NodeInfo()
-#     _item.user_id = user_id
-#     _item.client_id = client_id
-#
-#     # Note that this session ID is not the session ID the session manager is using.
-#     # It must be possible to map from one to the other.
-#     logout_session_id = uuid.uuid4().hex
-#     # Store the map
-#     _mngr = context.session_manager
-#     _mngr.set([logout_session_id], _item)
-#
-#     return logout_session_id

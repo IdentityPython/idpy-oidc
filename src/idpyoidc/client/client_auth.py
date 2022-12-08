@@ -1,6 +1,7 @@
 """Implementation of a number of client authentication methods."""
 import base64
 import logging
+from typing import Optional
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -17,6 +18,7 @@ from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
 from .util import sanitize
 from ..message import VREQUIRED
+from ..util import instantiate
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
@@ -270,7 +272,7 @@ def find_token(request, token_type, service, **kwargs):
     try:
         return kwargs["access_token"]
     except KeyError:
-        # Get the latest acquired access token.
+        # Get the latest acquired token.
         _state = kwargs.get("state", kwargs.get("key"))
         _arg = service.upstream_get("context").cstate.get_set(_state, claim=[token_type])
         return _arg.get("access_token")
@@ -473,7 +475,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                             algorithm = alg
                             break
 
-            audience = context.provider_info["token_endpoint"]
+            audience = context.provider_info.get("token_endpoint")
         else:
             audience = context.provider_info["issuer"]
 
@@ -613,15 +615,50 @@ def valid_service_context(service_context, when=0):
     return True
 
 
-def client_auth_setup(auth_set=None):
+def get_client_authn_class(name):
+    try:
+        return CLIENT_AUTHN_METHOD[name]
+    except KeyError:
+        return None
+
+
+def get_client_authn_methods():
+    return list(CLIENT_AUTHN_METHOD.keys())
+
+
+def method_to_item(methods):
+    if isinstance(methods, list):
+        return {k: get_client_authn_class(k) for k in methods if get_client_authn_class(k)}
+    elif isinstance(methods, dict):
+        return methods
+    elif not methods:
+        return {}
+
+
+def single_authn_setup(name, spec):
+    if isinstance(spec, dict):  # class and kwargs
+        if spec:
+            return instantiate(spec["class"], **spec["kwargs"])
+        else:
+            cls = get_client_authn_class(name)
+            return cls()
+    else:
+        if spec is None:
+            cls = get_client_authn_class(name)
+        elif isinstance(spec, str):
+            cls = importer(spec)
+        else:
+            cls = spec
+        return cls()
+
+
+def client_auth_setup(auth_set: Optional[dict] = None):
     if auth_set is None:
         auth_set = CLIENT_AUTHN_METHOD
-    else:
-        auth_set.update(CLIENT_AUTHN_METHOD)
+
     res = {}
 
-    for name, cls in auth_set.items():
-        if isinstance(cls, str):
-            cls = importer(cls)
-        res[name] = cls()
+    for name, spec in auth_set.items():
+        res[name] = single_authn_setup(name, spec)
+
     return res

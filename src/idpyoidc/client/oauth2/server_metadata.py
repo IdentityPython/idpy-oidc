@@ -1,5 +1,6 @@
 """The service that talks to the OAuth2 provider info discovery endpoint."""
 import logging
+from typing import Optional
 
 from cryptojwt.key_jar import KeyJar
 
@@ -126,5 +127,5 @@ class ServerMetadata(Service):
         elif "jwks" in resp:
             _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
 
-    def update_service_context(self, resp, **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)

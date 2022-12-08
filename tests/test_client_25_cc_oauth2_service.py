@@ -15,7 +15,8 @@ class TestRP:
         client_config = {
             "client_id": "client_id",
             "client_secret": "another password",
-            "base_url": BASE_URL
+            "base_url": BASE_URL,
+            "client_authn_methods": ['client_secret_basic', 'bearer_header']
         }
         services = {
             "token": {
@@ -78,7 +79,7 @@ class TestRP:
             }
         )
         _srv = self.entity.get_service("refresh_token")
-        _info = _srv.get_request_parameters(state='')
+        _info = _srv.get_request_parameters(state='cc')
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
         assert _info["body"] == "grant_type=refresh_token"

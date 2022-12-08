@@ -150,6 +150,7 @@ def test_conversation():
         "backchannel_logout_uri": "https://rp.example.com/back",
         "backchannel_logout_session_required": True,
         'allow': {'missing_kid': True},
+        "client_authn_methods": ['bearer_header'],
         "services": SERVICES
     }
 
@@ -523,7 +524,12 @@ def test_conversation():
 
     assert info["url"] == "https://example.org/op/token"
     _qp = parse_qs(info["body"])
-    assert set(_qp.keys()) == {'state', 'code', 'client_id', 'grant_type', 'redirect_uri'}
+    # since the default is private_key_jwt !!!
+    assert set(_qp.keys()) == {'client_id',
+                               'code',
+                               'grant_type',
+                               'redirect_uri',
+                               'state'}
     assert info["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
 
     # create the IdToken

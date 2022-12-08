@@ -16,6 +16,9 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
+from .client_auth import client_auth_setup
+from .client_auth import method_to_item
+from .client_auth import single_authn_setup
 from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
@@ -78,6 +81,7 @@ class Service(ImpExp):
 
         self.upstream_get = upstream_get
         self.default_request_args = {}
+        self.client_authn_methods = {}
 
         if conf:
             self.conf = conf
@@ -85,10 +89,10 @@ class Service(ImpExp):
                 "msg_type",
                 "response_cls",
                 "error_msg",
-                "default_authn_method",
                 "http_method",
                 "request_body_type",
                 "response_body_type",
+                "default_authn_method"
             ]:
                 if param in conf:
                     setattr(self, param, conf[param])
@@ -98,8 +102,20 @@ class Service(ImpExp):
                 self.default_request_args = _default_request_args
                 del conf["request_args"]
 
+            _client_authn_methods = conf.get("client_authn_methods", None)
+            if _client_authn_methods:
+                self.client_authn_methods = client_auth_setup(method_to_item(_client_authn_methods))
+
+            if self.default_authn_method:
+                if self.default_authn_method not in self.client_authn_methods:
+                    self.client_authn_methods[self.default_authn_method] = single_authn_setup(
+                        self.default_authn_method, None)
+
         else:
             self.conf = {}
+            if self.default_authn_method:
+                self.client_authn_methods[self.default_authn_method] = single_authn_setup(
+                    self.default_authn_method, None)
 
         # pull in all the modifiers
         self.pre_construct = []
@@ -138,8 +154,8 @@ class Service(ImpExp):
 
             val = _use.get(prop)
             if not val:
-                #val = request_claim(_context, prop)
-                #if not val:
+                # val = request_claim(_context, prop)
+                # if not val:
                 val = self.default_request_args.get(prop)
 
             if val:
@@ -269,12 +285,15 @@ class Service(ImpExp):
 
         if authn_method:
             LOGGER.debug("Client authn method: %s", authn_method)
-            _context = self.upstream_get("context")
-            try:
-                _func = _context.client_authn_method[authn_method]
-            except KeyError:  # not one of the common
-                LOGGER.error(f"Unknown client authentication method: {authn_method}")
-                raise Unsupported(f"Unknown client authentication method: {authn_method}")
+            if self.client_authn_methods and authn_method in self.client_authn_methods:
+                _func = self.client_authn_methods[authn_method]
+            else:
+                _context = self.upstream_get("context")
+                try:
+                    _func = _context.client_authn_methods[authn_method]
+                except KeyError:  # not one of the common
+                    LOGGER.error(f"Unknown client authentication method: {authn_method}")
+                    raise Unsupported(f"Unknown client authentication method: {authn_method}")
 
             return _func.construct(request, self, http_args=http_args, **kwargs)
 
@@ -505,7 +524,8 @@ class Service(ImpExp):
         enc_algs = _context.get_enc_alg_enc(self.service_name)
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
-        _jwt = JWT(key_jar=self.upstream_get('attribute','keyjar'), **args)
+
+        _jwt = JWT(key_jar=_context.get_keyjar(), **args)
         _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
@@ -556,7 +576,7 @@ class Service(ImpExp):
         :param sformat: Which serialization that was used
         :param state: The state
         :param kwargs: Extra key word arguments
-        :return: The parsed and to some extend verified response
+        :return: The parsed and to some extent verified response
         """
 
         if not sformat:
@@ -570,11 +590,12 @@ class Service(ImpExp):
                 self._do_jwt(info)
                 sformat = "dict"
             except Exception:
-                _context = self.client_get("service_context")
-                resp = self.response_cls().from_jwe(info, keys=_context.keyjar)
+                _keyjar = self.upstream_get("attribute", 'keyjar')
+                resp = self.response_cls().from_jwe(info, keys=_keyjar)
         elif sformat == "jwe":
-            _context = self.client_get("service_context")
-            resp = self.response_cls().from_jwe(info, keys=_context.keyjar)
+            _keyjar = self.upstream_get("attribute", 'keyjar')
+            _client_id = self.upstream_get("attribute", 'client_id')
+            resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":

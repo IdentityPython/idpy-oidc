@@ -32,6 +32,7 @@ from . import oidc
 from .oauth2 import Client
 from .oauth2 import dynamic_provider_info_discovery
 from .oauth2.utils import pick_redirect_uri
+from ..message.oauth2 import ResponseMessage
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ class RPHandler(object):
         :return: An Issuer ID
         """
         for _rp in self.issuer2rp.values():
-            _iss = _rp.upstream_get("context").cstate.get_set(
+            _iss = _rp.get_context().cstate.get_set(
                 state, claim=['iss']).get('iss')
             if _iss:
                 return _iss
@@ -155,7 +156,7 @@ class RPHandler(object):
         if not client:
             client = self.get_client_from_session_key(key)
 
-        return client.upstream_get("context").cstate.get(key)
+        return client.get_context().cstate.get(key)
 
     def init_client(self, issuer):
         """
@@ -198,7 +199,7 @@ class RPHandler(object):
             logger.error(message)
             raise
 
-        _context = client.upstream_get("context")
+        _context = client.get_context()
         if _context.iss_hash:
             self.hash2issuer[_context.iss_hash] = issuer
         # If non persistent
@@ -206,7 +207,7 @@ class RPHandler(object):
         if not _keyjar:
             _keyjar = client.keyjar = KeyJar()
         _keyjar.load(self.keyjar.dump())
-        # If persistent nothings has to be copied
+        # If persistent nothing has to be copied
 
         _context.base_url = self.base_url
         _context.jwks_uri = self.jwks_uri
@@ -425,13 +426,13 @@ class RPHandler(object):
             else:
                 raise ValueError("Missing state/session key")
 
-        _context = client.upstream_get("context")
-        _entity = client.upstream_get("entity")
+        _context = client.get_context()
+        #_entity = client.upstream_get("entity")
         _nonce = rndstr(24)
         _response_type = self._get_response_type(_context, req_args)
         request_args = {
             "redirect_uri": pick_redirect_uri(
-                _context, _entity, request_args=req_args, response_type=_response_type
+                _context, request_args=req_args, response_type=_response_type
             ),
             "scope": _context.work_environment.get_usage("scope"),
             "response_type": _response_type,
@@ -522,7 +523,7 @@ class RPHandler(object):
         :return: The client authentication method
         """
         if endpoint == "token_endpoint":
-            am = client.upstream_get("context").get_usage("token_endpoint_auth_method")
+            am = client.get_context().get_usage("token_endpoint_auth_method")
             if not am:
                 return ""
             else:
@@ -546,7 +547,7 @@ class RPHandler(object):
         if client is None:
             client = self.get_client_from_session_key(state)
 
-        _context = client.upstream_get("context")
+        _context = client.get_context()
         _claims = _context.cstate.get_set(state, claim=['code', 'redirect_uri'])
 
         req_args = {
@@ -632,7 +633,7 @@ class RPHandler(object):
             client = self.get_client_from_session_key(state)
 
         if not access_token:
-            _arg = client.upstream_get("context").cstate.get_set(state, claim=["access_token"])
+            _arg = client.get_context().cstate.get_set(state, claim=["access_token"])
             access_token = _arg["access_token"]
 
         request_args = {"access_token": access_token}
@@ -784,9 +785,9 @@ class RPHandler(object):
         know about.
         Once the consumer has redirected the user back to the
         callback URL there might be a number of services that the client should
-        use. Which one those are are defined by the client configuration.
+        use. Which one those are defined by the client configuration.
 
-        :param behaviour_args: For fine tuning
+        :param behaviour_args: For finetuning
         :param issuer: Who sent the response
         :param response: The Authorization response as a dictionary
         :returns: A dictionary with two claims:
@@ -875,7 +876,7 @@ class RPHandler(object):
         client = self.get_client_from_session_key(state)
 
         # Look for an IdToken
-        _arg = client.upstream_get("context").cstate.get_set(state,
+        _arg = client.get_context().cstate.get_set(state,
                                                                    claim=["__verified_id_token"])
 
         if _arg:
@@ -899,7 +900,7 @@ class RPHandler(object):
         now = utc_time_sans_frac()
 
         client = self.get_client_from_session_key(state)
-        _context = client.upstream_get("context")
+        _context = client.get_context()
         _args = _context.cstate.get_set(state, claim=["access_token", "__expires_at"])
         if "access_token" in _args:
             access_token = _args["access_token"]
@@ -973,7 +974,7 @@ class RPHandler(object):
 
     def clear_session(self, state):
         client = self.get_client_from_session_key(state)
-        client.upstream_get("context").cstate.remove_state(state)
+        client.get_context().cstate.remove_state(state)
 
 
 def backchannel_logout(client, request="", request_args=None):
@@ -1033,7 +1034,7 @@ def load_registration_response(client, request_args=None):
 
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    if not client.upstream_get("context").get_client_id():
+    if not client.get_context().get_client_id():
         try:
             response = client.do_request("registration", request_args=request_args)
         except KeyError:

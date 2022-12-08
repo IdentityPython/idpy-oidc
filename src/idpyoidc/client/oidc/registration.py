@@ -1,5 +1,7 @@
 import logging
 
+from cryptojwt import KeyJar
+
 from idpyoidc.client.entity import response_types_to_grant_types
 from idpyoidc.client.service import Service
 from idpyoidc.client.work_environment.transform import create_registration_request
@@ -101,7 +103,7 @@ class Registration(Service):
         @param kwargs:
         @return:
         """
-        _context = self.client_get("service_context")
+        _context = self.upstream_get("context")
         req_args = create_registration_request(_context.work_environment.prefer, _context.supports())
         if "request_args" in self.conf:
             req_args.update(self.conf["request_args"])

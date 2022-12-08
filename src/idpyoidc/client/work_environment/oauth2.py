@@ -1,10 +1,12 @@
 from typing import Optional
 
 from idpyoidc.client import work_environment
+# from idpyoidc.client.client_auth import get_client_authn_methods
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
     _supports = {
+        # "client_authn_methods": get_client_authn_methods,
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
