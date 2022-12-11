@@ -14,7 +14,6 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.construct import construct_provider_info
 from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
 from idpyoidc.util import sanitize
@@ -166,7 +165,7 @@ class Endpoint(object):
         except IssuerNotFound as err:
             if lap:
                 return self.error_cls(error=err)
-            client_id =self.find_client_keys(err.args[0])
+            client_id = self.find_client_keys(err.args[0])
             if not client_id:
                 return self.error_cls(error=err)
             else:
@@ -260,8 +259,6 @@ class Endpoint(object):
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
         authn_info = verify_client(
-            context=self.upstream_get("context"),
-            keyjar=self.upstream_get('attribute', 'keyjar'),
             request=request,
             http_info=http_info,
             **kwargs

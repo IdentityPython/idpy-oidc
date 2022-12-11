@@ -13,14 +13,12 @@ from cryptojwt.utils import as_bytes
 from idpyoidc.client.oidc import PREFERENCE2PROVIDER
 # from idpyoidc.defaults import PREFERENCE2SUPPORTED
 from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
-
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import ClientRegistrationErrorResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.exception import CapabilitiesMisMatch
 from idpyoidc.server.exception import InvalidRedirectURIError
 from idpyoidc.server.exception import InvalidSectorIdentifier
 from idpyoidc.time_util import utc_time_sans_frac
@@ -140,22 +138,52 @@ class Registration(Endpoint):
         _seed = kwargs.get("seed") or rndstr(32)
         self.seed = as_bytes(_seed)
 
-    def match_client_request(self, request: dict) -> list:
-        err = []
+    def match_claim(self, claim, val):
+        _context = self.upstream_get("context")
+
+        # Use my defaults
+        _my_key = REGISTER2PREFERRED.get(claim, claim)
+        try:
+            _val = _context.provider_info[_my_key]
+        except KeyError:
+            return val
+
+        try:
+            _claim_spec = RegistrationResponse.c_param[claim]
+        except KeyError:  # something I don't know anything about
+            return None
+
+        if _val:
+            if isinstance(_claim_spec[0], list):
+                if isinstance(val, str):
+                    if val in _val:
+                        return val
+                    else:
+                        return None
+                else:
+                    return list(set(_val).intersection(set(val)))
+            else:
+                if val == _val:
+                    return val
+                else:
+                    return None
+        else:
+            return None
+
+    def filter_client_request(self, request: dict) -> dict:
+        _args = {}
         _provider_info = self.upstream_get("context").provider_info
         for key, val in request.items():
             if key not in REGISTER2PREFERRED:
+                _args[key] = val
                 continue
-            _pi_key = REGISTER2PREFERRED.get(key, key)
-            if isinstance(val, str):
-                if val not in _provider_info[_pi_key]:
-                    logger.error(f"CapabilitiesMisMatch: {key}")
-                    err.append(key)
+
+            _val = self.match_claim(key, val)
+            if _val:
+                _args[key] = _val
             else:
-                if not set(val).issubset(set(_provider_info[_pi_key])):
-                    logger.error(f"CapabilitiesMisMatch: {key}")
-                    err.append(key)
-        return err
+                logger.error(f"Capabilities mismatch: {key}={val} not supported")
+        return _args
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
@@ -382,14 +410,10 @@ class Registration(Endpoint):
             return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
-        faulty_claims = self.match_client_request(request)
-        if faulty_claims:
-            return ResponseMessage(
-                error="invalid_request",
-                error_description=f"Don't support proposed {faulty_claims}"
-            )
-
         _context = self.upstream_get("context")
+
+        request = self.filter_client_request(request)
+
         if new_id:
             if self.kwargs.get("client_id_generator"):
                 cid_generator = importer(self.kwargs["client_id_generator"]["class"])

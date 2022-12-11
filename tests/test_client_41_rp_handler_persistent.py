@@ -51,6 +51,7 @@ CLIENT_CONFIG = {
         "client_id": "xxxxxxx",
         "client_secret": "yyyyyyyyyyyyyyyyyyyy",
         "redirect_uris": ["{}/authz_cb/linkedin".format(BASE_URL)],
+        'client_type': 'oauth2',
         "preference": {
             "response_types": ["code"],
             "scope": ["r_basicprofile", "r_emailaddress"],
@@ -325,8 +326,7 @@ class TestRPHandler(object):
         resp = rph_1.finalize_auth(client, _session["iss"], auth_response.to_dict())
         assert set(resp.keys()) == {"state", "code"}
         aresp = (
-            client.get_service("authorization")
-            .upstream("service_context").cstate.get(res["state"])
+            client.get_service("authorization").upstream_get("context").cstate.get(res["state"])
         )
         assert set(aresp.keys()) == {
             "state", "code", 'iss', 'client_id',

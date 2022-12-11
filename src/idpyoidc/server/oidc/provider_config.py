@@ -28,9 +28,9 @@ class ProviderConfiguration(Endpoint):
         ]:
             endp_instance = self.upstream_get("endpoint", endpoint)
             if endp_instance:
-                info[endp_instance.endpoint_name] = endp_instance.full_path
+                request[endp_instance.endpoint_name] = endp_instance.full_path
 
-        return info
+        return request
 
     def process_request(self, request=None, **kwargs):
         return {"response_args": self.upstream_get("context").provider_info}

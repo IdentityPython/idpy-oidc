@@ -2,8 +2,9 @@ import json
 import os
 import shutil
 
-import pytest
 from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.key_jar import init_key_jar
+import pytest
 
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -80,7 +81,7 @@ ENDPOINT_CONTEXT_CONFIG = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
     "capabilities": CAPABILITIES,
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+    # "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
         "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
@@ -202,12 +203,18 @@ class TestEndpoint(object):
         except FileNotFoundError:
             pass
 
+        # Both have to use the same keyjar
+        _keyjar = init_key_jar(key_defs=KEYDEFS)
+        _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""),
+                                    ENDPOINT_CONTEXT_CONFIG['issuer'])
         server1 = Server(
-            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR,
+            keyjar=_keyjar
         )
 
         server2 = Server(
-            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR,
+            keyjar=_keyjar
         )
         # The top most part (Server class instance) is not
 
@@ -294,11 +301,11 @@ class TestEndpoint(object):
     def test_init(self):
         assert self.endpoint[1]
         assert set(
-            self.endpoint[1].server_get("endpoint_context").provider_info["scopes_supported"]
+            self.endpoint[1].upstream_get("context").provider_info["scopes_supported"]
         ) == {"openid"}
-        assert set(
-            self.endpoint[1].upstream_get("context").provider_info["claims_supported"]
-        ) == set(self.endpoint[2].upstream_get("context").provider_info["claims_supported"])
+        assert self.endpoint[1].upstream_get("context").provider_info[
+                   "claims_parameter_supported"] == \
+               self.endpoint[2].upstream_get("context").provider_info["claims_parameter_supported"]
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)

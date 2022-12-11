@@ -67,10 +67,9 @@ class TestUserInfo(object):
                             },
                         }
                         )
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "token_exchange")
-
-        _cstate = self.service.client_get("service_context").cstate
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("token_exchange")
+        _cstate = self.service.upstream_get("context").cstate
         # Add history
         auth_response = AuthorizationResponse(code="access_code")
         _cstate.update("abcde", auth_response)

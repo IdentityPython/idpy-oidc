@@ -1,8 +1,8 @@
 from typing import Optional
 
 from idpyoidc import work_environment as WE
+from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.server import work_environment
-# from idpyoidc.server.client_authn import get_client_authn_methods
 
 
 class WorkEnvironment(work_environment.WorkEnvironment):
@@ -59,3 +59,11 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         if not self.get_preference('encrypt_id_token_supported'):
             self.set_preference('id_token_encryption_alg_values_supported', [])
             self.set_preference('id_token_encryption_enc_values_supported', [])
+
+    def provider_info(self, supports):
+        _info = {}
+        for key in ProviderConfigurationResponse.c_param.keys():
+            _val = self.get_preference(key, supports.get(key, None))
+            if _val is not None:
+                _info[key] = _val
+        return _info

@@ -118,7 +118,7 @@ class ServiceContext(Unit):
                  config: Optional[Union[dict, Configuration]] = None,
                  cstate: Optional[Current] = None,
                  upstream_get: Optional[Callable] = None,
-                 client_type: Optional[str] = 'oauth2',
+                 client_type: Optional[str] = 'oidc',
                  keyjar: Optional[KeyJar] = None,
                  **kwargs):
         ImpExp.__init__(self)

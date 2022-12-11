@@ -1,5 +1,6 @@
 from typing import Optional
 
+from idpyoidc.message.oauth2 import ASConfigurationResponse
 from idpyoidc.server import work_environment
 # from idpyoidc.server.client_authn import get_client_authn_methods
 
@@ -34,3 +35,11 @@ class WorkEnvironment(work_environment.WorkEnvironment):
                  prefer: Optional[dict] = None,
                  callback_path: Optional[dict] = None):
         work_environment.WorkEnvironment.__init__(self, prefer=prefer, callback_path=callback_path)
+
+    def provider_info(self, supports):
+        _info = {}
+        for key in ASConfigurationResponse.c_param.keys():
+            _val = self.get_preference(key, supports.get(key, None))
+            if _val:
+                _info[key] = _val
+        return _info

@@ -59,21 +59,23 @@ class Server(Unit):
 
         self.upstream_get = upstream_get
         self.conf = conf
+
+        self.endpoint = do_endpoints(conf, self.unit_get)
+
         self.endpoint_context = EndpointContext(
             conf=conf,
             upstream_get=self.unit_get,  # points to me
             cwd=cwd,
-            cookie_handler=cookie_handler
+            cookie_handler=cookie_handler,
+            keyjar=keyjar
         )
 
         self.endpoint_context.authz = self.setup_authz()
 
         self.setup_authentication(self.endpoint_context)
 
-        self.endpoint = do_endpoints(conf, self.unit_get)
-        _cap = get_provider_capabilities(conf, self.endpoint)
-
-        self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
+        # _cap = get_provider_capabilities(conf, self.endpoint)
+        # self.endpoint_context.provider_info = self.endpoint_context.create_providerinfo(_cap)
         self.endpoint_context.do_add_on(endpoints=self.endpoint)
 
         self.endpoint_context.session_manager = create_session_manager(

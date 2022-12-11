@@ -181,7 +181,7 @@ class Grant(Item):
     def payload_arguments(
             self,
             session_id: str,
-            context,
+            context: 'EndpointContext',
             item: SessionToken,
             claims_release_point: str,
             scope: Optional[dict] = None,
@@ -241,7 +241,7 @@ class Grant(Item):
         if context.session_manager.node_type[0] == "user":
             user_id, _, _ = context.session_manager.decrypt_branch_id(session_id)
             user_info = context.claims_interface.get_user_claims(user_id,
-                                                                          _claims_restriction)
+                                                                 _claims_restriction)
             payload.update(user_info)
 
         # Should I add the acr value
@@ -255,7 +255,7 @@ class Grant(Item):
     def mint_token(
             self,
             session_id: str,
-        context: object,
+            context: object,
             token_class: str,
             token_handler: TokenHandler = None,
             based_on: Optional[SessionToken] = None,

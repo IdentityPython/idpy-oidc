@@ -28,9 +28,10 @@ class Endpoint_1(Endpoint):
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
         "userinfo_signing_alg_values_supported": work_environment.get_signing_algs,
-        "userinfo_encryption_alg_values_supported": None,
-        "userinfo_encryption_enc_values_supported": None,
+        "userinfo_encryption_alg_values_supported": work_environment.get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": work_environment.get_encryption_encs,
         "client_authn_method": ["bearer_header", "bearer_body"],
+        "encrypt_userinfo_supported": False,
     }
 
 

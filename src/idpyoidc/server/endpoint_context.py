@@ -8,7 +8,6 @@ from typing import Union
 from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
-
 from requests import request
 
 from idpyoidc.context import OidcContext
@@ -116,14 +115,15 @@ class EndpointContext(OidcContext):
     }
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        upstream_get: Callable,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-        server_type: Optional[str] = '',
-        entity_id: Optional[str] = ""
+            self,
+            conf: Union[dict, OPConfiguration],
+            upstream_get: Callable,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            server_type: Optional[str] = '',
+            entity_id: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -252,11 +252,11 @@ class EndpointContext(OidcContext):
             self.claims_interface = init_service(_interface, self.upstream_get)
 
         if isinstance(conf, OPConfiguration):
-            self.keyjar = self.work_environment.load_conf(conf.conf, supports=self.supports(),
-                                                          keyjar=keyjar)
-        else: # OidcConfig
-            self.keyjar = self.work_environment.load_conf(conf, supports=self.supports(),
-                                                          keyjar=keyjar)
+            conf = conf.conf
+        _supports = self.supports()
+        self.keyjar = self.work_environment.load_conf(conf, supports=_supports, keyjar=keyjar)
+        self.provider_info = self.work_environment.provider_info(_supports)
+        self.provider_info['issuer'] = self.issuer
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
         cookie_cont = self.cookie_handler.make_cookie_content(
@@ -360,8 +360,8 @@ class EndpointContext(OidcContext):
 
     def supports(self):
         res = {}
-        if self.server_get:
-            for endpoint in self.server_get('endpoints').values():
+        if self.upstream_get:
+            for endpoint in self.upstream_get('endpoints').values():
                 res.update(endpoint.supports())
         res.update(self.work_environment.supports())
         return res
@@ -371,7 +371,7 @@ class EndpointContext(OidcContext):
         supported = self.supports()
         _info = {'issuer': self.issuer, 'version': "3.0"}
 
-        for endp in self.server_get('endpoints').values():
+        for endp in self.upstream_get('endpoints').values():
             if endp.endpoint_name:
                 _info[endp.endpoint_name] = endp.full_path
 

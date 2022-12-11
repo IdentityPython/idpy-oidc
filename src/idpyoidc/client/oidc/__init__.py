@@ -107,6 +107,7 @@ class RP(oauth2.Client):
             entity_id=entity_id,
             verify_ssl=verify_ssl,
             jwks_uri=jwks_uri,
+            client_type='oidc',
             **kwargs
         )
 

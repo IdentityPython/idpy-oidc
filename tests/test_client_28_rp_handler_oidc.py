@@ -17,6 +17,8 @@ from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
+from idpyoidc.message.oidc import RegistrationResponse
+from idpyoidc.util import rndstr
 
 BASE_URL = "https://example.com/rp"
 
@@ -880,20 +882,22 @@ class TestRPHandlerWithMockOP(object):
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.issuer = "https://github.com/login/oauth/authorize"
-        self.mock_op = MockOP(issuer=self.issuer)
-        self.rph = RPHandler(
-            BASE_URL, client_configs=CLIENT_CONFIG, httpc=self.mock_op, keyjar=CLI_KEY
-        )
+        # self.mock_op = MockOP(issuer=self.issuer)
+        self.rph = RPHandler(BASE_URL, client_configs=CLIENT_CONFIG, keyjar=CLI_KEY)
 
     def test_finalize(self):
         auth_query = self.rph.begin(issuer_id="github")
         #  The authorization query is sent and after successful authentication
         client = self.rph.get_client_from_session_key(state=auth_query["state"])
         # register a response
-        p = urlparse(CLIENT_CONFIG["github"]["provider_info"]["authorization_endpoint"])
-        self.mock_op.register_get_response(p.path, "Redirect", 302)
-
-        _ = client.httpc("GET", auth_query["url"])
+        _url = CLIENT_CONFIG["github"]["provider_info"]["authorization_endpoint"]
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                "GET",
+                _url,
+                status=302,
+            )
+            _ = client.httpc("GET", auth_query["url"])
 
         #  the user is redirected back to the RP with a positive response
         auth_response = AuthorizationResponse(code="access_code", state=auth_query["state"])
@@ -910,27 +914,34 @@ class TestRPHandlerWithMockOP(object):
             key_jar=GITHUB_KEY,
         )
 
-        p = urlparse(CLIENT_CONFIG["github"]["provider_info"]["token_endpoint"])
-        self.mock_op.register_post_response(
-            p.path, resp.to_json(), 200, {"content-type": "application/json"}
-        )
-
-        _info = OpenIDSchema(
+        _token_url = CLIENT_CONFIG["github"]["provider_info"]["token_endpoint"]
+        _user_url = CLIENT_CONFIG["github"]["provider_info"]["userinfo_endpoint"]
+        _user_info = OpenIDSchema(
             sub="EndUserSubject", given_name="Diana", family_name="Krall", occupation="Jazz pianist"
         )
-        p = urlparse(CLIENT_CONFIG["github"]["provider_info"]["userinfo_endpoint"])
-        self.mock_op.register_get_response(
-            p.path, _info.to_json(), 200, {"content-type": "application/json"}
-        )
-
         _github_id = iss_id("github")
         client.get_context().keyjar.import_jwks(
             GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id
         )
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                "POST",
+                _token_url,
+                body=resp.to_json(),
+                adding_headers={"Content-Type": "application/json"},
+                status=200,
+            )
+            rsps.add(
+                "GET",
+                _user_url,
+                body=_user_info.to_json(),
+                adding_headers={"Content-Type": "application/json"},
+                status=200,
+            )
 
-        # do the rest (= get access token and user info)
-        # assume code flow
-        resp = self.rph.finalize(_session['iss'], auth_response.to_dict())
+            # do the rest (= get access token and user info)
+            # assume code flow
+            resp = self.rph.finalize(_session['iss'], auth_response.to_dict())
 
         assert set(resp.keys()) == {"userinfo", "state", "token", "id_token", "session_state"}
 
@@ -940,13 +951,6 @@ class TestRPHandlerWithMockOP(object):
             rel="http://openid.net/specs/connect/1.0/issuer", href="https://server.example.com"
         )
         webfinger_response = JRD(subject=user_id, links=[_link])
-        self.mock_op.register_get_response(
-            "/.well-known/webfinger",
-            webfinger_response.to_json(),
-            200,
-            {"content-type": "application/json"},
-        )
-
         resp = {
             "authorization_endpoint": "https://server.example.com/connect/authorize",
             "issuer": "https://server.example.com",
@@ -973,83 +977,40 @@ class TestRPHandlerWithMockOP(object):
             ],
             "request_object_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
         }
-
         pcr = ProviderConfigurationResponse(**resp)
-        self.mock_op.register_get_response(
-            "/.well-known/openid-configuration",
-            pcr.to_json(),
-            200,
-            {"content-type": "application/json"},
-        )
+        _crr = {"application_type": "web", "response_types": ["code", "code id_token"],
+                "redirect_uris": [
+                    "https://example.com/rp/authz_cb"
+                    "/7b7308fecf10c90b29303b6ae35ad1ef0f1914e49187f163335ae0b26a769e4f"],
+                "grant_types": ["authorization_code", "implicit"], "contacts": ["ops@example.com"],
+                "subject_type": "public", "id_token_signed_response_alg": "RS256",
+                "userinfo_signed_response_alg": "RS256", "request_object_signing_alg": "RS256",
+                "token_endpoint_auth_signing_alg": "RS256", "default_max_age": 86400,
+                "token_endpoint_auth_method": "client_secret_basic"}
+        _crr.update({'client_id':'abcdefghijkl', 'client_secret':rndstr(32)})
+        cli_reg_resp = RegistrationResponse(**_crr)
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                "GET",
+                "https://example.com/.well-known/webfinger",
+                body=webfinger_response.to_json(),
+                adding_headers={"Content-Type": "application/json"},
+                status=200,
+            )
+            rsps.add(
+                "GET",
+                "https://server.example.com/.well-known/openid-configuration",
+                body=pcr.to_json(),
+                status=200,
+                adding_headers={"Content-Type": "application/json"},
+            )
+            rsps.add(
+                "POST",
+                "https://server.example.com/connect/register",
+                body=cli_reg_resp.to_json(),
+                status=200,
+                adding_headers={"Content-Type": "application/json"},
+            )
 
-        self.mock_op.register_post_response(
-            "/connect/register", registration_callback, 200, {"content-type": "application/json"}
-        )
-
-        auth_query = self.rph.begin(user_id=user_id)
+            auth_query = self.rph.begin(user_id=user_id)
         assert auth_query
-
-    def test_dynamic_setup_redirect_uri(self):
-        user_id = "acct:foobar@example.com"
-        _link = Link(
-            rel="http://openid.net/specs/connect/1.0/issuer", href="https://server.example.com"
-        )
-        webfinger_response = JRD(subject=user_id, links=[_link])
-        self.mock_op.register_get_response(
-            "/.well-known/webfinger",
-            webfinger_response.to_json(),
-            200,
-            {"content-type": "application/json"},
-        )
-
-        resp = {
-            "authorization_endpoint": "https://server.example.com/connect/authorize",
-            "issuer": "https://server.example.com",
-            "subject_types_supported": ["public"],
-            "token_endpoint": "https://server.example.com/connect/token",
-            "token_endpoint_auth_methods_supported": ["client_secret_basic", "private_key_jwt"],
-            "userinfo_endpoint": "https://server.example.com/connect/user",
-            "check_id_endpoint": "https://server.example.com/connect/check_id",
-            "refresh_session_endpoint": "https://server.example.com/connect/refresh_session",
-            "end_session_endpoint": "https://server.example.com/connect/end_session",
-            "jwks_uri": "https://server.example.com/jwk.json",
-            "registration_endpoint": "https://server.example.com/connect/register",
-            "scopes_supported": ["openid", "profile", "email", "address", "phone"],
-            "response_types_supported": ["code", "code id_token", "token id_token"],
-            "acrs_supported": ["1", "2", "http://id.incommon.org/assurance/bronze"],
-            "user_id_types_supported": ["public", "pairwise"],
-            "userinfo_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
-            "id_token_signing_alg_values_supported": [
-                "HS256",
-                "RS256",
-                "A128CBC",
-                "A128KW",
-                "RSA1_5",
-            ],
-            "request_object_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
-            "request_parameter_supported": True,
-            "request_uri_parameter_supported": True,
-            "require_request_uri_registration": True,
-        }
-
-        pcr = ProviderConfigurationResponse(**resp)
-        self.mock_op.register_get_response(
-            "/.well-known/openid-configuration",
-            pcr.to_json(),
-            200,
-            {"content-type": "application/json"},
-        )
-
-        self.mock_op.register_post_response(
-            "/connect/register", registration_callback, 200, {"content-type": "application/json"}
-        )
-
-        res = self.rph.begin(
-            user_id=user_id,
-            behaviour_args={"request_param": "request", "request_object_signing_alg": "RS256"},
-        )
-        assert res
-
-        _url = res["url"]
-        _qp = parse_qs(urlparse(_url).query)
-        assert "request" in _qp

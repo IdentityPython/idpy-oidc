@@ -211,14 +211,14 @@ class TestEndpoint(object):
         _msg["id_token_signed_response_alg"] = "XYZ256"
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
-        assert _resp["error"] == "invalid_request"
+        assert "id_token_signed_response_alg" not in _resp
 
     def test_register_unsupported_set(self):
         _msg = MSG.copy()
         _msg["grant_types"] = ["authorization_code", "external"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         _resp = self.endpoint.process_request(request=_req)
-        assert _resp["error"] == "invalid_request"
+        assert _resp["response_args"]["grant_types"] == ["authorization_code"]
 
     def test_register_post_logout_redirect_uri_with_fragment(self):
         _msg = MSG.copy()
