@@ -116,7 +116,7 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_idtoken(self):
         server = Server(conf)
-        server.endpoint_context.cdb["client_1"] = {
+        server.context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -130,9 +130,9 @@ class TestEndpoint(object):
         server.keyjar.add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
-        self.claims_interface = server.endpoint_context.claims_interface
-        self.endpoint_context = server.endpoint_context
-        self.session_manager = self.endpoint_context.session_manager
+        self.claims_interface = server.context.claims_interface
+        self.context = server.context
+        self.session_manager = self.context.session_manager
         self.user_id = USER_ID
         self.server = server
 
@@ -163,7 +163,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
@@ -184,7 +184,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["introspection"] = [
+        self.context.cdb["client_1"]["add_claims"]["always"]["introspection"] = [
             "name",
             "email",
         ]
@@ -229,14 +229,14 @@ class TestEndpoint(object):
         self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
 
         self.server.get_endpoint("introspection").kwargs = {"add_claims_by_scope": True}
 
-        self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
+        self.context.session_manager.token_handler["access_token"].kwargs = {}
 
         session_id = self._create_session(AREQ)
         claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
@@ -261,14 +261,14 @@ class TestEndpoint(object):
         self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
 
         self.server.get_endpoint("introspection").kwargs = {"add_claims_by_scope": True}
 
-        self.endpoint_context.session_manager.token_handler["access_token"].kwargs = {}
+        self.context.session_manager.token_handler["access_token"].kwargs = {}
 
         session_id = self._create_session(AREQ)
         claims_restriction = self.claims_interface.get_claims_all_usage(

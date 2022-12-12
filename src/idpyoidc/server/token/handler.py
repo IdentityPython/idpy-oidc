@@ -10,7 +10,6 @@ from cryptojwt.utils import as_unicode
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.util import importer
-
 from . import DefaultToken
 from . import Token
 from . import UnknownToken
@@ -25,11 +24,11 @@ class TokenHandler(ImpExp):
     parameter = {"handler": DLDict, "handler_order": [""]}
 
     def __init__(
-        self,
-        access_token: Optional[Token] = None,
-        authorization_code: Optional[Token] = None,
-        refresh_token: Optional[Token] = None,
-        id_token: Optional[Token] = None,
+            self,
+            access_token: Optional[Token] = None,
+            authorization_code: Optional[Token] = None,
+            refresh_token: Optional[Token] = None,
+            id_token: Optional[Token] = None,
     ):
         ImpExp.__init__(self)
         self.handler = {"authorization_code": authorization_code, "access_token": access_token}
@@ -142,13 +141,13 @@ JWKS_FILE = "private/token_jwks.json"
 
 
 def factory(
-    upstream_get,
-    code: Optional[dict] = None,
-    token: Optional[dict] = None,
-    refresh: Optional[dict] = None,
-    id_token: Optional[dict] = None,
-    jwks_file: Optional[str] = "",
-    **kwargs
+        upstream_get,
+        code: Optional[dict] = None,
+        token: Optional[dict] = None,
+        refresh: Optional[dict] = None,
+        id_token: Optional[dict] = None,
+        jwks_file: Optional[str] = "",
+        **kwargs
 ) -> TokenHandler:
     """
     Create a token handler
@@ -169,7 +168,7 @@ def factory(
 
     key_defs = []
     read_only = False
-    cwd = upstream_get("context").cwd
+    cwd = upstream_get("attribute", "cwd")
     if kwargs.get("jwks_def"):
         defs = kwargs["jwks_def"]
         if not jwks_file:

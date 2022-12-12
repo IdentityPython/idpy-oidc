@@ -36,7 +36,7 @@ class TestUserInfo(object):
         entity.get_context().issuer = "https://server.otherop.com"
         self.service = entity.get_service("userinfo")
 
-        entity.get_context().work_environment.use = {
+        entity.get_context().claims.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",

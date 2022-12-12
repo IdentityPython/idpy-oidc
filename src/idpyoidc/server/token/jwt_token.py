@@ -141,7 +141,7 @@ class JWTToken(Token):
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")
-        # All the token metadata
+        # All the token claims
         _res = {
             "sid": _payload["sid"],
             "token_class": _payload["token_class"],

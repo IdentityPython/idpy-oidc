@@ -1,12 +1,11 @@
 from typing import Optional
 
-from idpyoidc.client import work_environment
-# from idpyoidc.client.client_auth import get_client_authn_methods
+from idpyoidc.client import claims
+from idpyoidc.client.claims.transform import create_registration_request
 
 
-class WorkEnvironment(work_environment.WorkEnvironment):
+class Claims(claims.Claims):
     _supports = {
-        # "client_authn_methods": get_client_authn_methods,
         "redirect_uris": None,
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "response_types": ["code"],
@@ -32,4 +31,7 @@ class WorkEnvironment(work_environment.WorkEnvironment):
     def __init__(self,
                  prefer: Optional[dict] = None,
                  callback_path: Optional[dict] = None):
-        work_environment.WorkEnvironment.__init__(self, prefer=prefer, callback_path=callback_path)
+        claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
+
+    def create_registration_request(self):
+        return create_registration_request(self.prefer, self.supports())

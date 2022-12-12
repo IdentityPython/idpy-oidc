@@ -76,8 +76,8 @@ class TestEndpoint(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        server.endpoint_context.cdb["client_id"] = {}
-        self.endpoint_context = server.endpoint_context
+        server.context.cdb["client_id"] = {}
+        self.context = server.context
         _endpoints = do_endpoints(conf, server.unit_get)
         self.endpoint = _endpoints[""]
 
@@ -89,7 +89,7 @@ class TestEndpoint(object):
 
     def test_parse_url(self):
         self.endpoint.request_format = "url"
-        request = "{}?{}".format(self.endpoint_context.issuer, REQ.to_urlencoded())
+        request = "{}?{}".format(self.context.issuer, REQ.to_urlencoded())
         req = self.endpoint.parse_request(request, http_info={})
         assert req == REQ
 

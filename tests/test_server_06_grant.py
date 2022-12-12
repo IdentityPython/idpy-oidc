@@ -110,7 +110,7 @@ class TestGrant:
     @pytest.fixture(autouse=True)
     def create_session_manager(self):
         self.server = Server(conf=conf)
-        self.endpoint_context = self.server.get_context()
+        self.context = self.server.get_context()
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -121,27 +121,27 @@ class TestGrant:
 
         client_id = authz_req["client_id"]
         ae = create_authn_event(USER_ID)
-        return self.server.endpoint_context.session_manager.create_session(
+        return self.server.context.session_manager.create_session(
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
 
     def test_mint_token(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
 
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -152,20 +152,20 @@ class TestGrant:
 
     def test_grant(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -173,7 +173,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -184,20 +184,20 @@ class TestGrant:
 
     def test_get_token(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -213,20 +213,20 @@ class TestGrant:
 
     def test_grant_revoked_based_on(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -234,7 +234,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -250,20 +250,20 @@ class TestGrant:
 
     def test_revoke(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -276,7 +276,7 @@ class TestGrant:
 
         access_token_2 = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -289,20 +289,20 @@ class TestGrant:
 
     def test_json_conversion(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -325,7 +325,7 @@ class TestGrant:
 
     def test_json_no_token_map(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -333,14 +333,14 @@ class TestGrant:
         with pytest.raises(ValueError):
             grant.mint_token(
                 session_id,
-                context=self.endpoint_context,
+                context=self.context,
                 token_class="authorization_code",
                 token_handler=TOKEN_HANDLER["authorization_code"],
             )
 
     def test_json_custom_token_map(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -350,14 +350,14 @@ class TestGrant:
         grant.token_map = token_map
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -365,7 +365,7 @@ class TestGrant:
 
         grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="my_token",
             token_handler=DefaultToken("my_token", typ="M"),
         )
@@ -393,7 +393,7 @@ class TestGrant:
 
     def test_get_spec(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -404,14 +404,14 @@ class TestGrant:
 
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -427,7 +427,7 @@ class TestGrant:
 
     def test_get_usage_rules(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
@@ -437,22 +437,22 @@ class TestGrant:
         grant.resources = ["https://api.example.com"]
 
         # Default usage rules
-        self.endpoint_context.cdb["client_id"] = {}
-        rules = get_usage_rules("access_token", self.endpoint_context, grant, "client_id")
+        self.context.cdb["client_id"] = {}
+        rules = get_usage_rules("access_token", self.context, grant, "client_id")
         assert rules == {"supports_minting": [], "expires_in": 3600}
 
         # client specific usage rules
-        self.endpoint_context.cdb["client_id"] = {"access_token": {"expires_in": 600}}
+        self.context.cdb["client_id"] = {"access_token": {"expires_in": 600}}
 
     def test_assigned_scope(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -461,7 +461,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -471,13 +471,13 @@ class TestGrant:
 
     def test_assigned_scope_2nd(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -486,7 +486,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -494,7 +494,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -506,7 +506,7 @@ class TestGrant:
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -516,20 +516,20 @@ class TestGrant:
 
     def test_grant_remove_based_on_code(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -537,7 +537,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -548,20 +548,20 @@ class TestGrant:
 
     def test_grant_remove_one_by_one(self):
         session_id = self._create_session(AREQ)
-        session_info = self.endpoint_context.session_manager.get_session_info(
+        session_info = self.context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
         code = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -569,7 +569,7 @@ class TestGrant:
 
         refresh_token = grant.mint_token(
             session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,

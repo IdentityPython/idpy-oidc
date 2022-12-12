@@ -150,8 +150,8 @@ class TestAuthnBrokerEC:
         # cookie_handler = CookieHandler(**cookie_conf)
         # server = Server(conf, cookie_handler=cookie_handler)
         server = Server(conf)
-        endpoint_context = server.endpoint_context
-        endpoint_context.cdb["client_1"] = {
+        context = server.context
+        context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",

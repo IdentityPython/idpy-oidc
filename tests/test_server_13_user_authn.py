@@ -80,8 +80,8 @@ class TestUserAuthn(object):
             },
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        self.endpoint_context = self.server.endpoint_context
-        self.session_manager = self.endpoint_context.session_manager
+        self.context = self.server.context
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
@@ -97,20 +97,20 @@ class TestUserAuthn(object):
         )
 
     def test_authenticated_as_without_cookie(self):
-        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
+        authn_item = self.context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
         method = authn_item[0]["method"]
 
         _info, _time_stamp = method.authenticated_as(None)
         assert _info is None
 
     def test_authenticated_as_with_cookie(self):
-        authn_item = self.endpoint_context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
+        authn_item = self.context.authn_broker.pick(INTERNETPROTOCOLPASSWORD)
         method = authn_item[0]["method"]
 
         authn_req = {"state": "state_identifier", "client_id": "client 12345"}
         _sid = self._create_session(authn_req)
-        _cookie = self.endpoint_context.new_cookie(
-            name=self.endpoint_context.cookie_handler.name["session"],
+        _cookie = self.context.new_cookie(
+            name=self.context.cookie_handler.name["session"],
             sub="diana",
             sid=_sid,
             state=authn_req["state"],
@@ -118,8 +118,8 @@ class TestUserAuthn(object):
         )
 
         # Parsed once before authenticated_as
-        kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[_cookie], name=self.endpoint_context.cookie_handler.name["session"]
+        kakor = self.context.cookie_handler.parse_cookie(
+            cookies=[_cookie], name=self.context.cookie_handler.name["session"]
         )
 
         _info, _time_stamp = method.authenticated_as("client 12345", kakor)
@@ -139,7 +139,7 @@ class TestUserAuthn(object):
             "class": JSONDictDB,
             "kwargs": {"filename": full_path("passwd.json")},
         }
-        template_handler = self.endpoint_context.template_handler
+        template_handler = self.context.template_handler
         res = UserPassJinja2(db, template_handler, upstream_get=self.server.unit_get)
         res()
         assert "page_header" in res.kwargs

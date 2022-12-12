@@ -179,8 +179,8 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -195,7 +195,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
-        self.endpoint_context.cdb["client_2"] = {
+        self.context.cdb["client_2"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -206,7 +206,7 @@ class TestEndpoint(object):
         server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.endpoint = server.get_endpoint("token")
         self.introspection_endpoint = server.get_endpoint("introspection")
-        self.session_manager = self.endpoint_context.session_manager
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
@@ -259,7 +259,7 @@ class TestEndpoint(object):
             areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -303,7 +303,7 @@ class TestEndpoint(object):
             areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -343,7 +343,7 @@ class TestEndpoint(object):
         """
         Test that per-client token exchange configuration works correctly
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -366,7 +366,7 @@ class TestEndpoint(object):
             areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -575,7 +575,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -624,7 +624,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -662,7 +662,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -696,7 +696,7 @@ class TestEndpoint(object):
         areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -732,7 +732,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -766,7 +766,7 @@ class TestEndpoint(object):
         areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["scope"] = "openid"
@@ -802,7 +802,7 @@ class TestEndpoint(object):
         areq["scope"] = scopes
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -842,7 +842,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -888,7 +888,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -932,7 +932,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -966,7 +966,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -999,7 +999,7 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()

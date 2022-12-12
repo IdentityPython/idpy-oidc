@@ -45,7 +45,7 @@ class CIBAClient(ImpExp):
         return _context["client_id"]
 
     def do_client_notification(self, msg, http_info):
-        _notification_endpoint = self.server.server_get("endpoint", "client_notification")
+        _notification_endpoint = self.server.upstream_get("endpoint", "client_notification")
         _nreq = _notification_endpoint.parse_request(
             msg, http_info, get_client_id_from_token=self.get_client_id_from_token
         )
@@ -54,6 +54,6 @@ class CIBAClient(ImpExp):
     def construct_metadata(self):
         _reg_serv = self.client.client_get("service", "registration")
         _reg_serv.construct_request()
-        # _reg_endp = self.server.server_get("endpoint", "discovery")
+        # _reg_endp = self.server.upstream_get("endpoint", "discovery")
 
         return {}

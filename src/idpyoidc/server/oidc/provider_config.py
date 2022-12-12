@@ -20,7 +20,7 @@ class ProviderConfiguration(Endpoint):
     def add_endpoints(self, request, client_id, context, **kwargs):
         for endpoint in [
             "authorization",
-            "provider_config",
+            # "provider_config",
             "token",
             "userinfo",
             "session",

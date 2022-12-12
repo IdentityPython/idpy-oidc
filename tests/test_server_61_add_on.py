@@ -136,8 +136,8 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",

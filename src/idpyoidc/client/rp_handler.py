@@ -49,7 +49,7 @@ class RPHandler(object):
             verify_ssl=True,
             client_cls=None,
             state_db=None,
-        httpc=None,
+            httpc=None,
             httpc_params=None,
             config=None,
             **kwargs,
@@ -205,8 +205,13 @@ class RPHandler(object):
         # If non persistent
         _keyjar = client.keyjar
         if not _keyjar:
-            _keyjar = client.keyjar = KeyJar()
-        _keyjar.load(self.keyjar.dump())
+            _keyjar = KeyJar()
+            _keyjar.httpc_params.update(self.httpc_params)
+
+        for iss in self.keyjar.owners():
+            _keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
+
+        client.keyjar = _keyjar
         # If persistent nothing has to be copied
 
         _context.base_url = self.base_url
@@ -395,9 +400,9 @@ class RPHandler(object):
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
             return req_args.get("response_type",
-                                context.work_environment.get_usage("response_types")[0])
+                                context.claims.get_usage("response_types")[0])
         else:
-            return context.work_environment.get_usage("response_types")[0]
+            return context.claims.get_usage("response_types")[0]
 
     def init_authorization(
             self,
@@ -427,17 +432,20 @@ class RPHandler(object):
                 raise ValueError("Missing state/session key")
 
         _context = client.get_context()
-        #_entity = client.upstream_get("entity")
+        # _entity = client.upstream_get("entity")
         _nonce = rndstr(24)
         _response_type = self._get_response_type(_context, req_args)
         request_args = {
             "redirect_uri": pick_redirect_uri(
                 _context, request_args=req_args, response_type=_response_type
             ),
-            "scope": _context.work_environment.get_usage("scope"),
             "response_type": _response_type,
             "nonce": _nonce,
         }
+
+        _scope = _context.claims.get_usage("scope")
+        if _scope:
+            request_args['scope'] = _scope
 
         _req_args = _context.config.get("request_args")
         if _req_args:
@@ -510,7 +518,7 @@ class RPHandler(object):
         :param client: A Client instance
         :return: The response_type
         """
-        return client.service_context.work_environment.get_usage("response_types")[0]
+        return client.service_context.claims.get_usage("response_types")[0]
 
     @staticmethod
     def get_client_authn_method(client, endpoint):
@@ -877,7 +885,7 @@ class RPHandler(object):
 
         # Look for an IdToken
         _arg = client.get_context().cstate.get_set(state,
-                                                                   claim=["__verified_id_token"])
+                                                   claim=["__verified_id_token"])
 
         if _arg:
             _now = utc_time_sans_frac()
@@ -926,14 +934,14 @@ class RPHandler(object):
             post_logout_redirect_uri: Optional[str] = "",
     ) -> dict:
         """
-        Does a RP initiated logout from an OP. After logout the user will be
-        redirect by the OP to a URL of choice (post_logout_redirect_uri).
+        Does an RP initiated logout from an OP. After logout the user will be
+        redirected by the OP to a URL of choice (post_logout_redirect_uri).
 
         :param state: Key to an active session
         :param client: Which client to use
         :param post_logout_redirect_uri: If a special post_logout_redirect_uri
             should be used
-        :return: A US
+        :return: Request arguments
         """
 
         logger.debug(20 * "*" + " logout " + 20 * "*")

@@ -7,6 +7,7 @@ from cryptojwt.key_jar import KeyJar
 from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service import Service
+from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -14,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ServerMetadata(Service):
-    """The service that talks to the OAuth2 server metadata endpoint."""
+    """The service that talks to the OAuth2 server claims endpoint."""
 
     msg_type = oauth2.Message
     response_cls = oauth2.ASConfigurationResponse
@@ -114,7 +115,7 @@ class ServerMetadata(Service):
         self._set_endpoints(resp)
 
         # If I already have a Key Jar then I'll add then provider keys to
-        # that. Otherwise a new Key Jar is minted
+        # that. Otherwise, a new Key Jar is minted
         try:
             _keyjar = self.upstream_get('attribute', 'keyjar')
         except KeyError:
@@ -126,6 +127,13 @@ class ServerMetadata(Service):
             _keyjar.load_keys(_pcr_issuer, jwks_uri=resp["jwks_uri"])
         elif "jwks" in resp:
             _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
+
+        # Combine what I prefer/supports with what the Provider supports
+        if isinstance(resp, Message):
+            _info = resp.to_dict()
+        else:
+            _info = resp
+        _context.map_supported_to_preferred(_info)
 
     def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)

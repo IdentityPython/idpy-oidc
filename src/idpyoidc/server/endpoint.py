@@ -13,6 +13,7 @@ from idpyoidc.exception import ParameterError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.node import Node
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
@@ -77,7 +78,7 @@ def fragment_encoding(return_type):
         return True
 
 
-class Endpoint(object):
+class Endpoint(Node):
     request_cls = Message
     response_cls = Message
     error_cls = ResponseMessage
@@ -101,6 +102,8 @@ class Endpoint(object):
         self.post_parse_request = []
         self.kwargs = kwargs
         self.full_path = ""
+
+        Node.__init__(self, upstream_get=upstream_get)
 
         for param in [
             "request_cls",

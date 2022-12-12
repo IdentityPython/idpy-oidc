@@ -1,17 +1,22 @@
 from typing import Optional
 
 from idpyoidc.message.oauth2 import ASConfigurationResponse
-from idpyoidc.server import work_environment
-# from idpyoidc.server.client_authn import get_client_authn_methods
+from idpyoidc.server import claims
+
+REGISTER2PREFERRED = {
+    # "require_signed_request_object": "request_object_algs_supported",
+    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
+    "response_types": "response_types_supported",
+    "grant_types": "grant_types_supported",
+    # In OAuth2 but not in OIDC
+    "scope": "scopes_supported",
+    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
+}
 
 
-class WorkEnvironment(work_environment.WorkEnvironment):
-    # 'issuer', 'authorization_endpoint', 'token_endpoint', 'jwks_uri', 'registration_endpoint',
-    # 'scopes_supported', 'response_types_supported', 'response_modes_supported',
-    # 'grant_types_supported', 'token_endpoint_auth_methods_supported',
-    # 'token_endpoint_auth_signing_alg_values_supported', 'service_documentation',
-    # 'ui_locales_supported', 'op_policy_uri', 'op_tos_uri', 'revocation_endpoint',
-    # 'introspection_endpoint'
+class Claims(claims.Claims):
+    register2preferred = REGISTER2PREFERRED
+
     _supports = {
         # "client_authn_methods": get_client_authn_methods,
         "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
@@ -26,7 +31,6 @@ class WorkEnvironment(work_environment.WorkEnvironment):
         "op_policy_uri": None,
     }
 
-
     callback_path = {}
 
     callback_uris = ["redirect_uris"]
@@ -34,12 +38,12 @@ class WorkEnvironment(work_environment.WorkEnvironment):
     def __init__(self,
                  prefer: Optional[dict] = None,
                  callback_path: Optional[dict] = None):
-        work_environment.WorkEnvironment.__init__(self, prefer=prefer, callback_path=callback_path)
+        claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def provider_info(self, supports):
         _info = {}
         for key in ASConfigurationResponse.c_param.keys():
             _val = self.get_preference(key, supports.get(key, None))
-            if _val:
+            if _val and _val != []:
                 _info[key] = _val
         return _info

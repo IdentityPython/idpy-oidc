@@ -164,9 +164,9 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
+        context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
-        endpoint_context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
+        context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
         server.keyjar.import_jwks(
             server.keyjar.export_jwks(True, ""), conf["issuer"]
         )

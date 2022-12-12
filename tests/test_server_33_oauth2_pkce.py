@@ -228,9 +228,9 @@ def _code_challenge():
 def create_server(config):
     server = Server(ASConfiguration(conf=config, base_path=BASEDIR), cwd=BASEDIR)
 
-    endpoint_context = server.endpoint_context
+    context = server.context
     _clients = yaml.safe_load(io.StringIO(client_yaml))
-    endpoint_context.cdb = _clients["oidc_clients"]
+    context.cdb = _clients["oidc_clients"]
     server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), config["issuer"])
     return server
 
@@ -239,7 +239,7 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = create_server(conf)
-        self.session_manager = server.endpoint_context.session_manager
+        self.session_manager = server.context.session_manager
         self.authn_endpoint = server.get_endpoint("authorization")
         self.token_endpoint = server.get_endpoint("token")
 
@@ -325,8 +325,8 @@ class TestEndpoint(object):
         authn_endpoint = server.get_endpoint("authorization")
         token_endpoint = server.get_endpoint("token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.get_context()
-        endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = True
+        context = server.get_context()
+        context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = True
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
 
@@ -340,8 +340,8 @@ class TestEndpoint(object):
         authn_endpoint = server.get_endpoint("authorization")
         token_endpoint = server.get_endpoint("token")
         _authn_req = AUTH_REQ.copy()
-        endpoint_context = server.get_context()
-        endpoint_context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = False
+        context = server.get_context()
+        context.cdb[AUTH_REQ["client_id"]]["pkce_essential"] = False
 
         _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
         resp = authn_endpoint.process_request(_pr_resp)

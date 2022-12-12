@@ -128,6 +128,7 @@ class Entity(Unit):  # This is a Client
                                           upstream_get=self.unit_get, client_type=client_type)
 
         self.setup_client_authn_methods(config)
+
         self.upstream_get = upstream_get
 
     def get_services(self, *arg):
@@ -156,11 +157,11 @@ class Entity(Unit):  # This is a Client
         return self
 
     def get_client_id(self):
-        _val = self.context.work_environment.get_usage('client_id')
+        _val = self.context.claims.get_usage('client_id')
         if _val:
             return _val
         else:
-            return self.context.work_environment.get_preference('client_id')
+            return self.context.claims.get_preference('client_id')
 
     def setup_client_authn_methods(self, config):
         if config and "client_authn_methods" in config:
@@ -197,3 +198,6 @@ class Entity(Unit):  # This is a Client
                     _bundle = KeyBundle(source=url)
                     _keyjar.add_kb(iss, _bundle)
         return _keyjar
+
+    def get_callback_uris(self):
+        return self.context.claims.callback_uri

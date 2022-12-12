@@ -1,12 +1,16 @@
 import inspect
+import json
 import logging
 import string
 import sys
 
 from idpyoidc import verified_claim_name
+from idpyoidc.exception import FormatError
 from idpyoidc.exception import MissingAttribute
+from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import VerificationError
 from idpyoidc.message import Message
+from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -346,6 +350,80 @@ class ASConfigurationResponse(Message):
     c_default = {"version": "3.0"}
 
 
+def deserialize_from_one_of(val, msgtype, sformat):
+    if sformat in ["dict", "json"]:
+        flist = ["json", "urlencoded"]
+        if not isinstance(val, str):
+            val = json.dumps(val)
+    else:
+        flist = ["urlencoded", "json"]
+
+    for _format in flist:
+        try:
+            return msgtype().deserialize(val, _format)
+        except FormatError:
+            pass
+    raise FormatError("Unexpected format")
+
+
+class OauthClientMetadata(Message):
+    """Metadata for an OAuth2 Client."""
+    c_param = {
+        "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "grant_type": OPTIONAL_LIST_OF_STRINGS,
+        "response_types": OPTIONAL_LIST_OF_STRINGS,
+        "client_name": SINGLE_OPTIONAL_STRING,
+        "client_uri": SINGLE_OPTIONAL_STRING,
+        "logo_uri": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "contacts": OPTIONAL_LIST_OF_STRINGS,
+        "tos_uri": SINGLE_OPTIONAL_STRING,
+        "policy_uri": SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "jwks": SINGLE_OPTIONAL_JSON,
+        "software_id": SINGLE_OPTIONAL_STRING,
+        "software_version": SINGLE_OPTIONAL_STRING
+    }
+
+
+def oauth_client_metadata_deser(val, sformat="json"):
+    """Deserializes a JSON object (most likely) into a OauthClientMetadata."""
+    return deserialize_from_one_of(val, OauthClientMetadata, sformat)
+
+
+OPTIONAL_OAUTH_CLIENT_METADATA = (Message, False, msg_ser,
+                                  oauth_client_metadata_deser, False)
+
+
+class OauthClientInformationResponse(OauthClientMetadata):
+    """The information returned by a OAuth2 Server about an OAuth2 client."""
+    c_param = OauthClientMetadata.c_param.copy()
+    c_param.update({
+        "client_id": SINGLE_REQUIRED_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        "client_id_issued_at": SINGLE_OPTIONAL_INT,
+        "client_secret_expires_at": SINGLE_OPTIONAL_INT
+    })
+
+    def verify(self, **kwargs):
+        super(OauthClientInformationResponse, self).verify(**kwargs)
+
+        if "client_secret" in self:
+            if "client_secret_expires_at" not in self:
+                raise MissingRequiredAttribute(
+                    "client_secret_expires_at is a MUST if client_secret is present")
+
+
+def oauth_client_registration_response_deser(val, sformat="json"):
+    """Deserializes a JSON object (most likely) into a OauthClientInformationResponse."""
+    return deserialize_from_one_of(val, OauthClientInformationResponse, sformat)
+
+
+OPTIONAL_OAUTH_CLIENT_REGISTRATION_RESPONSE = (
+    Message, False, msg_ser, oauth_client_registration_response_deser, False)
+
+
 # RFC 7662
 class TokenIntrospectionRequest(Message):
     c_param = {
@@ -482,6 +560,26 @@ class JWTAccessToken(Message):
         'entitlements': OPTIONAL_LIST_OF_STRINGS
     }
 
+
+
+class JSONWebToken(Message):
+    # implements RFC 9068
+    c_param = {
+        'iss': SINGLE_REQUIRED_STRING,
+        'exp': SINGLE_REQUIRED_STRING,
+        'aud': SINGLE_REQUIRED_STRING,
+        'sub': SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        'iat': SINGLE_REQUIRED_STRING,
+        'jti': SINGLE_REQUIRED_STRING,
+        'auth_time': SINGLE_OPTIONAL_INT,
+        'acr': SINGLE_OPTIONAL_STRING,
+        'amr': OPTIONAL_LIST_OF_STRINGS,
+        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        'groups': OPTIONAL_LIST_OF_STRINGS,
+        'roles': OPTIONAL_LIST_OF_STRINGS,
+        'entitlements': OPTIONAL_LIST_OF_STRINGS
+    }
 
 
 def factory(msgtype, **kwargs):

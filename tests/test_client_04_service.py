@@ -1,5 +1,4 @@
 import pytest
-from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oauth2 import AuthorizationResponse
@@ -33,9 +32,10 @@ class TestService:
     @pytest.fixture(autouse=True)
     def create_service(self):
         self.entity = Entity(
-            config=CLIENT_CONF,
+            config=CLIENT_CONF.copy(),
             services={"authz": {"class": "idpyoidc.client.oidc.authorization.Authorization"}},
-            client_type='oidc'
+            client_type='oidc',
+            jwks_uri='https://example.com/cli/jwks.json'
         )
 
         self.service = self.entity.get_service("authorization")
@@ -46,7 +46,7 @@ class TestService:
         if args[0] == "context":
             return self.service_context
         elif args[0] == 'attribute' and args[1] == 'keyjar':
-            return self.upstream_get('attribute','keyjar')
+            return self.upstream_get('attribute', 'keyjar')
 
     def test_1(self):
         assert self.service
@@ -58,6 +58,7 @@ class TestService:
                                    'callback_uris',
                                    'client_id',
                                    'default_max_age',
+                                   'encrypt_request_object_supported',
                                    'grant_types',
                                    'id_token_signed_response_alg',
                                    'jwks',
@@ -115,7 +116,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute', 'keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_json()
         arg = self.service.parse_response(resp1)
         assert isinstance(arg, AuthorizationResponse)
@@ -127,7 +128,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute', 'keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )
@@ -141,7 +142,7 @@ class TestService:
         self.service_context.issuer = "https://op.example.com/"
         self.service_context.client_id = "client"
 
-        _sign_key = self.service.upstream_get('context').keyjar.get_signing_key()
+        _sign_key = self.service.upstream_get('attribute', 'keyjar').get_signing_key()
         resp1 = AuthorizationResponse(code="auth_grant", state="state").to_jwt(
             key=_sign_key, algorithm="RS256"
         )
@@ -154,7 +155,7 @@ class TestAuthorization(object):
     @pytest.fixture(autouse=True)
     def create_service(self):
         self.entity = Entity(
-            config=CLIENT_CONF, services={"base": {"class": "idpyoidc.client.service.Service"}}
+            config=CLIENT_CONF.copy(), services={"base": {"class": "idpyoidc.client.service.Service"}}
         )
         self.service = self.entity.get_service("")
 

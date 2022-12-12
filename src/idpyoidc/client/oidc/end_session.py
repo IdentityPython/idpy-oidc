@@ -33,7 +33,7 @@ class EndSession(Service):
     _callback_path = {
         "frontchannel_logout_uri": "fc_logout",
         "backchannel_logout_uri": "bc_logout",
-        "post_logout_redirect_uris": "session_logout"
+        "post_logout_redirect_uris": ["session_logout"]
     }
 
     def __init__(self, upstream_get, conf=None):
@@ -53,22 +53,20 @@ class EndSession(Service):
         :return:
         """
 
-        _args = self.upstream_get("context").cstate.get_set(kwargs["state"],
-                                                                 claim=['id_token'])
-        try:
-            request_args["id_token_hint"] = _args["id_token"]
-        except KeyError:
-            pass
+        _id_token = self.upstream_get("context").cstate.get_claim(kwargs["state"], claim='id_token')
+        if _id_token:
+            request_args["id_token_hint"] = _id_token
 
         return request_args, {}
 
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
             _uri = self.upstream_get("context").get_usage("post_logout_redirect_uris")
-            if isinstance(_uri, str):
-                request_args["post_logout_redirect_uri"] = _uri
-            else:  # assume list
-                request_args["post_logout_redirect_uri"] = _uri[0]
+            if _uri:
+                if isinstance(_uri, str):
+                    request_args["post_logout_redirect_uri"] = _uri
+                else:  # assume list
+                    request_args["post_logout_redirect_uri"] = _uri[0]
 
         return request_args, {}
 

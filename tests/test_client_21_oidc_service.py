@@ -1,13 +1,13 @@
 import os
 
+import pytest
+import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
-import pytest
-import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -297,7 +297,7 @@ class TestAuthorization(object):
         idt = JWT(ISS_KEY, iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
         _idt = idt.pack(payload)
-        self.service.upstream_get("context").work_environment.set_usage("verify_args", {
+        self.service.upstream_get("context").claims.set_usage("verify_args", {
             "allow_sign_alg_none": allow_sign_alg_none
         })
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
@@ -726,7 +726,7 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.upstream_get("context")
-        assert _context.work_environment.use == {}
+        assert _context.claims.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -738,7 +738,7 @@ class TestProviderInfo(object):
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.upstream_get("context").work_environment.use.copy()
+        use_copy = self.service.upstream_get("context").claims.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
@@ -752,6 +752,8 @@ class TestProviderInfo(object):
                             'contacts': ['ops@example.org'],
                             'default_max_age': 86400,
                             'encrypt_id_token_supported': False,
+                            'encrypt_request_object_supported': False,
+                            'encrypt_userinfo_supported': False,
                             'grant_types': ['authorization_code', 'refresh_token'],
                             'id_token_signed_response_alg': 'RS256',
                             'post_logout_redirect_uris': ['https://rp.example.com/post'],
@@ -763,8 +765,7 @@ class TestProviderInfo(object):
                             'subject_type': 'public',
                             'token_endpoint_auth_method': 'private_key_jwt',
                             'token_endpoint_auth_signing_alg': 'ES256',
-                            'userinfo_signed_response_alg': 'ES256'
-                            }
+                            'userinfo_signed_response_alg': 'ES256'}
 
     def test_post_parse_2(self):
         OP_BASEURL = ISS
@@ -786,7 +787,7 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.upstream_get("context")
-        assert _context.work_environment.use == {}
+        assert _context.claims.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -798,33 +799,34 @@ class TestProviderInfo(object):
         # static client registration
         _context.map_preferred_to_registered()
 
-        use_copy = self.service.upstream_get("context").work_environment.use.copy()
+        use_copy = self.service.upstream_get("context").claims.use.copy()
         # jwks content will change dynamically between runs
         assert 'jwks' in use_copy
         del use_copy['jwks']
         del use_copy['callback_uris']
 
-        assert use_copy == {
-            'application_type': 'web',
-            'backchannel_logout_session_required': True,
-            'backchannel_logout_uri': 'https://rp.example.com/back',
-            'client_id': 'client_id',
-            'client_secret': 'a longesh password',
-            'contacts': ['ops@example.org'],
-            'default_max_age': 86400,
-            'encrypt_id_token_supported': False,
-            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
-            'id_token_signed_response_alg': 'RS256',
-            'post_logout_redirect_uris': ['https://rp.example.com/post'],
-            'redirect_uris': ['https://example.com/cli/authz_cb'],
-            'request_object_signing_alg': 'ES256',
-            'response_modes_supported': ['query', 'fragment', 'form_post'],
-            'response_types': ['code'],
-            'scope': ['openid'],
-            'subject_type': 'public',
-            'token_endpoint_auth_method': 'private_key_jwt',
-            'token_endpoint_auth_signing_alg': 'ES256',
-            'userinfo_signed_response_alg': 'ES256'}
+        assert use_copy == {'application_type': 'web',
+                            'backchannel_logout_session_required': True,
+                            'backchannel_logout_uri': 'https://rp.example.com/back',
+                            'client_id': 'client_id',
+                            'client_secret': 'a longesh password',
+                            'contacts': ['ops@example.org'],
+                            'default_max_age': 86400,
+                            'encrypt_id_token_supported': False,
+                            'encrypt_request_object_supported': False,
+                            'encrypt_userinfo_supported': False,
+                            'grant_types': ['authorization_code', 'implicit', 'refresh_token'],
+                            'id_token_signed_response_alg': 'RS256',
+                            'post_logout_redirect_uris': ['https://rp.example.com/post'],
+                            'redirect_uris': ['https://example.com/cli/authz_cb'],
+                            'request_object_signing_alg': 'ES256',
+                            'response_modes_supported': ['query', 'fragment', 'form_post'],
+                            'response_types': ['code'],
+                            'scope': ['openid'],
+                            'subject_type': 'public',
+                            'token_endpoint_auth_method': 'private_key_jwt',
+                            'token_endpoint_auth_signing_alg': 'ES256',
+                            'userinfo_signed_response_alg': 'ES256'}
 
 
 def test_response_types_to_grant_types():
@@ -857,9 +859,12 @@ class TestRegistration(object):
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
+        entity = Entity(keyjar=make_keyjar(),
+                        config=client_config,
+                        services=DEFAULT_OIDC_SERVICES,
                         client_type='oidc')
         entity.get_context().issuer = "https://example.com"
+        entity.get_context().map_supported_to_preferred()
         self.service = entity.get_service("registration")
 
     def test_construct(self):
@@ -874,11 +879,12 @@ class TestRegistration(object):
                                     'request_object_signing_alg',
                                     'response_types',
                                     'subject_type',
+                                    'token_endpoint_auth_method',
                                     'token_endpoint_auth_signing_alg',
                                     'userinfo_signed_response_alg'}
 
     def test_config_with_post_logout(self):
-        self.service.upstream_get("context").work_environment.set_preference(
+        self.service.upstream_get("context").claims.set_preference(
             "post_logout_redirect_uri", "https://example.com/post_logout")
 
         _req = self.service.construct()
@@ -893,6 +899,7 @@ class TestRegistration(object):
                                     'request_object_signing_alg',
                                     'response_types',
                                     'subject_type',
+                                    'token_endpoint_auth_method',
                                     'token_endpoint_auth_signing_alg',
                                     'userinfo_signed_response_alg'}
         assert "post_logout_redirect_uri" in _req.keys()
@@ -992,7 +999,7 @@ class TestUserInfo(object):
         entity.get_context().issuer = "https://example.com"
         self.service = entity.get_service("userinfo")
 
-        entity.get_context().work_environment.use = {
+        entity.get_context().claims.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",

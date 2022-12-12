@@ -14,7 +14,7 @@ CLIENT_CONFIG = {
     "preference": {
         "application_type": "web",
         "contacts": "support@example.com",
-        "response_types": ["code"],
+        "response_types_supported": ["code"],
         'request_parameter': "request_uri",
         "request_object_signing_alg_values_supported": ["ES256"],
         "scope": ["openid", "profile", "email", "address", "phone"],
@@ -68,33 +68,28 @@ def test_create_client():
     _context = client.get_context()
     _context.map_supported_to_preferred()
     _pref = _context.prefers()
-    assert set(_pref.keys()) == {'application_type',
-                                 'backchannel_logout_session_required',
-                                 'backchannel_logout_uri',
-                                 'callback_uris',
-                                 'client_id',
-                                 'client_secret',
-                                 'contacts',
-                                 'default_max_age',
-                                 'grant_types_supported',
-                                 'id_token_encryption_alg_values_supported',
-                                 'id_token_encryption_enc_values_supported',
-                                 'id_token_signing_alg_values_supported',
-                                 'post_logout_redirect_uris',
-                                 'redirect_uris',
-                                 'request_object_encryption_alg_values_supported',
-                                 'request_object_encryption_enc_values_supported',
-                                 'request_object_signing_alg_values_supported',
-                                 'request_parameter',
-                                 'response_modes_supported',
-                                 'response_types_supported',
-                                 'scopes_supported',
-                                 'subject_types_supported',
-                                 'token_endpoint_auth_method',
-                                 'token_endpoint_auth_signing_alg_values_supported',
-                                 'userinfo_encryption_alg_values_supported',
-                                 'userinfo_encryption_enc_values_supported',
-                                 'userinfo_signing_alg_values_supported'}
+    _pref_with_values = [k for k, v in _pref.items() if v]
+    assert set(_pref_with_values) == {'application_type',
+                                      'backchannel_logout_session_required',
+                                      'backchannel_logout_uri',
+                                      'callback_uris',
+                                      'client_id',
+                                      'client_secret',
+                                      'contacts',
+                                      'default_max_age',
+                                      'grant_types_supported',
+                                      'id_token_signing_alg_values_supported',
+                                      'post_logout_redirect_uris',
+                                      'redirect_uris',
+                                      'request_object_signing_alg_values_supported',
+                                      'request_parameter',
+                                      'response_modes_supported',
+                                      'response_types_supported',
+                                      'scopes_supported',
+                                      'subject_types_supported',
+                                      'token_endpoint_auth_method',
+                                      'token_endpoint_auth_signing_alg_values_supported',
+                                      'userinfo_signing_alg_values_supported'}
 
     # What's in service configuration has higher priority then what's just supported.
     _context = client.get_service_context()
@@ -108,32 +103,31 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 21
+    assert len(_conf_args) == 23
     rr = set(RegistrationRequest.c_param.keys())
-    # The ones that are not defined
+    # The ones that are not defined and will therefore not appear in a registration request
     d = rr.difference(set(_conf_args))
-    assert d == {
-        'client_name',
-        'client_uri',
-        'default_acr_values',
-        'frontchannel_logout_session_required',
-        'frontchannel_logout_uri',
-        'id_token_encrypted_response_alg',
-        'id_token_encrypted_response_enc',
-        'initiate_login_uri',
-        'jwks',
-        'jwks_uri',
-        'logo_uri',
-        'policy_uri',
-        'post_logout_redirect_uri',
-        'request_object_encryption_alg',
-        'request_object_encryption_enc',
-        'request_uris',
-        'require_auth_time',
-        'sector_identifier_uri',
-        'tos_uri',
-        'userinfo_encrypted_response_alg',
-        'userinfo_encrypted_response_enc'}
+    assert d == {'client_name',
+                 'client_uri',
+                 'default_acr_values',
+                 'frontchannel_logout_session_required',
+                 'frontchannel_logout_uri',
+                 'id_token_encrypted_response_alg',
+                 'id_token_encrypted_response_enc',
+                 'initiate_login_uri',
+                 'logo_uri',
+                 'jwks',
+                 'jwks_uri',
+                 'policy_uri',
+                 'post_logout_redirect_uri',
+                 'request_object_encryption_alg',
+                 'request_object_encryption_enc',
+                 'request_uris',
+                 'require_auth_time',
+                 'sector_identifier_uri',
+                 'tos_uri',
+                 'userinfo_encrypted_response_alg',
+                 'userinfo_encrypted_response_enc'}
 
 
 def test_create_client_key_conf():

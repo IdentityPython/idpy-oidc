@@ -21,7 +21,7 @@ from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
-from idpyoidc.work_environment import WorkEnvironment
+from idpyoidc.claims import Claims
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest
@@ -308,7 +308,8 @@ class TestPrivateKeyJWT(object):
             key.add_kid()
 
         _context = token_service.upstream_get('context')
-        _context.get_keyjar().add_kb("", kb_rsa)
+        _keyjar = token_service.upstream_get('attribute', 'keyjar')
+        _keyjar.add_kb("", kb_rsa)
         _context.provider_info = {
             "issuer": "https://example.com/",
             "token_endpoint": "https://example.com/token",
@@ -324,7 +325,7 @@ class TestPrivateKeyJWT(object):
 
         # Receiver
         _kj = KeyJar()
-        _kj.import_jwks(_context.keyjar.export_jwks(), issuer_id=_context.get_client_id())
+        _kj.import_jwks(_keyjar.export_jwks(), issuer_id=_context.get_client_id())
         _kj.add_kb(_context.get_client_id(), kb_rsa)
         jso = JWT(key_jar=_kj).unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
@@ -462,7 +463,7 @@ class TestClientSecretJWT_TE(object):
         _rsa_key = entity.keyjar.get(key_use='sig', key_type='rsa', issuer_id='')[0]
         _jws = factory(request["client_assertion"])
         assert _jws.jwt.headers["alg"] == "RS256"
-        _rsa_key = _service_context.keyjar.get_signing_key(key_type="RSA")[0]
+        _rsa_key = entity.keyjar.get_signing_key(key_type="RSA")[0]
         assert _jws.jwt.headers["kid"] == _rsa_key.kid
 
         # By client preferences
@@ -476,7 +477,7 @@ class TestClientSecretJWT_TE(object):
 
         # Use provider information is everything else fails
         request = AccessTokenRequest()
-        _service_context.work_environment = WorkEnvironment()
+        _service_context.claims = Claims()
         _service_context.provider_info["token_endpoint_auth_signing_alg_values_supported"] = [
             "ES256",
             "RS256",
@@ -487,7 +488,7 @@ class TestClientSecretJWT_TE(object):
         _jws = factory(request["client_assertion"])
         # Should be ES256 since I have a key for ES256
         assert _jws.jwt.headers["alg"] == "ES256"
-        _ec_key = _service_context.keyjar.get_signing_key(key_type="EC")[0]
+        _ec_key = entity.keyjar.get_signing_key(key_type="EC")[0]
         assert _jws.jwt.headers["kid"] == _ec_key.kid
 
 

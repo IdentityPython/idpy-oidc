@@ -43,8 +43,42 @@ def create_keyjar(
         return keyjar
 
 
+class Node:
+
+    def __init__(self, upstream_get: Callable = None):
+        self.upstream_get = upstream_get
+
+    def unit_get(self, what, *arg):
+        _func = getattr(self, f"get_{what}", None)
+        if _func:
+            return _func(*arg)
+        return None
+
+    def get_attribute(self, attr, *args):
+        try:
+            val = getattr(self, attr)
+        except AttributeError:
+            if self.upstream_get:
+                return self.upstream_get("attribute", attr)
+            else:
+                return None
+        else:
+            if val is None and self.upstream_get:
+                return self.upstream_get("attribute", attr)
+            else:
+                return val
+
+    def set_attribute(self, attr, val):
+        setattr(self, attr, val)
+
+    def get_unit(self, *args):
+        return self
+
+
 class Unit(ImpExp):
     name = ''
+
+    init_args = ['upstream_get']
 
     def __init__(self,
                  upstream_get: Callable = None,
@@ -63,7 +97,16 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
-        if keyjar or key_conf or config.get('key_conf') or config.get('jwks') or config.get('keys'):
+        keyjar = keyjar or config.get('keyjar')
+        key_conf = key_conf or config.get('key_conf', config.get('keys'))
+
+        if not keyjar and not key_conf:
+            _jwks = config.get('jwks')
+            if _jwks:
+                keyjar = KeyJar()
+                keyjar.import_jwks_as_json(_jwks, client_id)
+
+        if keyjar or key_conf:
             # Should be either one
             id = issuer_id or client_id
             self.keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
@@ -148,6 +191,13 @@ class ClientUnit(Unit):
 
         self.context = context or None
 
+    def get_context_attribute(self, attr, *args):
+        _val = getattr(self.context, attr)
+        if not _val and self.upstream_get:
+            return self.upstream_get('context_attribute', attr)
+        else:
+            return _val
+
 
 # Neither client nor Server
 class Collection(Unit):
@@ -161,7 +211,7 @@ class Collection(Unit):
                  entity_id: Optional[str] = "",
                  key_conf: Optional[dict] = None,
                  functions: Optional[dict] = None,
-                 metadata: Optional[dict] = None
+                 claims: Optional[dict] = None
                  ):
         if config is None:
             config = {}
@@ -175,10 +225,34 @@ class Collection(Unit):
             'upstream_get': self.unit_get
         }
 
-        self.metadata = metadata or {}
+        self.claims = claims or {}
+        self.upstream_get = upstream_get
+        # self.context = {}
 
         if functions:
             for key, val in functions.items():
                 _kwargs = val["kwargs"].copy()
                 _kwargs.update(_args)
                 setattr(self, key, instantiate(val["class"], **_kwargs))
+
+    def get_context_attribute(self, attr, *args):
+        _cntx = getattr(self, 'context', None)
+        if _cntx:
+            _val = getattr(_cntx, attr, None)
+            if _val:
+                return _val
+
+        if self.upstream_get:
+            return self.upstream_get('context_attribute', attr)
+        else:
+            return None
+
+    def get_attribute(self, attr, *args):
+        val = getattr(self, attr, None)
+        if val:
+            return val
+
+        if self.upstream_get:
+            return self.upstream_get('attribute', attr)
+        else:
+            return None

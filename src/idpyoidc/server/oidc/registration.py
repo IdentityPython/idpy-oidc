@@ -10,9 +10,6 @@ from urllib.parse import urlparse
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 
-from idpyoidc.client.oidc import PREFERENCE2PROVIDER
-# from idpyoidc.defaults import PREFERENCE2SUPPORTED
-from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import ClientRegistrationErrorResponse
@@ -139,14 +136,14 @@ class Registration(Endpoint):
         _context = self.upstream_get("context")
 
         # Use my defaults
-        _my_key = REGISTER2PREFERRED.get(claim, claim)
+        _my_key = _context.claims.register2preferred.get(claim, claim)
         try:
             _val = _context.provider_info[_my_key]
         except KeyError:
             return val
 
         try:
-            _claim_spec = RegistrationResponse.c_param[claim]
+            _claim_spec = _context.claims.registration_response.c_param[claim]
         except KeyError:  # something I don't know anything about
             return None
 
@@ -169,9 +166,10 @@ class Registration(Endpoint):
 
     def filter_client_request(self, request: dict) -> dict:
         _args = {}
-        _provider_info = self.upstream_get("context").provider_info
+        _context = self.upstream_get("context")
+        _provider_info = _context.provider_info
         for key, val in request.items():
-            if key not in REGISTER2PREFERRED:
+            if key not in _context.claims.register2preferred:
                 _args[key] = val
                 continue
 
@@ -252,7 +250,8 @@ class Registration(Endpoint):
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in _context.provider_info[PREFERENCE2PROVIDER[item]]:
+                if request[item] in _context.provider_info[
+                        _context.claims.register2preferred[item]]:
                     ktyp = alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -402,7 +401,7 @@ class Registration(Endpoint):
             _error = "invalid_configuration_request"
             if len(err.args) > 1:
                 if err.args[1] == "initiate_login_uri":
-                    _error = "invalid_client_metadata"
+                    _error = "invalid_client_claims"
 
             return ResponseMessage(error=_error, error_description="%s" % err)
 
@@ -496,6 +495,6 @@ class Registration(Endpoint):
         if isinstance(exception, ValueError):
             if len(exception.args) > 1:
                 if exception.args[1] == "initiate_login_uri":
-                    _error = "invalid_client_metadata"
+                    _error = "invalid_client_claims"
 
         return self.error_cls(error=_error, error_description=f"{exception}")

@@ -48,6 +48,9 @@ class Current(ImpExp):
         else:
             self._db[key] = info
 
+    def get_claim(self, key: str, claim: str) -> Union[str, None]:
+        return self.get(key).get(claim)
+
     def get_set(self,
                 key: str,
                 message: Optional[type(Message)] = None,

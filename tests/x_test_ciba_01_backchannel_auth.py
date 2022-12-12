@@ -191,8 +191,8 @@ class TestBCAEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -211,9 +211,9 @@ class TestBCAEndpoint(object):
         self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
         self.server.keyjar.import_jwks(self.client_keyjar.export_jwks(), CLIENT_ID)
 
-        self.server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
+        self.server.context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
         # login_hint
-        self.server.endpoint_context.login_hint_lookup = init_service(
+        self.server.context.login_hint_lookup = init_service(
             {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
         )
         # userinfo
@@ -224,8 +224,8 @@ class TestBCAEndpoint(object):
             },
             "",
         )
-        self.server.endpoint_context.login_hint_lookup.userinfo = _userinfo
-        self.session_manager = self.server.endpoint_context.session_manager
+        self.server.context.login_hint_lookup.userinfo = _userinfo
+        self.session_manager = self.server.context.session_manager
 
     def test_login_hint_token(self):
         _jwt = JWT(self.client_keyjar, iss=CLIENT_ID, sign_alg="HS256")
@@ -494,8 +494,8 @@ class TestBCAEndpointService(object):
 
     def _create_self.server(self):
         self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
-        endpoint_context = self.server.endpoint_context
-        endpoint_context.cdb["client_1"] = {
+        context = self.server.context
+        context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -512,9 +512,9 @@ class TestBCAEndpointService(object):
         self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
         self.server.keyjar.import_jwks(client_keyjar.export_jwks(), CLIENT_ID)
 
-        self.server.endpoint_context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
+        self.server.context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
         # login_hint
-        self.server.endpoint_context.login_hint_lookup = init_service(
+        self.server.context.login_hint_lookup = init_service(
             {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
         )
         # userinfo
@@ -525,7 +525,7 @@ class TestBCAEndpointService(object):
             },
             "",
         )
-        self.server.endpoint_context.login_hint_lookup.userinfo = _userinfo
+        self.server.context.login_hint_lookup.userinfo = _userinfo
         return self.server
 
     def _create_ciba_client(self):
@@ -562,13 +562,13 @@ class TestBCAEndpointService(object):
             authz_req = auth_req
         client_id = authz_req["client_id"]
         ae = create_authn_event(user_id)
-        _session_manager = self.ciba["self.server"].endpoint_context.session_manager
+        _session_manager = self.ciba["self.server"].context.session_manager
         return _session_manager.create_session(
             ae, authz_req, user_id, client_id=client_id, sub_type=sub_type
         )
 
     def test_client_notification(self):
-        _keyjar = self.ciba["self.server"].endpoint_context.keyjar
+        _keyjar = self.ciba["self.server"].context.keyjar
         _jwt = JWT(_keyjar, iss=CLIENT_ID, sign_alg="HS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack({"aud": [ISSUER]})
@@ -589,7 +589,7 @@ class TestBCAEndpointService(object):
         _info = _authn_endpoint.process_request(req)
         assert _info
 
-        _session_manager = self.ciba["self.server"].endpoint_context.session_manager
+        _session_manager = self.ciba["self.server"].context.session_manager
         sid = _session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
         _user_id, _client_id, _grant_id = _session_manager.decrypt_session_id(sid)
 

@@ -22,8 +22,7 @@ class TestClientInfo(object):
         self.entity = Entity(config=config)
 
     def test_import_keys_file(self):
-        # Should only be one and that a symmetric key (client_secret) usable
-        # for signing and encryption
+        # Should only be one, a symmetric key (client_secret)
         assert len(self.entity.keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))

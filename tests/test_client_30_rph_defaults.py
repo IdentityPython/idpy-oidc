@@ -1,9 +1,9 @@
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt.key_jar import build_keyjar
 import pytest
 import responses
+from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.rp_handler import RPHandler
@@ -14,6 +14,7 @@ BASE_URL = "https://example.com"
 
 
 class TestRPHandler(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL)
@@ -35,7 +36,7 @@ class TestRPHandler(object):
 
         _context = client.get_context()
 
-        assert set(_context.work_environment.prefer.keys()) == {
+        assert set(_context.claims.prefer.keys()) == {
             'application_type',
             'callback_uris',
             'id_token_encryption_alg_values_supported',
@@ -96,23 +97,25 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.work_environment.use.keys()) == {'application_type',
-                                                           'callback_uris',
-                                                           'client_id',
-                                                           'client_secret',
-                                                           'default_max_age',
-                                                           'grant_types',
-                                                           'id_token_signed_response_alg',
-                                                           'jwks_uri',
-                                                           'redirect_uris',
-                                                           'request_object_signing_alg',
-                                                           'response_modes_supported',
-                                                           'response_types',
-                                                           'scope',
-                                                           'subject_type',
-                                                           'token_endpoint_auth_method',
-                                                           'token_endpoint_auth_signing_alg',
-                                                           'userinfo_signed_response_alg'}
+        assert set(_context.claims.use.keys()) == {'application_type',
+                                                   'callback_uris',
+                                                   'client_id',
+                                                   'client_secret',
+                                                   'default_max_age',
+                                                   'encrypt_request_object_supported',
+                                                   'encrypt_userinfo_supported',
+                                                   'grant_types',
+                                                   'id_token_signed_response_alg',
+                                                   'jwks_uri',
+                                                   'redirect_uris',
+                                                   'request_object_signing_alg',
+                                                   'response_modes_supported',
+                                                   'response_types',
+                                                   'scope',
+                                                   'subject_type',
+                                                   'token_endpoint_auth_method',
+                                                   'token_endpoint_auth_signing_alg',
+                                                   'userinfo_signed_response_alg'}
         assert _context.get_client_id() == "client uno"
         assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID

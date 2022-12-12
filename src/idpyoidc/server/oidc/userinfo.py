@@ -9,7 +9,7 @@ from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
 
-from idpyoidc import work_environment
+from idpyoidc import claims
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -30,10 +30,10 @@ class UserInfo(Endpoint):
     name = "userinfo"
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
-        "encrypt_userinfo_supported": False,
-        "userinfo_signing_alg_values_supported": work_environment.get_signing_algs,
-        "userinfo_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "userinfo_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "encrypt_userinfo_supported": True,
+        "userinfo_signing_alg_values_supported": claims.get_signing_algs,
+        "userinfo_encryption_alg_values_supported": claims.get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": claims.get_encryption_encs,
     }
 
     def __init__(self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):

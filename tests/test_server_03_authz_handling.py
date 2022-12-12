@@ -126,7 +126,7 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_idtoken(self):
         server = Server(conf)
-        server.endpoint_context.cdb["client_1"] = {
+        server.context.cdb["client_1"] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -138,10 +138,10 @@ class TestEndpoint(object):
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
         server.endpoint = do_endpoints(conf, server.upstream_get)
-        self.session_manager = server.endpoint_context.session_manager
+        self.session_manager = server.context.session_manager
         self.user_id = USER_ID
         self.server = server
-        self.authz = server.endpoint_context.authz
+        self.authz = server.context.authz
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -176,7 +176,7 @@ class TestEndpoint(object):
 
     def test_usage_rules_client(self):
         _ = self._create_session(AREQ)
-        self.server.endpoint_context.cdb["client_1"]["token_usage_rules"] = {
+        self.server.context.cdb["client_1"]["token_usage_rules"] = {
             "authorization_code": {"supports_minting": ["access_token", "id_token"]},
             "refresh_token": {},
         }

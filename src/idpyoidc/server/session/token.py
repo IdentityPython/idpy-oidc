@@ -86,8 +86,6 @@ class SessionToken(Item):
             "resources": [],
             "scope": [],
             "token_class": "",
-            "usage_rules": {},
-            "used": 0,
             "value": "",
         }
     )

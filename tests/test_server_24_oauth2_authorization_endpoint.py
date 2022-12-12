@@ -259,13 +259,13 @@ class TestEndpoint(object):
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        endpoint_context = server.endpoint_context
+        context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
-        endpoint_context.cdb = _clients["clients"]
+        context.cdb = _clients["clients"]
         server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
-        self.endpoint_context = endpoint_context
+        self.context = context
         self.endpoint = server.get_endpoint("authorization")
-        self.session_manager = endpoint_context.session_manager
+        self.session_manager = context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
@@ -520,8 +520,8 @@ class TestEndpoint(object):
         )
 
         # Parsed once before setup_auth
-        kakor = self.endpoint_context.cookie_handler.parse_cookie(
-            cookies=[kaka], name=self.endpoint_context.cookie_handler.name["session"]
+        kakor = self.context.cookie_handler.parse_cookie(
+            cookies=[kaka], name=self.context.cookie_handler.name["session"]
         )
 
         res = self.endpoint.setup_auth(request, redirect_uri, cinfo, kakor)

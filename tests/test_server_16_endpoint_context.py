@@ -4,7 +4,7 @@ import os
 import pytest
 from cryptojwt.key_jar import build_keyjar
 
-from idpyoidc import work_environment
+from idpyoidc import metadata
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.endpoint import Endpoint
@@ -27,9 +27,9 @@ class Endpoint_1(Endpoint):
     name = "userinfo"
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
-        "userinfo_signing_alg_values_supported": work_environment.get_signing_algs,
-        "userinfo_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "userinfo_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "userinfo_signing_alg_values_supported": metadata.get_signing_algs,
+        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs,
         "client_authn_method": ["bearer_header", "bearer_body"],
         "encrypt_userinfo_supported": False,
     }
@@ -97,40 +97,42 @@ class TestEndpointContext:
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self):
         server = Server(conf)
-        self.endpoint_context = server.endpoint_context
+        server.context.map_supported_to_preferred()
+        self.context = server.context
 
     def test(self):
-        assert set(self.endpoint_context.provider_info.keys()) == {
+        self.context.set_provider_info()
+        assert set(self.context.provider_info.keys()) == {
             'grant_types_supported',
-            'id_token_encryption_alg_values_supported',
-            'id_token_encryption_enc_values_supported',
             'id_token_signing_alg_values_supported',
             'issuer',
             'jwks_uri',
             'scopes_supported',
-            'userinfo_signing_alg_values_supported'}
+            'subject_types_supported',
+            'userinfo_signing_alg_values_supported',
+            'version'}
 
     def test_allow_refresh_token(self):
-        assert allow_refresh_token(self.endpoint_context)
+        assert allow_refresh_token(self.context)
 
         # Have the software but is not expected to use it.
-        self.endpoint_context.set_preference("grant_types_supported", [
+        self.context.set_preference("grant_types_supported", [
             "authorization_code",
             "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
         ])
-        assert allow_refresh_token(self.endpoint_context) is False
+        assert allow_refresh_token(self.context) is False
 
         # Don't have the software but are expected to use it.
-        self.endpoint_context.set_preference("grant_types_supported", [
+        self.context.set_preference("grant_types_supported", [
             "authorization_code",
             "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
         ])
-        del self.endpoint_context.session_manager.token_handler.handler["refresh_token"]
+        del self.context.session_manager.token_handler.handler["refresh_token"]
         with pytest.raises(OidcEndpointError):
-            assert allow_refresh_token(self.endpoint_context) is False
+            assert allow_refresh_token(self.context) is False
 
 
 class Tokenish(Endpoint):
@@ -194,16 +196,18 @@ def test_provider_configuration(kwargs):
     }
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-    server.endpoint_context.cdb["client_id"] = {}
-    pi = server.endpoint_context.provider_info
-    assert set(pi.keys()) == {'grant_types_supported',
-                              'id_token_encryption_alg_values_supported',
-                              'id_token_encryption_enc_values_supported',
+    server.context.cdb["client_id"] = {}
+    server.context.set_provider_info()
+    pi = server.context.provider_info
+    assert set(pi.keys()) == {'acr_values_supported',
+                              'grant_types_supported',
                               'id_token_signing_alg_values_supported',
                               'issuer',
                               'jwks_uri',
                               'scopes_supported',
-                              'token_endpoint_auth_methods_supported'}
+                              'subject_types_supported',
+                              'token_endpoint_auth_methods_supported',
+                              'version'}
 
     if kwargs:
         if 'token_endpoint_auth_methods_supported' in kwargs:

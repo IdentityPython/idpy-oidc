@@ -287,6 +287,6 @@ class GrantManager(Database):
     #
 
 
-def create_grant_manager(server_get, token_handler_args, conf=None, **kwargs):
-    _token_handler = handler.factory(server_get, **token_handler_args)
+def create_grant_manager(upstream_get, token_handler_args, conf=None, **kwargs):
+    _token_handler = handler.factory(upstream_get, **token_handler_args)
     return GrantManager(_token_handler, conf=conf)

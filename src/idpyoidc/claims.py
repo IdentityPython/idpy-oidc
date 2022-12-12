@@ -3,32 +3,29 @@ from typing import Callable
 from typing import Optional
 
 from cryptojwt import KeyJar
-from cryptojwt.exception import IssuerNotFound
 from cryptojwt.jwe import SUPPORTED
-from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
-from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
 
-def work_environment_dump(info, exclude_attributes):
+def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
 
 
-def work_environment_load(item: dict, **kwargs):
+def claims_load(item: dict, **kwargs):
     _class_name = list(item.keys())[0]  # there is only one
     _cls = importer(_class_name)
     _cls = _cls().load(item[_class_name])
     return _cls
 
 
-class WorkEnvironment(ImpExp):
+class Claims(ImpExp):
     parameter = {
         "prefer": None,
         "use": None,
@@ -129,10 +126,14 @@ class WorkEnvironment(ImpExp):
             _httpc_params = conf.get("httpc_params")
             if _httpc_params:
                 _keyjar.httpc_params = _httpc_params
-
             return _keyjar, _uri_path
         else:
-            return keyjar, _uri_path
+            if "keys" in conf:
+                _uri_path = conf['keys'].get('uri_path')
+            elif "key_conf" in conf and conf["key_conf"]:
+                _uri_path = conf['key_conf'].get('uri_path')
+
+        return keyjar, _uri_path
 
     def get_base_url(self, configuration: dict):
         raise NotImplementedError()
@@ -151,7 +152,9 @@ class WorkEnvironment(ImpExp):
         _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
 
-        self.add_extra_keys(keyjar, _id)
+        _kj = self.add_extra_keys(keyjar, _id)
+        if keyjar is None and _kj:
+            keyjar = _kj
 
         # now that keys are in the Key Jar, now for how to publish it
         if 'jwks_uri' in configuration:  # simple
@@ -246,5 +249,3 @@ def get_encryption_algs():
 
 def get_encryption_encs():
     return SUPPORTED['enc']
-
-

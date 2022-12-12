@@ -33,7 +33,7 @@ class TestDPoPWithoutUserinfo:
             "add_ons": {
                 "dpop": {
                     "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",
-                    "kwargs": {"signing_algorithms": ["ES256", "ES512"]},
+                    "kwargs": {"dpop_signing_alg_values_supported": ["ES256", "ES512"]},
                 }
             },
         }
@@ -81,7 +81,7 @@ class TestDPoPWithUserinfo:
             "add_ons": {
                 "dpop": {
                     "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",
-                    "kwargs": {"signing_algorithms": ["ES256", "ES512"]},
+                    "kwargs": {"dpop_signing_alg_values_supported": ["ES256", "ES512"]},
                 }
             },
         }

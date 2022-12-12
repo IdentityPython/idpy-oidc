@@ -20,7 +20,7 @@ class TestEntity:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.entity = Entity(
-            config=MINI_CONFIG, services={"xyz": {"class": "idpyoidc.client.service.Service"}}
+            config=MINI_CONFIG.copy(), services={"xyz": {"class": "idpyoidc.client.service.Service"}}
         )
 
     def test_1(self):

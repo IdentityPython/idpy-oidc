@@ -2,6 +2,7 @@
 import base64
 import logging
 from typing import Optional
+from typing import Union
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -505,8 +506,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
-        return assertion_jwt(_context.get_usage('client_id'), signing_key, audience, algorithm,
-                             **_args)
+        return assertion_jwt(_entity.client_id, signing_key, audience, algorithm, **_args)
 
     def modify_request(self, request, service, **kwargs):
         """
@@ -652,13 +652,17 @@ def single_authn_setup(name, spec):
         return cls()
 
 
-def client_auth_setup(auth_set: Optional[dict] = None):
+def client_auth_setup(auth_set: Optional[Union[list, dict]] = None):
     if auth_set is None:
         auth_set = CLIENT_AUTHN_METHOD
 
     res = {}
 
-    for name, spec in auth_set.items():
-        res[name] = single_authn_setup(name, spec)
+    if isinstance(auth_set, list):  # From the known set
+        for name in auth_set:
+            res[name] = single_authn_setup(name, None)
+    else:
+        for name, spec in auth_set.items():
+            res[name] = single_authn_setup(name, spec)
 
     return res

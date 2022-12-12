@@ -110,7 +110,8 @@ def get_sign_and_encrypt_algorithms(
 
 
 class IDToken(Token):
-    default_capabilities = {
+    _supports = {
+        "encrypt_id_token_supported": None,
         "id_token_signing_alg_values_supported": None,
         "id_token_encryption_alg_values_supported": None,
         "id_token_encryption_enc_values_supported": None,
@@ -128,7 +129,7 @@ class IDToken(Token):
         self.upstream_get = upstream_get
         self.kwargs = kwargs
         self.scope_to_claims = None
-        self.provider_info = construct_provider_info(self.default_capabilities, **kwargs)
+        self.provider_info = construct_provider_info(self._supports, **kwargs)
 
     def payload(
         self,
@@ -334,7 +335,7 @@ class IDToken(Token):
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")
-        # All the token metadata
+        # All the token claims
         return {
             "sid": _payload.get("sid", ""),  # TODO: would sid be there?
             # "type": _payload["ttype"],

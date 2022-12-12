@@ -196,8 +196,8 @@ class TestEndpoint(object):
             "session_params": {"encrypter": SESSION_PARAMS},
         }
         self.server = Server(conf, keyjar=KEYJAR)
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -209,7 +209,7 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
-        self.session_manager = self.endpoint_context.session_manager
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
         self.endpoint = self.server.get_endpoint("session")
 
@@ -229,7 +229,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -240,7 +240,7 @@ class TestEndpoint(object):
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=AUTH_REQ)
+        grant = self.context.authz(session_id=session_id, request=AUTH_REQ)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
@@ -257,7 +257,7 @@ class TestEndpoint(object):
     def test_info(self):
         session_id = self._create_session(AUTH_REQ)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=AUTH_REQ)
+        grant = self.context.authz(session_id=session_id, request=AUTH_REQ)
         #
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
@@ -269,16 +269,16 @@ class TestEndpoint(object):
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
-        self.endpoint_context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {
+        self.context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {
             "address": None
         }
-        self.endpoint_context.session_manager.token_handler.handler["access_token"].kwargs[
+        self.context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
 
         session_id = self._create_session(AUTH_REQ)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=AUTH_REQ)
+        grant = self.context.authz(session_id=session_id, request=AUTH_REQ)
         #
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
@@ -400,8 +400,8 @@ class TestEndpointWebID(object):
             "session_params": SESSION_PARAMS,
         }
         self.server = Server(conf, keyjar=KEYJAR)
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -413,7 +413,7 @@ class TestEndpointWebID(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "webid"]
         }
-        self.session_manager = self.endpoint_context.session_manager
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
         self.endpoint = self.server.get_endpoint("session")
 
@@ -433,7 +433,7 @@ class TestEndpointWebID(object):
         # Constructing an authorization code is now done
         return grant.mint_token(
             session_id=session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler.handler[token_class],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -452,7 +452,7 @@ class TestEndpointWebID(object):
 
         session_id = self._create_session(_auth_req)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        grant = self.context.authz(session_id=session_id, request=_auth_req)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
@@ -478,7 +478,7 @@ class TestEndpointWebID(object):
 
         session_id = self._create_session(_auth_req)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        grant = self.context.authz(session_id=session_id, request=_auth_req)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
@@ -509,7 +509,7 @@ class TestEndpointWebID(object):
 
         session_id = self._create_session(_auth_req)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        grant = self.context.authz(session_id=session_id, request=_auth_req)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(
@@ -540,7 +540,7 @@ class TestEndpointWebID(object):
 
         session_id = self._create_session(_auth_req)
         # apply consent
-        grant = self.endpoint_context.authz(session_id=session_id, request=_auth_req)
+        grant = self.context.authz(session_id=session_id, request=_auth_req)
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token(

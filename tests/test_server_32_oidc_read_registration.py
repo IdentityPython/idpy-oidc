@@ -127,7 +127,7 @@ class TestEndpoint(object):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.registration_endpoint = server.get_endpoint("registration")
         self.registration_api_endpoint = server.get_endpoint("registration_read")
-        server.endpoint_context.cdb["client_1"] = {}
+        server.context.cdb["client_1"] = {}
 
     def test_do_response(self):
         _req = self.registration_endpoint.parse_request(CLI_REQ.to_json())

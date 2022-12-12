@@ -218,7 +218,7 @@ class TestEndpoint(object):
         )
         # The top most part (Server class instance) is not
 
-        server1.endpoint_context.cdb["client_1"] = {
+        server1.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -228,12 +228,12 @@ class TestEndpoint(object):
         }
 
         # make server2 endpoint context a copy of server 1 endpoint context
-        _store = server1.endpoint_context.dump()
-        server2.endpoint_context.load(
+        _store = server1.context.dump()
+        server2.context.load(
             _store,
             init_args={
                 "upstream_get": server2.upstream_get,
-                "handler": server2.endpoint_context.session_manager.token_handler,
+                "handler": server2.context.session_manager.token_handler,
             },
         )
 
@@ -243,8 +243,8 @@ class TestEndpoint(object):
         }
 
         self.session_manager = {
-            1: server1.endpoint_context.session_manager,
-            2: server2.endpoint_context.session_manager,
+            1: server1.context.session_manager,
+            2: server2.context.session_manager,
         }
         self.user_id = "diana"
 

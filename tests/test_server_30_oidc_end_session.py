@@ -200,8 +200,8 @@ class TestEndpoint(object):
             cookie_handler=self.cd,
             keyjar=KEYJAR,
         )
-        endpoint_context = server.endpoint_context
-        endpoint_context.cdb = {
+        context = server.context
+        context.cdb = {
             "client_1": {
                 "client_secret": "hemligt",
                 "redirect_uris": [("{}cb".format(CLI1), None)],
@@ -221,8 +221,8 @@ class TestEndpoint(object):
                 "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             },
         }
-        self.endpoint_context = endpoint_context
-        self.session_manager = endpoint_context.session_manager
+        self.context = context
+        self.session_manager = context.session_manager
         self.authn_endpoint = server.get_endpoint("authorization")
         self.session_endpoint = server.get_endpoint("session")
         self.token_endpoint = server.get_endpoint("token")
@@ -287,7 +287,7 @@ class TestEndpoint(object):
     def _mint_token(self, token_class, grant, session_id, token_ref=None):
         return grant.mint_token(
             session_id=session_id,
-            context=self.endpoint_context,
+            context=self.context,
             token_class=token_class,
             token_handler=self.session_manager.token_handler[token_class],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now

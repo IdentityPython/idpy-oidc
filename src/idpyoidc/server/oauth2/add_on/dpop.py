@@ -131,13 +131,11 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
     return token_args
 
 
-def add_support(endpoint, **kwargs):
+def add_support(endpoint: dict, **kwargs):
     #
     _token_endp = endpoint["token"]
     _token_endp.post_parse_request.append(post_parse_request)
 
-    # Endpoint Context stuff
-    # _endp.context.token_args_methods.append(token_args)
     _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
     if not _algs_supported:
         _algs_supported = ["RS256"]

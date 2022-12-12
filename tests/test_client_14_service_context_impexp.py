@@ -20,7 +20,7 @@ def test_client_info_init():
         "requests_dir": "requests",
     }
     ci = ServiceContext(config=config, client_type='oidc')
-    ci.work_environment.load_conf(config, supports=ci.supports())
+    ci.claims.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
@@ -111,7 +111,7 @@ class TestClientInfo(object):
         self.service_context = self.entity.get_context()
 
     def test_registration_userinfo_sign_enc_algs(self):
-        self.service_context.work_environment.use = {
+        self.service_context.claims.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -130,7 +130,7 @@ class TestClientInfo(object):
         assert srvcntx.get_enc_alg_enc("userinfo") == {"alg": "RSA1_5", "enc": "A128CBC-HS256"}
 
     def test_registration_request_object_sign_enc_algs(self):
-        self.service_context.work_environment.use = {
+        self.service_context.claims.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -152,7 +152,7 @@ class TestClientInfo(object):
         assert srvcntx.get_sign_alg("request_object") == "RS384"
 
     def test_registration_id_token_sign_enc_algs(self):
-        self.service_context.work_environment.use = {
+        self.service_context.claims.use = {
             "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -250,7 +250,8 @@ class TestClientInfo(object):
     def test_import_keys_file(self):
         # Should only be one and that a symmetric key (client_secret) usable
         # for signing and encryption
-        assert len(self.service_context.keyjar.get_issuer_keys("")) == 1
+        _keyjar = self.entity.keyjar
+        assert len(_keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
 
@@ -262,28 +263,31 @@ class TestClientInfo(object):
         )
 
         # Now there should be 2, the second a RSA key for signing
-        assert len(srvcntx.keyjar.get_issuer_keys("")) == 2
+        assert len(_keyjar.get_issuer_keys("")) == 2
 
     def test_import_keys_file_json(self):
         # Should only be one and that a symmetric key (client_secret) usable
         # for signing and encryption
-        assert len(self.service_context.keyjar.get_issuer_keys("")) == 1
+        _keyjar = self.entity.keyjar
+        assert len(_keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
 
         keyspec = {"file": {"rsa": [file_path]}}
         self.service_context.import_keys(keyspec)
 
-        _sc_state = self.service_context.dump(exclude_attributes=["context"])
+        _sc_state = self.service_context.dump(exclude_attributes=["context", 'upstream_get'])
         _jsc_state = json.dumps(_sc_state)
         _o_state = json.loads(_jsc_state)
-        srvcntx = ServiceContext(base_url=BASE_URL).load(_o_state)
+        srvcntx = ServiceContext(base_url=BASE_URL).load(_o_state, init_args={
+            'upstream_get': self.service_context.upstream_get})
 
         # Now there should be 2, the second a RSA key for signing
-        assert len(srvcntx.keyjar.get_issuer_keys("")) == 2
+        assert len(srvcntx.upstream_get('attribute', 'keyjar').get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):
-        assert len(self.service_context.keyjar.get_issuer_keys("")) == 1
+        _keyjar = self.service_context.upstream_get('attribute', 'keyjar')
+        assert len(_keyjar.get_issuer_keys("")) == 1
 
         # One EC key for signing
         key_def = [{"type": "EC", "crv": "P-256", "use": ["sig"]}]
@@ -301,11 +305,13 @@ class TestClientInfo(object):
             )
             keyspec = {"url": {"https://foobar.com": _jwks_url}}
             self.service_context.import_keys(keyspec)
-            self.service_context.keyjar.update()
+            _keyjar.update()
 
             srvcntx = ServiceContext(base_url=BASE_URL).load(
-                self.service_context.dump(exclude_attributes=["context"])
+                self.service_context.dump(exclude_attributes=["context"]),
+                init_args={'upstream_get': self.service_context.upstream_get}
             )
 
             # Now there should be one belonging to https://example.com
-            assert len(srvcntx.keyjar.get_issuer_keys("https://foobar.com")) == 1
+            assert len(srvcntx.upstream_get('attribute', 'keyjar').get_issuer_keys(
+                "https://foobar.com")) == 1

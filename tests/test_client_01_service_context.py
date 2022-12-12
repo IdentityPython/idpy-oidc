@@ -2,6 +2,7 @@ import pytest
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.node import Unit
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -24,7 +25,8 @@ class TestServiceContext:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.service_context = ServiceContext(config=MINI_CONFIG)
+        self.unit = Unit()
+        self.service_context = ServiceContext(config=MINI_CONFIG, upstream_get=self.unit.unit_get)
 
     def test_init(self):
         assert self.service_context
@@ -37,11 +39,11 @@ class TestServiceContext:
         _alg = self.service_context.get_sign_alg("id_token")
         assert _alg is None
 
-        self.service_context.work_environment.set_preference("id_token_signed_response_alg", "RS384")
+        self.service_context.claims.set_preference("id_token_signed_response_alg", "RS384")
         _alg = self.service_context.get_sign_alg("id_token")
         assert _alg == "RS384"
 
-        self.service_context.work_environment.prefer = {}
+        self.service_context.claims.prefer = {}
         self.service_context.provider_info["id_token_signing_alg_values_supported"] = [
             "RS256",
             "ES256",
@@ -53,15 +55,14 @@ class TestServiceContext:
         _alg_enc = self.service_context.get_enc_alg_enc("userinfo")
         assert _alg_enc == {"alg": None, "enc": None}
 
-        self.service_context.work_environment.set_preference("userinfo_encrypted_response_alg",
-                                                           "RSA1_5")
-        self.service_context.work_environment.set_preference("userinfo_encrypted_response_enc",
-                                                           "A128CBC+HS256")
+        self.service_context.claims.set_preference("userinfo_encrypted_response_alg", "RSA1_5")
+        self.service_context.claims.set_preference("userinfo_encrypted_response_enc",
+                                                     "A128CBC+HS256")
 
         _alg_enc = self.service_context.get_enc_alg_enc("userinfo")
         assert _alg_enc == {"alg": "RSA1_5", "enc": "A128CBC+HS256"}
 
-        self.service_context.work_environment.prefer = {}
+        self.service_context.claims.prefer = {}
         self.service_context.provider_info["userinfo_encryption_alg_values_supported"] = [
             "RSA1_5",
             "A128KW",

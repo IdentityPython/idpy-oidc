@@ -80,7 +80,7 @@ class TestProviderConfigEndpoint(object):
     def create_endpoint(self, conf):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        self.endpoint_context = server.endpoint_context
+        self.context = server.context
         self.endpoint = server.get_endpoint("provider_config")
 
     def test_do_response(self):

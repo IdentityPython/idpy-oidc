@@ -163,7 +163,7 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        server.endpoint_context.cdb["client_id"] = {}
+        server.context.cdb["client_id"] = {}
         self.endpoint = server.get_endpoint("registration")
 
     def test_parse(self):

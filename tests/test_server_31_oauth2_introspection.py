@@ -191,8 +191,8 @@ class TestEndpoint:
                 "kwargs": {},
             }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
-        endpoint_context.cdb["client_1"] = {
+        context = server.context
+        context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -207,11 +207,11 @@ class TestEndpoint:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         server.keyjar.import_jwks_as_json(
-            server.keyjar.export_jwks_as_json(private=True),endpoint_context.issuer
+            server.keyjar.export_jwks_as_json(private=True),context.issuer
         )
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.token_endpoint = server.get_endpoint("token")
-        self.session_manager = endpoint_context.session_manager
+        self.session_manager = context.session_manager
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
@@ -398,7 +398,7 @@ class TestEndpoint:
     def test_introspection_claims(self):
         session_id = self._create_session(AUTH_REQ)
         # Apply consent
-        grant = self.token_endpoint.upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.token_endpoint.upstream_get("context").authz(session_id, AUTH_REQ)
         self.session_manager[session_id] = grant
 
         code = self._mint_token("authorization_code", grant, session_id)
@@ -406,14 +406,14 @@ class TestEndpoint:
 
         self.introspection_endpoint.kwargs["enable_claims_per_client"] = True
 
-        _c_interface = self.introspection_endpoint.upstream_get("endpoint_context").claims_interface
+        _c_interface = self.introspection_endpoint.upstream_get("context").claims_interface
         grant.claims = {
             "introspection": _c_interface.get_claims(
                 session_id, scopes=AUTH_REQ["scope"], claims_release_point="introspection"
             )
         }
 
-        _context = self.introspection_endpoint.upstream_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("context")
         _req = self.introspection_endpoint.parse_request(
             {
                 "token": access_token.value,
@@ -434,7 +434,7 @@ class TestEndpoint:
 
         _jwt = JWT(
             _keyjar,
-            iss=self.introspection_endpoint.upstream_get("endpoint_context").issuer,
+            iss=self.introspection_endpoint.upstream_get("context").issuer,
             lifetime=3600,
         )
 
@@ -442,7 +442,7 @@ class TestEndpoint:
 
         _payload = {"sub": "subject_id"}
         _token = _jwt.pack(_payload, aud="client_1")
-        _context = self.introspection_endpoint.upstream_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("context")
 
         _req = self.introspection_endpoint.parse_request(
             {
@@ -465,7 +465,7 @@ class TestEndpoint:
 
         monkeypatch.setattr("idpyoidc.server.token.utc_time_sans_frac", mock)
 
-        _context = self.introspection_endpoint.upstream_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("context")
 
         _req = self.introspection_endpoint.parse_request(
             {
@@ -481,7 +481,7 @@ class TestEndpoint:
         access_token = self._get_access_token(AUTH_REQ)
         access_token.revoked = True
 
-        _context = self.introspection_endpoint.upstream_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("context")
 
         _req = self.introspection_endpoint.parse_request(
             {
@@ -495,12 +495,12 @@ class TestEndpoint:
 
     def test_introspect_id_token(self):
         session_id = self._create_session(AUTH_REQ)
-        grant = self.token_endpoint.upstream_get("endpoint_context").authz(session_id, AUTH_REQ)
+        grant = self.token_endpoint.upstream_get("context").authz(session_id, AUTH_REQ)
         self.session_manager[session_id] = grant
         code = self._mint_token("authorization_code", grant, session_id)
         id_token = self._mint_token("id_token", grant, session_id, code)
 
-        _context = self.introspection_endpoint.upstream_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("context")
         _req = self.introspection_endpoint.parse_request(
             {
                 "token": id_token.value,

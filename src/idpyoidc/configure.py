@@ -298,7 +298,7 @@ def create_from_config_file(
     domain: Optional[str] = "",
     port: Optional[int] = 0,
     dir_attributes: Optional[List[str]] = None,
-):
+) -> Base:
     return cls(
         load_config_file(filename),
         entity_conf=entity_conf,

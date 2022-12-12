@@ -187,12 +187,12 @@ class TestEndpoint(object):
             },
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint_context = server.endpoint_context
+        context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
-        endpoint_context.cdb = _clients["clients"]
+        context.cdb = _clients["clients"]
         server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
         self.endpoint = server.get_endpoint("authorization")
-        self.session_manager = endpoint_context.session_manager
+        self.session_manager = context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()

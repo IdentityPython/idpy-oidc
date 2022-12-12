@@ -28,7 +28,7 @@ class AuthnBroker(object):
         """
         Adds a new authentication method.
 
-        :param value: A dictionary with metadata and configuration information
+        :param value: A dictionary with claims and configuration information
         """
 
         for attr in ["acr", "method"]:

@@ -20,7 +20,7 @@ class Introspection(Endpoint):
     response_format = "json"
     endpoint_name = "introspection_endpoint"
     name = "introspection"
-    default_capabilities = {
+    _supports = {
         "client_authn_method": [
             "client_secret_basic",
             "client_secret_post",

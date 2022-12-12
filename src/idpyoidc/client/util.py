@@ -1,8 +1,8 @@
 """Utilities"""
-from http.cookiejar import Cookie
-from http.cookiejar import http2time
 import logging
 import secrets
+from http.cookiejar import Cookie
+from http.cookiejar import http2time
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -321,6 +321,7 @@ def implicit_response_types(a):
         if set(typ.split(' ')) in IMPLICIT_RESPONSE_TYPES:
             res.append(typ)
     return res
+
 
 def get_uri(base_url, path, hex):
     return f"{base_url}/{path}/{hex}"

@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc.message import Message
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -167,7 +168,7 @@ def preferred_to_registered(prefers: dict, supported: dict,
     return registered
 
 
-def create_registration_request(prefers, supported):
+def create_registration_request(prefers: dict, supported: dict) -> dict:
     _request = {}
     for key, spec in RegistrationRequest.c_param.items():
         _pref_key = REGISTER2PREFERRED.get(key, key)

@@ -2,7 +2,7 @@ import logging
 from typing import Callable
 from urllib.parse import urlsplit
 
-from idpyoidc import work_environment
+from idpyoidc import claims
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import verified_claim_name
@@ -78,10 +78,10 @@ class Authorization(authorization.Authorization):
 
     _supports = {
         "claims_parameter_supported": True,
-        "encrypt_request_object_supported": None,
-        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
-        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "encrypt_request_object_supported": True,
+        "request_object_signing_alg_values_supported": claims.get_signing_algs,
+        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
         "require_request_uri_registration": False,
@@ -93,7 +93,6 @@ class Authorization(authorization.Authorization):
 
     def __init__(self, upstream_get: Callable, **kwargs):
         authorization.Authorization.__init__(self, upstream_get, **kwargs)
-        # self.pre_construct.append(self._pre_construct)
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
 

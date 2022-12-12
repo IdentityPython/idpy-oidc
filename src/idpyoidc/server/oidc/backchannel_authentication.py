@@ -323,8 +323,6 @@ class ClientNotificationAuthn(ClientSecretBasic):
 
     def _verify(
         self,
-        context: EndpointContext,
-        request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
         get_client_id_from_token: Optional[Callable] = None,

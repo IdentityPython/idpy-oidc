@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from idpyoidc import work_environment
+from idpyoidc import claims
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
@@ -32,22 +32,22 @@ class Authorization(authorization.Authorization):
     error_msg = oidc.ResponseMessage
 
     _supports = {
-        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
-        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "request_object_signing_alg_values_supported": claims.get_signing_algs,
+        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
         "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
                                      'code id_token', 'code idtoken token'],
         'request_parameter_supported': None,
         'request_uri_parameter_supported': None,
         "request_uris": None,
         "request_parameter": None,
-        "encrypt_request_object_supported": None,
+        "encrypt_request_object_supported": False,
         "redirect_uris": None,
         "response_modes_supported": ['query', 'fragment', 'form_post']
     }
 
     _callback_path = {
-        "request_uris": "req",
+        "request_uris": ["req"],
         "redirect_uris": {  # based on response_types
             "code": "authz_cb",
             "token": "authz_tok_cb",
@@ -183,7 +183,7 @@ class Authorization(authorization.Authorization):
         if not alg:
             _context = self.upstream_get("context")
             try:
-                alg = _context.work_environment.get_usage("request_object_signing_alg")
+                alg = _context.claims.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
                 alg = "RS256"
         return alg

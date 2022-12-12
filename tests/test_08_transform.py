@@ -1,21 +1,22 @@
 from typing import Callable
 
-from cryptojwt.utils import importer
 import pytest
+from cryptojwt.utils import importer
 
-from idpyoidc.client.work_environment.oidc import WorkEnvironment as WorkEnvironmentOIDC
-from idpyoidc.client.work_environment.transform import REGISTER2PREFERRED
-from idpyoidc.client.work_environment.transform import create_registration_request
-from idpyoidc.client.work_environment.transform import preferred_to_registered
-from idpyoidc.client.work_environment.transform import supported_to_preferred
+from idpyoidc.claims import Claims
+from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
+from idpyoidc.client.claims.transform import create_registration_request
+from idpyoidc.client.claims.transform import preferred_to_registered
+from idpyoidc.client.claims.transform import supported_to_preferred
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
 
 
 class TestTransform:
+
     @pytest.fixture(autouse=True)
     def setup(self):
-        supported = WorkEnvironmentOIDC._supports.copy()
+        supported = OIDC_Claims._supports.copy()
         for service in [
             'idpyoidc.client.oidc.access_token.AccessToken',
             'idpyoidc.client.oidc.authorization.Authorization',
@@ -149,35 +150,39 @@ class TestTransform:
                                                                    'token_endpoint_auth_method',
                                                                    'tos_uri'}
 
-        preference = {}
-        pref = supported_to_preferred(supported=self.supported, preference=preference,
-                                      base_url='https://example.com')
+        claims = OIDC_Claims()
+        # No input from the IDP so info is absent
+        claims.prefer = supported_to_preferred(supported=self.supported,
+                                                    preference=claims.prefer,
+                                                    base_url='https://example.com')
 
         # These are the claims that has default values. A default value may be an empty list.
         # This is the case for claims like id_token_encryption_enc_values_supported.
-        assert set(pref.keys()) == {'application_type',
-                                    'default_max_age',
-                                    'grant_types_supported',
-                                    'id_token_encryption_alg_values_supported',
-                                    'id_token_encryption_enc_values_supported',
-                                    'id_token_signing_alg_values_supported',
-                                    'request_object_encryption_alg_values_supported',
-                                    'request_object_encryption_enc_values_supported',
-                                    'request_object_signing_alg_values_supported',
-                                    'response_modes_supported',
-                                    'response_types_supported',
-                                    'scopes_supported',
-                                    'subject_types_supported',
-                                    'token_endpoint_auth_method',
-                                    'token_endpoint_auth_signing_alg_values_supported',
-                                    'userinfo_encryption_alg_values_supported',
-                                    'userinfo_encryption_enc_values_supported',
-                                    'userinfo_signing_alg_values_supported'}
+        assert set(claims.prefer.keys()) == {'application_type',
+                                                  'default_max_age',
+                                                  'encrypt_request_object_supported',
+                                                  'encrypt_userinfo_supported',
+                                                  'grant_types_supported',
+                                                  'id_token_encryption_alg_values_supported',
+                                                  'id_token_encryption_enc_values_supported',
+                                                  'id_token_signing_alg_values_supported',
+                                                  'request_object_encryption_alg_values_supported',
+                                                  'request_object_encryption_enc_values_supported',
+                                                  'request_object_signing_alg_values_supported',
+                                                  'response_modes_supported',
+                                                  'response_types_supported',
+                                                  'scopes_supported',
+                                                  'subject_types_supported',
+                                                  'token_endpoint_auth_method',
+                                                  'token_endpoint_auth_signing_alg_values_supported',
+                                                  'userinfo_encryption_alg_values_supported',
+                                                  'userinfo_encryption_enc_values_supported',
+                                                  'userinfo_signing_alg_values_supported'}
 
         # To verify that I have all the necessary claims to do client registration
         reg_claim = []
-        for key, spec in RegistrationRequest.c_param.items():
-            _pref_key = REGISTER2PREFERRED.get(key, key)
+        for key, spec in OIDC_Claims.registration_request.c_param.items():
+            _pref_key = OIDC_Claims.register2preferred.get(key, key)
             if _pref_key in self.supported:
                 reg_claim.append(key)
 
@@ -188,7 +193,7 @@ class TestTransform:
 
         l_to_s = []
         non_oidc = []
-        for key, pref_key in REGISTER2PREFERRED.items():
+        for key, pref_key in OIDC_Claims.register2preferred.items():
             spec = RegistrationRequest.c_param.get(key)
             if spec is None:
                 non_oidc.append(pref_key)
@@ -223,45 +228,49 @@ class TestTransform:
             "acr_values_supported": ['mfa'],
         }
 
-        preference = {}
-        pref = supported_to_preferred(supported=self.supported, preference=preference,
-                                      base_url='https://example.com',
-                                      info=provider_info_response)
+        claims = OIDC_Claims()
+        claims.prefer = supported_to_preferred(supported=self.supported,
+                                                    preference=claims.prefer,
+                                                    base_url='https://example.com',
+                                                    info=provider_info_response)
 
         # These are the claims that has default values
-        assert set(pref.keys()) == {'application_type',
-                                    'default_max_age',
-                                    'grant_types_supported',
-                                    'id_token_encryption_alg_values_supported',
-                                    'id_token_encryption_enc_values_supported',
-                                    'id_token_signing_alg_values_supported',
-                                    'request_object_encryption_alg_values_supported',
-                                    'request_object_encryption_enc_values_supported',
-                                    'request_object_signing_alg_values_supported',
-                                    'response_modes_supported',
-                                    'response_types_supported',
-                                    'scopes_supported',
-                                    'subject_types_supported',
-                                    'token_endpoint_auth_method',
-                                    'token_endpoint_auth_signing_alg_values_supported',
-                                    'userinfo_encryption_alg_values_supported',
-                                    'userinfo_encryption_enc_values_supported',
-                                    'userinfo_signing_alg_values_supported'}
+        assert set(claims.prefer.keys()) == {'application_type',
+                                                  'default_max_age',
+                                                  'encrypt_request_object_supported',
+                                                  'encrypt_userinfo_supported',
+                                                  'grant_types_supported',
+                                                  'id_token_encryption_alg_values_supported',
+                                                  'id_token_encryption_enc_values_supported',
+                                                  'id_token_signing_alg_values_supported',
+                                                  'request_object_encryption_alg_values_supported',
+                                                  'request_object_encryption_enc_values_supported',
+                                                  'request_object_signing_alg_values_supported',
+                                                  'response_modes_supported',
+                                                  'response_types_supported',
+                                                  'scopes_supported',
+                                                  'subject_types_supported',
+                                                  'token_endpoint_auth_method',
+                                                  'token_endpoint_auth_signing_alg_values_supported',
+                                                  'userinfo_encryption_alg_values_supported',
+                                                  'userinfo_encryption_enc_values_supported',
+                                                  'userinfo_signing_alg_values_supported'}
 
         # least common denominator
         # The RP supports less than the OP
-        assert pref['scopes_supported'] == ['openid']
-        assert pref["response_modes_supported"] == ['query', 'form_post']
+        assert claims.get_preference('scopes_supported') == ['openid']
+        assert claims.get_preference("response_modes_supported") == ['query', 'form_post']
         # The OP supports less than the RP
-        assert pref["response_types_supported"] == ['code', 'id_token', 'code id_token']
+        assert claims.get_preference("response_types_supported") == ['code', 'id_token',
+                                                                          'code id_token']
 
 
 class TestTransform2:
 
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.work_environment = WorkEnvironmentOIDC()
-        supported = self.work_environment._supports.copy()
+        self.claims = OIDC_Claims()
+        supported = self.claims._supports.copy()
         for service in [
             'idpyoidc.client.oidc.access_token.AccessToken',
             'idpyoidc.client.oidc.authorization.Authorization',
@@ -295,7 +304,7 @@ class TestTransform2:
             'contacts': ["ve7jtb@example.org", "mary@example.org"]
         }
 
-        self.work_environment.load_conf(preference, self.supported)
+        self.claims.load_conf(preference, self.supported)
 
     def test_registration_response(self):
         OP_BASEURL = 'https://example.com'
@@ -322,12 +331,13 @@ class TestTransform2:
             "acr_values_supported": ['mfa'],
         }
 
-        pref = supported_to_preferred(supported=self.supported,
-                                      preference=self.work_environment.prefer,
-                                      base_url='https://example.com',
-                                      info=provider_info_response)
+        self.claims.prefer = supported_to_preferred(supported=self.supported,
+                                                         preference=self.claims.prefer,
+                                                         base_url='https://example.com',
+                                                         info=provider_info_response)
 
-        registration_request = create_registration_request(pref, self.supported)
+        registration_request = create_registration_request(prefers=self.claims.prefer,
+                                                           supported=self.supported)
 
         assert set(registration_request.keys()) == {'application_type',
                                                     'client_name',
@@ -364,14 +374,16 @@ class TestTransform2:
                 "https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"]
         }
 
-        to_use = preferred_to_registered(prefers=pref,
-                                         supported=self.supported,
+        to_use = preferred_to_registered(supported=self.supported,
+                                         prefers=self.claims.prefer,
                                          registration_response=registration_response)
 
         assert set(to_use.keys()) == {'application_type',
                                       'client_name',
                                       'contacts',
                                       'default_max_age',
+                                      'encrypt_request_object_supported',
+                                      'encrypt_userinfo_supported',
                                       'grant_types',
                                       'id_token_signed_response_alg',
                                       'jwks_uri',

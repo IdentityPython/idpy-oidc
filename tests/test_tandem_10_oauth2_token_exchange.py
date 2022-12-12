@@ -75,7 +75,7 @@ def full_path(local_file):
 USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 _OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "claims": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
     "refresh_access_token": {
@@ -186,10 +186,10 @@ class TestEndpoint(object):
 
         client_1_config = {
             "issuer": server_conf["issuer"],
-            "client_secret": "hemligt",
+            "client_secret": "hemligtlösenord",
             "client_id": "client_1",
             "redirect_uris": ["https://example.com/cb"],
-            "client_salt": "salted",
+            "client_salt": "salted_peanuts_cooking",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
@@ -197,9 +197,9 @@ class TestEndpoint(object):
         client_2_config = {
             "issuer": server_conf["issuer"],
             "client_id": "client_2",
-            "client_secret": "hemligt",
+            "client_secret": "hemligtlösenord",
             "redirect_uris": ["https://example.com/cb"],
-            "client_salt": "salted",
+            "client_salt": "salted_peanuts_cooking",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
@@ -211,17 +211,19 @@ class TestEndpoint(object):
                                keyjar=build_keyjar(KEYDEFS),
                                services=_OAUTH2_SERVICES)
 
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = client_1_config
-        self.endpoint_context.cdb["client_2"] = client_2_config
-        self.endpoint_context.keyjar.import_jwks(
-            self.client_1.get_service_context().keyjar.export_jwks(), "client_1")
-        self.endpoint_context.keyjar.import_jwks(
-            self.client_2.get_service_context().keyjar.export_jwks(), "client_2")
+        self.context = self.server.context
+        self.context.cdb["client_1"] = client_1_config
+        self.context.cdb["client_2"] = client_2_config
+        self.context.keyjar.import_jwks(
+            self.client_1.keyjar.export_jwks(), "client_1")
+        self.context.keyjar.import_jwks(
+            self.client_2.keyjar.export_jwks(), "client_2")
 
-        # self.endpoint = self.server.server_get("endpoint", "token")
-        # self.introspection_endpoint = self.server.server_get("endpoint", "introspection")
-        self.session_manager = self.endpoint_context.session_manager
+        self.context.set_provider_info()
+
+        # self.endpoint = self.server.upstream_get("endpoint", "token")
+        # self.introspection_endpoint = self.server.upstream_get("endpoint", "introspection")
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
 
     def do_query(self, service_type, endpoint_type, request_args, state):
@@ -349,7 +351,7 @@ class TestEndpoint(object):
         """
         Test that per-client token exchange configuration works correctly
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
