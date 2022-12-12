@@ -12,7 +12,6 @@ class ProviderConfiguration(Endpoint):
     request_format = ""
     response_format = "json"
     name = "provider_config"
-    # _supports = {"require_request_uri_registration": None}
 
     def __init__(self, upstream_get, **kwargs):
         Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)

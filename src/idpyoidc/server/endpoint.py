@@ -90,7 +90,6 @@ class Endpoint(object):
     response_placement = "body"
     response_content_type = ""
     client_authn_method = ""
-    default_capabilities = None
     auth_method_attribute = ""
 
     _supports = {}

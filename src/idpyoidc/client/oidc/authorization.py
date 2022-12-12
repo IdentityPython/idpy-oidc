@@ -140,7 +140,7 @@ class Authorization(authorization.Authorization):
             request_args["scope"].append("openid")
 
         # 'code' and/or 'id_token' in response_type means an ID Roken
-        # will eventually be returnedm, hence the need for a nonce
+        # will eventually be returned, hence the need for a nonce
         if "code" in _response_types or "id_token" in _response_types:
             if "nonce" not in request_args:
                 request_args["nonce"] = rndstr(32)

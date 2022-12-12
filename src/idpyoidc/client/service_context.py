@@ -99,7 +99,7 @@ class ServiceContext(Unit):
         "httpc_params": None,
         "iss_hash": None,
         "issuer": None,
-        'keyjar': KeyJar,
+        # 'keyjar': KeyJar,
         "work_environment": WorkEnvironment,
         "provider_info": None,
         "requests_dir": None,
@@ -167,8 +167,9 @@ class ServiceContext(Unit):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.keyjar = self.work_environment.load_conf(config.conf, supports=self.supports(),
-                                                      keyjar=keyjar)
+        _keyjar = self.work_environment.load_conf(config.conf, supports=self.supports(),
+                                                  keyjar=keyjar)
+        self.upstream_get('set_attribute', 'keyjar', _keyjar)
 
         _response_types = self.get_preference(
             'response_types_supported',

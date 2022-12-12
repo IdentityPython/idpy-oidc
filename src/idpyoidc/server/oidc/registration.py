@@ -127,9 +127,6 @@ class Registration(Endpoint):
     endpoint_name = "registration_endpoint"
     name = "registration"
 
-    # default
-    # response_placement = 'body'
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

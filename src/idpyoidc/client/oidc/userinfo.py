@@ -37,10 +37,8 @@ class UserInfo(Service):
     response_cls = oidc.OpenIDSchema
     error_msg = oidc.ResponseMessage
     endpoint_name = "userinfo_endpoint"
-    synchronous = True
     service_name = "userinfo"
     default_authn_method = "bearer_header"
-    http_method = "GET"
 
     _supports = {
         "userinfo_signing_alg_values_supported": get_signing_algs,

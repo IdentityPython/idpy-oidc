@@ -36,8 +36,6 @@ class Token(token.Token):
         "token_endpoint_auth_signing_alg_values_supported": work_environment.get_signing_algs,
     }
 
-    # auth_method_attribute = "token_endpoint_auth_methods_supported"
-
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,

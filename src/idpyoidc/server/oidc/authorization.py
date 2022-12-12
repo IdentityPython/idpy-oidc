@@ -75,6 +75,7 @@ class Authorization(authorization.Authorization):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
+
     _supports = {
         "claims_parameter_supported": True,
         "encrypt_request_object_supported": None,

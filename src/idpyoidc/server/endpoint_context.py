@@ -211,16 +211,6 @@ class EndpointContext(OidcContext):
             if _loader:
                 self.template_handler = Jinja2TemplateHandler(_loader)
 
-        # # self.setup = {}
-        # _keys_conf = conf.get("key_conf")
-        # if _keys_conf:
-        #     jwks_uri_path = _keys_conf["uri_path"]
-        #
-        #     if self.issuer.endswith("/"):
-        #         self.jwks_uri = "{}{}".format(self.issuer, jwks_uri_path)
-        #     else:
-        #         self.jwks_uri = "{}/{}".format(self.issuer, jwks_uri_path)
-
         for item in [
             "cookie_handler",
             "authentication",
