@@ -126,6 +126,13 @@ oidc_clients:
         - 'code id_token'
         - 'id_token'
         - 'code id_token token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client2:
     client_secret: "spraket_sr.se"
     redirect_uris:
@@ -140,6 +147,13 @@ oidc_clients:
     post_logout_redirect_uri: ['https://openidconnect.net/', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
@@ -592,6 +606,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         session_id = self._create_session(request)
@@ -619,6 +634,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         session_id = self._create_session(request)

@@ -189,6 +189,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.user_id = "diana"
         self.token_endpoint = server.server_get("endpoint", "token")

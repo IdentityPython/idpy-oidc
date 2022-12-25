@@ -107,6 +107,7 @@ class TestSessionManager:
                     },
                     "refresh_token": {"supports_minting": ["id_token"]},
                 },
+                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             }
         }
 
@@ -457,7 +458,9 @@ class TestSessionManager:
             self.server.get_endpoint_context, grant_config=grant_config
         )
 
-        self.endpoint_context.cdb["client_1"] = {}
+        self.endpoint_context.cdb["client_1"] = {
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+        }
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
 
@@ -511,7 +514,8 @@ class TestSessionManager:
                     "supports_minting": ["access_token", "refresh_token"],
                 },
                 "refresh_token": {"supports_minting": ["access_token"]},
-            }
+            },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")

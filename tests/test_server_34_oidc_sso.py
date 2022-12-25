@@ -103,6 +103,13 @@ oidc_clients:
         - 'code id_token'
         - 'id_token'
         - 'code id_token token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client_2:
     client_secret: "spraket_sr.se"
     client_id: client_2,
@@ -111,6 +118,13 @@ oidc_clients:
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client_3:
     client_id: client_3,
     client_secret: '2222222222222222222222222222222222222222'
@@ -119,6 +133,13 @@ oidc_clients:
     post_logout_redirect_uri: ['https://openidconnect.net/', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
