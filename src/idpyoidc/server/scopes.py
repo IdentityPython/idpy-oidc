@@ -1,3 +1,5 @@
+from idpyoidc.server.exception import ConfigurationError
+
 # default set can be changed by configuration
 
 SCOPE2CLAIMS = {
@@ -52,9 +54,7 @@ class Scopes:
         if not scopes_to_claims:
             scopes_to_claims = dict(SCOPE2CLAIMS)
         self._scopes_to_claims = scopes_to_claims
-        if not allowed_scopes:
-            allowed_scopes = list(scopes_to_claims.keys())
-        self.allowed_scopes = allowed_scopes
+        self.allowed_scopes = list(scopes_to_claims.keys())
 
     def get_allowed_scopes(self, client_id=None):
         """
@@ -67,11 +67,11 @@ class Scopes:
         if client_id:
             client = self.server_get("endpoint_context").cdb.get(client_id)
             if client is not None:
-                if "allowed_scopes" in client:
-                    allowed_scopes = client.get("allowed_scopes")
-                elif "scopes_to_claims" in client:
-                    allowed_scopes = list(client.get("scopes_to_claims").keys())
-
+                try:
+                    client_scopes = client["allowed_scopes"]
+                except:
+                    raise ConfigurationError("No `allowed_scopes` are defined for client: %s" % client_id)
+                allowed_scopes = client_scopes
         return allowed_scopes
 
     def get_scopes_mapping(self, client_id=None):

@@ -107,7 +107,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 token = self._mint_token(
                     token_class="access_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                     token_type=token_type,
@@ -127,7 +127,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
                     grant=grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                 )
@@ -137,7 +137,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _response["refresh_token"] = refresh_token.value
 
         # since the grant content has changed. Make sure it's stored
-        _mngr[_session_info["session_id"]] = grant
+        _mngr[_session_info["branch_id"]] = grant
 
         if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
             if "id_token" in _based_on.usage_rules.get("supports_minting"):
@@ -145,7 +145,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _idtoken = self._mint_token(
                         token_class="id_token",
                         grant=grant,
-                        session_id=_session_info["session_id"],
+                        session_id=_session_info["branch_id"],
                         client_id=_session_info["client_id"],
                         based_on=_based_on,
                     )
@@ -242,7 +242,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
-            session_id=_session_info["session_id"],
+            session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=token,
             scope=scope,
@@ -269,7 +269,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
             refresh_token = self._mint_token(
                 token_class="refresh_token",
                 grant=_grant,
-                session_id=_session_info["session_id"],
+                session_id=_session_info["branch_id"],
                 client_id=_session_info["client_id"],
                 based_on=token,
                 scope=scope,
@@ -282,7 +282,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
                 _idtoken = self._mint_token(
                     token_class="id_token",
                     grant=_grant,
-                    session_id=_session_info["session_id"],
+                    session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=token,
                     scope=scope,

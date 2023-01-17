@@ -172,6 +172,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         endpoint_context.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = endpoint_context.session_manager
@@ -356,7 +357,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())
@@ -414,7 +415,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = [
             "access_token",
             "refresh_token",
@@ -445,6 +446,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         areq = AUTH_REQ.copy()
@@ -484,6 +486,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         self.token_endpoint.revoke_refresh_on_issue = True
@@ -521,6 +524,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.endpoint_context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()
@@ -585,9 +589,9 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -661,9 +665,9 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="access_token"
         )
-        at = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        at = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         rt = self.session_manager.find_token(
-            _session_info["session_id"], _resp["response_args"]["refresh_token"]
+            _session_info["branch_id"], _resp["response_args"]["refresh_token"]
         )
 
         assert at.scope == rt.scope == _request["scope"] == _resp["response_args"]["scope"]
@@ -764,7 +768,7 @@ class TestEndpoint(object):
         _session_info = self.session_manager.get_session_info_by_token(
             _token_value, handler_key="refresh_token"
         )
-        _token = self.session_manager.find_token(_session_info["session_id"], _token_value)
+        _token = self.session_manager.find_token(_session_info["branch_id"], _token_value)
         _token.usage_rules["supports_minting"] = ["access_token", "refresh_token"]
 
         _req = self.token_endpoint.parse_request(_request.to_json())

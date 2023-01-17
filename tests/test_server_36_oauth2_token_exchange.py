@@ -1508,3 +1508,4 @@ class TestEndpoint(object):
             _resp["error_description"]
             == "Exchanging this subject token to refresh token forbidden"
         )
+

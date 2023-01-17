@@ -131,6 +131,13 @@ clients:
     'response_types':
         - 'code'
         - 'token'
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
   client2:
     client_secret: "spraket"
     redirect_uris:
@@ -138,6 +145,13 @@ clients:
       - ['https://app2.example.net/bar', '']
     response_types:
       - code
+    allowed_scopes:
+        - 'openid'
+        - 'profile'
+        - 'email'
+        - 'address'
+        - 'phone'
+        - 'offline_access'
 """
 
 
@@ -479,6 +493,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         session_id = self._create_session(request)
@@ -557,6 +572,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         _context = self.endpoint.server_get("endpoint_context")

@@ -1,3 +1,5 @@
+.. _session-management:
+
 Session Management
 ==================
 
@@ -78,7 +80,7 @@ Relying Party.
 
 The information structure
 -------------------------
-.. _`The information structure`:
+.. _SM-info-structure:
 
 As stated above there are 3 layers: user session information, client session
 information and grants. But first the keys to the information.
@@ -555,3 +557,11 @@ revoke_token
 .. _revoke_token:
 
     revoke_token(self, session_id, token_value, recursive=False)
+
+Module
+------
+
+.. automodule:: idpyoidc.server.session.manager
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -463,7 +463,7 @@ class TestVerify:
             endpoint=self.server.server_get("endpoint", "token"),
         )
         assert res == {}
-
+        
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
             self.endpoint_context,

@@ -150,7 +150,7 @@ class UserInfo(Endpoint):
         if allowed:
             _cntxt = self.server_get("endpoint_context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
-                _session_info["session_id"], scopes=token.scope, claims_release_point="userinfo"
+                _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )
             info = _cntxt.claims_interface.get_user_claims(
                 _session_info["user_id"], claims_restriction=_claims_restriction

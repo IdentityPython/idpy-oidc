@@ -1,6 +1,10 @@
-========================
-Configuration directives
-========================
+*************
+Configuration
+*************
+
+================================
+General Configuration directives
+================================
 
 ------
 issuer
@@ -87,6 +91,34 @@ simply map it to an empty list. E.g.::
 
 *Note*: For OIDC the `openid` scope must be present in this mapping.
 
+The default set is::
+
+    {
+        "openid": ["sub"],
+        "profile": [
+            "name",
+            "given_name",
+            "family_name",
+            "middle_name",
+            "nickname",
+            "profile",
+            "picture",
+            "website",
+            "gender",
+            "birthdate",
+            "zoneinfo",
+            "locale",
+            "updated_at",
+            "preferred_username",
+        ],
+        "email": ["email", "email_verified"],
+        "address": ["address"],
+        "phone": ["phone_number", "phone_number_verified"],
+        "offline_access": [],
+    }
+
+*Note*: If you define `scopes_to_claims` in the configuration you MUST list
+ALL the mappings you want. Not just the changes you want to make to the default.
 
 --------------
 allowed_scopes
@@ -435,7 +467,8 @@ keys
 ----
 
 JWK Set (JWKS) files
---------------------
+####################
+
 see: [cryptojwt documentation](https://cryptojwt.readthedocs.io/en/latest/keyhandling.html<https://cryptojwt.readthedocs.io/en/latest/keyhandling.html)
 
 
@@ -727,11 +760,15 @@ the following::
         }
     }
 
-==============
+================================
+Special Configuration directives
+================================
+
+--------------
 Token exchange
-==============
+--------------
 There are two possible ways to configure Token Exchange in OIDC-OP, globally and per-client.
-For the first case the configuration is passed in the Token Exchange handler throught the
+For the first case the configuration is passed in the Token Exchange handler through the
 `urn:ietf:params:oauth:grant-type:token-exchange` dictionary in token's `grant_types_supported`.
 
 If present, the token exchange configuration should contain a `policy` dictionary
@@ -843,6 +880,80 @@ request or raise an exception.
 For example::
 
     def custom_token_exchange_policy(request, context, subject_token, **kwargs):
+        if some_condition in request:
+          return TokenErrorResponse(
+                error="invalid_request", error_description="Some error occured"
+            )
+
+        return request
+
+
+==================================
+idpyoidc\.server\.configure module
+==================================
+
+.. automodule:: idpyoidc.server.configure
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+==============
+Resource Indicators
+==============
+There are two possible ways to configure Resource Indicators in OIDC-OP, globally and per-client.
+For the first case the configuration is passed in the Authorization or Access Token endpoint arguments throught the
+`resource_indicators` dictionary.
+
+If present, the resource indicators configuration should contain a `policy` dictionary
+that defines the behaviour of the specific endpoint. The policy
+is mapped to a dictionary with the keys `callable` (mandatory), which must be a
+python callable or a string that represents the path to a python callable, and
+`kwargs` (optional), which must be a dict of key-value arguments that will be
+passed to the callable.
+
+The resource indicators configuration may also contain a `resource_servers_per_client`
+dictionary that defines a mapping between oidc-op registered clients with key the equivalent `client id` and resources to whom this client
+is eligible to request access.
+
+    "resource_indicators":{
+      "policy": {
+          "callable": validate_authorization_resource_indicators_policy,
+          "kwargs": {
+            "resource_servers_per_client": {
+              "CLIENT_1": ["RESOURCE_1"],
+              "CLIENT_2": ["RESOURCE_1", "RESOURCE_2"]
+            },
+          },
+        },
+      },
+    }
+
+For the per-client configuration a similar configuration scheme should be present in the client's
+metadata under the `resource_indicators` key with slight difference. The `policy` mapping should be set a value for a 
+key `authorization_code` or `access_token` in order to indicate the endpoint that this resource indicators policy is reffered to.
+In addition, the `resource_servers_per_client` value is a list of the permitted resources.
+
+For example::
+
+    "resource_indicators":{
+        "authorization_code": {
+          "policy": {
+            "callable": validate_authorization_resource_indicators_policy,
+            "kwargs": {
+              "resource_servers_per_client": ["RESOURCE_1"],
+            },
+          },
+       },
+      },
+    }
+
+The policy callable accepts a specific argument list and must return the altered token
+request or raise an exception.
+
+For example::
+
+    def validate_resource_indicators_policy(request, context, **kwargs):
         if some_condition in request:
           return TokenErrorResponse(
                 error="invalid_request", error_description="Some error occured"
