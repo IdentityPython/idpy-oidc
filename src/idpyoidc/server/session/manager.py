@@ -94,8 +94,7 @@ class SessionManager(GrantManager):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
         session_params = self.conf.get("session_params") or {}
-        _crypt_config = get_crypt_config(session_params)
-        super(SessionManager, self).__init__(handler, _crypt_config)
+        super(SessionManager, self).__init__(handler, self.conf)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
         # Make sure node_type is a list and must contain at least one element.
