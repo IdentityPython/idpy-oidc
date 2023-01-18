@@ -99,7 +99,7 @@ class TokenRevocation(Endpoint):
     def _revoke(self, request, session_info):
         _context = self.server_get("endpoint_context")
         _mngr = _context.session_manager
-        _token = _mngr.find_token(session_info["session_id"], request["token"])
+        _token = _mngr.find_token(session_info["branch_id"], request["token"])
 
         _cls = _token.token_class
         if _cls not in self.policy:
