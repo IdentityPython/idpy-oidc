@@ -67,11 +67,7 @@ class Scopes:
         if client_id:
             client = self.server_get("endpoint_context").cdb.get(client_id)
             if client is not None:
-                try:
-                    client_scopes = client["allowed_scopes"]
-                except:
-                    raise ConfigurationError("No `allowed_scopes` are defined for client: %s" % client_id)
-                allowed_scopes = client_scopes
+                allowed_scopes = client.get("allowed_scopes", allowed_scopes)
         return allowed_scopes
 
     def get_scopes_mapping(self, client_id=None):
