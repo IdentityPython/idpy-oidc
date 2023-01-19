@@ -113,6 +113,11 @@ class Service(ImpExp):
                     elif def_val is not None:
                         self.usage[param] = def_val
 
+            _default_request_args = conf.get("request_args", {})
+            if _default_request_args:
+                self.default_request_args = _default_request_args
+                del conf["request_args"]
+
         else:
             self.conf = {}
 
@@ -163,6 +168,10 @@ class Service(ImpExp):
                             val = md.get(prop)
             if val:
                 ar_args[prop] = val
+
+        for key, val in self.default_request_args.items():
+            if key not in ar_args:
+                ar_args[key] = val
 
         return ar_args
 

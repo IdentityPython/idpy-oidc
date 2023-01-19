@@ -110,7 +110,7 @@ class Configuration(Base):
 
         _del_key = []
         for attr, val in self.conf.items():
-            if attr in ["issuer", "base_url", "key_conf"]:
+            if attr in ["issuer", "key_conf"]:
                 setattr(self, attr, val)
                 _del_key.append(attr)
 

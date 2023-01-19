@@ -132,7 +132,7 @@ class ServiceContext(OidcContext):
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.base_url = base_url or config.get("base_url", "")
+        self.base_url = base_url or config.get("base_url") or config.conf.get('base_url', '')
         # Below so my IDE won't complain
         self.allow = {}
         self.args = {}

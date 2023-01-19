@@ -157,9 +157,8 @@ def finalize(op_identifier, request_args):
 def get_op_identifier_by_cb_uri(url: str):
     uri = splitquery(url)[0]
     for k, v in current_app.rph.issuer2rp.items():
-        _cntx = v.get_service_context()
         for endpoint in v.get_callback_uris():
-            _endps = _cntx.get_metadata(endpoint)
+            _endps = v.get_metadata_value(endpoint)
             if _endps is None:
                 continue
             elif isinstance(_endps,str):

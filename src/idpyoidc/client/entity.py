@@ -59,7 +59,8 @@ def set_jwks_uri_or_jwks(entity, service_context, config, jwks_uri, keyjar):
         else:
             entity.set_usage_value("jwks_uri", False)
             if config.get("key_conf"):
-                _keyjar = init_key_jar(**config.get("key_conf"))
+                keys_args = {k: v for k, v in config.get("key_conf").items() if k != "uri_path"}
+                _keyjar = init_key_jar(**keys_args)
                 entity.set_usage_value("jwks", True)
                 entity.set_metadata_value("jwks", _keyjar.export_jwks())
                 return
@@ -126,7 +127,7 @@ class Entity(object):
         jwks_uri = jwks_uri or self.get_metadata_value("jwks_uri")
         set_jwks_uri_or_jwks(self, self._service_context, config, jwks_uri, _kj)
 
-        # Deal with backward compatible
+        # Deal with backward compatibility
         self.backward_compatibility(config)
 
         self.construct_uris(self._service_context.issuer,
@@ -350,6 +351,11 @@ class Entity(object):
             if key not in ["port", "domain", "httpc_params", "metadata", "client_preferences",
                            "usage", "services", "add_ons"]:
                 self.extra[key] = val
+
+        auth_request_args = config.conf.get("request_args", {})
+        if auth_request_args:
+            authz_serv = self.get_service('authorization')
+            authz_serv.default_request_args.update(auth_request_args)
 
     def config_args(self):
         res = {}

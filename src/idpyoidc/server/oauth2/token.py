@@ -9,10 +9,12 @@ from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
+from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
+from idpyoidc.server.oauth2.token_helper import TokenExchangeHelper
 from idpyoidc.server.session import MintingNotAllowed
 from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
@@ -131,8 +133,8 @@ class Token(Endpoint):
         _access_token = response_args["access_token"]
         _context = self.server_get("endpoint_context")
 
-        if isinstance(request, TokenExchangeRequest):
-            _handler_key = TOKEN_TYPES_MAPPING[request["requested_token_type"]]
+        if isinstance(_helper, TokenExchangeHelper):
+            _handler_key = _helper.get_handler_key(request, _context)
         else:
             _handler_key = "access_token"
 

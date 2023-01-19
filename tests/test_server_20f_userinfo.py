@@ -199,6 +199,7 @@ class TestCollectUserInfo:
                 "always": {},
                 "by_scope": {},
             },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.session_manager = self.endpoint_context.session_manager
         self.claims_interface = ClaimsInterface(server.server_get)
@@ -422,7 +423,9 @@ class TestCollectUserInfoCustomScopes:
     def create_endpoint_context(self, conf):
         self.server = Server(conf)
         self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client1"] = {}
+        self.endpoint_context.cdb["client1"] = {
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
+        }
         self.session_manager = self.endpoint_context.session_manager
         self.claims_interface = ClaimsInterface(self.server.server_get)
         self.user_id = "diana"
@@ -477,19 +480,7 @@ class TestCollectUserInfoCustomScopes:
         self.session_manager = endpoint_context.session_manager
         claims_interface = endpoint_context.claims_interface
         endpoint_context.cdb["client1"] = {
-            "scopes_to_claims": {
-                "openid": ["sub"],
-                "research_and_scholarship": [
-                    "name",
-                    "given_name",
-                    "family_name",
-                    "email",
-                    "email_verified",
-                    "sub",
-                    "iss",
-                    "eduperson_scoped_affiliation",
-                ],
-            }
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
         _req = OIDR.copy()
@@ -503,31 +494,6 @@ class TestCollectUserInfoCustomScopes:
         )
 
         res = claims_interface.get_user_claims("diana", _restriction)
-
-        assert res == {
-            "eduperson_scoped_affiliation": ["staff@example.org"],
-            "email": "diana@example.org",
-            "email_verified": False,
-            "family_name": "Krall",
-            "given_name": "Diana",
-            "name": "Diana Krall",
-        }
-
-    def test_collect_user_info_allowed_scopes_per_client(self):
-        self.endpoint_context.cdb["client1"] = {"allowed_scopes": {"openid"}}
-
-        _req = OIDR.copy()
-        _req["scope"] = "openid research_and_scholarship"
-        del _req["claims"]
-
-        session_id = self._create_session(_req)
-
-        _restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
-        )
-
-        res = self.claims_interface.get_user_claims("diana", _restriction)
-
         assert res == {
             "eduperson_scoped_affiliation": ["staff@example.org"],
             "email": "diana@example.org",

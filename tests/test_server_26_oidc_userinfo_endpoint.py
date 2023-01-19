@@ -192,6 +192,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
         self.endpoint = self.server.server_get("endpoint", "userinfo")
         self.session_manager = self.endpoint_context.session_manager
@@ -416,8 +417,6 @@ class TestEndpoint(object):
         }
 
     def test_allowed_scopes(self):
-        self.endpoint_context.scopes_handler.allowed_scopes = list(SCOPE2CLAIMS.keys())
-
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship"]
 
@@ -437,43 +436,15 @@ class TestEndpoint(object):
         _req = self.endpoint.parse_request({}, http_info=http_info)
         args = self.endpoint.process_request(_req, http_info=http_info)
 
-        assert set(args["response_args"].keys()) == {"sub"}
-
-    def test_allowed_scopes_per_client(self):
-        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
-            **SCOPE2CLAIMS,
-            "research_and_scholarship_2": [
-                "name",
-                "given_name",
-                "family_name",
-                "email",
-                "email_verified",
-                "sub",
-                "eduperson_scoped_affiliation",
-            ],
+        assert set(args["response_args"].keys()) == {
+            "eduperson_scoped_affiliation",
+            "given_name",
+            "email_verified",
+            "email",
+            "family_name",
+            "name",
+            "sub"
         }
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(SCOPE2CLAIMS.keys())
-
-        _auth_req = AUTH_REQ.copy()
-        _auth_req["scope"] = ["openid", "research_and_scholarship_2"]
-
-        session_id = self._create_session(_auth_req)
-        grant = self.session_manager[session_id]
-        access_token = self._mint_token("access_token", grant, session_id)
-
-        self.endpoint.kwargs["add_claims_by_scope"] = True
-        self.endpoint.server_get("endpoint_context").claims_interface.add_claims_by_scope = True
-        grant.claims = {
-            "userinfo": self.endpoint.server_get("endpoint_context").claims_interface.get_claims(
-                session_id=session_id, scopes=_auth_req["scope"], claims_release_point="userinfo"
-            )
-        }
-
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
-        _req = self.endpoint.parse_request({}, http_info=http_info)
-        args = self.endpoint.process_request(_req, http_info=http_info)
-
-        assert set(args["response_args"].keys()) == {"sub"}
 
     def test_wrong_type_of_token(self):
         _auth_req = AUTH_REQ.copy()

@@ -195,7 +195,7 @@ def execute(spec, **kwargs):
 
 
 # def get_logout_id(endpoint_context, user_id, client_id):
-#     _item = SessionInfo()
+#     _item = NodeInfo()
 #     _item.user_id = user_id
 #     _item.client_id = client_id
 #
