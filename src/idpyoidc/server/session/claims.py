@@ -68,11 +68,11 @@ class ClaimsInterface:
         _context = self.server_get("endpoint_context")
         add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
         if add_claims_by_scope:
-            _claims_by_scope = add_claims_by_scope.get(claims_release_point, False)
-            if not _claims_by_scope and secondary_identifier:
+            _claims_by_scope = add_claims_by_scope.get(claims_release_point)
+            if _claims_by_scope is None and secondary_identifier:
                 _claims_by_scope = add_claims_by_scope.get(secondary_identifier, False)
 
-            if not _claims_by_scope:
+            if _claims_by_scope is None:
                 _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
