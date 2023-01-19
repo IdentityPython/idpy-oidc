@@ -87,11 +87,12 @@ class EndSession(Service):
 
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
-            _uri = self.metadata["post_logout_redirect_uris"]
-            if isinstance(_uri, str):
-                request_args["post_logout_redirect_uri"] = _uri
-            else:  # assume list
-                request_args["post_logout_redirect_uri"] = _uri[0]
+            _uri = self.metadata.get("post_logout_redirect_uris", '')
+            if _uri:
+                if isinstance(_uri, str):
+                    request_args["post_logout_redirect_uri"] = _uri
+                else:  # assume list
+                    request_args["post_logout_redirect_uri"] = _uri[0]
 
         return request_args, {}
 
