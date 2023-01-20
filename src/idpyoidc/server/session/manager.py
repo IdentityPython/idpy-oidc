@@ -495,6 +495,7 @@ class SessionManager(GrantManager):
             authorization_request: Optional[bool] = False,
             handler_key: Optional[str] = "",
     ) -> dict:
+        
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
         else:

@@ -461,7 +461,7 @@ DEFAULT_EXTENDED_CONF = {
     },
     "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
-    "keys": {
+    "key_conf": {
         "private_path": "private/jwks.json",
         "key_defs": [
             {"type": "RSA", "use": ["sig"]},
