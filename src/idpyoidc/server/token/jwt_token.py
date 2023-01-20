@@ -12,6 +12,8 @@ from . import Token
 from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
+from ...message import Message
+from ...message.oauth2 import JWTAccessToken
 
 
 class JWTToken(Token):
@@ -81,6 +83,10 @@ class JWTToken(Token):
             lifetime=lifetime,
             sign_alg=self.alg,
         )
+        if isinstance(payload, Message): # don't mess with it.
+            pass
+        else:
+            payload = JWTAccessToken(**payload).to_dict()
 
         return signer.pack(payload)
 

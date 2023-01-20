@@ -404,6 +404,25 @@ class SecurityEventToken(Message):
         "toe": SINGLE_OPTIONAL_INT,
     }
 
+class JWTAccessToken(Message):
+    c_param = {
+        "iss": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "aud": REQUIRED_LIST_OF_STRINGS,
+        "sub": SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        "iat": SINGLE_REQUIRED_INT,
+        "jti": SINGLE_REQUIRED_STRING,
+        "auth_time": SINGLE_OPTIONAL_INT,
+        "acr": SINGLE_OPTIONAL_STRING,
+        "amr": OPTIONAL_LIST_OF_STRINGS,
+        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        'groups': OPTIONAL_LIST_OF_STRINGS,
+        'roles': OPTIONAL_LIST_OF_STRINGS,
+        'entitlements': OPTIONAL_LIST_OF_STRINGS
+    }
+
+
 
 def factory(msgtype, **kwargs):
     """

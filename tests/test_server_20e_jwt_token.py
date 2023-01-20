@@ -517,7 +517,7 @@ class TestEndpointWebID(object):
             grant,
             session_id,
             code,
-            scope=["openid"],
+            scope=["openid", 'foobar'],
             aud=["https://audience.example.com"],
         )
 
@@ -527,7 +527,7 @@ class TestEndpointWebID(object):
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
         assert set(_info["aud"]) == {"https://audience.example.com"}
-        assert _info["scope"] == ["openid"]
+        assert _info["scope"] == "openid foobar"
 
     def test_mint_with_extra(self):
         _auth_req = AuthorizationRequest(
