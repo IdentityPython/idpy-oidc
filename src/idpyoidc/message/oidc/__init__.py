@@ -80,11 +80,11 @@ def deserialize_from_one_of(val, msgtype, sformat):
     raise FormatError("Unexpected format")
 
 
-def json_ser(val, sformat=None, lev=0):
+def json_ser(val, sformat=None):
     return json.dumps(val)
 
 
-def json_deser(val, sformat=None, lev=0):
+def json_deser(val, sformat=None):
     return json.loads(val)
 
 
@@ -108,14 +108,14 @@ def claims_deser(val, sformat="urlencoded"):
     return deserialize_from_one_of(val, Claims, sformat)
 
 
-def msg_ser_json(inst, sformat="json", lev=0):
+def msg_ser_json(inst, sformat="json"):
     # sformat = "json" always except when dict
-    if lev:
-        sformat = "dict"
+    # if lev:
+    #     sformat = "dict"
 
     if sformat == "dict":
         if isinstance(inst, Message):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         elif isinstance(inst, dict):
             res = inst
         else:
@@ -125,18 +125,18 @@ def msg_ser_json(inst, sformat="json", lev=0):
         if isinstance(inst, dict):
             res = json.dumps(inst)
         elif isinstance(inst, Message):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         else:
             res = inst
 
     return res
 
 
-def msg_list_ser(insts, sformat, lev=0):
-    return [msg_ser(inst, sformat, lev) for inst in insts]
+def msg_list_ser(insts, sformat):
+    return [msg_ser(inst, sformat) for inst in insts]
 
 
-def claims_ser(val, sformat="urlencoded", lev=0):
+def claims_ser(val, sformat="urlencoded"):
     # everything in c_extension
     if isinstance(val, str):
         item = val
@@ -146,15 +146,12 @@ def claims_ser(val, sformat="urlencoded", lev=0):
         item = val
 
     if isinstance(item, Message):
-        return item.serialize(method=sformat, lev=lev + 1)
+        return item.serialize(method=sformat)
 
     if sformat == "urlencoded":
         res = urlencode(item)
     elif sformat == "json":
-        if lev:
-            res = item
-        else:
-            res = json.dumps(item)
+        res = json.dumps(item)
     elif sformat == "dict":
         if isinstance(item, dict):
             res = item
@@ -771,9 +768,9 @@ class IdToken(OpenIDSchema):
         else:
             self.pack_init()
 
-    def to_jwt(self, key=None, algorithm="", lev=0, lifetime=0):
+    def to_jwt(self, key=None, algorithm="", lifetime=0):
         self.pack(alg=algorithm, lifetime=lifetime)
-        return Message.to_jwt(self, key=key, algorithm=algorithm, lev=lev)
+        return Message.to_jwt(self, key=key, algorithm=algorithm)
 
     def verify(self, **kwargs):
         super(IdToken, self).verify(**kwargs)
@@ -1090,7 +1087,7 @@ def link_deser(val, sformat="urlencoded"):
         return _l_deser(val, sformat)
 
 
-def link_ser(inst, sformat, lev=0):
+def link_ser(inst, sformat):
     if sformat in ["urlencoded", "json"]:
         if isinstance(inst, dict):
             if sformat == "json":
@@ -1098,12 +1095,12 @@ def link_ser(inst, sformat, lev=0):
             else:
                 res = urlencode([(k, v) for k, v in inst.items()])
         elif isinstance(inst, Link):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         else:
             res = inst
     elif sformat == "dict":
         if isinstance(inst, Link):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         elif isinstance(inst, dict):
             res = inst
         elif isinstance(inst, str):  # Iff ID Token
@@ -1116,7 +1113,7 @@ def link_ser(inst, sformat, lev=0):
     return res
 
 
-def link_list_ser(inst, sformat, lev=0):
+def link_list_ser(inst, sformat):
     if isinstance(inst, list):
         return [link_ser(v, sformat) for v in inst]
     else:
