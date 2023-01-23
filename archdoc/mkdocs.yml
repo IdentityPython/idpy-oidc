@@ -1,0 +1,19 @@
+site_name: IdpyOIDC Architecture Documentation
+
+nav:
+        - Introduction: index.md
+        - Message: message.md
+        - Client: client.md
+        - Server: server.md
+
+markdown_extensions:
+    - toc:
+        permalink: true
+    - pymdownx.snippets:
+
+theme:
+        name: material
+
+plugins:
+    - search
+    - git-revision-date
