@@ -1,15 +1,15 @@
 site_name: IdpyOIDC Architecture Documentation
 
 nav:
-        - Introduction: index.md
+        - Introduction: intro.md
         - Message: message.md
         - Client: client.md
         - Server: server.md
+        - Persistent storage: persistence.md
 
 markdown_extensions:
     - toc:
         permalink: true
-    - pymdownx.snippets:
 
 theme:
         name: material
