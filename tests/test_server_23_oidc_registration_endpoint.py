@@ -127,7 +127,7 @@ class TestEndpoint(object):
                 "registration": {
                     "path": "registration",
                     "class": Registration,
-                    "kwargs": {"client_auth_method": None},
+                    "kwargs": {"client_authn_method": ["none"]},
                 },
                 "authorization": {
                     "path": "authorization",
