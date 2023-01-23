@@ -223,6 +223,7 @@ class SessionManager(GrantManager):
     def create_exchange_grant(
             self,
             exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
             original_session_id: str,
             user_id: str,
             client_id: Optional[str] = "",
@@ -241,11 +242,13 @@ class SessionManager(GrantManager):
         """
 
         return self.add_exchange_grant(
+            authentication_event=original_grant.authentication_event,
+            authorization_request=original_grant.authorization_request,
             exchange_request=exchange_request,
             original_branch_id=original_session_id,
             path=self.make_path(user_id=user_id, client_id=client_id),
+            sub=original_grant.sub,
             token_usage_rules=token_usage_rules,
-            sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
             scope=scopes
         )
 
@@ -286,6 +289,7 @@ class SessionManager(GrantManager):
     def create_exchange_session(
             self,
             exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
             original_session_id: str,
             user_id: str,
             client_id: Optional[str] = "",
@@ -309,6 +313,7 @@ class SessionManager(GrantManager):
 
         return self.create_exchange_grant(
             exchange_request=exchange_request,
+            original_grant=original_grant,
             original_session_id=original_session_id,
             user_id=user_id,
             client_id=client_id,
