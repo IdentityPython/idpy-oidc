@@ -393,6 +393,7 @@ class TestEndpoint(object):
             "expires_in",
             "issued_token_type",
         }
+
         assert _te_resp["issued_token_type"] == token[list(token.keys())[0]]
         assert set(_te_resp["scope"]) == set(_scope)
 

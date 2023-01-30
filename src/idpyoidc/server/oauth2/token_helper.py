@@ -656,7 +656,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error="invalid_request", error_description="Subject token invalid"
             )
 
-        grant=_session_info["grant"]
+        grant = _session_info["grant"]
         token = _mngr.find_token(_session_info["branch_id"], request["subject_token"])
         _requested_token_type = request.get(
             "requested_token_type", "urn:ietf:params:oauth:token-type:access_token"
@@ -702,7 +702,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         _token_args = None
         if resources:
-            _token_args={"resources": resources}
+            _token_args = {"resources": resources}
 
         try:
             new_token = self._mint_token(

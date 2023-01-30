@@ -489,8 +489,8 @@ class ExchangeGrant(Grant):
             claims: Optional[dict] = None,
             resources: Optional[list] = None,
             authorization_details: Optional[dict] = None,
-        authorization_request: Optional[Message] = None,
-        authentication_event: Optional[AuthnEvent] = None,
+            authorization_request: Optional[Message] = None,
+            authentication_event: Optional[AuthnEvent] = None,
             issued_token: Optional[list] = None,
             usage_rules: Optional[dict] = None,
             exchange_request: Optional[TokenExchangeRequest] = None,
@@ -529,17 +529,16 @@ class ExchangeGrant(Grant):
         self.original_branch_id = original_branch_id
 
     def payload_arguments(
-        self,
-        session_id: str,
-        endpoint_context,
-        item: SessionToken,
-        claims_release_point: str,
-        scope: Optional[dict] = None,
-        extra_payload: Optional[dict] = None,
-        secondary_identifier: str = "",
+            self,
+            session_id: str,
+            endpoint_context,
+            item: SessionToken,
+            claims_release_point: str,
+            scope: Optional[dict] = None,
+            extra_payload: Optional[dict] = None,
+            secondary_identifier: str = "",
     ) -> dict:
         """
-
         :param session_id: Session ID
         :param endpoint_context: EndPoint Context
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
@@ -600,4 +599,5 @@ class ExchangeGrant(Grant):
         elif self.add_acr_value(secondary_identifier):
             payload["acr"] = self.authentication_event["authn_info"]
 
+        return payload
         return payload

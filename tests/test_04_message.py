@@ -336,7 +336,7 @@ def test_to_jwe(keytype, alg, enc):
 
 def test_to_dict_with_message_obj():
     content = Message(a={"a": {"foo": {"bar": [{"bat": []}]}}})
-    _dict = content.to_dict(lev=0)
+    _dict = content.to_dict()
     content_fixture = {"a": {"a": {"foo": {"bar": [{"bat": []}]}}}}
     assert _dict == content_fixture
 
@@ -344,7 +344,7 @@ def test_to_dict_with_message_obj():
 def test_to_dict_with_raw_types():
     msg = Message(c_default=[])
     content_fixture = {"c_default": []}
-    _dict = msg.to_dict(lev=1)
+    _dict = msg.to_dict()
     assert _dict == content_fixture
 
 

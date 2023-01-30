@@ -1,31 +1,36 @@
 from typing import Callable
 from typing import Optional
+from typing import Union
 
 from cryptojwt import JWT
 from cryptojwt.jws.exception import JWSException
+from cryptojwt.utils import importer
 
-from idpyoidc.encrypter import init_encrypter
 from idpyoidc.server.exception import ToOld
-
-from ..constant import DEFAULT_TOKEN_LIFETIME
-from . import Token
 from . import is_expired
+from . import Token
 from .exception import UnknownToken
 from .exception import WrongTokenClass
+from ..constant import DEFAULT_TOKEN_LIFETIME
+from ...message import Message
+from ...message.oauth2 import JWTAccessToken
 
 
 class JWTToken(Token):
+
     def __init__(
-        self,
-        token_class,
-        # keyjar: KeyJar = None,
-        issuer: str = None,
-        aud: Optional[list] = None,
-        alg: str = "ES256",
-        lifetime: int = DEFAULT_TOKEN_LIFETIME,
-        server_get: Callable = None,
-        token_type: str = "Bearer",
-        **kwargs
+            self,
+            token_class,
+            # keyjar: KeyJar = None,
+            issuer: str = None,
+            aud: Optional[list] = None,
+            alg: str = "ES256",
+            lifetime: int = DEFAULT_TOKEN_LIFETIME,
+            server_get: Callable = None,
+            token_type: str = "Bearer",
+            profile: Optional[Union[Message, str]] = JWTAccessToken,
+            with_jti: Optional[bool] = False,
+            **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         self.token_type = token_type
@@ -40,17 +45,27 @@ class JWTToken(Token):
 
         self.def_aud = aud or []
         self.alg = alg
+        if isinstance(profile, str):
+            self.profile = importer(profile)
+        else:
+            self.profile = profile
+        self.with_jti = with_jti
+
+        if self.with_jti is False and profile == JWTAccessToken:
+            self.with_jti = True
 
     def load_custom_claims(self, payload: dict = None):
         # inherit me and do your things here
         return payload
 
     def __call__(
-        self,
-        session_id: Optional[str] = "",
-        token_class: Optional[str] = "",
-        usage_rules: Optional[dict] = None,
-        **payload
+            self,
+            session_id: Optional[str] = "",
+            token_class: Optional[str] = "",
+            usage_rules: Optional[dict] = None,
+            profile: Optional[Message] = None,
+            with_jti: Optional[bool] = None,
+            **payload
     ) -> str:
         """
         Return a token.
@@ -81,6 +96,18 @@ class JWTToken(Token):
             lifetime=lifetime,
             sign_alg=self.alg,
         )
+        if isinstance(payload, Message):  # don't mess with it.
+            pass
+        else:
+            if profile:
+                payload = profile(**payload).to_dict()
+            elif self.profile:
+                payload = self.profile(**payload).to_dict()
+
+        if with_jti:
+            signer.with_jti = True
+        elif with_jti is None:
+            signer.with_jti = self.with_jti
 
         return signer.pack(payload)
 

@@ -94,7 +94,6 @@ class SessionManager(GrantManager):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
         session_params = self.conf.get("session_params") or {}
-        _crypt_config = get_crypt_config(session_params)
         super(SessionManager, self).__init__(handler, self.conf)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
@@ -500,6 +499,7 @@ class SessionManager(GrantManager):
             authorization_request: Optional[bool] = False,
             handler_key: Optional[str] = "",
     ) -> dict:
+        
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
         else:

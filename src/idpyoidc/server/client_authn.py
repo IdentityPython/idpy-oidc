@@ -508,7 +508,6 @@ def verify_client(
             continue
 
         if auth_info.get("method") == "none" and auth_info.get("client_id") is None:
-            # For testing purposes only
             break
 
         client_id = auth_info.get("client_id")

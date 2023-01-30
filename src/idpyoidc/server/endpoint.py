@@ -254,7 +254,8 @@ class Endpoint(object):
             raise UnAuthorizedClient("Authorization failed")
         if "client_id" not in authn_info and authn_info.get("method") != "none":
             raise UnAuthorizedClient("Authorization failed")
-
+        if "client_id" not in authn_info and authn_info.get("method") != "none":
+            raise UnAuthorizedClient("Authorization failed")
         return authn_info
 
     def do_post_parse_request(

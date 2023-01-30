@@ -505,9 +505,9 @@ class TestVerify:
         assert res == {"method": "public", "client_id": client_id}
 
         res = verify_client(
-             self.endpoint_context,
-             request,
-             endpoint=self.server.server_get("endpoint", "endpoint_1"),
+            self.endpoint_context,
+            request,
+            endpoint=self.server.server_get("endpoint", "endpoint_1"),
         )
         assert res == {}
 

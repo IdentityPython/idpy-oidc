@@ -77,7 +77,7 @@ class Message(MutableMapping):
         for key, val in self.c_default.items():
             self._dict.setdefault(key, val)
 
-    def to_urlencoded(self, lev=0):
+    def to_urlencoded(self):
         """
         Creates a string using the application/x-www-form-urlencoded format
 
@@ -114,13 +114,13 @@ class Message(MutableMapping):
                 params.append((key, val.encode("utf-8")))
             elif isinstance(val, list):
                 if _ser:
-                    params.append((key, str(_ser(val, sformat="urlencoded", lev=lev))))
+                    params.append((key, str(_ser(val, sformat="urlencoded"))))
                 else:
                     for item in val:
                         params.append((key, str(item).encode("utf-8")))
             elif isinstance(val, Message):
                 try:
-                    _val = json.dumps(_ser(val, sformat="dict", lev=lev + 1))
+                    _val = json.dumps(_ser(val, sformat="dict"))
                     params.append((key, _val))
                 except TypeError:
                     params.append((key, val))
@@ -128,7 +128,7 @@ class Message(MutableMapping):
                 params.append((key, val))
             else:
                 try:
-                    params.append((key, _ser(val, lev=lev)))
+                    params.append((key, _ser(val)))
                 except Exception:
                     params.append((key, str(val)))
 
@@ -143,18 +143,17 @@ class Message(MutableMapping):
                     _val.append((k, v))
             return urlencode(_val)
 
-    def serialize(self, method="urlencoded", lev=0, **kwargs):
+    def serialize(self, method="urlencoded", **kwargs):
         """
         Convert this instance to another representation. Which representation
         is given by the choice of serialization method.
 
         :param method: A serialization method. Presently 'urlencoded', 'json',
             'jwt' and 'dict' is supported.
-        :param lev:
         :param kwargs: Extra key word arguments
         :return: THe content of this message serialized using a chosen method
         """
-        return getattr(self, "to_%s" % method)(lev=lev, **kwargs)
+        return getattr(self, "to_%s" % method)(**kwargs)
 
     def deserialize(self, info, method="urlencoded", **kwargs):
         """
@@ -231,7 +230,7 @@ class Message(MutableMapping):
 
         return self
 
-    def to_dict(self, lev=0):
+    def to_dict(self):
         """
         Return a dictionary representation of the class
 
@@ -241,7 +240,6 @@ class Message(MutableMapping):
         _spec = self.c_param
 
         _res = {}
-        lev += 1
         for key, val in self._dict.items():
             try:
                 _ser = _spec[str(key)][2]
@@ -256,12 +254,12 @@ class Message(MutableMapping):
                         _ser = None
 
             if _ser:
-                val = _ser(val, "dict", lev)
+                val = _ser(val, "dict")
 
             if isinstance(val, Message):
-                _res[key] = val.to_dict(lev + 1)
+                _res[key] = val.to_dict()
             elif isinstance(val, list) and isinstance(next(iter(val or []), None), Message):
-                _res[key] = [v.to_dict(lev) for v in val]
+                _res[key] = [v.to_dict() for v in val]
             else:
                 _res[key] = val
 
@@ -418,18 +416,14 @@ class Message(MutableMapping):
                     else:
                         raise ValueError('"{}", wrong type of value for "{}"'.format(val, skey))
 
-    def to_json(self, lev=0, indent=None):
+    def to_json(self, indent=None):
         """
         Serialize the content of this instance into a JSON string.
 
-        :param lev:
         :param indent: Number of spaces that should be used for indentation
         :return:
         """
-        if lev:
-            return self.to_dict(lev + 1)
-        else:
-            return json.dumps(self.to_dict(1), indent=indent)
+        return json.dumps(self.to_dict(), indent=indent)
 
     def from_json(self, txt, **kwargs):
         """
@@ -443,18 +437,17 @@ class Message(MutableMapping):
         _dict = json.loads(txt)
         return self.from_dict(_dict)
 
-    def to_jwt(self, key=None, algorithm="", lev=0, lifetime=0):
+    def to_jwt(self, key=None, algorithm="", lifetime=0):
         """
         Create a signed JWT representation of the class instance
 
         :param key: The signing key
         :param algorithm: The signature algorithm to use
-        :param lev:
         :param lifetime: The lifetime of the JWS
         :return: A signed JWT
         """
 
-        _jws = JWS(self.to_json(lev), alg=algorithm)
+        _jws = JWS(self.to_json(), alg=algorithm)
         return _jws.sign_compact(key)
 
     def _gather_keys(self, keyjar, jwt, header, **kwargs):
@@ -763,7 +756,7 @@ class Message(MutableMapping):
         else:
             raise ValueError("Can't update message using: '%s'" % (item,))
 
-    def to_jwe(self, keys, enc, alg, lev=0):
+    def to_jwe(self, keys, enc, alg):
         """
         Place the information in this instance in a JSON object. Make that
         JSON object the body of a JWT. Then encrypt that JWT using the
@@ -772,12 +765,11 @@ class Message(MutableMapping):
         :param keys: list or KeyJar instance
         :param enc: Content Encryption Algorithm
         :param alg: Key Management Algorithm
-        :param lev: Used for JSON construction
         :return: An encrypted JWT. If encryption failed an exception will be
             raised.
         """
 
-        _jwe = JWE(self.to_json(lev), alg=alg, enc=enc)
+        _jwe = JWE(self.to_json(), alg=alg, enc=enc)
         return _jwe.encrypt(keys)
 
     def from_jwe(self, msg, keys):
@@ -861,7 +853,7 @@ def add_non_standard(msg1, msg2):
 # =============================================================================
 
 
-def list_serializer(vals, sformat="urlencoded", lev=0):
+def list_serializer(vals, sformat="urlencoded"):
     if isinstance(vals, str) and sformat == "dict":
         return [vals]
 
@@ -887,7 +879,7 @@ def list_deserializer(val, sformat="urlencoded"):
     return val
 
 
-def sp_sep_list_serializer(vals, sformat="urlencoded", lev=0):
+def sp_sep_list_serializer(vals, sformat="urlencoded"):
     if isinstance(vals, str):
         return vals
     else:
@@ -903,7 +895,7 @@ def sp_sep_list_deserializer(val, sformat="urlencoded"):
         return val
 
 
-def json_serializer(obj, sformat="urlencoded", lev=0):
+def json_serializer(obj, sformat="urlencoded"):
     return json.dumps(obj)
 
 
@@ -921,7 +913,7 @@ def msg_deser(val, sformat="urlencoded"):
     return Message().deserialize(val, sformat)
 
 
-def msg_ser(inst, sformat, lev=0):
+def msg_ser(inst, sformat):
     if sformat in ["urlencoded", "json"]:
         if isinstance(inst, dict):
             if sformat == "json":
@@ -929,12 +921,12 @@ def msg_ser(inst, sformat, lev=0):
             else:
                 res = urlencode([(k, v) for k, v in inst.items()])
         elif isinstance(inst, Message):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         else:
             res = inst
     elif sformat == "dict":
         if isinstance(inst, Message):
-            res = inst.serialize(sformat, lev)
+            res = inst.serialize(sformat)
         elif isinstance(inst, dict):
             res = inst
         elif isinstance(inst, str):  # Iff ID Token
@@ -947,7 +939,7 @@ def msg_ser(inst, sformat, lev=0):
     return res
 
 
-def msg_list_deser(val, sformat="urlencoded", lev=0):
+def msg_list_deser(val, sformat="urlencoded"):
     if isinstance(val, dict):
         return [Message(**val)]
 
@@ -957,7 +949,7 @@ def msg_list_deser(val, sformat="urlencoded", lev=0):
     return _res
 
 
-def msg_list_ser(val, sformat="urlencoded", lev=0):
+def msg_list_ser(val, sformat="urlencoded"):
     _res = []
     for v in val:
         _res.append(msg_ser(v, sformat))
@@ -1004,11 +996,11 @@ REQUIRED_MESSAGE = (Message, True, msg_ser, msg_deser, False)
 OPTIONAL_LIST_OF_MESSAGES = ([Message], False, msg_list_ser, msg_list_deser, False)
 
 
-def any_ser(val, sformat="urlencoded", lev=0):
+def any_ser(val, sformat="urlencoded"):
     if isinstance(val, (str, int, bool)):
         return val
     elif isinstance(val, Message):
-        return msg_ser(val, sformat, lev)
+        return msg_ser(val, sformat)
     elif isinstance(val, dict):
         return json.dumps(val)
     elif isinstance(val, list):
@@ -1017,7 +1009,7 @@ def any_ser(val, sformat="urlencoded", lev=0):
         raise ValueError("Can't serialize this type of data")
 
 
-def any_deser(val, sformat="urlencoded", lev=0):
+def any_deser(val, sformat="urlencoded"):
     if isinstance(val, dict):
         return Message(**val)
     elif isinstance(val, list):

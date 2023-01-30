@@ -365,7 +365,6 @@ class TestEndpoint(object):
         if list(token.keys())[0] == "refresh_token":
             areq["scope"] = ["openid", "offline_access"]
 
-
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
@@ -649,8 +648,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+                _resp["error_description"]
+                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
     def test_wrong_resource(self):
@@ -1110,7 +1109,7 @@ class TestEndpoint(object):
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp["response_args"]["scope"]) == {"offline_access", "profile"}
-    
+
     def test_token_exchange_unsupported_scope_requested_2(self):
         """
         Configuration:
@@ -1169,7 +1168,7 @@ class TestEndpoint(object):
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
         )
         _resp = self.endpoint.process_request(request=_req)
-        assert  set(_resp["response_args"]["scope"]) == {"profile"}
+        assert set(_resp["response_args"]["scope"]) == {"profile"}
 
         token_exchange_req["scope"] = "profile"
 
@@ -1189,8 +1188,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_scope"
         assert (
-            _resp["error_description"]
-            == "Invalid requested scopes"
+                _resp["error_description"]
+                == "Invalid requested scopes"
         )
 
         token_exchange_req["scope"] = "offline_access profile"
@@ -1226,7 +1225,7 @@ class TestEndpoint(object):
                 "": {
                     "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
-                        "scope": ["offline_access","profile"]
+                        "scope": ["offline_access", "profile"]
                     },
                 }
             },
@@ -1383,8 +1382,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1466,8 +1465,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "profile"
@@ -1479,8 +1478,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1492,8 +1491,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_scope"
         assert (
-            _resp["error_description"]
-            == "Invalid requested scopes"
+                _resp["error_description"]
+                == "Invalid requested scopes"
         )
 
         token_exchange_req["scope"] = "offline_access profile"
@@ -1505,7 +1504,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
         )
 
