@@ -3,9 +3,20 @@ import os
 
 import pytest
 from cryptojwt import JWT
+from cryptojwt import KeyJar
+from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import build_keyjar
+from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 
+from idpyoidc.message import SINGLE_REQUIRED_INT
+
+from idpyoidc.message import SINGLE_REQUIRED_STRING
+
+from idpyoidc.message import Message
+
+from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.message.oauth2 import JWTAccessToken
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
@@ -18,7 +29,7 @@ from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.exception import InvalidToken
 from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oauth2.token import Token
-from idpyoidc.server.session import MintingNotAllowed
+from idpyoidc.server.token import handler
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
@@ -162,6 +173,7 @@ def conf():
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -777,3 +789,118 @@ class TestEndpoint(object):
         )
         assert isinstance(_resp, TokenErrorResponse)
         assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
+
+
+DEFAULT_TOKEN_HANDLER_ARGS = {
+    "jwks_file": "private/token_jwks.json",
+    "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+    "token": {
+        "class": "idpyoidc.server.token.jwt_token.JWTToken",
+        "kwargs": {
+            "lifetime": 3600,
+            "add_claims_by_scope": True,
+            "aud": ["https://example.org/appl"]
+        },
+    },
+    "refresh": {
+        "class": "idpyoidc.server.token.jwt_token.JWTToken",
+        "kwargs": {
+            "lifetime": 3600,
+            "aud": ["https://example.org/appl"],
+        },
+    },
+}
+TOKEN_HANDLER_ARGS = {
+    "jwks_file": "private/token_jwks.json",
+    "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
+    "token": {
+        "class": "idpyoidc.server.token.jwt_token.JWTToken",
+        "kwargs": {
+            "lifetime": 3600,
+            "add_claims_by_scope": True,
+            "aud": ["https://example.org/appl"],
+            "profile": 'idpyoidc.message.oauth2.JWTAccessToken',
+            "with_jti": True
+        },
+    },
+    "refresh": {
+        "class": "idpyoidc.server.token.jwt_token.JWTToken",
+        "kwargs": {
+            "lifetime": 3600,
+            "aud": ["https://example.org/appl"],
+        },
+    },
+}
+
+CONTEXT = OidcContext()
+CONTEXT.cwd = BASEDIR
+CONTEXT.issuer = "https://op.example.com"
+CONTEXT.cdb = {
+    "client_1": {}
+}
+CONTEXT.keyjar = KeyJar()
+CONTEXT.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
+CONTEXT.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
+
+def server_get(what, *args):
+    if what == "endpoint_context":
+        if not args:
+            return CONTEXT
+
+def test_def_jwttoken():
+    _handler = handler.factory(server_get=server_get, **DEFAULT_TOKEN_HANDLER_ARGS)
+    token_handler = _handler['access_token']
+    token_payload = {
+        'sub': 'subject_id',
+        'aud': 'resource_1',
+        'client_id': 'client_1'
+    }
+    value = token_handler(session_id='session_id', **token_payload)
+
+    _jws = factory(value)
+    msg = JWTAccessToken(**_jws.jwt.payload())
+    # test if all required claims are there
+    msg.verify()
+    assert True
+
+def test_jwttoken():
+    _handler = handler.factory(server_get=server_get, **TOKEN_HANDLER_ARGS)
+    token_handler = _handler['access_token']
+    token_payload = {
+        'sub': 'subject_id',
+        'aud': 'resource_1',
+        'client_id': 'client_1'
+    }
+    value = token_handler(session_id='session_id', **token_payload)
+
+    _jws = factory(value)
+    msg = JWTAccessToken(**_jws.jwt.payload())
+    # test if all required claims are there
+    msg.verify()
+    assert True
+
+class MyAccessToken(Message):
+    c_param = {
+        "iss": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "aud": REQUIRED_LIST_OF_STRINGS,
+        "sub": SINGLE_REQUIRED_STRING,
+        "iat": SINGLE_REQUIRED_INT,
+        'usage': SINGLE_REQUIRED_STRING
+    }
+
+def test_jwttoken_2():
+    _handler = handler.factory(server_get=server_get, **TOKEN_HANDLER_ARGS)
+    token_handler = _handler['access_token']
+    token_payload = {
+        'sub': 'subject_id',
+        'aud': 'Skiresort',
+        'usage': 'skilift'
+    }
+    value = token_handler(session_id='session_id', profile=MyAccessToken, **token_payload)
+
+    _jws = factory(value)
+    msg = MyAccessToken(**_jws.jwt.payload())
+    # test if all required claims are there
+    msg.verify()
+    assert True
