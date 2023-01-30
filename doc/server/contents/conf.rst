@@ -408,7 +408,11 @@ An example::
               "normal",
               "aggregated",
               "distributed"
-            ]
+            ],
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
+            }
           }
         },
         "revocation": {
@@ -747,6 +751,10 @@ the following::
     "userinfo": {
         "class": "oidc_provider.users.UserInfo",
         "kwargs": {
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
+            },
             "claims_map": {
                 "phone_number": "telephone",
                 "family_name": "last_name",
@@ -756,6 +764,17 @@ the following::
                 "gender": "gender",
                 "birthdate": "get_oidc_birthdate",
                 "updated_at": "get_oidc_lastlogin"
+            }
+        }
+    }
+
+The policy for userinfo endpoint is optional and can also be configured in a client's metadata, for example::
+
+    "userinfo": {
+        "kwargs": {
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
             }
         }
     }

@@ -21,9 +21,11 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
+from idpyoidc.server.oidc.userinfo import validate_userinfo_policy
 from idpyoidc.time_util import utc_time_sans_frac
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
+
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -637,3 +639,52 @@ class TestEndpoint(object):
 
         with pytest.raises(ImproperlyConfigured):
             code = self._mint_code(grant, session_id)
+
+    def test_userinfo_policy(self):
+        _auth_req = AUTH_REQ.copy()
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+
+        def _custom_validate_userinfo_policy(request, token, response_info, **kwargs):
+            return {"custom": "policy"}
+
+        self.endpoint.config["policy"] = {}
+        self.endpoint.config["policy"]["function"] = _custom_validate_userinfo_policy
+
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert "custom" in _response
+
+    def test_userinfo_policy_per_client(self):
+        _auth_req = AUTH_REQ.copy()
+
+        session_id = self._create_session(_auth_req)
+        grant = self.session_manager[session_id]
+        access_token = self._mint_token("access_token", grant, session_id)
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
+
+        def _custom_validate_userinfo_policy(request, token, response_info, **kwargs):
+            return {"custom": "policy"}
+
+        self.context.cdb["client_1"]["userinfo"] = {
+            "policy": {
+                "function": _custom_validate_userinfo_policy,
+                "kwargs": {}
+            }
+        }
+
+        _req = self.endpoint.parse_request({}, http_info=http_info)
+        args = self.endpoint.process_request(_req)
+        assert args
+        res = self.endpoint.do_response(request=_req, **args)
+        _response = json.loads(res["response"])
+        assert "custom" in _response
+

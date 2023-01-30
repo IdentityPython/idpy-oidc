@@ -10,11 +10,13 @@ from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
 
 from idpyoidc import claims
+from idpyoidc.util import importer
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
 
 logger = logging.getLogger(__name__)
@@ -46,18 +48,28 @@ class UserInfo(Endpoint):
         # Add the issuer ID as an allowed JWT target
         self.allowed_targets.append("")
 
-    def get_client_id_from_token(self, context, token, request=None):
-        _info = context.session_manager.get_session_info_by_token(
+        if kwargs is None:
+            self.config = {
+                "policy": {
+                    "function": "/path/to/callable",
+                    "kwargs": {}
+                },
+            }
+        else:
+            self.config = kwargs
+
+    def get_client_id_from_token(self, endpoint_context, token, request=None):
+        _info = endpoint_context.session_manager.get_session_info_by_token(
             token, handler_key="access_token"
         )
         return _info["client_id"]
 
     def do_response(
-        self,
-        response_args: Optional[Union[Message, dict]] = None,
-        request: Optional[Union[Message, dict]] = None,
-        client_id: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[Union[Message, dict]] = None,
+            request: Optional[Union[Message, dict]] = None,
+            client_id: Optional[str] = "",
+            **kwargs
     ) -> dict:
 
         if "error" in kwargs and kwargs["error"]:
@@ -157,6 +169,12 @@ class UserInfo(Endpoint):
             info["sub"] = _grant.sub
             if _grant.add_acr_value("userinfo"):
                 info["acr"] = _grant.authentication_event["authn_info"]
+
+            if "userinfo" in _cntxt.cdb[request["client_id"]]:
+                self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
+
+            if "policy" in self.config:
+                info = self._enforce_policy(request, info, token, self.config)
         else:
             info = {
                 "error": "invalid_request",
@@ -190,3 +208,26 @@ class UserInfo(Endpoint):
             request["access_token"] = auth_info["token"]
 
         return request
+
+    def _enforce_policy(self, request, response_info, token, config):
+        policy = config["policy"]
+        callable = policy["function"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(callable, str):
+            try:
+                fn = importer(callable)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+        else:
+            fn = callable
+
+        try:
+            return fn(request, token, response_info, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
+
+def validate_userinfo_policy(request, token, response_info, **kwargs):
+    return response_info
