@@ -164,7 +164,11 @@ class TestEndpoint(object):
                     "class": Authorization,
                     "kwargs": {},
                 },
-                "token": {"path": "{}/token", "class": Token, "kwargs": {}},
+                "token": {
+                    "path": "{}/token",
+                    "class": Token,
+                    "kwargs": {"client_authn_method": ["none"]},
+                },
             },
             "client_authn": verify_client,
             "authentication": {

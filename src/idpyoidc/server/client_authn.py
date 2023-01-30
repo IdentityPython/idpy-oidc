@@ -262,6 +262,7 @@ class BearerBody(ClientSecretPost):
         request: Optional[Union[dict, Message]] = None,
         authorization_token: Optional[str] = None,
         endpoint=None,  # Optional[Endpoint]
+        get_client_id_from_token=None,
         **kwargs,
     ):
         _token = request.get("access_token")
@@ -269,7 +270,7 @@ class BearerBody(ClientSecretPost):
             raise ClientAuthenticationError("No access token")
 
         res = {"token": _token}
-        _client_id = request.get("client_id")
+        _client_id = get_client_id_from_token(endpoint_context, _token, request)
         if _client_id:
             res["client_id"] = _client_id
         return res
@@ -483,6 +484,7 @@ def verify_client(
 
     auth_info = {}
     methods = endpoint_context.client_authn_method
+    client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:
         allowed_methods = list(methods.keys())
@@ -499,48 +501,47 @@ def verify_client(
                 endpoint=endpoint,
                 get_client_id_from_token=get_client_id_from_token,
             )
-            break
         except (BearerTokenAuthenticationError, ClientAuthenticationError):
             raise
         except Exception as err:
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
+            continue
 
-    if auth_info.get("method") == "none":
-        return auth_info
+        if auth_info.get("method") == "none" and auth_info.get("client_id") is None:
+            break
 
-    client_id = auth_info.get("client_id")
-    if client_id is None:
-        raise ClientAuthenticationError("Failed to verify client")
+        client_id = auth_info.get("client_id")
+        if client_id is None:
+            raise ClientAuthenticationError("Failed to verify client")
 
-    if also_known_as:
-        client_id = also_known_as[client_id]
-        auth_info["client_id"] = client_id
+        if also_known_as:
+            client_id = also_known_as[client_id]
+            auth_info["client_id"] = client_id
 
-    if client_id not in endpoint_context.cdb:
-        raise UnknownClient("Unknown Client ID")
+        if client_id not in endpoint_context.cdb:
+            raise UnknownClient("Unknown Client ID")
 
-    _cinfo = endpoint_context.cdb[client_id]
+        _cinfo = endpoint_context.cdb[client_id]
 
-    if not valid_client_info(_cinfo):
-        logger.warning("Client registration has timed out or " "client secret is expired.")
-        raise InvalidClient("Not valid client")
+        if not valid_client_info(_cinfo):
+            logger.warning("Client registration has timed out or " "client secret is expired.")
+            raise InvalidClient("Not valid client")
 
-    # Validate that the used method is allowed for this client/endpoint
-    client_allowed_methods = _cinfo.get(
-        f"{endpoint.endpoint_name}_client_authn_method", _cinfo.get("client_authn_method")
-    )
-    if client_allowed_methods is not None and _method and _method.tag not in client_allowed_methods:
-        logger.info(
-            f"Allowed methods for client: {client_id} at endpoint: {endpoint.name} are: "
-            f"`{', '.join(client_allowed_methods)}`"
+        # Validate that the used method is allowed for this client/endpoint
+        client_allowed_methods = _cinfo.get(
+            f"{endpoint.endpoint_name}_client_authn_method", _cinfo.get("client_authn_method")
         )
-        raise UnAuthorizedClient(
-            f"Authentication method: {_method.tag} not allowed for client: {client_id} in "
-            f"endpoint: {endpoint.name}"
-        )
+        if client_allowed_methods is not None and auth_info["method"] not in client_allowed_methods:
+            logger.info(
+                f"Allowed methods for client: {client_id} at endpoint: {endpoint.name} are: "
+                f"`{', '.join(client_allowed_methods)}`"
+            )
+            auth_info = {}
+            continue
+        break
 
     # store what authn method was used
-    if auth_info.get("method"):
+    if "method" in auth_info and client_id:
         _request_type = request.__class__.__name__
         _used_authn_method = _cinfo.get("auth_method")
         if _used_authn_method:
