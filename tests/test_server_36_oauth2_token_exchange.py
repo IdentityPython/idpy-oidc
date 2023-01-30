@@ -118,7 +118,10 @@ class TestEndpoint(object):
                 "introspection": {
                     "path": "introspection",
                     "class": "idpyoidc.server.oauth2.introspection.Introspection",
-                    "kwargs": {},
+                    "kwargs": {
+                        "client_authn_method": ["client_secret_post"],
+                        "enable_claims_per_client": False,
+                    },
                 },
             },
             "authentication": {
@@ -182,6 +185,13 @@ class TestEndpoint(object):
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+                "urn:ietf:params:oauth:grant-type:token-exchange"
+            ],
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
@@ -346,7 +356,7 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {"scope": ["openid"]},
+                    "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
         }
@@ -354,7 +364,6 @@ class TestEndpoint(object):
         areq = AUTH_REQ.copy()
         if list(token.keys())[0] == "refresh_token":
             areq["scope"] = ["openid", "offline_access"]
-
 
         session_id = self._create_session(areq)
         grant = self.endpoint_context.authz(session_id, areq)
@@ -385,6 +394,173 @@ class TestEndpoint(object):
             "expires_in",
             "issued_token_type",
         }
+
+    def test_token_exchange_scopes_per_client(self):
+        """
+        Test that a client that requests offline_access in a Token Exchange request
+        only get it if the subject token has it in its scope set, if it is permitted
+        by the policy and if it is present in the clients allowed scopes.
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["openid", "profile", "offline_access"]
+                    },
+                }
+            },
+        }
+
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["openid", "email", "profile", "offline_access"]
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
+            scope="openid profile offline_access"
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        # Note that offline_access is filtered because subject_token has no offline_access
+        # in its scope
+        assert set(_resp["response_args"]["scope"]) == set(["profile", "openid"])
+
+    def test_token_exchange_unsupported_scopes_per_client(self):
+        """
+        Test that unsupported clients are handled appropriatelly
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["openid", "profile", "offline_access"]
+                    },
+                }
+            },
+            "allowed_scopes": ["openid", "email", "profile", "offline_access"]
+        }
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
+            scope="email"
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert "scope" not in _resp
+
+    def test_token_exchange_no_scopes_requested(self):
+        """
+        Test that the correct scopes are returned when no scopes requested by the client
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["openid", "offline_access"]
+                    },
+                }
+            },
+            "allowed_scopes": ["openid", "email", "profile", "offline_access"]
+        }
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token"
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["response_args"]["scope"] == ["openid"]
 
     def test_additional_parameters(self):
         """
@@ -438,7 +614,12 @@ class TestEndpoint(object):
         Test that token exchange fails if it's not included in Token's
         grant_types_supported (that are set in its helper attribute).
         """
-        del self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"]
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+            'authorization_code',
+            'implicit',
+            'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'refresh_token'
+        ]
 
         areq = AUTH_REQ.copy()
 
@@ -467,8 +648,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+                _resp["error_description"]
+                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
     def test_wrong_resource(self):
@@ -840,3 +1021,490 @@ class TestEndpoint(object):
         assert set(_resp.keys()) == {"error", "error_description"}
         assert _resp["error"] == "invalid_request"
         assert _resp["error_description"] == "Subject token invalid"
+
+    def test_token_exchange_unsupported_scope_requested_1(self):
+        """
+        Configuration:
+            - grant_types_supported: [authorization_code, refresh_token, ...:token-exchange]
+            - allowed_scopes: [profile, offline_access]
+            - requested_token_type: "...:access_token"
+        Scenario:
+        Client1 has an access_token1 (with offline_access, openid and profile scope).
+        Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["offline_access", "profile"]
+                    },
+                }
+            },
+        }
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+        areq["scope"].append("offline_access")
+
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["offline_access", "profile"]
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"offline_access", "profile"}
+
+        token_exchange_req["scope"] = "profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile"}
+
+        token_exchange_req["scope"] = "offline_access"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"offline_access"}
+
+        token_exchange_req["scope"] = "offline_access profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"offline_access", "profile"}
+
+    def test_token_exchange_unsupported_scope_requested_2(self):
+        """
+        Configuration:
+            - grant_types_supported: [authorization_code, refresh_token, ...:token-exchange]
+            - allowed_scopes: [profile]
+            - requested_token_type: "...:access_token"
+        Scenario:
+        Client1 has an access_token1 (with openid and profile scope).
+        Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["profile"]
+                    },
+                }
+            },
+        }
+        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["openid", "profile"]
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+        areq["scope"].append("offline_access")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile"}
+
+        token_exchange_req["scope"] = "profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["response_args"]["scope"] == ["profile"]
+
+        token_exchange_req["scope"] = "offline_access"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_scope"
+        assert (
+                _resp["error_description"]
+                == "Invalid requested scopes"
+        )
+
+        token_exchange_req["scope"] = "offline_access profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["response_args"]["scope"] == ["profile"]
+
+    def test_token_exchange_unsupported_scope_requested_3(self):
+        """
+        Configuration:
+            - grant_types_supported: [authorization_code, ...:token-exchange]
+            - allowed_scopes: [offline_access, profile]
+            - requested_token_type: "...:access_token"
+        Scenario:
+        Client1 has an access_token1 (with openid and profile scope).
+        Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["offline_access", "profile"]
+                    },
+                }
+            },
+        }
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+            'authorization_code',
+            'implicit',
+            'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'urn:ietf:params:oauth:grant-type:token-exchange'
+        ]
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+        areq["scope"].append("offline_access")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile", "offline_access"}
+
+        token_exchange_req["scope"] = "profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["response_args"]["scope"] == ["profile"]
+
+        token_exchange_req["scope"] = "offline_access"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["response_args"]["scope"] == ["offline_access"]
+
+        _c_interface = self.introspection_endpoint.server_get("endpoint_context").claims_interface
+        grant.claims = {
+            "introspection": _c_interface.get_claims(
+                session_id, scopes=AUTH_REQ["scope"], claims_release_point="introspection"
+            )
+        }
+        _req = self.introspection_endpoint.parse_request(
+            {
+                "token": _resp["response_args"]["access_token"],
+                "client_id": "client_1",
+                "client_secret": self.endpoint_context.cdb["client_1"]["client_secret"],
+            }
+        )
+        _resp_intro = self.introspection_endpoint.process_request(_req)
+        assert _resp_intro["response_args"]["scope"] == "offline_access"
+
+        token_exchange_req["scope"] = "offline_access profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile", "offline_access"}
+
+    def test_token_exchange_unsupported_scope_requested_4(self):
+        """
+        Configuration:
+            - grant_types_supported: [authorization_code, ...:token-exchange]
+            - allowed_scopes: [offline_access, profile]
+            - refresh_token removed from grant_types_supported
+            - requested_token_type: "...:access_token"
+        Scenario:
+        Client1 has an access_token1 (with openid and profile scope).
+        Then, client1 exchanges access_token1 for a new refresh token
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["offline_access", "profile"]
+                    },
+                }
+            },
+        }
+        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+            'authorization_code',
+            'implicit',
+            'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'urn:ietf:params:oauth:grant-type:token-exchange'
+        ]
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+        areq["scope"].append("offline_access")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:refresh_token",
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile", "offline_access"}
+
+        token_exchange_req["scope"] = "profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_request"
+        assert (
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
+        )
+
+        token_exchange_req["scope"] = "offline_access"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"offline_access"}
+
+        token_exchange_req["scope"] = "offline_access profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert set(_resp["response_args"]["scope"]) == {"profile", "offline_access"}
+
+        token = grant.get_token(_resp["response_args"]["access_token"])
+        assert token.token_class == "refresh_token"
+
+    def test_token_exchange_unsupported_scope_requested_5(self):
+        """
+        Configuration:
+            - grant_types_supported: [authorization_code, ...:token-exchange]
+            - allowed_scopes: [profile]
+            - requested_token_type: "...:access_token"
+        Scenario:
+        Client1 has an access_token1 (with openid and profile scope).
+        Then, client1 exchanges access_token1 for a new refresh token
+        """
+        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+            "subject_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "requested_token_types_supported": [
+                "urn:ietf:params:oauth:token-type:access_token",
+                "urn:ietf:params:oauth:token-type:refresh_token",
+            ],
+            "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "policy": {
+                "": {
+                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "kwargs": {
+                        "scope": ["profile"]
+                    },
+                }
+            },
+        }
+
+        areq = AUTH_REQ.copy()
+        areq["scope"].append("profile")
+        areq["scope"].append("offline_access")
+
+        session_id = self._create_session(areq)
+        grant = self.endpoint_context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+        _token_value = _resp["response_args"]["access_token"]
+
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            requested_token_type="urn:ietf:params:oauth:token-type:refresh_token",
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_request"
+        assert (
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
+        )
+
+        token_exchange_req["scope"] = "profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_request"
+        assert (
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
+        )
+
+        token_exchange_req["scope"] = "offline_access"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_scope"
+        assert (
+                _resp["error_description"]
+                == "Invalid requested scopes"
+        )
+
+        token_exchange_req["scope"] = "offline_access profile"
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req.to_urlencoded(),
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_request"
+        assert (
+                _resp["error_description"]
+                == "Exchanging this subject token to refresh token forbidden"
+        )
+
