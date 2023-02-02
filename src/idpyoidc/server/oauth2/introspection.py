@@ -110,6 +110,13 @@ class Introspection(Endpoint):
         grant = _session_info["grant"]
         _token = grant.get_token(request_token)
 
+        aud = _token.resources
+        if not aud:
+            aud = grant.resources
+        
+        if request["client_id"] not in aud:
+            return {"response_args": _resp}
+
         _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
         if _info is None:
             return {"response_args": _resp}
