@@ -325,7 +325,6 @@ class TestRPHandler(object):
         client = self.rph.init_client("https://op.example.com/")
         _srv = client.get_service("registration")
         _context = _srv.upstream_get("context")
-
         cb = _context.get_preference('callback_uris')
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}

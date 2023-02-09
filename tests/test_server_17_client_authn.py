@@ -502,12 +502,11 @@ class TestVerify:
         )
         assert res == {"method": "public", "client_id": client_id}
 
-        with pytest.raises(ClientAuthenticationError) as e:
-            verify_client(
-                request=request,
-                endpoint=self.server.get_endpoint("endpoint_1"),
-            )
-        assert e.value.args[0] == "Failed to verify client"
+        res = verify_client(
+            request=request,
+            endpoint=self.server.get_endpoint("endpoint_1"),
+        )
+        assert res == {}
 
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(

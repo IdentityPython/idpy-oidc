@@ -26,7 +26,8 @@ class TestServiceContext:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.unit = Unit()
-        self.service_context = ServiceContext(config=MINI_CONFIG, upstream_get=self.unit.unit_get)
+        self.service_context = ServiceContext(config=MINI_CONFIG, upstream_get=self.unit.unit_get,
+                                              base_url="https://example.com/cli")
 
     def test_init(self):
         assert self.service_context

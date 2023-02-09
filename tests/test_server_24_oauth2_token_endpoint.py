@@ -838,17 +838,20 @@ CONTEXT.issuer = "https://op.example.com"
 CONTEXT.cdb = {
     "client_1": {}
 }
-CONTEXT.keyjar = KeyJar()
-CONTEXT.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
-CONTEXT.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
+KEYJAR = KeyJar()
+KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
+KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
 
-def server_get(what, *args):
-    if what == "endpoint_context":
+def upstream_get(what, *args):
+    if what == "context":
         if not args:
             return CONTEXT
+    elif what == 'attribute':
+        if args[0] == 'keyjar':
+            return KEYJAR
 
 def test_def_jwttoken():
-    _handler = handler.factory(server_get=server_get, **DEFAULT_TOKEN_HANDLER_ARGS)
+    _handler = handler.factory(upstream_get=upstream_get, **DEFAULT_TOKEN_HANDLER_ARGS)
     token_handler = _handler['access_token']
     token_payload = {
         'sub': 'subject_id',
@@ -864,7 +867,7 @@ def test_def_jwttoken():
     assert True
 
 def test_jwttoken():
-    _handler = handler.factory(server_get=server_get, **TOKEN_HANDLER_ARGS)
+    _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
     token_handler = _handler['access_token']
     token_payload = {
         'sub': 'subject_id',
@@ -890,7 +893,7 @@ class MyAccessToken(Message):
     }
 
 def test_jwttoken_2():
-    _handler = handler.factory(server_get=server_get, **TOKEN_HANDLER_ARGS)
+    _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
     token_handler = _handler['access_token']
     token_payload = {
         'sub': 'subject_id',

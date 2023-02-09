@@ -92,7 +92,7 @@ class TestSessionManager:
         }
         server = Server(conf)
         self.server = server
-        self.endpoint_context = server.endpoint_context
+        self.endpoint_context = server.context
         self.endpoint_context.cdb = {
             "client_1": {
                 "client_secret": "hemligt",
@@ -111,7 +111,7 @@ class TestSessionManager:
             }
         }
 
-        self.session_manager = server.endpoint_context.session_manager
+        self.session_manager = server.context.session_manager
         self.authn_event = AuthnEvent(
             uid="uid", valid_until=utc_time_sans_frac() + 1, authn_info="authn_class_ref"
         )
@@ -128,7 +128,7 @@ class TestSessionManager:
 
         client_id = authz_req["client_id"]
         ae = create_authn_event(USER_ID)
-        return self.server.endpoint_context.session_manager.create_session(
+        return self.server.context.session_manager.create_session(
             ae, authz_req, USER_ID, client_id=client_id, sub_type=sub_type
         )
 

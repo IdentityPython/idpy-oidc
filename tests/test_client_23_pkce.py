@@ -85,8 +85,8 @@ class TestPKCE256:
         assert len(request_args["code_verifier"]) == 64
 
     def test_authorization_and_pkce(self):
-        auth_serv = self.entity.client_get("service", "authorization")
-        _state = self.entity.get_context().state.create_state(iss="Issuer")
+        auth_serv = self.entity.get_service("authorization")
+        _state = self.entity.get_context().cstate.create_state(iss="Issuer")
 
         request = auth_serv.construct_request({"state": _state, "response_type": "code"})
         assert set(request.keys()) == {
@@ -105,8 +105,8 @@ class TestPKCE256:
         auth_response = AuthorizationResponse(code="access code")
         _context = self.entity.get_context()
         _context.cstate.update(_state, auth_response)
-        auth_serv = self.entity.get_service("authorization")
-        _state = _context.cstate.create_state(iss="Issuer")
+        #auth_serv = self.entity.get_service("authorization")
+        #_state = _context.cstate.create_state(iss="Issuer")
 
         token_service = self.entity.get_service("accesstoken")
         request = token_service.construct_request(state=_state)

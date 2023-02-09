@@ -182,7 +182,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        _cinfo = self.endpoint.server_get("endpoint_context").cdb.get(client_id)
+        _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
 
         if ("resource_indicators" in _cinfo
                 and "access_token" in _cinfo["resource_indicators"]):
@@ -283,7 +283,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def _enforce_resource_indicators_policy(self, request, config):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get('context')
 
         policy = config["policy"]
         callable = policy["callable"]

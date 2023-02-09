@@ -14,7 +14,7 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
-from idpyoidc import work_environment
+from idpyoidc import claims
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -344,9 +344,9 @@ class Authorization(Endpoint):
         "request_uri_parameter_supported": True,
         "response_types_supported": ["code", "token", "code token"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": work_environment.get_signing_algs,
-        "request_object_encryption_alg_values_supported": work_environment.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": work_environment.get_encryption_encs,
+        "request_object_signing_alg_values_supported": claims.get_signing_algs,
+        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
         "grant_types_supported": ["authorization_code", "implicit"],
         "scopes_supported": [],
     }
@@ -359,6 +359,7 @@ class Authorization(Endpoint):
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
+        self.resource_indicators_config = kwargs.get('resource_indicators', None)
 
     def filter_request(self, context, req):
         return req
@@ -531,7 +532,7 @@ class Authorization(Endpoint):
         return request
 
     def _enforce_resource_indicators_policy(self, request, config):
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
 
         policy = config["policy"]
         callable = policy["callable"]

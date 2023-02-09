@@ -44,6 +44,7 @@ class Token(Endpoint):
         self.grant_types_supported = kwargs.get("grant_types_supported",
                                                 list(self.helper_by_grant_type.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
+        self.resource_indicators_config = kwargs.get('resource_indicators', None)
 
     def configure_grant_types(self, grant_types_helpers):
         if grant_types_helpers is None:

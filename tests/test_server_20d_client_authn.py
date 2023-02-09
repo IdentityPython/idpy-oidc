@@ -1,13 +1,13 @@
 import base64
 from unittest.mock import MagicMock
 
-import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
+import pytest
 
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.server import Server
@@ -292,7 +292,8 @@ class TestBearerBody:
 
     def test_bearer_body(self):
         request = {"access_token": "1234567890"}
-        assert self.method.verify(request, get_client_id_from_token=get_client_id_from_token) == {"token": "1234567890", "method": "bearer_body"}
+        assert self.method.verify(request, get_client_id_from_token=get_client_id_from_token) == {
+            "token": "1234567890", "method": "bearer_body"}
 
     def test_bearer_body_no_token(self):
         request = {}
@@ -435,8 +436,6 @@ class TestVerify:
 
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -452,15 +451,12 @@ class TestVerify:
 
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
         res = verify_client(
-            self.endpoint_context,
             request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -468,8 +464,6 @@ class TestVerify:
 
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -479,8 +473,6 @@ class TestVerify:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -501,8 +493,6 @@ class TestVerify:
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
         http_info = {"headers": {}}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -514,8 +504,6 @@ class TestVerify:
         request = {"access_token": "1234567890", "client_id": client_id}
         self.context.registration_access_token["1234567890"] = client_id
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             get_client_id_from_token=get_client_id_from_token,
             endpoint=self.server.get_endpoint("userinfo"),
@@ -526,8 +514,6 @@ class TestVerify:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -541,8 +527,6 @@ class TestVerify:
         http_info = {"headers": {"authorization": authz_token}}
 
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request={},
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -558,8 +542,6 @@ class TestVerify:
         http_info = {"headers": {"authorization": token}}
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
@@ -590,8 +572,6 @@ class TestVerify2:
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -602,25 +582,12 @@ class TestVerify2:
         request = {"access_token": "1234567890", "client_id": client_id}
         self.context.registration_access_token["1234567890"] = client_id
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             get_client_id_from_token=get_client_id_from_token,
             endpoint=self.server.get_endpoint("userinfo"),
         )
         assert set(res.keys()) == {"token", "method", "client_id"}
         assert res["method"] == "bearer_body"
-
-    def test_verify_client_client_secret_post(self):
-        request = {"client_id": client_id, "client_secret": client_secret}
-        res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
-            request=request,
-            endpoint=self.server.get_endpoint("token"),
-        )
-        assert set(res.keys()) == {"method", "client_id"}
-        assert res["method"] == "client_secret_post"
 
     def test_verify_client_client_secret_basic(self):
         _token = "{}:{}".format(client_id, client_secret)
@@ -629,8 +596,6 @@ class TestVerify2:
         http_info = {"headers": {"authorization": authz_token}}
 
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request={},
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -646,8 +611,6 @@ class TestVerify2:
         http_info = {"headers": {"authorization": token}}
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
@@ -660,8 +623,6 @@ class TestVerify2:
         # This is when it's explicitly said that no client auth method is allowed
         request = {"client_id": client_id}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("authorization"),
         )
@@ -672,8 +633,6 @@ class TestVerify2:
         # This is when no special auth method is configured
         request = {"redirect_uris": ["https://example.com/cb"], "client_id": "client_id"}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -683,8 +642,6 @@ class TestVerify2:
         # This is when no special auth method is configured
         request = {"redirect_uris": ["https://example.com/cb"]}
         res = verify_client(
-            self.endpoint_context,
-            keyjar=self.server.get_attribute('keyjar'),
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -706,8 +663,6 @@ def test_client_auth_setup():
 
     request = {"redirect_uris": ["https://example.com/cb"]}
     res = verify_client(
-        server.endpoint_context,
-        keyjar=server.get_attribute('keyjar'),
         request=request,
         endpoint=server.get_endpoint("registration")
     )

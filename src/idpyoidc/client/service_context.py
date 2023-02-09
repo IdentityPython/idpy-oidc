@@ -139,7 +139,7 @@ class ServiceContext(ImpExp):
         self.kid = {"sig": {}, "enc": {}}
 
         self.allow = config.conf.get('allow', {})
-        self.base_url = base_url or config.get("base_url", "")
+        self.base_url = base_url or config.conf.get("base_url", "")
         self.provider_info = config.conf.get("provider_info", {})
 
         # Below so my IDE won't complain

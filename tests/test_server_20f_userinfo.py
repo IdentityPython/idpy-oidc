@@ -192,7 +192,7 @@ class TestCollectUserInfo:
         }
 
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        self.endpoint_context = server.endpoint_context
+        self.endpoint_context = server.context
         # Just has to be there
         self.endpoint_context.cdb["client1"] = {
             "add_claims": {
@@ -422,7 +422,7 @@ class TestCollectUserInfoCustomScopes:
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self, conf):
         self.server = Server(conf)
-        self.endpoint_context = self.server.endpoint_context
+        self.endpoint_context = self.server.context
         self.endpoint_context.cdb["client1"] = {
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
@@ -476,7 +476,7 @@ class TestCollectUserInfoCustomScopes:
     def test_collect_user_info_scope_mapping_per_client(self, conf):
         conf["scopes_to_claims"] = SCOPE2CLAIMS
         server = Server(conf)
-        endpoint_context = server.endpoint_context
+        endpoint_context = server.context
         self.session_manager = endpoint_context.session_manager
         claims_interface = endpoint_context.claims_interface
         endpoint_context.cdb["client1"] = {

@@ -206,8 +206,8 @@ class TestEndpoint(object):
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -216,7 +216,7 @@ class TestEndpoint(object):
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
         }
         self.endpoint = self.server.get_endpoint("userinfo")
-        self.session_manager = self.endpoint_context.session_manager
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=None):
@@ -391,7 +391,7 @@ class TestEndpoint(object):
         }
 
     def test_scopes_to_claims_per_client(self):
-        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
+        self.context.cdb["client_1"]["scopes_to_claims"] = {
             **SCOPE2CLAIMS,
             "research_and_scholarship_2": [
                 "name",
@@ -403,8 +403,8 @@ class TestEndpoint(object):
                 "eduperson_scoped_affiliation",
             ],
         }
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(
-            self.endpoint_context.cdb["client_1"]["scopes_to_claims"].keys()
+        self.context.cdb["client_1"]["allowed_scopes"] = list(
+            self.context.cdb["client_1"]["scopes_to_claims"].keys()
         ) + ["aba"]
 
         _auth_req = AUTH_REQ.copy()
@@ -470,7 +470,7 @@ class TestEndpoint(object):
         }
 
     def test_allowed_scopes_per_client(self):
-        self.endpoint_context.cdb["client_1"]["scopes_to_claims"] = {
+        self.context.cdb["client_1"]["scopes_to_claims"] = {
             **SCOPE2CLAIMS,
             "research_and_scholarship_2": [
                 "name",
@@ -482,7 +482,7 @@ class TestEndpoint(object):
                 "eduperson_scoped_affiliation",
             ],
         }
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = list(SCOPE2CLAIMS.keys())
+        self.context.cdb["client_1"]["allowed_scopes"] = list(SCOPE2CLAIMS.keys())
 
         _auth_req = AUTH_REQ.copy()
         _auth_req["scope"] = ["openid", "research_and_scholarship_2"]

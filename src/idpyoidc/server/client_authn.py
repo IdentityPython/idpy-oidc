@@ -474,7 +474,7 @@ def verify_client(
 
     auth_info = {}
     _context = endpoint.upstream_get('context')
-    methods = _context.client_authn_method
+    methods = _context.client_authn_methods
     client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:

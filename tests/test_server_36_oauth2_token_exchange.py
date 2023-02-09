@@ -401,7 +401,7 @@ class TestEndpoint(object):
         only get it if the subject token has it in its scope set, if it is permitted
         by the policy and if it is present in the clients allowed scopes.
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -421,13 +421,13 @@ class TestEndpoint(object):
             },
         }
 
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["openid", "email", "profile", "offline_access"]
+        self.context.cdb["client_1"]["allowed_scopes"] = ["openid", "email", "profile", "offline_access"]
 
         areq = AUTH_REQ.copy()
         areq["scope"].append("profile")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
 
         code = self._mint_code(grant, areq["client_id"])
 
@@ -459,7 +459,7 @@ class TestEndpoint(object):
         """
         Test that unsupported clients are handled appropriatelly
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -484,7 +484,7 @@ class TestEndpoint(object):
         areq["scope"].append("profile")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -513,7 +513,7 @@ class TestEndpoint(object):
         """
         Test that the correct scopes are returned when no scopes requested by the client
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -538,7 +538,7 @@ class TestEndpoint(object):
         areq["scope"].append("profile")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -614,7 +614,7 @@ class TestEndpoint(object):
         Test that token exchange fails if it's not included in Token's
         grant_types_supported (that are set in its helper attribute).
         """
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+        self.context.cdb["client_1"]["grant_types_supported"] = [
             'authorization_code',
             'implicit',
             'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -1032,7 +1032,7 @@ class TestEndpoint(object):
         Client1 has an access_token1 (with offline_access, openid and profile scope).
         Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -1056,10 +1056,10 @@ class TestEndpoint(object):
         areq["scope"].append("profile")
         areq["scope"].append("offline_access")
 
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["offline_access", "profile"]
+        self.context.cdb["client_1"]["allowed_scopes"] = ["offline_access", "profile"]
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -1120,7 +1120,7 @@ class TestEndpoint(object):
         Client1 has an access_token1 (with openid and profile scope).
         Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -1139,14 +1139,14 @@ class TestEndpoint(object):
                 }
             },
         }
-        self.endpoint_context.cdb["client_1"]["allowed_scopes"] = ["openid", "profile"]
+        self.context.cdb["client_1"]["allowed_scopes"] = ["openid", "profile"]
 
         areq = AUTH_REQ.copy()
         areq["scope"].append("profile")
         areq["scope"].append("offline_access")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -1211,7 +1211,7 @@ class TestEndpoint(object):
         Client1 has an access_token1 (with openid and profile scope).
         Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -1230,7 +1230,7 @@ class TestEndpoint(object):
                 }
             },
         }
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+        self.context.cdb["client_1"]["grant_types_supported"] = [
             'authorization_code',
             'implicit',
             'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -1242,7 +1242,7 @@ class TestEndpoint(object):
         areq["scope"].append("offline_access")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -1283,7 +1283,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["response_args"]["scope"] == ["offline_access"]
 
-        _c_interface = self.introspection_endpoint.server_get("endpoint_context").claims_interface
+        _c_interface = self.introspection_endpoint.upstream_get("context").claims_interface
         grant.claims = {
             "introspection": _c_interface.get_claims(
                 session_id, scopes=AUTH_REQ["scope"], claims_release_point="introspection"
@@ -1293,7 +1293,7 @@ class TestEndpoint(object):
             {
                 "token": _resp["response_args"]["access_token"],
                 "client_id": "client_1",
-                "client_secret": self.endpoint_context.cdb["client_1"]["client_secret"],
+                "client_secret": self.context.cdb["client_1"]["client_secret"],
             }
         )
         _resp_intro = self.introspection_endpoint.process_request(_req)
@@ -1319,7 +1319,7 @@ class TestEndpoint(object):
         Client1 has an access_token1 (with openid and profile scope).
         Then, client1 exchanges access_token1 for a new refresh token
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -1338,7 +1338,7 @@ class TestEndpoint(object):
                 }
             },
         }
-        self.endpoint_context.cdb["client_1"]["grant_types_supported"] = [
+        self.context.cdb["client_1"]["grant_types_supported"] = [
             'authorization_code',
             'implicit',
             'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -1350,7 +1350,7 @@ class TestEndpoint(object):
         areq["scope"].append("offline_access")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -1417,7 +1417,7 @@ class TestEndpoint(object):
         Client1 has an access_token1 (with openid and profile scope).
         Then, client1 exchanges access_token1 for a new refresh token
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",
@@ -1442,7 +1442,7 @@ class TestEndpoint(object):
         areq["scope"].append("offline_access")
 
         session_id = self._create_session(areq)
-        grant = self.endpoint_context.authz(session_id, areq)
+        grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
 
         _token_request = TOKEN_REQ_DICT.copy()

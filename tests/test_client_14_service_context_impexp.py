@@ -19,12 +19,12 @@ def test_client_info_init():
         "base_url": BASE_URL,
         "requests_dir": "requests",
     }
-    ci = ServiceContext(config=config, client_type='oidc')
+    ci = ServiceContext(config=config, client_type='oidc', base_url=BASE_URL)
     ci.claims.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
-    srvcnx = ServiceContext(base_url=BASE_URL).load(ci.dump())
+    srvcnx = ServiceContext().load(ci.dump())
 
     for attr in config.keys():
         if attr == "client_id":
@@ -62,8 +62,8 @@ def test_client_filename():
         "base_url": "https://example.com",
         "requests_dir": "requests",
     }
-    service_context = ServiceContext(config=config)
-    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
+    service_context = ServiceContext(config=config, base_url=BASE_URL)
+    srvcnx2 = ServiceContext().load(service_context.dump())
     fname = srvcnx2.filename_from_webname("https://example.com/rq12345")
     assert fname == "rq12345"
 

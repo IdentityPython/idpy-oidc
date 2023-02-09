@@ -137,8 +137,6 @@ class Endpoint(Node):
                 kwargs[self.auth_method_attribute] = _methods
         elif _methods is not None:  # [] or '' or something not None but regarded as nothing.
             self.client_authn_method = ["none"]  # Ignore default value
-        elif self.default_capabilities:
-            self.client_authn_method = self.default_capabilities.get("client_authn_method")
         # self.endpoint_info = construct_provider_info(self.default_capabilities, **kwargs)
         return kwargs
 
