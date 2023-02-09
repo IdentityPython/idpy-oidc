@@ -139,7 +139,7 @@ class Endpoint(Node):
             self.client_authn_method = ["none"]  # Ignore default value
         elif self.default_capabilities:
             self.client_authn_method = self.default_capabilities.get("client_authn_method")
-        self.endpoint_info = construct_provider_info(self.default_capabilities, **kwargs)
+        # self.endpoint_info = construct_provider_info(self.default_capabilities, **kwargs)
         return kwargs
 
     def process_verify_error(self, exception):

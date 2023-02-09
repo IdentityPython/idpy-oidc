@@ -26,6 +26,8 @@ from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
 
+from idpyoidc.time_util import TIME_FORMAT_WITH_FRAGMENT
+
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 qTIME_FORMAT_WITH_FRAGMENT = re.compile("^(\d{4,4}-\d{2,2}-\d{2,2}T\d{2,2}:\d{2,2}:\d{2,2})\.\d*Z$")
 
