@@ -181,7 +181,7 @@ class Grant(Item):
     def payload_arguments(
             self,
             session_id: str,
-            context: 'EndpointContext',
+            context: "EndpointContext",
             item: SessionToken,
             claims_release_point: str,
             scope: Optional[dict] = None,

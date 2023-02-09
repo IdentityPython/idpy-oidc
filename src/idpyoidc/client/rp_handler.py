@@ -180,7 +180,7 @@ class RPHandler(object):
         except KeyError:
             _services = self.services
 
-        if not 'base_url' in _cnf:
+        if 'base_url' not in _cnf:
             _cnf['base_url'] = self.base_url
 
         if self.jwks_uri:
@@ -574,7 +574,7 @@ class RPHandler(object):
                 authn_method=self.get_client_authn_method(client, "token_endpoint"),
                 state=state,
             )
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             raise
@@ -613,7 +613,7 @@ class RPHandler(object):
                 state=state,
                 request_args=req_args,
             )
-        except Exception as err:
+        except Exception:
             message = traceback.format_exception(*sys.exc_info())
             logger.error(message)
             raise

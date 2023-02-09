@@ -3,18 +3,13 @@ import logging
 from typing import Callable
 from typing import Dict
 from typing import Optional
-from typing import TYPE_CHECKING
 from typing import Union
-
-if TYPE_CHECKING:
-    from idpyoidc.server.endpoint_context import EndpointContext
 
 from cryptojwt.exception import BadSignature
 from cryptojwt.exception import Invalid
 from cryptojwt.exception import MissingKey
 from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
-from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
 
@@ -27,7 +22,6 @@ from idpyoidc.server.exception import ClientAuthenticationError
 from idpyoidc.server.exception import InvalidClient
 from idpyoidc.server.exception import InvalidToken
 from idpyoidc.server.exception import ToOld
-from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.exception import UnknownClient
 from idpyoidc.util import importer
 from idpyoidc.util import sanitize
@@ -259,6 +253,7 @@ class BearerBody(ClientSecretPost):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
             **kwargs,
     ):
         _token = request.get("access_token")
@@ -266,7 +261,8 @@ class BearerBody(ClientSecretPost):
             raise ClientAuthenticationError("No access token")
 
         res = {"token": _token}
-        _client_id = get_client_id_from_token(endpoint_context, _token, request)
+        _context = self.upstream_get('context')
+        _client_id = get_client_id_from_token(_context, _token, request)
         if _client_id:
             res["client_id"] = _client_id
         return res
@@ -290,7 +286,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             **kwargs,
     ):
         _context = self.upstream_get('context')
-        _keyjar = self.upstream_get('attribute','keyjar')
+        _keyjar = self.upstream_get('attribute', 'keyjar')
         _jwt = JWT(_keyjar, msg_cls=JsonWebToken)
         try:
             ca_jwt = _jwt.unpack(request["client_assertion"])
@@ -477,7 +473,8 @@ def verify_client(
         authorization_token = None
 
     auth_info = {}
-    methods = context.client_authn_method
+    _context = endpoint.upstream_get('context')
+    methods = _context.client_authn_method
     client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:
@@ -490,7 +487,7 @@ def verify_client(
         try:
             logger.info(f"Verifying client authentication using {_method.tag}")
             auth_info = _method.verify(
-                keyjar=keyjar,
+                keyjar=endpoint.upstream_get('attribute', 'keyjar'),
                 request=request,
                 authorization_token=authorization_token,
                 endpoint=endpoint,
@@ -513,10 +510,10 @@ def verify_client(
             client_id = also_known_as[client_id]
             auth_info["client_id"] = client_id
 
-        if client_id not in context.cdb:
+        if client_id not in _context.cdb:
             raise UnknownClient("Unknown Client ID")
 
-        _cinfo = context.cdb[client_id]
+        _cinfo = _context.cdb[client_id]
 
         if not valid_client_info(_cinfo):
             logger.warning("Client registration has timed out or " "client secret is expired.")
@@ -540,9 +537,9 @@ def verify_client(
         _request_type = request.__class__.__name__
         _used_authn_method = _cinfo.get("auth_method")
         if _used_authn_method:
-            context.cdb[client_id]["auth_method"][_request_type] = auth_info["method"]
+            _context.cdb[client_id]["auth_method"][_request_type] = auth_info["method"]
         else:
-            context.cdb[client_id]["auth_method"] = {_request_type: auth_info["method"]}
+            _context.cdb[client_id]["auth_method"] = {_request_type: auth_info["method"]}
 
     return auth_info
 

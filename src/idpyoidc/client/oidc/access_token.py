@@ -2,11 +2,11 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import IDT2REG
-from idpyoidc.claims import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
@@ -71,7 +71,7 @@ class AccessToken(access_token.AccessToken):
 
         return kwargs
 
-    def update_service_context(self, resp, key: Optional[str] ="", **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         _cstate = self.upstream_get("context").cstate
         try:
             _idt = resp[verified_claim_name("id_token")]

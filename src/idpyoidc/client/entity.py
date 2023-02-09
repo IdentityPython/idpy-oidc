@@ -1,4 +1,5 @@
 import logging
+from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -16,7 +17,6 @@ from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.context import OidcContext
 from idpyoidc.node import Unit
-from idpyoidc.server.client_authn import client_auth_class
 
 logger = logging.getLogger(__name__)
 
@@ -201,3 +201,4 @@ class Entity(Unit):  # This is a Client
 
     def get_callback_uris(self):
         return self.context.claims.callback_uri
+

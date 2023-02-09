@@ -23,7 +23,7 @@ class CheckID(Service):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct]
 
-    def oidc_pre_construct(self, request_args: Optional[dict]=None, **kwargs):
+    def oidc_pre_construct(self, request_args: Optional[dict] = None, **kwargs):
         _args = self.upstream_get("context").cstate.get_set(
             kwargs["state"],
             claim=["id_token"]

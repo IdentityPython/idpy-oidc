@@ -102,6 +102,7 @@ class TokenEndpointHelper(object):
 
         return token
 
+
 def validate_resource_indicators_policy(request, context, **kwargs):
     if "resource" not in request:
         return TokenErrorResponse(
@@ -114,7 +115,8 @@ def validate_resource_indicators_policy(request, context, **kwargs):
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", None)
 
-    if isinstance(resource_servers_per_client, dict) and client_id not in resource_servers_per_client:
+    if isinstance(resource_servers_per_client,
+                  dict) and client_id not in resource_servers_per_client:
         return TokenErrorResponse(
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
@@ -183,7 +185,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         _cinfo = self.endpoint.server_get("endpoint_context").cdb.get(client_id)
 
         if ("resource_indicators" in _cinfo
-            and "access_token" in _cinfo["resource_indicators"]):
+                and "access_token" in _cinfo["resource_indicators"]):
             resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
         else:
             resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
@@ -198,10 +200,11 @@ class AccessTokenHelper(TokenEndpointHelper):
             if isinstance(req, TokenErrorResponse):
                 return req
 
-        if "grant_types_supported" in _context.cdb[client_id]:
-            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
-        else:
-            grant_types_supported = _context.provider_info["grant_types_supported"]
+        # if "grant_types_supported" in _context.cdb[client_id]:
+        #     grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        # else:
+        #     grant_types_supported = _context.provider_info["grant_types_supported"]
+
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)

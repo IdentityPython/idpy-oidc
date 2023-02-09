@@ -180,7 +180,7 @@ class UserInfo(Endpoint):
         # Verify that the client is allowed to do this
         try:
             auth_info = self.client_authentication(request, http_info, **kwargs)
-        except ClientAuthenticationError as e:
+        except ClientAuthenticationError:
             return self.error_cls(error="invalid_token", error_description="Invalid token")
 
         if isinstance(auth_info, ResponseMessage):

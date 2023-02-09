@@ -244,7 +244,7 @@ def alg_cmp(a, b):
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    _algs = [l for l in list(SIGNER_ALGS.keys()) if l != 'none']
+    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != 'none']
     return sorted(_algs, key=cmp_to_key(alg_cmp))
 
 

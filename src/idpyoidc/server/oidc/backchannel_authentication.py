@@ -1,8 +1,8 @@
 import logging
-import uuid
 from typing import Callable
 from typing import Optional
 from typing import Union
+import uuid
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
@@ -14,7 +14,6 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationResponse
 from idpyoidc.server import Endpoint
-from idpyoidc.server import EndpointContext
 from idpyoidc.server.client_authn import ClientSecretBasic
 from idpyoidc.server.exception import NoSuchAuthentication
 from idpyoidc.server.oidc.token_helper import AccessTokenHelper
@@ -86,10 +85,10 @@ class BackChannelAuthentication(Endpoint):
         return set(res)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         try:
             request_user = self.do_request_user(request)
@@ -137,7 +136,7 @@ class CIBATokenHelper(AccessTokenHelper):
         return session_info, _grant
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
@@ -303,10 +302,10 @@ class ClientNotification(Endpoint):
         Endpoint.__init__(self, upstream_get, **kwargs)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ) -> Union[Message, dict]:
         return {}
 
@@ -322,11 +321,11 @@ class ClientNotificationAuthn(ClientSecretBasic):
         return False
 
     def _verify(
-        self,
-        authorization_token: Optional[str] = None,
-        endpoint=None,  # Optional[Endpoint]
-        get_client_id_from_token: Optional[Callable] = None,
-        **kwargs,
+            self,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            **kwargs,
     ):
         ttype, token = authorization_token.split(" ", 1)
         if ttype != "Bearer":

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from idpyoidc.client.service import Service
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage

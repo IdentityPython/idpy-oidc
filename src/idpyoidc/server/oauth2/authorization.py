@@ -517,7 +517,7 @@ class Authorization(Endpoint):
             request["redirect_uri"] = redirect_uri
 
         if ("resource_indicators" in _cinfo
-            and "authorization_code" in _cinfo["resource_indicators"]):
+                and "authorization_code" in _cinfo["resource_indicators"]):
             resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
         else:
             resource_indicators_config = self.resource_indicators_config

@@ -167,7 +167,6 @@ class Registration(Endpoint):
     def filter_client_request(self, request: dict) -> dict:
         _args = {}
         _context = self.upstream_get("context")
-        _provider_info = _context.provider_info
         for key, val in request.items():
             if key not in _context.claims.register2preferred:
                 _args[key] = val

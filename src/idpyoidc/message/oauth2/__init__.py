@@ -10,7 +10,6 @@ from idpyoidc.exception import MissingAttribute
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import VerificationError
 from idpyoidc.message import Message
-from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -21,6 +20,7 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_BOOLEAN
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import msg_ser
 
 logger = logging.getLogger(__name__)
 
@@ -542,6 +542,7 @@ class SecurityEventToken(Message):
         "toe": SINGLE_OPTIONAL_INT,
     }
 
+
 class JWTAccessToken(Message):
     c_param = {
         "iss": SINGLE_REQUIRED_STRING,
@@ -559,7 +560,6 @@ class JWTAccessToken(Message):
         'roles': OPTIONAL_LIST_OF_STRINGS,
         'entitlements': OPTIONAL_LIST_OF_STRINGS
     }
-
 
 
 class JSONWebToken(Message):

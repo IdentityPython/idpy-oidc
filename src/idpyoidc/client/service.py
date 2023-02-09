@@ -525,8 +525,7 @@ class Service(ImpExp):
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
 
-
-        _jwt = JWT(key_jar=self.upstream_get('attribute','keyjar'), **args)
+        _jwt = JWT(key_jar=self.upstream_get('attribute', 'keyjar'), **args)
         _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
@@ -675,7 +674,8 @@ class Service(ImpExp):
             else:
                 _path = self._callback_path.get(uri)
                 if isinstance(_path, str):
-                    _callback_uris[uri] = self.get_uri(base_url, self._callback_path.get(_path), hex)
+                    _callback_uris[uri] = self.get_uri(base_url, self._callback_path.get(_path),
+                                                       hex)
                 else:
                     _callback_uris[uri] = [self.get_uri(base_url, self._callback_path.get(_var),
                                                         hex) for _var in _path]

@@ -265,7 +265,7 @@ class Configuration(Base):
 
         if entity_conf:
             skip = [ec["path"] for ec in entity_conf if "path" in ec]
-            check = [l[0] for l in skip]
+            check = [word[0] for word in skip]
 
             self.extend(
                 conf=self.conf,

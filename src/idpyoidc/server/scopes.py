@@ -1,5 +1,3 @@
-from idpyoidc.server.exception import ConfigurationError
-
 # default set can be changed by configuration
 
 SCOPE2CLAIMS = {

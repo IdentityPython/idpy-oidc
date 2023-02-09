@@ -2,15 +2,14 @@
 Implements a service context. A Service context is used to keep information that are
 common between all the services that are used by OAuth2 client or OpenID Connect Relying Party.
 """
-import copy
 import hashlib
 import logging
 from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -152,7 +151,7 @@ class ServiceContext(ImpExp):
         self.client_secret_expires_at = 0
         self.registration_response = {}
 
-        _def_value = copy.deepcopy(DEFAULT_VALUE)
+        # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
         _issuer = config.get("issuer")
         if _issuer:

@@ -1,7 +1,6 @@
 import logging
 
 from cryptojwt import JWT
-
 from requests import request
 
 from idpyoidc.message import Message
@@ -26,7 +25,7 @@ def push_authorization(request_args, service, **kwargs):
     if method_args["body_format"] == "urlencoded":
         _body = request_args.to_urlencoded()
     else:
-        _jwt = JWT(key_jar=service.upstream_get('attribute','keyjar'),
+        _jwt = JWT(key_jar=service.upstream_get('attribute', 'keyjar'),
                    iss=_context.base_url)
         _jws = _jwt.pack(request_args.to_dict())
 
@@ -56,7 +55,8 @@ def push_authorization(request_args, service, **kwargs):
 
 
 def add_support(
-    services, body_format="jws", signing_algorithm="RS256", http_client=None, merge_rule="strict"
+        services, body_format="jws", signing_algorithm="RS256", http_client=None,
+        merge_rule="strict"
 ):
     """
     Add the necessary pieces to make Demonstration of proof of possession (DPOP).

@@ -280,7 +280,7 @@ class EndpointContext(OidcContext):
 
         self.setup_client_authn_methods()
 
-        _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
+        # _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
         # if _id_token_handler:
         #     self.provider_info.update(_id_token_handler.provider_info)
 

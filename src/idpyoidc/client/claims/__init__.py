@@ -53,7 +53,7 @@ class Claims(claims.Claims):
             # if only one key under the id == "", that key being a SYMKey I assume it's
             # and I have a client_secret then don't publish a JWKS
             if len(_own_keys) == 1 and isinstance(_own_keys[0], SYMKey) and self.prefer[
-                'client_secret']:
+                    'client_secret']:
                 pass
             else:
                 _jwks = keyjar.export_jwks()
