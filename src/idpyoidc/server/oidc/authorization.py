@@ -77,18 +77,21 @@ class Authorization(authorization.Authorization):
     name = "authorization"
 
     _supports = {
-        "claims_parameter_supported": True,
-        "encrypt_request_object_supported": False,
-        "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
-        "request_parameter_supported": True,
-        "request_uri_parameter_supported": True,
-        "require_request_uri_registration": False,
-        "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
+        **authorization.Authorization._supports,
+        **{
+            "claims_parameter_supported": True,
+            "encrypt_request_object_supported": False,
+            "request_object_signing_alg_values_supported": claims.get_signing_algs,
+            "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+            "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+            "request_parameter_supported": True,
+            "request_uri_parameter_supported": True,
+            "require_request_uri_registration": False,
+            "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
                                      'code id_token', 'code id_token token'],
-        "response_modes_supported": ['query', 'fragment', 'form_post'],
-        "subject_types_supported": ["public", "pairwise", "ephemeral"],
+            "response_modes_supported": ['query', 'fragment', 'form_post'],
+            "subject_types_supported": ["public", "pairwise", "ephemeral"],
+          },
     }
 
     def __init__(self, upstream_get: Callable, **kwargs):

@@ -367,24 +367,6 @@ class TestEndpoint(object):
             _authn_req["code_challenge_method"]
         )
 
-    def test_unsupported_code_challenge_method(self, conf):
-        conf["add_on"]["pkce"]["kwargs"]["code_challenge_methods"] = ["plain"]
-        server = create_server(conf)
-        authn_endpoint = server.get_endpoint("authorization")
-
-        _cc_info = _code_challenge()
-        _authn_req = AUTH_REQ.copy()
-        _authn_req["code_challenge"] = _cc_info["code_challenge"]
-        _authn_req["code_challenge_method"] = _cc_info["code_challenge_method"]
-
-        _pr_resp = authn_endpoint.parse_request(_authn_req.to_dict())
-
-        assert isinstance(_pr_resp, AuthorizationErrorResponse)
-        assert _pr_resp["error"] == "invalid_request"
-        assert _pr_resp["error_description"] == "Unsupported code_challenge_method={}".format(
-            _authn_req["code_challenge_method"]
-        )
-
     def test_wrong_code_verifier(self):
         _cc_info = _code_challenge()
         _authn_req = AUTH_REQ.copy()

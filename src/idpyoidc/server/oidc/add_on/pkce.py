@@ -51,7 +51,7 @@ def post_authn_parse(request, client_id, context, **kwargs):
         )
 
     if "code_challenge_method" not in request:
-        request["code_challenge_method"] = "plain"
+        request["code_challenge_method"] = "S256"
 
     if "code_challenge" in request and (
         request["code_challenge_method"]
@@ -140,7 +140,17 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     token_endpoint.post_parse_request.append(post_token_parse)
 
     code_challenge_methods = kwargs.get("code_challenge_methods", CC_METHOD.keys())
-
+    code_challenge_methods = list(
+        set(code_challenge_methods).intersection(
+            authn_endpoint._supports["code_challenge_methods_supported"]
+        )
+    )
+    if not code_challenge_methods:
+        raise ValueError(
+            "Unsupported method: {}".format(
+                ", ".join(kwargs.get("code_challenge_methods", CC_METHOD.keys()))
+            )
+        )
     kwargs["code_challenge_methods"] = {}
     for method in code_challenge_methods:
         if method not in CC_METHOD:

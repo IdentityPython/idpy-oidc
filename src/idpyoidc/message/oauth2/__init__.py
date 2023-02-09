@@ -352,6 +352,7 @@ class ASConfigurationResponse(Message):
             "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
             "op_policy_uri": SINGLE_OPTIONAL_STRING,
             "op_tos_uri": SINGLE_OPTIONAL_STRING,
+            "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
             "revocation_endpoint": SINGLE_OPTIONAL_STRING,
             "introspection_endpoint": SINGLE_OPTIONAL_STRING,
         }
