@@ -169,4 +169,3 @@ def execute(spec, **kwargs):
             return _func(**kwargs)
         else:
             return kwargs
-

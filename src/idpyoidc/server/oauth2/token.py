@@ -33,7 +33,9 @@ class Token(Endpoint):
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
+        "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
     }
+    token_exchange_helper = TokenExchangeHelper
 
     def __init__(self, upstream_get, new_refresh_token=False, **kwargs):
         Endpoint.__init__(self, upstream_get, **kwargs)
@@ -132,7 +134,7 @@ class Token(Endpoint):
         _access_token = response_args["access_token"]
         _context = self.upstream_get("context")
 
-        if isinstance(_helper, TokenExchangeHelper):
+        if isinstance(_helper, self.token_exchange_helper):
             _handler_key = _helper.get_handler_key(request, _context)
         else:
             _handler_key = "access_token"

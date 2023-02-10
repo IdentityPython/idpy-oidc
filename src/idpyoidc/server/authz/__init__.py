@@ -61,10 +61,12 @@ class AuthzHandling(object):
         request: Union[dict, Message],
         resources: Optional[list] = None,
     ) -> Grant:
-        session_info = self.upstream_get("context").session_manager.get_session_info(
+        _context = self.upstream_get("context")
+        session_info = _context.session_manager.get_session_info(
             session_id=session_id, grant=True
         )
         grant = session_info["grant"]
+        _client_id = session_info['client_id']
 
         args = self.grant_config.copy()
 
@@ -72,20 +74,26 @@ class AuthzHandling(object):
             if key == "expires_in":
                 grant.set_expires_at(val)
             elif key == "usage_rules":
-                setattr(grant, key, self.usage_rules(request.get("client_id")))
+                setattr(grant, key, self.usage_rules(_client_id))
             else:
                 setattr(grant, key, val)
 
         if resources is None:
-            grant.resources = [session_info["client_id"]]
+            grant.resources = [_client_id]
         else:
             grant.resources = resources
 
-        # After this is where user consent should be handled
+        # Scope handling. If allowed scopes are defined for the client filter using that
         scopes = grant.scope
         if not scopes:
             scopes = request.get("scope", [])
-            grant.scope = scopes
+        else:
+            _allowed = _context.cdb[_client_id].get('allowed_scopes', [])
+            if _allowed:
+                scopes = list(set(scopes).intersection(set(_allowed)))
+        grant.scope = scopes
+
+        # After this is where user consent should be handled
         grant.claims = self.upstream_get("context").claims_interface.get_claims_all_usage(
             session_id=session_id, scopes=scopes
         )

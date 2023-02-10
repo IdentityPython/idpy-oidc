@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
+
     def _get_session_info(self, request, session_manager):
         if request["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -208,6 +209,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
