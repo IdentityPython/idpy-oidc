@@ -78,13 +78,13 @@ class TokenRevocation(Endpoint):
         try:
             self.token_types_supported = _context.cdb[client_id]["token_revocation"][
                 "token_types_supported"]
-        except:
+        except Exception:
             self.token_types_supported = self.token_revocation_kwargs.get("token_types_supported",
                                                                           self.token_types_supported)
 
         try:
             self.policy = _context.cdb[client_id]["token_revocation"]["policy"]
-        except:
+        except Exception:
             self.policy = self.token_revocation_kwargs.get("policy", {
                 "": {"callable": validate_token_revocation_policy}})
 

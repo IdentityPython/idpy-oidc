@@ -581,6 +581,7 @@ class JSONWebToken(Message):
         'entitlements': OPTIONAL_LIST_OF_STRINGS
     }
 
+
 # RFC 7009
 class TokenRevocationRequest(Message):
     c_param = {
