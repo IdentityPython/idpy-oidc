@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class TokenEndpointHelper(object):
+
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
         self.config = config
@@ -154,6 +155,7 @@ def validate_resource_indicators_policy(request, context, **kwargs):
 
 
 class AccessTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
@@ -341,6 +343,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager

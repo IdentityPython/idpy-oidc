@@ -42,3 +42,5 @@ class Token(token.Token):
         "urn:openid:params:grant-type:ciba": CIBATokenHelper,
         "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
     }
+
+    token_exchange_helper = TokenExchangeHelper

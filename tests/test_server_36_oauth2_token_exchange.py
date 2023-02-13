@@ -1117,8 +1117,9 @@ class TestEndpoint(object):
             - allowed_scopes: [profile]
             - requested_token_type: "...:access_token"
         Scenario:
-        Client1 has an access_token1 (with openid and profile scope).
-        Then, client1 exchanges access_token1 for a new access_token1_13 with scope offline_access
+        Client1 has an access_token1 (with scopes openid and profile).
+        Then, client1 wants to exchange access_token1 for a new access_token1_13 with scope
+        offline_access. This is not allowed.
         """
         self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
@@ -1187,10 +1188,7 @@ class TestEndpoint(object):
         )
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_scope"
-        assert (
-                _resp["error_description"]
-                == "Invalid requested scopes"
-        )
+        assert _resp["error_description"] == "Invalid requested scopes"
 
         token_exchange_req["scope"] = "offline_access profile"
 

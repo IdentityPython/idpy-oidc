@@ -201,4 +201,3 @@ class Entity(Unit):  # This is a Client
 
     def get_callback_uris(self):
         return self.context.claims.callback_uri
-

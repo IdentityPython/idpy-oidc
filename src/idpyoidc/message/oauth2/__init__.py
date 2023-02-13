@@ -10,6 +10,7 @@ from idpyoidc.exception import MissingAttribute
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import VerificationError
 from idpyoidc.message import Message
+from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -20,7 +21,6 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_BOOLEAN
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import msg_ser
 
 logger = logging.getLogger(__name__)
 
@@ -580,6 +580,33 @@ class JSONWebToken(Message):
         'roles': OPTIONAL_LIST_OF_STRINGS,
         'entitlements': OPTIONAL_LIST_OF_STRINGS
     }
+
+
+# RFC 7009
+class TokenRevocationRequest(Message):
+    c_param = {
+        "token": SINGLE_REQUIRED_STRING,
+        "token_type_hint": SINGLE_OPTIONAL_STRING,
+        # The ones below are part of authentication information
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+    }
+
+
+class TokenRevocationResponse(Message):
+    pass
+
+
+class TokenRevocationErrorResponse(ResponseMessage):
+    """
+    Error response from the revocation endpoint
+    """
+    c_allowed_values = ResponseMessage.c_allowed_values.copy()
+    c_allowed_values.update({
+        "error": [
+            "unsupported_token_type"
+        ]
+    })
 
 
 def factory(msgtype, **kwargs):
