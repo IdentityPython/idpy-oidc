@@ -258,7 +258,7 @@ class Authorization(authorization.Authorization):
         _req_jwt = make_openid_request(req, **_mor_args)
 
         if 'target' not in kwargs:
-            kwargs['target'] = _context.provider_info["issuer"]
+            kwargs['target'] = _context.provider_info.get("issuer", _context.issuer)
 
         # Should the request be encrypted
         _req_jwte = request_object_encryption(_req_jwt, _context,
