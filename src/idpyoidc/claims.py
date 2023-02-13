@@ -41,7 +41,7 @@ class Claims(ImpExp):
 
         ImpExp.__init__(self)
         if isinstance(prefer, dict):
-            self.prefer = {k: v for k, v in prefer.items() if k in self.supports}
+            self.prefer = {k: v for k, v in prefer.items() if k in self.supports()}
         else:
             self.prefer = {}
 
@@ -76,7 +76,7 @@ class Claims(ImpExp):
             elif type in ["id_token", "id_token token"]:
                 _uri.append('implicit')
 
-        if "form_post" in self.supports:
+        if "form_post" in self._supports:
             _uri.append("form_post")
 
         callback_uri = {}
@@ -167,7 +167,10 @@ class Claims(ImpExp):
 
         return {'keyjar': keyjar, 'jwks': _jwks, 'jwks_uri': _jwks_uri}
 
-    def load_conf(self, configuration, supports, keyjar: Optional[KeyJar] = None):
+    def load_conf(self,
+                  configuration: dict,
+                  supports: dict,
+                  keyjar: Optional[KeyJar] = None) -> KeyJar:
         for attr, val in configuration.items():
             if attr == "preference":
                 for k, v in val.items():
