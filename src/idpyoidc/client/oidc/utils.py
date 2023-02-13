@@ -46,14 +46,15 @@ def request_object_encryption(msg, service_context, keyjar, **kwargs):
     except KeyError:
         _kid = ""
 
-    if "target" not in kwargs:
+    _target = kwargs.get('target', kwargs.get('recv', None))
+    if _target is None:
         raise MissingRequiredAttribute("No target specified")
 
     if _kid:
-        _keys = keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"], kid=_kid)
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target, kid=_kid)
         _jwe["kid"] = _kid
     else:
-        _keys = keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"])
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target)
 
     return _jwe.encrypt(_keys)
 

@@ -32,9 +32,11 @@ class Authorization(Service):
     _supports = {
         "response_types_supported": ["code", 'token'],
         "response_modes_supported": ['query', 'fragment'],
-        "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+        # Below not OAuth2 functionality
+        # "request_object_signing_alg_values_supported": claims.get_signing_algs,
+        # "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+        # "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+        # "encrypt_request_object_supported": False,
     }
 
     _callback_path = {

@@ -78,7 +78,7 @@ class Authorization(authorization.Authorization):
 
     _supports = {
         "claims_parameter_supported": True,
-        "encrypt_request_object_supported": True,
+        "encrypt_request_object_supported": False,
         "request_object_signing_alg_values_supported": claims.get_signing_algs,
         "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
         "request_object_encryption_enc_values_supported": claims.get_encryption_encs,

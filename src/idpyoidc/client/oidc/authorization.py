@@ -257,6 +257,9 @@ class Authorization(authorization.Authorization):
 
         _req_jwt = make_openid_request(req, **_mor_args)
 
+        if 'target' not in kwargs:
+            kwargs['target'] = _context.provider_info["issuer"]
+
         # Should the request be encrypted
         _req_jwte = request_object_encryption(_req_jwt, _context,
                                               self.upstream_get('attribute', 'keyjar'),
@@ -300,7 +303,7 @@ class Authorization(authorization.Authorization):
             _req = self.construct_request_parameter(req, _request_param, **kwargs)
             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
         elif _request_param == "request":
-            _req = self.construct_request_parameter(req, _request_param)
+            _req = self.construct_request_parameter(req, _request_param, **kwargs)
             req["request"] = _req
 
         if _req:
