@@ -41,7 +41,7 @@ class Claims(ImpExp):
 
         ImpExp.__init__(self)
         if isinstance(prefer, dict):
-            self.prefer = {k: v for k, v in prefer.items() if k in self.supports()}
+            self.prefer = {k: v for k, v in prefer.items() if k in self._supports}
         else:
             self.prefer = {}
 
