@@ -27,12 +27,11 @@ def test_request_object_encryption():
         "client_secret": "abcdefghijklmnop",
     }
     service_context = ServiceContext(keyjar=KEYJAR, config=conf)
-    _behav = service_context.specs.behaviour
-    _behav["request_object_encryption_alg"] = "RSA1_5"
-    _behav["request_object_encryption_enc"] = "A128CBC-HS256"
-    service_context.specs.behaviour = _behav
+    _claims = service_context.claims
+    _claims.set_usage("request_object_encryption_alg", "RSA1_5")
+    _claims.set_usage("request_object_encryption_enc", "A128CBC-HS256")
 
-    _jwe = request_object_encryption(msg.to_json(), service_context, target=RECEIVER)
+    _jwe = request_object_encryption(msg.to_json(), service_context, KEYJAR, target=RECEIVER)
     assert _jwe
 
     _decryptor = factory(_jwe)

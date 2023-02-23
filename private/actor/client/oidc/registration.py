@@ -1,8 +1,4 @@
-import hashlib
 import logging
-from typing import Optional
-
-from cryptojwt.utils import as_bytes
 
 from idpyoidc.client.service import Service
 from idpyoidc.message import oidc
@@ -38,58 +34,58 @@ def response_types_to_grant_types(response_types):
     return list(_res)
 
 
-def create_callbacks(
-        issuer: str,
-        hash_seed: str,
-        base_url: str,
-        code: Optional[bool] = False,
-        implicit: Optional[bool] = False,
-        form_post: Optional[bool] = False,
-        request_uris: Optional[bool] = False,
-        backchannel_logout_uri: Optional[bool] = False,
-        frontchannel_logout_uri: Optional[bool] = False,
-):
-    """
-    To mitigate some security issues the redirect_uris should be OP/AS
-    specific. This method creates a set of redirect_uris unique to the
-    OP/AS.
-
-    :param frontchannel_logout_uri: Whether a front-channel logout uri should be constructed
-    :param backchannel_logout_uri: Whether a back-channel logout uri should be constructed
-    :param request_uri: Whether a request_uri should be constructed
-    :param issuer: Issuer ID
-    :return: A set of redirect_uris
-    """
-    _hash = hashlib.sha256()
-    _hash.update(hash_seed)
-    _hash.update(as_bytes(issuer))
-    _hex = _hash.hexdigest()
-
-    res = {"__hex": _hex}
-
-    if code:
-        res["code"] = f"{base_url}/authz_cb/{_hex}"
-
-    if implicit:
-        res["implicit"] = f"{base_url}/authz_im_cb/{_hex}"
-
-    if form_post:
-        res["form_post"] = f"{base_url}/authz_fp_cb/{_hex}"
-
-    if request_uris:
-        res["request_uris"] = f"{base_url}/req_uri/{_hex}"
-
-    if backchannel_logout_uri or frontchannel_logout_uri:
-        res["post_logout_redirect_uris"] = [f"{base_url}/session_logout/{_hex}"]
-
-    if backchannel_logout_uri:
-        res["backchannel_logout_uri"] = f"{base_url}/bc_logout/{_hex}"
-
-    if frontchannel_logout_uri:
-        res["frontchannel_logout_uri"] = f"{base_url}/fc_logout/{_hex}"
-
-    logger.debug(f"Created callback URIs: {res}")
-    return res
+# def create_callbacks(
+#         issuer: str,
+#         hash_seed: str,
+#         base_url: str,
+#         code: Optional[bool] = False,
+#         implicit: Optional[bool] = False,
+#         form_post: Optional[bool] = False,
+#         request_uris: Optional[bool] = False,
+#         backchannel_logout_uri: Optional[bool] = False,
+#         frontchannel_logout_uri: Optional[bool] = False,
+# ):
+#     """
+#     To mitigate some security issues the redirect_uris should be OP/AS
+#     specific. This method creates a set of redirect_uris unique to the
+#     OP/AS.
+#
+#     :param frontchannel_logout_uri: Whether a front-channel logout uri should be constructed
+#     :param backchannel_logout_uri: Whether a back-channel logout uri should be constructed
+#     :param request_uri: Whether a request_uri should be constructed
+#     :param issuer: Issuer ID
+#     :return: A set of redirect_uris
+#     """
+#     _hash = hashlib.sha256()
+#     _hash.update(hash_seed)
+#     _hash.update(as_bytes(issuer))
+#     _hex = _hash.hexdigest()
+#
+#     res = {"__hex": _hex}
+#
+#     if code:
+#         res["code"] = f"{base_url}/authz_cb/{_hex}"
+#
+#     if implicit:
+#         res["implicit"] = f"{base_url}/authz_im_cb/{_hex}"
+#
+#     if form_post:
+#         res["form_post"] = f"{base_url}/authz_fp_cb/{_hex}"
+#
+#     if request_uris:
+#         res["request_uris"] = f"{base_url}/req_uri/{_hex}"
+#
+#     if backchannel_logout_uri or frontchannel_logout_uri:
+#         res["post_logout_redirect_uris"] = [f"{base_url}/session_logout/{_hex}"]
+#
+#     if backchannel_logout_uri:
+#         res["backchannel_logout_uri"] = f"{base_url}/bc_logout/{_hex}"
+#
+#     if frontchannel_logout_uri:
+#         res["frontchannel_logout_uri"] = f"{base_url}/fc_logout/{_hex}"
+#
+#     logger.debug(f"Created callback URIs: {res}")
+#     return res
 
 
 def _cmp(a, b):
@@ -103,9 +99,9 @@ def _cmp(a, b):
     return a == b
 
 
-def check(entity, attribute, expected):
+def check(entity, claim, expected):
     try:
-        _usable = entity.get_metadata_attribute(attribute)
+        _usable = entity.get_service_context().get_usage(claim)
     except KeyError:
         pass
     else:
@@ -152,24 +148,24 @@ class Registration(Service):
     def __init__(self, client_get, conf=None):
         Service.__init__(self, client_get, conf=conf)
         self.pre_construct = [
-            self.add_client_behaviour_preference,
+            self.add_client_preference,
             # add_redirect_uris,
             # add_callback_uris,
             add_jwks_uri_or_jwks,
         ]
         self.post_construct = [self.oidc_post_construct]
 
-    def add_client_behaviour_preference(self, request_args=None, **kwargs):
+    def add_client_preference(self, request_args=None, **kwargs):
         _context = self.client_get("service_context")
         for prop in self.msg_type.c_param.keys():
             if prop in request_args:
                 continue
 
             try:
-                request_args[prop] = _context.specs.behaviour[prop]
+                request_args[prop] = _context.metadata.get_usage(prop)
             except KeyError:
                 try:
-                    request_args[prop] = _context.client_preferences[prop]
+                    request_args[prop] = _context.metadata.get_preference[prop]
                 except KeyError:
                     pass
         return request_args, {}

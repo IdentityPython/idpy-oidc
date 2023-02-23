@@ -7,19 +7,24 @@ ISS = "http://example.org/op"
 CLIENT_CONFIG = {
     "base_url": "https://example.com/cli",
     "client_secret": "a longesh password",
+    "client_id": "client_id",
+    "redirect_uris": ["https://example.com/cli/authz_cb"],
     "issuer": ISS,
     "application_name": "rphandler",
-    "metadata": {
+    "preference": {
         "application_type": "web",
         "contacts": "support@example.com",
-        "response_types": ["code"],
-        "client_id": "client_id",
-        "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "request_object_signing_alg": "ES256"
-    },
-    "usage": {
+        "response_types_supported": ["code"],
+        'request_parameter': "request_uri",
+        "request_object_signing_alg_values_supported": ["ES256"],
         "scope": ["openid", "profile", "email", "address", "phone"],
-        "request_uri": True
+        "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+        "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
+        "userinfo_signing_alg_values_supported": ["ES256"],
+        "post_logout_redirect_uris": ["https://rp.example.com/post"],
+        "backchannel_logout_uri": "https://rp.example.com/back",
+        "backchannel_logout_session_required": True,
+        "client_authn_methods": ['bearer_header']
     },
 
     "services": {
@@ -37,33 +42,15 @@ CLIENT_CONFIG = {
         },
         "accesstoken": {
             "class": "idpyoidc.client.oidc.access_token.AccessToken",
-            "kwargs": {
-                "metadata": {
-                    "token_endpoint_auth_method": "private_key_jwt",
-                    "token_endpoint_auth_signing_alg": "ES256"
-                }
-            }
+            "kwargs": {}
         },
         "userinfo": {
             "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-            "kwargs": {
-                "metadata": {
-                    "userinfo_signed_response_alg": "ES256"
-                },
-            }
+            "kwargs": {}
         },
         "end_session": {
             "class": "idpyoidc.client.oidc.end_session.EndSession",
-            "kwargs": {
-                "metadata": {
-                    "post_logout_redirect_uris": ["https://rp.example.com/post"],
-                    "backchannel_logout_uri": "https://rp.example.com/back",
-                    "backchannel_logout_session_required": True
-                },
-                "usage": {
-                    "backchannel_logout": True
-                }
-            }
+            "kwargs": {}
         }
     }
 }
@@ -77,64 +64,94 @@ KEY_CONF = {
 
 
 def test_create_client():
-    client = Entity(config=CLIENT_CONFIG)
-    _md = client.collect_metadata()
-    assert set(_md.keys()) == {'application_type',
-                               'backchannel_logout_uri',
-                               "backchannel_logout_session_required",
-                               'client_id',
-                               'contacts',
-                               'grant_types',
-                               'id_token_signed_response_alg',
-                               'post_logout_redirect_uris',
-                               'redirect_uris',
-                               'request_object_signing_alg',
-                               'request_uris',
-                               'response_types',
-                               'token_endpoint_auth_method',
-                               'token_endpoint_auth_signing_alg',
-                               'userinfo_signed_response_alg'}
+    client = Entity(config=CLIENT_CONFIG, client_type='oidc')
+    _context = client.get_context()
+    _context.map_supported_to_preferred()
+    _pref = _context.prefers()
+    _pref_with_values = [k for k, v in _pref.items() if v]
+    assert set(_pref_with_values) == {'application_type',
+                                      'backchannel_logout_session_required',
+                                      'backchannel_logout_uri',
+                                      'callback_uris',
+                                      'client_id',
+                                      'client_secret',
+                                      'contacts',
+                                      'default_max_age',
+                                      'grant_types_supported',
+                                      'id_token_signing_alg_values_supported',
+                                      'post_logout_redirect_uris',
+                                      'redirect_uris',
+                                      'request_object_signing_alg_values_supported',
+                                      'request_parameter',
+                                      'response_modes_supported',
+                                      'response_types_supported',
+                                      'scopes_supported',
+                                      'subject_types_supported',
+                                      'token_endpoint_auth_methods_supported',
+                                      'token_endpoint_auth_signing_alg_values_supported',
+                                      'userinfo_signing_alg_values_supported'}
 
-    # What's in service configuration has higher priority then metadata.
-    assert client.get_metadata_value("contacts") == 'support@example.com'
-    # Two ways of looking at things
-    assert client.get_metadata_value("userinfo_signed_response_alg") == "ES256"
-    assert client.value_in_metadata_attribute("userinfo_signed_response_alg", "ES256")
+    # What's in service configuration has higher priority then what's just supported.
+    _context = client.get_service_context()
+    assert _context.get_preference("contacts") == 'support@example.com'
+    #
+    assert _context.get_preference("userinfo_signing_alg_values_supported") == ['ES256']
     # How to act
-    assert client.get_usage_value("request_uri") is True
+    _context.map_preferred_to_registered()
 
-    _conf_args = client.config_args()
+    assert _context.get_usage("request_uris") is None
+
+    _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    total_metadata_args = {}
-    for key, val in _conf_args.items():
-        total_metadata_args.update(val["metadata"])
-    ma = list(total_metadata_args.keys())
-    ma.sort()
-    assert len(ma) == 36
+    assert len(_conf_args) == 23
     rr = set(RegistrationRequest.c_param.keys())
-    d = rr.difference(set(ma))
-    assert d == {'federation_type', 'organization_name', 'post_logout_redirect_uri'}
+    # The ones that are not defined and will therefore not appear in a registration request
+    d = rr.difference(set(_conf_args))
+    assert d == {'client_name',
+                 'client_uri',
+                 'default_acr_values',
+                 'frontchannel_logout_session_required',
+                 'frontchannel_logout_uri',
+                 'id_token_encrypted_response_alg',
+                 'id_token_encrypted_response_enc',
+                 'initiate_login_uri',
+                 'logo_uri',
+                 'jwks',
+                 'jwks_uri',
+                 'policy_uri',
+                 'post_logout_redirect_uri',
+                 'request_object_encryption_alg',
+                 'request_object_encryption_enc',
+                 'request_uris',
+                 'require_auth_time',
+                 'sector_identifier_uri',
+                 'tos_uri',
+                 'userinfo_encrypted_response_alg',
+                 'userinfo_encrypted_response_enc'}
 
 
 def test_create_client_key_conf():
     client_config = CLIENT_CONFIG.copy()
-    client_config.update({"key_conf": KEY_CONF})
+    client_config.update({
+        "key_conf": KEY_CONF,
+        "jwks_uri": "https://example.com/keys/jwks.json"
+    })
 
-    client = Entity(config=client_config)
-    _jwks = client.get_metadata_value("jwks")
-    assert _jwks
+    client = Entity(config=client_config, client_type='oidc')
+    assert client.get_service_context().get_preference("jwks_uri")
 
 
 def test_create_client_keyjar():
     _keyjar = init_key_jar(**KEY_CONF)
     client_config = CLIENT_CONFIG.copy()
 
-    client = Entity(config=client_config, keyjar=_keyjar)
-    _jwks = client.get_metadata_value("jwks")
+    client = Entity(config=client_config, keyjar=_keyjar, client_type='oidc')
+    _jwks = client.get_service_context().get_preference("jwks")
     assert _jwks
 
 
 def test_create_client_jwks_uri():
     client_config = CLIENT_CONFIG.copy()
-    client = Entity(config=client_config, jwks_uri="https://rp.example.com/jwks_uri.json")
-    assert client.get_metadata_value("jwks_uri")
+    client_config['jwks_uri'] = "https://rp.example.com/jwks_uri.json"
+    client = Entity(config=client_config)
+    assert client.get_service_context().get_preference("jwks_uri")

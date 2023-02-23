@@ -14,6 +14,7 @@ BASE_URL = "https://example.com"
 
 
 class TestRPHandler(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL)
@@ -24,7 +25,7 @@ class TestRPHandler(object):
 
     def test_init_client(self):
         client = self.rph.init_client("")
-        assert set(client.client_get("services").keys()) == {
+        assert set(client.get_services().keys()) == {
             "registration",
             "provider_info",
             "authorization",
@@ -33,20 +34,24 @@ class TestRPHandler(object):
             "refresh_token",
         }
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
 
-        assert set(_context.config.conf["metadata"].keys()) == {
-            "application_type",
-            "response_types",
-            "token_endpoint_auth_method"
-        }
-        assert _context.config.conf["usage"] == {
-            "scope": ["openid"],
-            "jwks_uri": True
-        }
+        assert set(_context.claims.prefer.keys()) == {
+            'application_type',
+            'callback_uris',
+            'id_token_encryption_alg_values_supported',
+            'id_token_encryption_enc_values_supported',
+            'jwks_uri',
+            'redirect_uris',
+            'request_object_encryption_alg_values_supported',
+            'request_object_encryption_enc_values_supported',
+            'scopes_supported',
+            'userinfo_encryption_alg_values_supported',
+            'userinfo_encryption_enc_values_supported'}
 
-        assert list(_context.keyjar.owners()) == ["", BASE_URL]
-        keys = _context.keyjar.get_issuer_keys("")
+        _keyjar = client.get_attribute('keyjar')
+        assert list(_keyjar.owners()) == ["", BASE_URL]
+        keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 2
 
         assert _context.base_url == BASE_URL
@@ -76,10 +81,10 @@ class TestRPHandler(object):
 
             issuer = self.rph.do_provider_info(client)
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
 
         # Calculating request so I can build a reasonable response
-        _req = client.client_get("service", "registration").construct_request()
+        _req = client.get_service("registration").construct_request()
 
         with responses.RequestsMock() as rsps:
             request_uri = _context.get("provider_info")["registration_endpoint"]
@@ -91,17 +96,27 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.specs.behaviour.keys()) == {
-            "token_endpoint_auth_method",
-            "response_types",
-            "scope",
-            "application_type",
-            'redirect_uris',
-            'id_token_signed_response_alg',
-            'grant_types'
-        }
+        assert set(_context.claims.use.keys()) == {'application_type',
+                                                   'callback_uris',
+                                                   'client_id',
+                                                   'client_secret',
+                                                   'default_max_age',
+                                                   'encrypt_request_object_supported',
+                                                   'encrypt_userinfo_supported',
+                                                   'grant_types',
+                                                   'id_token_signed_response_alg',
+                                                   'jwks_uri',
+                                                   'redirect_uris',
+                                                   'request_object_signing_alg',
+                                                   'response_modes_supported',
+                                                   'response_types',
+                                                   'scope',
+                                                   'subject_type',
+                                                   'token_endpoint_auth_method',
+                                                   'token_endpoint_auth_signing_alg',
+                                                   'userinfo_signed_response_alg'}
         assert _context.get_client_id() == "client uno"
-        assert _context.get("client_secret") == "VerySecretAndLongEnough"
+        assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 
         res = self.rph.init_authorization(client)
@@ -140,13 +155,13 @@ class TestRPHandler(object):
 
             issuer = self.rph.do_provider_info(client)
 
-        _context = client.client_get("service_context")
+        _context = client.get_context()
         # Calculating request so I can build a reasonable response
         # Publishing a JWKS instead of a JWKS_URI
         _context.jwks_uri = ""
-        _context.jwks = _context.keyjar.export_jwks()
+        _context.jwks = client.keyjar.export_jwks()
 
-        _req = client.client_get("service", "registration").construct_request()
+        _req = client.get_service("registration").construct_request()
 
         with responses.RequestsMock() as rsps:
             request_uri = _context.get("provider_info")["registration_endpoint"]
@@ -156,4 +171,4 @@ class TestRPHandler(object):
             rsps.add("POST", request_uri, body=_jws, status=200)
             self.rph.do_client_registration(client, ISS_ID)
 
-        assert "jwks" in _context.get("registration_response")
+        assert "jwks_uri" in _context.get("registration_response")

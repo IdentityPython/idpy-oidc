@@ -265,7 +265,7 @@ class Configuration(Base):
 
         if entity_conf:
             skip = [ec["path"] for ec in entity_conf if "path" in ec]
-            check = [l[0] for l in skip]
+            check = [word[0] for word in skip]
 
             self.extend(
                 conf=self.conf,
@@ -298,7 +298,7 @@ def create_from_config_file(
     domain: Optional[str] = "",
     port: Optional[int] = 0,
     dir_attributes: Optional[List[str]] = None,
-):
+) -> Base:
     return cls(
         load_config_file(filename),
         entity_conf=entity_conf,

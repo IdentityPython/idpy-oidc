@@ -7,16 +7,13 @@ from cryptojwt.jwe.exception import JWEException
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import ResponseMessage
-from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import TokenErrorResponse
-from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
 from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
 from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
 from idpyoidc.server.oauth2.token_helper import TokenExchangeHelper
 from idpyoidc.server.session import MintingNotAllowed
-from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
@@ -36,16 +33,20 @@ class Token(Endpoint):
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
+        "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
     }
+    token_exchange_helper = TokenExchangeHelper
 
-    def __init__(self, server_get, new_refresh_token=False, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get, new_refresh_token=False, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         self.post_parse_request.append(self._post_parse_request)
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
         self.configure_grant_types(kwargs.get("grant_types_helpers"))
-        self.grant_types_supported = kwargs.get("grant_types_supported", list(self.helper.keys()))
+        self.grant_types_supported = kwargs.get("grant_types_supported",
+                                                list(self.helper_by_grant_type.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
+        self.resource_indicators_config = kwargs.get('resource_indicators', None)
 
     def configure_grant_types(self, grant_types_helpers):
         if grant_types_helpers is None:
@@ -81,11 +82,11 @@ class Token(Endpoint):
                 raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
 
     def _post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         grant_type = request["grant_type"]
         _helper = self.helper.get(grant_type)
-        client = kwargs["endpoint_context"].cdb[client_id]
+        client = kwargs["context"].cdb[client_id]
         grant_types_supported = client.get("grant_types_supported", self.grant_types_supported)
         if grant_type not in grant_types_supported:
             return self.error_cls(
@@ -131,9 +132,9 @@ class Token(Endpoint):
             return response_args
 
         _access_token = response_args["access_token"]
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
 
-        if isinstance(_helper, TokenExchangeHelper):
+        if isinstance(_helper, self.token_exchange_helper):
             _handler_key = _helper.get_handler_key(request, _context)
         else:
             _handler_key = "access_token"

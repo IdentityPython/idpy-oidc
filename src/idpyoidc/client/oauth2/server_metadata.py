@@ -1,11 +1,13 @@
 """The service that talks to the OAuth2 provider info discovery endpoint."""
 import logging
+from typing import Optional
 
 from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service import Service
+from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -13,7 +15,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ServerMetadata(Service):
-    """The service that talks to the OAuth2 server metadata endpoint."""
+    """The service that talks to the OAuth2 server claims endpoint."""
 
     msg_type = oauth2.Message
     response_cls = oauth2.ASConfigurationResponse
@@ -22,10 +24,10 @@ class ServerMetadata(Service):
     service_name = "server_metadata"
     http_method = "GET"
 
-    metadata_attributes = {}
+    _supports = {}
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
 
     def get_endpoint(self):
         """
@@ -34,7 +36,7 @@ class ServerMetadata(Service):
         :return: Service endpoint
         """
         try:
-            _iss = self.client_get("service_context").issuer
+            _iss = self.upstream_get("context").issuer
         except AttributeError:
             _iss = self.endpoint
 
@@ -69,7 +71,7 @@ class ServerMetadata(Service):
         # In some cases we can live with the two URLs not being
         # the same. But this is an excepted that has to be explicit
         try:
-            self.client_get("service_context").allow["issuer_mismatch"]
+            self.upstream_get("context").allow["issuer_mismatch"]
         except KeyError:
             if _issuer != _pcr_issuer:
                 raise OidcServiceError(
@@ -86,7 +88,7 @@ class ServerMetadata(Service):
             # a name ending in '_endpoint' so I can look specifically
             # for those
             if key.endswith("_endpoint"):
-                _srv = self.client_get("service_by_endpoint_name", key)
+                _srv = self.upstream_get("service_by_endpoint_name", key)
                 if _srv:
                     _srv.endpoint = val
 
@@ -99,7 +101,7 @@ class ServerMetadata(Service):
         :param service_context: Information collected/used by services
         """
 
-        _context = self.client_get("service_context")
+        _context = self.upstream_get("context")
         # Verify that the issuer value received is the same as the
         # url that was used as service endpoint (without the .well-known part)
         if "issuer" in resp:
@@ -113,9 +115,11 @@ class ServerMetadata(Service):
         self._set_endpoints(resp)
 
         # If I already have a Key Jar then I'll add then provider keys to
-        # that. Otherwise a new Key Jar is minted
+        # that. Otherwise, a new Key Jar is minted
         try:
-            _keyjar = _context.keyjar
+            _keyjar = self.upstream_get('attribute', 'keyjar')
+            if _keyjar is None:
+                _keyjar = KeyJar()
         except KeyError:
             _keyjar = KeyJar()
 
@@ -126,7 +130,12 @@ class ServerMetadata(Service):
         elif "jwks" in resp:
             _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
 
-        _context.keyjar = _keyjar
+        # Combine what I prefer/supports with what the Provider supports
+        if isinstance(resp, Message):
+            _info = resp.to_dict()
+        else:
+            _info = resp
+        _context.map_supported_to_preferred(_info)
 
-    def update_service_context(self, resp, **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)

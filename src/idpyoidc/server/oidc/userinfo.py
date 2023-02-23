@@ -9,6 +9,7 @@ from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
 
+from idpyoidc import claims
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -27,28 +28,26 @@ class UserInfo(Endpoint):
     response_placement = "body"
     endpoint_name = "userinfo_endpoint"
     name = "userinfo"
-    provider_info_attributes = {
+    _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
-        "userinfo_signing_alg_values_supported": None,
-        "userinfo_encryption_alg_values_supported": None,
-        "userinfo_encryption_enc_values_supported": None,
-    }
-    default_capabilities = {
-        "client_authn_method": ["bearer_header", "bearer_body"],
+        "encrypt_userinfo_supported": True,
+        "userinfo_signing_alg_values_supported": claims.get_signing_algs,
+        "userinfo_encryption_alg_values_supported": claims.get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": claims.get_encryption_encs,
     }
 
-    def __init__(self, server_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
+    def __init__(self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
         Endpoint.__init__(
             self,
-            server_get,
+            upstream_get,
             add_claims_by_scope=add_claims_by_scope,
             **kwargs,
         )
         # Add the issuer ID as an allowed JWT target
         self.allowed_targets.append("")
 
-    def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(
+    def get_client_id_from_token(self, context, token, request=None):
+        _info = context.session_manager.get_session_info_by_token(
             token, handler_key="access_token"
         )
         return _info["client_id"]
@@ -64,7 +63,7 @@ class UserInfo(Endpoint):
         if "error" in kwargs and kwargs["error"]:
             return Endpoint.do_response(self, response_args, request, **kwargs)
 
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         if not client_id:
             raise MissingValue("client_id")
 
@@ -89,7 +88,7 @@ class UserInfo(Endpoint):
 
         if encrypt or sign:
             _jwt = JWT(
-                _context.keyjar,
+                self.upstream_get('attribute', 'keyjar'),
                 iss=_context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,
@@ -113,7 +112,7 @@ class UserInfo(Endpoint):
         return {"response": resp, "http_headers": http_headers}
 
     def process_request(self, request=None, **kwargs):
-        _mngr = self.server_get("endpoint_context").session_manager
+        _mngr = self.upstream_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["access_token"], grant=True, handler_key="access_token"
@@ -148,7 +147,7 @@ class UserInfo(Endpoint):
             #     pass
 
         if allowed:
-            _cntxt = self.server_get("endpoint_context")
+            _cntxt = self.upstream_get("context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
                 _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )
@@ -181,7 +180,7 @@ class UserInfo(Endpoint):
         # Verify that the client is allowed to do this
         try:
             auth_info = self.client_authentication(request, http_info, **kwargs)
-        except ClientAuthenticationError as e:
+        except ClientAuthenticationError:
             return self.error_cls(error="invalid_token", error_description="Invalid token")
 
         if isinstance(auth_info, ResponseMessage):

@@ -7,8 +7,8 @@ from cryptojwt.jws.exception import JWSException
 from cryptojwt.utils import importer
 
 from idpyoidc.server.exception import ToOld
-from . import is_expired
 from . import Token
+from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
 from ..constant import DEFAULT_TOKEN_LIFETIME
@@ -26,7 +26,7 @@ class JWTToken(Token):
             aud: Optional[list] = None,
             alg: str = "ES256",
             lifetime: int = DEFAULT_TOKEN_LIFETIME,
-            server_get: Callable = None,
+            upstream_get: Callable = None,
             token_type: str = "Bearer",
             profile: Optional[Union[Message, str]] = JWTAccessToken,
             with_jti: Optional[bool] = False,
@@ -37,11 +37,11 @@ class JWTToken(Token):
         self.lifetime = lifetime
 
         self.kwargs = kwargs
-        _context = server_get("endpoint_context")
-        # self.key_jar = keyjar or _context.keyjar
+        _context = upstream_get("context")
+        # self.key_jar = keyjar or upstream_get('attribute','keyjar')
         self.issuer = issuer or _context.issuer
         self.cdb = _context.cdb
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
         self.def_aud = aud or []
         self.alg = alg
@@ -85,13 +85,12 @@ class JWTToken(Token):
         payload = self.load_custom_claims(payload)
 
         # payload.update(kwargs)
-        _context = self.server_get("endpoint_context")
         if usage_rules and "expires_in" in usage_rules:
             lifetime = usage_rules.get("expires_in")
         else:
             lifetime = self.lifetime
         signer = JWT(
-            key_jar=_context.keyjar,
+            key_jar=self.upstream_get('attribute', 'keyjar'),
             iss=self.issuer,
             lifetime=lifetime,
             sign_alg=self.alg,
@@ -112,8 +111,8 @@ class JWTToken(Token):
         return signer.pack(payload)
 
     def get_payload(self, token):
-        _context = self.server_get("endpoint_context")
-        verifier = JWT(key_jar=_context.keyjar, allowed_sign_algs=[self.alg])
+        verifier = JWT(key_jar=self.upstream_get('attribute', 'keyjar'),
+                       allowed_sign_algs=[self.alg])
         try:
             _payload = verifier.unpack(token)
         except JWSException:
@@ -141,7 +140,7 @@ class JWTToken(Token):
 
         if is_expired(_payload["exp"]):
             raise ToOld("Token has expired")
-        # All the token metadata
+        # All the token claims
         _res = {
             "sid": _payload["sid"],
             "token_class": _payload["token_class"],

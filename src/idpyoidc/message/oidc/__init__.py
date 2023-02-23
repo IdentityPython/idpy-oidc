@@ -288,7 +288,7 @@ def verify_id_token(msg, check_hash=False, claim="id_token", **kwargs):
         _signed = False
         _sign_alg = kwargs.get("sigalg")
         if _sign_alg == "none":
-            _allowed = True
+            pass
         else:  # There might or might not be a specified signing alg
             if kwargs.get("allow_sign_alg_none", False) is False:
                 logger.info("Signing algorithm None not allowed")
@@ -450,8 +450,6 @@ class AuthorizationRequest(oauth2.AuthorizationRequest):
         Authorization Request and in the OpenID Request Object MUST exactly
         match."""
         super(AuthorizationRequest, self).verify(**kwargs)
-
-        clear_verified_claims(self)
 
         args = {}
         for arg in ["keyjar", "opponent_id", "sender", "alg", "encalg", "encenc"]:
@@ -635,8 +633,8 @@ class RegistrationRequest(Message):
         "frontchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
         "backchannel_logout_uri": SINGLE_OPTIONAL_STRING,
         "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
-        "federation_type": OPTIONAL_LIST_OF_STRINGS,
-        "organization_name": SINGLE_OPTIONAL_STRING,
+        # "federation_type": OPTIONAL_LIST_OF_STRINGS,
+        # "organization_name": SINGLE_OPTIONAL_STRING,
     }
     c_default = {"application_type": "web", "response_types": ["code"]}
     c_allowed_values = {

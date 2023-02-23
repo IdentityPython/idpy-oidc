@@ -43,16 +43,6 @@ RESPONSE_TYPES_SUPPORTED = [
     ["none"],
 ]
 
-CAPABILITIES = {
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ],
-}
-
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
     redirect_uri="https://example.com/cb",
@@ -85,7 +75,7 @@ def full_path(local_file):
 USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 _OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "claims": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
     "refresh_access_token": {
@@ -103,7 +93,19 @@ class TestEndpoint(object):
         server_conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "capabilities": CAPABILITIES,
+            "subject_types_supported": ["public", "pairwise", "ephemeral"],
+            "grant_types_supported": [
+                "authorization_code",
+                "implicit",
+                "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                "refresh_token",
+            ],
+            "client_authn_method": [
+                "client_secret_basic",
+                "client_secret_post",
+                "client_secret_jwt",
+                "private_key_jwt",
+            ],
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
@@ -123,14 +125,7 @@ class TestEndpoint(object):
                 "token": {
                     "path": "token",
                     "class": "idpyoidc.server.oidc.token.Token",
-                    "kwargs": {
-                        "client_authn_method": [
-                            "client_secret_basic",
-                            "client_secret_post",
-                            "client_secret_jwt",
-                            "private_key_jwt",
-                        ],
-                    },
+                    "kwargs": {},
                 },
             },
             "authentication": {
@@ -191,22 +186,22 @@ class TestEndpoint(object):
 
         client_1_config = {
             "issuer": server_conf["issuer"],
-            "client_secret": "hemligt",
+            "client_secret": "hemligtlösenord",
             "client_id": "client_1",
             "redirect_uris": ["https://example.com/cb"],
-            "client_salt": "salted",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
+            "client_salt": "salted_peanuts_cooking",
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
+            "response_types_supported": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         client_2_config = {
             "issuer": server_conf["issuer"],
             "client_id": "client_2",
-            "client_secret": "hemligt",
+            "client_secret": "hemligtlösenord",
             "redirect_uris": ["https://example.com/cb"],
-            "client_salt": "salted",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
+            "client_salt": "salted_peanuts_cooking",
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
+            "response_types_supported": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         self.client_1 = Client(client_type='oauth2', config=client_1_config,
@@ -216,17 +211,19 @@ class TestEndpoint(object):
                                keyjar=build_keyjar(KEYDEFS),
                                services=_OAUTH2_SERVICES)
 
-        self.endpoint_context = self.server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = client_1_config
-        self.endpoint_context.cdb["client_2"] = client_2_config
-        self.endpoint_context.keyjar.import_jwks(
-            self.client_1.get_service_context().keyjar.export_jwks(), "client_1")
-        self.endpoint_context.keyjar.import_jwks(
-            self.client_2.get_service_context().keyjar.export_jwks(), "client_2")
+        self.context = self.server.context
+        self.context.cdb["client_1"] = client_1_config
+        self.context.cdb["client_2"] = client_2_config
+        self.context.keyjar.import_jwks(
+            self.client_1.keyjar.export_jwks(), "client_1")
+        self.context.keyjar.import_jwks(
+            self.client_2.keyjar.export_jwks(), "client_2")
 
-        # self.endpoint = self.server.server_get("endpoint", "token")
-        # self.introspection_endpoint = self.server.server_get("endpoint", "introspection")
-        self.session_manager = self.endpoint_context.session_manager
+        self.context.set_provider_info()
+
+        # self.endpoint = self.server.upstream_get("endpoint", "token")
+        # self.introspection_endpoint = self.server.upstream_get("endpoint", "introspection")
+        self.session_manager = self.context.session_manager
         self.user_id = "diana"
 
     def do_query(self, service_type, endpoint_type, request_args, state):
@@ -269,8 +266,8 @@ class TestEndpoint(object):
         _nonce = rndstr(24),
         _context = self.client_1.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.state.create_state(_context.get("issuer"))
-        _context.state.store_nonce2state(_nonce, _state)
+        _state = _context.cstate.create_state(iss=_context.get("issuer"))
+        _context.cstate.bind_key(_nonce, _state)
 
         req_args = {
             "response_type": ["code"],
@@ -298,7 +295,7 @@ class TestEndpoint(object):
             "redirect_uri": areq["redirect_uri"],
             "grant_type": "authorization_code",
             "client_id": self.client_1.get_client_id(),
-            "client_secret": _context.get("client_secret"),
+            "client_secret": _context.get_usage("client_secret"),
         }
 
         _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
@@ -354,7 +351,7 @@ class TestEndpoint(object):
         """
         Test that per-client token exchange configuration works correctly
         """
-        self.endpoint_context.cdb["client_1"]["token_exchange"] = {
+        self.context.cdb["client_1"]["token_exchange"] = {
             "subject_token_types_supported": [
                 "urn:ietf:params:oauth:token-type:access_token",
                 "urn:ietf:params:oauth:token-type:refresh_token",

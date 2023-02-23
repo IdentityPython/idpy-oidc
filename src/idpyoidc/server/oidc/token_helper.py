@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
+
     def _get_session_info(self, request, session_manager):
         if request["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -43,7 +44,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
 
         _mngr = _context.session_manager
         logger.debug("OIDC Access Token")
@@ -120,9 +121,9 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if (
-            issue_refresh
-            and "refresh_token" in _supports_minting
-            and "refresh_token" in grant_types_supported
+                issue_refresh
+                and "refresh_token" in _supports_minting
+                and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
@@ -165,7 +166,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens
@@ -175,7 +176,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("endpoint_context").session_manager
+        _mngr = self.endpoint.upstream_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"
@@ -208,8 +209,9 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
 
         if req["grant_type"] != "refresh_token":
@@ -301,9 +303,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-            "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+                "client_id" in req
+                and req["client_id"] in _context.cdb
+                and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
@@ -315,7 +317,10 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self,
+            request: Union[Message, dict],
+            client_id: Optional[str] = "",
+            **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -326,13 +331,10 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("endpoint_context")
-        try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
+        _context = self.endpoint.upstream_get("context")
 
-        request.verify(keyjar=keyjar, opponent_id=client_id)
+        request.verify(keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
+                       opponent_id=client_id)
 
         _mngr = _context.session_manager
         try:

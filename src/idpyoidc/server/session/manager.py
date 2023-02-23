@@ -7,7 +7,6 @@ from typing import Optional
 import uuid
 
 from idpyoidc.encrypter import default_crypt_config
-from idpyoidc.encrypter import get_crypt_config
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
@@ -195,14 +194,6 @@ class SessionManager(GrantManager):
         if "resource" in auth_req:
             resources = auth_req["resource"]
 
-        if self.node_type[0] == "user":
-            kwargs = {
-                "sub": self.sub_func[sub_type](
-                    user_id, salt=self.get_salt(), sector_identifier=sector_identifier)
-            }
-        else:
-            kwargs = {}
-
         return self.add_grant(
             path=self.make_path(user_id=user_id, client_id=client_id),
             token_usage_rules=token_usage_rules,
@@ -216,7 +207,7 @@ class SessionManager(GrantManager):
             claims=_claims,
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
-            resources=resources
+            resources=resources,
         )
 
     def create_exchange_grant(
@@ -499,7 +490,7 @@ class SessionManager(GrantManager):
             authorization_request: Optional[bool] = False,
             handler_key: Optional[str] = "",
     ) -> dict:
-        
+
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
         else:
@@ -544,6 +535,6 @@ class SessionManager(GrantManager):
         return self.unpack_branch_key(key)
 
 
-def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
-    _token_handler = handler.factory(server_get, **token_handler_args)
+def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
+    _token_handler = handler.factory(upstream_get, **token_handler_args)
     return SessionManager(_token_handler, sub_func=sub_func, conf=conf)

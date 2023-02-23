@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class TokenEndpointHelper(object):
+
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
         self.config = config
@@ -62,7 +63,7 @@ class TokenEndpointHelper(object):
             token_args: Optional[dict] = None,
             token_type: Optional[str] = "",
     ) -> SessionToken:
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
@@ -81,7 +82,7 @@ class TokenEndpointHelper(object):
 
         token = grant.mint_token(
             session_id,
-            endpoint_context=_context,
+            context=_context,
             token_class=token_class,
             token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
@@ -102,6 +103,7 @@ class TokenEndpointHelper(object):
 
         return token
 
+
 def validate_resource_indicators_policy(request, context, **kwargs):
     if "resource" not in request:
         return TokenErrorResponse(
@@ -114,7 +116,8 @@ def validate_resource_indicators_policy(request, context, **kwargs):
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", None)
 
-    if isinstance(resource_servers_per_client, dict) and client_id not in resource_servers_per_client:
+    if isinstance(resource_servers_per_client,
+                  dict) and client_id not in resource_servers_per_client:
         return TokenErrorResponse(
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
@@ -152,6 +155,7 @@ def validate_resource_indicators_policy(request, context, **kwargs):
 
 
 class AccessTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
@@ -159,7 +163,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Access Token")
 
@@ -180,10 +184,10 @@ class AccessTokenHelper(TokenEndpointHelper):
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        _cinfo = self.endpoint.server_get("endpoint_context").cdb.get(client_id)
+        _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
 
         if ("resource_indicators" in _cinfo
-            and "access_token" in _cinfo["resource_indicators"]):
+                and "access_token" in _cinfo["resource_indicators"]):
             resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
         else:
             resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
@@ -198,10 +202,11 @@ class AccessTokenHelper(TokenEndpointHelper):
             if isinstance(req, TokenErrorResponse):
                 return req
 
-        if "grant_types_supported" in _context.cdb[client_id]:
-            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
-        else:
-            grant_types_supported = _context.provider_info["grant_types_supported"]
+        # if "grant_types_supported" in _context.cdb[client_id]:
+        #     grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        # else:
+        #     grant_types_supported = _context.provider_info["grant_types_supported"]
+
         grant = _session_info["grant"]
 
         _based_on = grant.get_token(_access_code)
@@ -280,7 +285,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def _enforce_resource_indicators_policy(self, request, config):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get('context')
 
         policy = config["policy"]
         callable = policy["callable"]
@@ -310,7 +315,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.server_get("endpoint_context").session_manager
+        _mngr = self.endpoint.upstream_get("context").session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"
@@ -338,8 +343,9 @@ class AccessTokenHelper(TokenEndpointHelper):
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
+
     def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         logger.debug("Refresh Token")
 
@@ -433,13 +439,11 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.server_get("endpoint_context")
-        try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
+        _context = self.endpoint.upstream_get("context")
 
-        request.verify(keyjar=keyjar, opponent_id=client_id)
+        request.verify(
+            keyjar=self.endpoint.upstream_get('sttribute', 'keyjar'),
+            opponent_id=client_id)
 
         _mngr = _context.session_manager
         try:
@@ -498,19 +502,17 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def post_parse_request(self, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         if "token_exchange" in _context.cdb[request["client_id"]]:
             config = _context.cdb[request["client_id"]]["token_exchange"]
         else:
             config = self.config
 
         try:
-            keyjar = _context.keyjar
-        except AttributeError:
-            keyjar = ""
-
-        try:
-            request.verify(keyjar=keyjar, opponent_id=client_id)
+            request.verify(
+                keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
+                opponent_id=client_id
+            )
         except (
                 MissingRequiredAttribute,
                 ValueError,
@@ -567,7 +569,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return resp
 
     def _enforce_policy(self, request, token, config):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         subject_token_types_supported = config.get(
             "subject_token_types_supported", self.token_types_mapping.keys()
         )
@@ -638,7 +640,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
         return TokenExchangeResponse(**response_args)
 
     def process_request(self, request, **kwargs):
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         try:
             _handler_key = self.token_types_mapping[request["subject_token_type"]]
@@ -728,17 +730,17 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def _validate_configuration(self, config):
         if "requested_token_types_supported" not in config:
             raise ImproperlyConfigured(
-                f"Missing 'requested_token_types_supported' from Token Exchange configuration"
+                "Missing 'requested_token_types_supported' from Token Exchange configuration"
             )
         if "policy" not in config:
-            raise ImproperlyConfigured(f"Missing 'policy' from Token Exchange configuration")
+            raise ImproperlyConfigured("Missing 'policy' from Token Exchange configuration")
         if "" not in config["policy"]:
             raise ImproperlyConfigured(
-                f"Default Token Exchange policy configuration is not defined"
+                "Default Token Exchange policy configuration is not defined"
             )
         if "callable" not in config["policy"][""]:
             raise ImproperlyConfigured(
-                f"Missing 'callable' from default Token Exchange policy configuration"
+                "Missing 'callable' from default Token Exchange policy configuration"
             )
 
         _default_requested_token_type = config.get("default_requested_token_type",

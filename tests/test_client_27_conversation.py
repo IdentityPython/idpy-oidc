@@ -114,68 +114,49 @@ SERVICES = {
     },
     "authorization": {
         "class": "idpyoidc.client.oidc.authorization.Authorization",
-        "kwargs": {
-            "metadata": {
-                "request_object_signing_alg": "ES256"
-            },
-            "usage": {
-                "request_uri": True
-            }
-        }
+        "kwargs": {}
     },
     "accesstoken": {
         "class": "idpyoidc.client.oidc.access_token.AccessToken",
-        "kwargs": {
-            "metadata": {
-                "token_endpoint_auth_method": "private_key_jwt",
-                "token_endpoint_auth_signing_alg": "ES256"
-            }
-        }
+        "kwargs": {}
     },
     "refresh_token": {
         "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
     },
     "userinfo": {
         "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-        "kwargs": {
-            "metadata": {
-                "userinfo_signed_response_alg": "ES256"
-            },
-        }
+        "kwargs": {}
     },
     "end_session": {
         "class": "idpyoidc.client.oidc.end_session.EndSession",
-        "kwargs": {
-            "metadata": {
-                "post_logout_redirect_uri": "https://rp.example.com/post",
-                "backchannel_logout_uri": "https://rp.example.com/back",
-                "backchannel_logout_session_required": True
-            },
-            "usage": {
-                "backchannel_logout": True
-            }
-        }
+        "kwargs": {}
     }
 }
 
 
 def test_conversation():
     config = {
-        "metadata": {
-            "application_type": "web",
-            "contacts": ["ops@example.org"],
-            "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
-            "response_types": ["code"],
-        },
-        "usage": {
-            "scope": ["openid", "profile", "email", "address", "phone"],
-        },
+        "application_type": "web",
+        "contacts": ["ops@example.org"],
+        "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
+        "response_types": ["code"],
+        "scopes_supported": ["openid", "profile", "email", "address", "phone"],
+        "request_object_signing_alg": "ES256",
+        "request_uris": [f"{RP_BASEURL}/requests"],
+        "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+        "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
+        "userinfo_signing_alg_values_supported": ["ES256"],
+        "post_logout_redirect_uri": "https://rp.example.com/post",
+        "backchannel_logout_uri": "https://rp.example.com/back",
+        "backchannel_logout_session_required": True,
+        'allow': {'missing_kid': True},
+        "client_authn_methods": ['bearer_header'],
         "services": SERVICES
     }
 
-    entity = Entity(config=config, keyjar=RP_KEYJAR)
+    entity = Entity(config=config, keyjar=RP_KEYJAR, client_type='oidc')
 
-    assert set(entity.client_get("services").keys()) == {
+    assert set(entity.get_services().keys()) == {
         "accesstoken",
         "authorization",
         "webfinger",
@@ -185,11 +166,11 @@ def test_conversation():
         "provider_info",
         'end_session',
     }
-    service_context = entity.client_get("service_context")
+    service_context = entity.get_context()
 
     # ======================== WebFinger ========================
 
-    webfinger_service = entity.client_get("service", "webfinger")
+    webfinger_service = entity.get_service("webfinger")
     info = webfinger_service.get_request_parameters(request_args={"resource": "foobar@example.org"})
 
     assert (
@@ -222,13 +203,13 @@ def test_conversation():
     ]
 
     webfinger_service.update_service_context(resp=response)
-    entity.client_get("service_context").issuer = OP_BASEURL
+    entity.get_context().issuer = OP_BASEURL
 
     # =================== Provider info discovery ====================
-    provider_info_service = entity.client_get("service", "provider_info")
+    provider_info_service = entity.get_service("provider_info")
     info = provider_info_service.get_request_parameters()
 
-    assert info["url"] == "https://example.org/op/.well-known/openid" "-configuration"
+    assert info["url"] == "https://example.org/op/.well-known/openid-configuration"
 
     provider_info_response = json.dumps(
         {
@@ -424,33 +405,35 @@ def test_conversation():
     resp = provider_info_service.parse_response(provider_info_response)
 
     assert isinstance(resp, ProviderConfigurationResponse)
-    provider_info_service.update_service_context(resp)
+    provider_info_service.update_service_context(resp, '')
 
-    _pi = entity.client_get("service_context").provider_info
+    _pi = entity.get_context().provider_info
     assert _pi["issuer"] == OP_BASEURL
     assert _pi["authorization_endpoint"] == "https://example.org/op/authorization"
     assert _pi["registration_endpoint"] == "https://example.org/op/registration"
 
     # =================== Client registration ====================
-    registration_service = entity.client_get("service", "registration")
+    registration_service = entity.get_service("registration")
     info = registration_service.get_request_parameters()
 
     assert info["url"] == "https://example.org/op/registration"
     _body = json.loads(info["body"])
-    assert set(_body.keys()) == {
-        "application_type",
-        'backchannel_logout_uri',
-        'backchannel_logout_session_required',
-        "contacts",
-        "grant_types",
-        'id_token_signed_response_alg',
-        'jwks',
-        "redirect_uris",
-        "response_types",
-        "token_endpoint_auth_method",
-        'userinfo_signed_response_alg',
-        'token_endpoint_auth_signing_alg',
-    }
+    assert set(_body.keys()) == {'application_type',
+                                 'backchannel_logout_session_required',
+                                 'backchannel_logout_uri',
+                                 'contacts',
+                                 'default_max_age',
+                                 'grant_types',
+                                 'id_token_signed_response_alg',
+                                 'jwks',
+                                 'redirect_uris',
+                                 'request_object_signing_alg',
+                                 'request_uris',
+                                 'response_types',
+                                 'subject_type',
+                                 'token_endpoint_auth_method',
+                                 'token_endpoint_auth_signing_alg',
+                                 'userinfo_signed_response_alg'}
     assert info["headers"] == {"Content-Type": "application/json"}
 
     now = int(time.time())
@@ -477,7 +460,7 @@ def test_conversation():
     registration_service.update_service_context(response)
 
     assert service_context.get_client_id() == "zls2qhN1jO6A"
-    assert service_context.client_secret == "c8434f28cf9375d9a7"
+    assert service_context.get_usage('client_secret') == "c8434f28cf9375d9a7"
     assert set(service_context.registration_response.keys()) == {
         "client_secret_expires_at",
         "contacts",
@@ -498,8 +481,8 @@ def test_conversation():
     STATE = "Oh3w3gKlvoM2ehFqlxI3HIK5"
     NONCE = "UvudLKz287YByZdsY3AJoPAlEXQkJ0dK"
 
-    auth_service = entity.client_get("service", "authorization")
-    _state_interface = service_context.state
+    auth_service = entity.get_service("authorization")
+    _cstate = service_context.cstate
 
     info = auth_service.get_request_parameters(request_args={"state": STATE, "nonce": NONCE})
 
@@ -529,29 +512,25 @@ def test_conversation():
 
     _resp = auth_service.parse_response(_authz_rep.to_urlencoded())
     auth_service.update_service_context(_resp, key=STATE)
-    _item = _state_interface.get_item(AuthorizationResponse, "auth_response", STATE)
+    _item = _cstate.get(STATE)
     assert _item["code"] == "Z0FBQUFBQmFkdFFjUVpFWE81SHU5N1N4N01"
 
     # =================== Access token ====================
 
-    token_service = entity.client_get("service", "accesstoken")
-    request_args = {"state": STATE, "redirect_uri": entity.get_metadata_value("redirect_uris")[0]}
+    token_service = entity.get_service("accesstoken")
+    request_args = {"state": STATE, "redirect_uri": service_context.get_usage("redirect_uris")[0]}
 
     info = token_service.get_request_parameters(request_args=request_args)
 
     assert info["url"] == "https://example.org/op/token"
     _qp = parse_qs(info["body"])
-    assert set(_qp.keys()) == {
-        "grant_type",
-        "redirect_uri",
-        "state",
-        "code",
-        "client_assertion",
-        "client_assertion_type"
-    }
-    assert info["headers"] == {
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+    # since the default is private_key_jwt !!!
+    assert set(_qp.keys()) == {'client_id',
+                               'code',
+                               'grant_type',
+                               'redirect_uri',
+                               'state'}
+    assert info["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
 
     # create the IdToken
     _jwt = JWT(OP_KEYJAR, OP_BASEURL, lifetime=3600, sign=True, sign_alg="RS256")
@@ -589,25 +568,29 @@ def test_conversation():
 
     token_service.update_service_context(_resp, key=STATE)
 
-    _item = _state_interface.get_item(AccessTokenResponse, "token_response", STATE)
+    _item = _cstate.get(STATE)
 
-    assert set(_item.keys()) == {
-        "state",
-        "scope",
-        "access_token",
-        "token_type",
-        "id_token",
-        "__verified_id_token",
-        "expires_in",
-        "__expires_at",
-    }
+    assert set(_item.keys()) == {'__expires_at',
+                                 '__verified_id_token',
+                                 'access_token',
+                                 'client_id',
+                                 'code',
+                                 'expires_in',
+                                 'id_token',
+                                 'iss',
+                                 'nonce',
+                                 'redirect_uri',
+                                 'response_type',
+                                 'scope',
+                                 'state',
+                                 'token_type'}
 
     assert _item["token_type"] == "Bearer"
     assert _item["access_token"] == "Z0FBQUFBQmFkdFF"
 
     # =================== User info ====================
 
-    userinfo_service = entity.client_get("service", "userinfo")
+    userinfo_service = entity.get_service("userinfo")
     info = userinfo_service.get_request_parameters(state=STATE)
 
     assert info["url"] == "https://example.org/op/userinfo"
@@ -621,5 +604,5 @@ def test_conversation():
     assert isinstance(_resp, OpenIDSchema)
     assert _resp.to_dict() == {"sub": "1b2fc9341a16ae4e30082965d537"}
 
-    _item = _state_interface.get_item(OpenIDSchema, "user_info", STATE)
-    assert _item.to_dict() == {"sub": "1b2fc9341a16ae4e30082965d537"}
+    _item = _cstate.get_set(STATE, message=OpenIDSchema)
+    assert _item == {"sub": "1b2fc9341a16ae4e30082965d537"}

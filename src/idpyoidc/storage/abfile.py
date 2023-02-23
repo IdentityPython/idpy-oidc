@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class AbstractFileSystem(DictType):
     """
-    FileSystem implements a simple file based database.
+    FileSystem implements a simple read-only file based database.
     It has a dictionary like interface.
     Each key maps one-to-one to a file on disc, where the content of the
     file is the value.
@@ -24,7 +24,10 @@ class AbstractFileSystem(DictType):
     """
 
     def __init__(
-        self, fdir: Optional[str] = "", key_conv: Optional[str] = "", value_conv: Optional[str] = ""
+        self, fdir: Optional[str] = "",
+            key_conv: Optional[str] = "",
+            value_conv: Optional[str] = "",
+            **kwargs
     ):
         """
         items = FileSystem(
@@ -87,6 +90,7 @@ class AbstractFileSystem(DictType):
             self.storage[item] = self._read_info(fname)
 
         logger.debug('Read from "%s"', item)
+        # storage values are already value converted
         return self.storage[item]
 
     def __setitem__(self, key, value):

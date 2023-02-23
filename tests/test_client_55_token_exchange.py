@@ -67,23 +67,21 @@ class TestUserInfo(object):
                             },
                         }
                         )
-        entity.client_get("service_context").issuer = "https://example.com"
-        self.service = entity.client_get("service", "token_exchange")
-
-        _state_interface = self.service.client_get("service_context").state
+        entity.get_context().issuer = "https://example.com"
+        self.service = entity.get_service("token_exchange")
+        _cstate = self.service.upstream_get("context").cstate
         # Add history
-        auth_response = AuthorizationResponse(code="access_code").to_json()
-        _state_interface.store_item(auth_response, "auth_response", "abcde")
+        auth_response = AuthorizationResponse(code="access_code")
+        _cstate.update("abcde", auth_response)
 
         idtval = {"nonce": "KUEYfRM2VzKDaaKD", "sub": "diana", "iss": ISS, "aud": "client_id"}
         idt = create_jws(idtval)
 
         ver_idt = IdToken().from_jwt(idt, make_keyjar())
 
-        token_response = AccessTokenResponse(
-            access_token="access_token", id_token=idt, __verified_id_token=ver_idt
-        ).to_json()
-        _state_interface.store_item(token_response, "token_response", "abcde")
+        token_response = AccessTokenResponse(access_token="access_token", id_token=idt,
+                                             __verified_id_token=ver_idt)
+        _cstate.update("abcde", token_response)
 
     def test_construct(self):
         _req = self.service.construct(state="abcde")

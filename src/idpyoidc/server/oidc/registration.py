@@ -16,7 +16,6 @@ from idpyoidc.message.oidc import ClientRegistrationErrorResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.exception import CapabilitiesMisMatch
 from idpyoidc.server.exception import InvalidRedirectURIError
 from idpyoidc.server.exception import InvalidSectorIdentifier
 from idpyoidc.time_util import utc_time_sans_frac
@@ -24,25 +23,6 @@ from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import sanitize
 from idpyoidc.util import split_uri
-
-PREFERENCE2PROVIDER = {
-    # "require_signed_request_object": "request_object_algs_supported",
-    "request_object_signing_alg": "request_object_signing_alg_values_supported",
-    "request_object_encryption_alg": "request_object_encryption_alg_values_supported",
-    "request_object_encryption_enc": "request_object_encryption_enc_values_supported",
-    "userinfo_signed_response_alg": "userinfo_signing_alg_values_supported",
-    "userinfo_encrypted_response_alg": "userinfo_encryption_alg_values_supported",
-    "userinfo_encrypted_response_enc": "userinfo_encryption_enc_values_supported",
-    "id_token_signed_response_alg": "id_token_signing_alg_values_supported",
-    "id_token_encrypted_response_alg": "id_token_encryption_alg_values_supported",
-    "id_token_encrypted_response_enc": "id_token_encryption_enc_values_supported",
-    "default_acr_values": "acr_values_supported",
-    "subject_type": "subject_types_supported",
-    "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
-    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
-    "response_types": "response_types_supported",
-    "grant_types": "grant_types_supported",
-}
 
 logger = logging.getLogger(__name__)
 
@@ -124,12 +104,13 @@ def comb_uri(args):
         args["request_uris"] = val
 
 
-def random_client_id(length: int = 16, reserved: list = [], **kwargs):
+def random_client_id(length: int = 16, reserved: list = None, **kwargs):
     # create new id och secret
     client_id = rndstr(16)
     # cdb client_id MUST be unique!
-    while client_id in reserved:
-        client_id = rndstr(16)
+    if reserved:
+        while client_id in reserved:
+            client_id = rndstr(16)
     return client_id
 
 
@@ -143,9 +124,6 @@ class Registration(Endpoint):
     endpoint_name = "registration_endpoint"
     name = "registration"
 
-    # default
-    # response_placement = 'body'
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -154,25 +132,57 @@ class Registration(Endpoint):
         _seed = kwargs.get("seed") or rndstr(32)
         self.seed = as_bytes(_seed)
 
-    def match_client_request(self, request):
-        _context = self.server_get("endpoint_context")
-        for _pref, _prov in PREFERENCE2PROVIDER.items():
-            if _pref in request:
-                if _pref in ["response_types", "default_acr_values"]:
-                    if not match_sp_sep(request[_pref], _context.provider_info[_prov]):
-                        raise CapabilitiesMisMatch(_pref)
-                else:
-                    if isinstance(request[_pref], str):
-                        if request[_pref] not in _context.provider_info[_prov]:
-                            raise CapabilitiesMisMatch(_pref)
+    def match_claim(self, claim, val):
+        _context = self.upstream_get("context")
+
+        # Use my defaults
+        _my_key = _context.claims.register2preferred.get(claim, claim)
+        try:
+            _val = _context.provider_info[_my_key]
+        except KeyError:
+            return val
+
+        try:
+            _claim_spec = _context.claims.registration_response.c_param[claim]
+        except KeyError:  # something I don't know anything about
+            return None
+
+        if _val:
+            if isinstance(_claim_spec[0], list):
+                if isinstance(val, str):
+                    if val in _val:
+                        return val
                     else:
-                        if not set(request[_pref]).issubset(set(_context.provider_info[_prov])):
-                            raise CapabilitiesMisMatch(_pref)
+                        return None
+                else:
+                    return list(set(_val).intersection(set(val)))
+            else:
+                if val == _val:
+                    return val
+                else:
+                    return None
+        else:
+            return None
+
+    def filter_client_request(self, request: dict) -> dict:
+        _args = {}
+        _context = self.upstream_get("context")
+        for key, val in request.items():
+            if key not in _context.claims.register2preferred:
+                _args[key] = val
+                continue
+
+            _val = self.match_claim(key, val)
+            if _val:
+                _args[key] = _val
+            else:
+                logger.error(f"Capabilities mismatch: {key}={val} not supported")
+        return _args
 
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
             ignore = []
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         _cinfo = _context.cdb[client_id].copy()
         logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
@@ -235,19 +245,19 @@ class Registration(Endpoint):
                         error_description="%s pointed to illegal URL" % item,
                     )
 
+        _keyjar = self.upstream_get('attribute', 'keyjar')
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in _context.provider_info[PREFERENCE2PROVIDER[item]]:
+                if request[item] in _context.provider_info[
+                        _context.claims.register2preferred[item]]:
                     ktyp = alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
                         _k = []
                         for iss in ["", _context.issuer]:
                             _k.extend(
-                                _context.keyjar.get_signing_key(
-                                    ktyp, alg=request[item], issuer_id=iss
-                                )
+                                _keyjar.get_signing_key(ktyp, alg=request[item], issuer_id=iss)
                             )
                         if not _k:
                             logger.warning('Lacking support for "{}"'.format(request[item]))
@@ -261,10 +271,10 @@ class Registration(Endpoint):
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
-        _context.keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+        _keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
 
         n_keys = 0
-        for kb in _context.keyjar.get(client_id, []):
+        for kb in _keyjar.get(client_id, []):
             n_keys += len(kb.keys())
         msg = "found {} keys for client_id={}"
         logger.debug(msg.format(n_keys, client_id))
@@ -330,8 +340,8 @@ class Registration(Endpoint):
         """
         si_url = request["sector_identifier_uri"]
         try:
-            res = self.server_get("endpoint_context").httpc.get(
-                si_url, **self.server_get("endpoint_context").httpc_params
+            res = self.upstream_get("context").httpc(
+                "GET", si_url, **self.upstream_get("context").httpc_params
             )
             logger.debug("sector_identifier_uri => %s", sanitize(res.text))
         except Exception as err:
@@ -356,7 +366,7 @@ class Registration(Endpoint):
         _rat = rndstr(32)
 
         cinfo["registration_access_token"] = _rat
-        endpoint = self.server_get("endpoints")
+        endpoint = self.upstream_get("endpoints")
         cinfo["registration_client_uri"] = "{}?client_id={}".format(
             endpoint["registration_read"].full_path, client_id
         )
@@ -390,20 +400,15 @@ class Registration(Endpoint):
             _error = "invalid_configuration_request"
             if len(err.args) > 1:
                 if err.args[1] == "initiate_login_uri":
-                    _error = "invalid_client_metadata"
+                    _error = "invalid_client_claims"
 
             return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
-        try:
-            self.match_client_request(request)
-        except CapabilitiesMisMatch as err:
-            return ResponseMessage(
-                error="invalid_request",
-                error_description="Don't support proposed %s" % err,
-            )
+        _context = self.upstream_get("context")
 
-        _context = self.server_get("endpoint_context")
+        request = self.filter_client_request(request)
+
         if new_id:
             if self.kwargs.get("client_id_generator"):
                 cid_generator = importer(self.kwargs["client_id_generator"]["class"])
@@ -421,7 +426,7 @@ class Registration(Endpoint):
 
         _cinfo = {"client_id": client_id, "client_salt": rndstr(8)}
 
-        if self.server_get("endpoint", "registration_read"):
+        if self.upstream_get("endpoint", "registration_read"):
             self.add_registration_api(_cinfo, client_id, _context)
 
         if new_id:
@@ -449,7 +454,7 @@ class Registration(Endpoint):
 
         # Add the client_secret as a symmetric key to the key jar
         if client_secret:
-            _context.keyjar.add_symmetric(client_id, str(client_secret))
+            self.upstream_get('attribute', 'keyjar').add_symmetric(client_id, str(client_secret))
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
@@ -476,7 +481,7 @@ class Registration(Endpoint):
         if "error" in reg_resp:
             return reg_resp
         else:
-            _context = self.server_get("endpoint_context")
+            _context = self.upstream_get("context")
             _cookie = _context.new_cookie(
                 name=_context.cookie_handler.name["register"],
                 client_id=reg_resp["client_id"],
@@ -489,6 +494,6 @@ class Registration(Endpoint):
         if isinstance(exception, ValueError):
             if len(exception.args) > 1:
                 if exception.args[1] == "initiate_login_uri":
-                    _error = "invalid_client_metadata"
+                    _error = "invalid_client_claims"
 
         return self.error_cls(error=_error, error_description=f"{exception}")

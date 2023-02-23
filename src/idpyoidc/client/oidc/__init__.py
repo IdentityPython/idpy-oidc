@@ -1,5 +1,10 @@
 import json
 import logging
+from typing import Callable
+from typing import Optional
+from typing import Union
+
+from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.client import oauth2
 from idpyoidc.client.client_auth import BearerHeader
@@ -72,35 +77,47 @@ class FetchException(Exception):
 
 
 class RP(oauth2.Client):
-    def __init__(
-        self,
-        keyjar=None,
-        verify_ssl=True,
-        config=None,
-        httplib=None,
-        services=None,
-        httpc_params=None,
-    ):
+    client_type = 'oidc'
 
-        if isinstance(config, Configuration):
-            _srvs = services or config.conf.get("services", DEFAULT_OIDC_SERVICES)
+    def __init__(
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = '',
+            verify_ssl: Optional[bool] = True,
+            jwks_uri: Optional[str] = "",
+            **kwargs
+    ):
+        self.upstream_get = upstream_get
+        if services:
+            _srvs = services
         else:
-            _srvs = services or config.get("services", DEFAULT_OIDC_SERVICES)
+            _srvs = config.get("services", DEFAULT_OIDC_SERVICES)
 
         oauth2.Client.__init__(
             self,
             keyjar=keyjar,
-            verify_ssl=verify_ssl,
             config=config,
-            httplib=httplib,
             services=_srvs,
+            httpc=httpc,
             httpc_params=httpc_params,
-            client_type="oidc"
+            upstream_get=upstream_get,
+            key_conf=key_conf,
+            entity_id=entity_id,
+            verify_ssl=verify_ssl,
+            jwks_uri=jwks_uri,
+            client_type='oidc',
+            **kwargs
         )
 
         _context = self.get_service_context()
-        if _context.callback is None:
-            _context.callback = {}
+        if _context.get_preference('callback_uris') is None:
+            _context.set_preference('callback_uris', {})
 
     def fetch_distributed_claims(self, userinfo, callback=None):
         """
@@ -120,20 +137,20 @@ class RP(oauth2.Client):
                     if "access_token" in spec:
                         cauth = BearerHeader()
                         httpc_params = cauth.construct(
-                            service=self.client_get("service", "userinfo"),
+                            service=self.get_service("userinfo"),
                             access_token=spec["access_token"],
                         )
-                        _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
+                        _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
                     else:
                         if callback:
                             token = callback(spec["endpoint"])
                             cauth = BearerHeader()
                             httpc_params = cauth.construct(
-                                service=self.client_get("service", "userinfo"), access_token=token
+                                service=self.get_service("userinfo"), access_token=token
                             )
-                            _resp = self.http.send(spec["endpoint"], "GET", **httpc_params)
+                            _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
                         else:
-                            _resp = self.http.send(spec["endpoint"], "GET")
+                            _resp = self.httpc("GET", spec["endpoint"])
 
                     if _resp.status_code == 200:
                         _uinfo = json.loads(_resp.text)

@@ -1,8 +1,8 @@
 import logging
 
 from cryptojwt import JWT
+from requests import request
 
-import requests
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 
@@ -16,14 +16,17 @@ def push_authorization(request_args, service, **kwargs):
     :param kwargs: Extra keyword arguments.
     """
 
-    _context = service.client_get("service_context")
+    _context = service.upstream_get("context")
     method_args = _context.add_on["pushed_authorization"]
+    if method_args['apply'] is False:
+        return request_args
 
     # construct the message body
     if method_args["body_format"] == "urlencoded":
         _body = request_args.to_urlencoded()
     else:
-        _jwt = JWT(key_jar=_context.keyjar, iss=_context.base_url)
+        _jwt = JWT(key_jar=service.upstream_get('attribute', 'keyjar'),
+                   iss=_context.base_url)
         _jws = _jwt.pack(request_args.to_dict())
 
         _msg = Message(request=_jws)
@@ -34,8 +37,10 @@ def push_authorization(request_args, service, **kwargs):
         _body = _msg.to_urlencoded()
 
     # Send it to the Pushed Authorization Request Endpoint
-    resp = method_args["http_client"].get(
-        _context.provider_info["pushed_authorization_request_endpoint"], data=_body
+    resp = method_args["http_client"](
+        method="GET",
+        url=_context.provider_info["pushed_authorization_request_endpoint"],
+        data=_body
     )
 
     if resp.status_code == 200:
@@ -50,7 +55,8 @@ def push_authorization(request_args, service, **kwargs):
 
 
 def add_support(
-    services, body_format="jws", signing_algorithm="RS256", http_client=None, merge_rule="strict"
+        services, body_format="jws", signing_algorithm="RS256", http_client=None,
+        merge_rule="strict"
 ):
     """
     Add the necessary pieces to make Demonstration of proof of possession (DPOP).
@@ -63,14 +69,15 @@ def add_support(
     """
 
     if http_client is None:
-        http_client = requests
+        http_client = request
 
     _service = services["authorization"]
-    _service.client_get("service_context").add_on["pushed_authorization"] = {
+    _service.upstream_get("context").add_on["pushed_authorization"] = {
         "body_format": body_format,
         "signing_algorithm": signing_algorithm,
         "http_client": http_client,
         "merge_rule": merge_rule,
+        'apply': True
     }
 
     _service.post_construct.append(push_authorization)

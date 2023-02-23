@@ -1,8 +1,6 @@
 import logging
 
 from idpyoidc.message import oauth2
-
-from idpyoidc.message import oidc
 from idpyoidc.server.endpoint import Endpoint
 
 logger = logging.getLogger(__name__)
@@ -15,11 +13,11 @@ class ServerMetadata(Endpoint):
     response_format = "json"
     name = "server_metadata"
 
-    def __init__(self, server_get, **kwargs):
-        Endpoint.__init__(self, server_get=server_get, **kwargs)
+    def __init__(self, upstream_get, **kwargs):
+        Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)
         self.pre_construct.append(self.add_endpoints)
 
-    def add_endpoints(self, request, client_id, endpoint_context, **kwargs):
+    def add_endpoints(self, request, client_id, context, **kwargs):
         for endpoint in [
             "authorization_endpoint",
             "registration_endpoint",
@@ -27,11 +25,11 @@ class ServerMetadata(Endpoint):
             "userinfo_endpoint",
             "end_session_endpoint",
         ]:
-            endp_instance = self.server_get("endpoint", endpoint)
+            endp_instance = self.upstream_get("endpoint", endpoint)
             if endp_instance:
                 request[endpoint] = endp_instance.endpoint_path
 
         return request
 
     def process_request(self, request=None, **kwargs):
-        return {"response_args": self.server_get("endpoint_context").provider_info}
+        return {"response_args": self.upstream_get("context").provider_info}

@@ -673,6 +673,9 @@ class Message(MutableMapping):
         """
         _l = as_unicode(location)
         _qp = as_unicode(self.to_urlencoded())
+        if not _qp:
+            return _l
+
         if fragment_enc:
             return "%s#%s" % (_l, _qp)
         else:

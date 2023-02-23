@@ -20,40 +20,24 @@ class EndSession(Service):
     service_name = "end_session"
     response_body_type = "html"
 
-    metadata_attributes = {
+    _supports = {
         "post_logout_redirect_uris": None,
+        'frontchannel_logout_supported': None,
         "frontchannel_logout_uri": None,
         "frontchannel_logout_session_required": None,
+        'backchannel_logout_supported': None,
         "backchannel_logout_uri": None,
         "backchannel_logout_session_required": None
     }
 
-    usage_rules = {
-        "frontchannel_logout": None,
-        "backchannel_logout": None,
-        "post_logout_redirects": None
-    }
-
-    callback_path = {
+    _callback_path = {
         "frontchannel_logout_uri": "fc_logout",
         "backchannel_logout_uri": "bc_logout",
-        "post_logout_redirect_uris": "session_logout"
+        "post_logout_redirect_uris": ["session_logout"]
     }
 
-    usage_to_uri_map = {
-        "frontchannel_logout": "frontchannel_logout_uri",
-        "backchannel_logout": "backchannel_logout_uri",
-        "post_logout_redirect": "post_logout_redirect_uris"
-    }
-
-    callback_uris = [
-        "frontchannel_logout_uri",
-        "backchannel_logout_uri",
-        "post_logout_redirect_uris"
-    ]
-
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [
             self.get_id_token_hint,
             self.add_post_logout_redirect_uri,
@@ -68,26 +52,16 @@ class EndSession(Service):
         :param kwargs:
         :return:
         """
-        request_args = self.client_get("service_context").state.multiple_extend_request_args(
-            request_args,
-            kwargs["state"],
-            ["id_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
-            orig=True,
-        )
 
-        try:
-            request_args["id_token_hint"] = request_args["id_token"]
-        except KeyError:
-            pass
-        else:
-            del request_args["id_token"]
+        _id_token = self.upstream_get("context").cstate.get_claim(kwargs["state"], claim='id_token')
+        if _id_token:
+            request_args["id_token_hint"] = _id_token
 
         return request_args, {}
 
     def add_post_logout_redirect_uri(self, request_args=None, **kwargs):
         if "post_logout_redirect_uri" not in request_args:
-            _uri = self.metadata.get("post_logout_redirect_uris", '')
+            _uri = self.upstream_get("context").get_usage("post_logout_redirect_uris")
             if _uri:
                 if isinstance(_uri, str):
                     request_args["post_logout_redirect_uri"] = _uri
@@ -101,8 +75,6 @@ class EndSession(Service):
             request_args["state"] = rndstr(32)
 
         # As a side effect bind logout state to session state
-        self.client_get("service_context").state.store_logout_state2state(
-            request_args["state"], kwargs["state"]
-        )
+        self.upstream_get("context").cstate.bind_key(request_args["state"], kwargs["state"])
 
         return request_args, {}
