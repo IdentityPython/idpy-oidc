@@ -87,7 +87,7 @@ def test_create_client():
                                       'response_types_supported',
                                       'scopes_supported',
                                       'subject_types_supported',
-                                      'token_endpoint_auth_method',
+                                      'token_endpoint_auth_methods_supported',
                                       'token_endpoint_auth_signing_alg_values_supported',
                                       'userinfo_signing_alg_values_supported'}
 

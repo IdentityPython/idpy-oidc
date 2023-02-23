@@ -55,7 +55,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types": ["code"],
             "scope": ["r_basicprofile", "r_emailaddress"],
-            "token_endpoint_auth_method": "client_secret_post",
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
         },
         "provider_info": {
             "authorization_endpoint": "https://www.linkedin.com/oauth/v2/authorization",
@@ -76,7 +76,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types": ["code"],
             "scope": ["email", "public_profile"],
-            "token_endpoint_auth_method": "",
+            "token_endpoint_auth_methods_supported": [],
         },
         "redirect_uris": ["{}/authz_cb/facebook".format(BASE_URL)],
         "provider_info": {
@@ -104,7 +104,7 @@ CLIENT_CONFIG = {
         "preference": {
             "response_types": ["code"],
             "scopes_supported": ["user", "public_repo"],
-            "token_endpoint_auth_method": "",
+            "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
         "provider_info": {

@@ -7,8 +7,8 @@ from idpyoidc.client.claims.transform import create_registration_request
 class Claims(claims.Claims):
     _supports = {
         "redirect_uris": None,
-        "grant_types": ["authorization_code", "implicit", "refresh_token"],
-        "response_types": ["code"],
+        "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
+        "response_types_supported": ["code"],
         "client_id": None,
         'client_secret': None,
         "client_name": None,

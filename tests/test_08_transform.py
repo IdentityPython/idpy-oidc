@@ -42,7 +42,6 @@ class TestTransform:
         self.supported = supported
 
     def test_supported(self):
-        assert 'token_endpoint_auth_methods_supported' not in self.supported
         # These are all the available configuration parameters
         assert set(self.supported.keys()) == {
             'acr_values_supported',
@@ -88,8 +87,8 @@ class TestTransform:
             'scopes_supported',
             'sector_identifier_uri',
             'subject_types_supported',
-            'token_endpoint_auth_method',
-            # 'token_endpoint_auth_methods_supported',
+            # 'token_endpoint_auth_method',
+            'token_endpoint_auth_methods_supported',
             'token_endpoint_auth_signing_alg_values_supported',
             'tos_uri',
             'userinfo_encryption_alg_values_supported',
@@ -117,7 +116,6 @@ class TestTransform:
                                      'require_request_uri_registration',
                                      'service_documentation',
                                      'token_endpoint',
-                                     'token_endpoint_auth_methods_supported',
                                      'ui_locales_supported',
                                      'userinfo_endpoint'}
 
@@ -147,7 +145,6 @@ class TestTransform:
                                                                    'requests_dir',
                                                                    'require_auth_time',
                                                                    'sector_identifier_uri',
-                                                                   'token_endpoint_auth_method',
                                                                    'tos_uri'}
 
         claims = OIDC_Claims()
@@ -173,7 +170,7 @@ class TestTransform:
                                                   'response_types_supported',
                                                   'scopes_supported',
                                                   'subject_types_supported',
-                                                  'token_endpoint_auth_method',
+                                                  'token_endpoint_auth_methods_supported',
                                                   'token_endpoint_auth_signing_alg_values_supported',
                                                   'userinfo_encryption_alg_values_supported',
                                                   'userinfo_encryption_enc_values_supported',
@@ -187,7 +184,7 @@ class TestTransform:
                 reg_claim.append(key)
 
         assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
-            'post_logout_redirect_uri', 'token_endpoint_auth_method'}
+            'post_logout_redirect_uri'}
 
         # Which ones are list -> singletons
 
@@ -250,7 +247,7 @@ class TestTransform:
                                                   'response_types_supported',
                                                   'scopes_supported',
                                                   'subject_types_supported',
-                                                  'token_endpoint_auth_method',
+                                                  'token_endpoint_auth_methods_supported',
                                                   'token_endpoint_auth_signing_alg_values_supported',
                                                   'userinfo_encryption_alg_values_supported',
                                                   'userinfo_encryption_enc_values_supported',
@@ -350,6 +347,7 @@ class TestTransform2:
                                                     'request_object_signing_alg',
                                                     'response_types',
                                                     'subject_type',
+                                                    'token_endpoint_auth_method',
                                                     'token_endpoint_auth_signing_alg',
                                                     'userinfo_signed_response_alg'}
 

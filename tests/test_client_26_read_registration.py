@@ -1,11 +1,11 @@
 import json
 import time
 
-import pytest
-import responses
 from cryptojwt.utils import as_bytes
-
+import pytest
 import requests
+import responses
+
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -22,18 +22,20 @@ class TestRegistrationRead(object):
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
             "application_type": "web",
-            "response_types": ["code"],
+            "response_types_supported": ["code"],
             "contacts": ["ops@example.org"],
             "jwks_uri": "https://example.com/rp/static/jwks.json",
             "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
-            "token_endpoint_auth_method": "client_secret_basic",
-            "grant_types": ["authorization_code"],
+            "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+            "grant_types_supported": ["authorization_code"],
         }
         services = {
             "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
             "read_registration": {
                 "class": "idpyoidc.client.oidc.read_registration.RegistrationRead"
             },
+            'authorization': {'class': 'idpyoidc.client.oidc.authorization.Authorization'},
+            'accesstoken': {'class': 'idpyoidc.client.oidc.access_token.AccessToken'}
         }
 
         self.entity = Entity(config=client_config, services=services)

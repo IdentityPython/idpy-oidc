@@ -159,13 +159,13 @@ def preferred_to_registered(prefers: dict, supported: dict,
                     registered[key] = val
                 else:
                     logger.warning(
-                        f'OP tells me to do something I do not support: (key) = {val} not within '
+                        f'OP tells me to do something I do not support: {key} = {val} not within '
                         f'{_supports}')
                     _val = _intersection(val, _supports)
                     if _val:
                         registered[key] = _val
                     else:
-                        raise ValueError('Not able to support the OPs choice')
+                        raise ValueError(f'Not able to support the OPs choice: {key}={val}')
             else:
                 registered[key] = val  # Should I just accept with the OP says ??
 

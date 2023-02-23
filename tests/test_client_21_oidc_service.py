@@ -487,7 +487,7 @@ class TestProviderInfo(object):
                 "response_types_supported": ["code"],
                 "request_object_signing_alg_values_supported": ["ES256"],
                 "encrypt_id_token_supported": False,  # default
-                "token_endpoint_auth_method": ["private_key_jwt"],
+                "token_endpoint_auth_methods_supported": ["private_key_jwt"],
                 "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
                 "userinfo_signing_alg_values_supported": ["ES256"],
                 "post_logout_redirect_uris": ["https://rp.example.com/post"],
