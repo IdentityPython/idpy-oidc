@@ -112,14 +112,31 @@ def array_or_singleton(claim_spec, values):
 
 
 def _is_subset(a, b):
+    # Is 'a' a subset of 'b'
     if isinstance(a, list):
         if isinstance(b, list):
-            return set(b).issubset(set(a))
+            return set(a).issubset(set(b))
     elif isinstance(b, list):
         return a in b
     else:
         return a == b
 
+def _intersection(a, b):
+    res = None
+    if isinstance(a, list):
+        if isinstance(b, list):
+            res = list(set(a).intersection(set(b)))
+        else:
+            if b in a:
+                res = b
+            else:
+                res = []
+    elif isinstance(b, list):
+        if a in b:
+            res = [a]
+        else:
+            res = []
+    return res
 
 def preferred_to_registered(prefers: dict, supported: dict,
                             registration_response: Optional[dict] = None):
@@ -136,10 +153,19 @@ def preferred_to_registered(prefers: dict, supported: dict,
     if registration_response:
         for key, val in registration_response.items():
             if key in REGISTER2PREFERRED:
-                if _is_subset(val, supported.get(REGISTER2PREFERRED[key])):
+                # Is the response value with in what this instance supports
+                _supports = supported.get(REGISTER2PREFERRED[key])
+                if _is_subset(val, _supports):
                     registered[key] = val
                 else:
-                    logger.warning(f'OP tells me to do something I do not support: {key} = {val}')
+                    logger.warning(
+                        f'OP tells me to do something I do not support: (key) = {val} not within '
+                        f'{_supports}')
+                    _val = _intersection(val, _supports)
+                    if _val:
+                        registered[key] = _val
+                    else:
+                        raise ValueError('Not able to support the OPs choice')
             else:
                 registered[key] = val  # Should I just accept with the OP says ??
 

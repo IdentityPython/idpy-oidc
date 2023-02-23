@@ -28,7 +28,7 @@ class AccessToken(access_token.AccessToken):
     response_body_type = "urlencoded"
 
     _supports = {
-        "token_endpoint_auth_method": get_client_authn_methods,
+        "token_endpoint_auth_methods_supported": get_client_authn_methods,
         "token_endpoint_auth_signing_alg_values_supported": get_signing_algs
     }
 

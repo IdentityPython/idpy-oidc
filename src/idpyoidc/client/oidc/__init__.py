@@ -77,6 +77,7 @@ class FetchException(Exception):
 
 
 class RP(oauth2.Client):
+    client_type = 'oidc'
 
     def __init__(
             self,
@@ -93,7 +94,10 @@ class RP(oauth2.Client):
             **kwargs
     ):
         self.upstream_get = upstream_get
-        _srvs = services or DEFAULT_OIDC_SERVICES
+        if services:
+            _srvs = services
+        else:
+            _srvs = config.get("services", DEFAULT_OIDC_SERVICES)
 
         oauth2.Client.__init__(
             self,

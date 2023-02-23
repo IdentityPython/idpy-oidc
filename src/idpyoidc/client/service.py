@@ -674,11 +674,9 @@ class Service(ImpExp):
             else:
                 _path = self._callback_path.get(uri)
                 if isinstance(_path, str):
-                    _callback_uris[uri] = self.get_uri(base_url, self._callback_path.get(_path),
-                                                       hex)
+                    _callback_uris[uri] = self.get_uri(base_url, _path, hex)
                 else:
-                    _callback_uris[uri] = [self.get_uri(base_url, self._callback_path.get(_var),
-                                                        hex) for _var in _path]
+                    _callback_uris[uri] = [self.get_uri(base_url, _var, hex) for _var in _path]
 
         return _callback_uris
 

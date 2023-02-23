@@ -13,6 +13,7 @@ from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
+from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.service import init_services
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.context import OidcContext
@@ -75,7 +76,7 @@ def redirect_uris_from_callback_uris(callback_uris):
     return res
 
 
-class Entity(Unit):  # This is a Client
+class Entity(Unit):  # This is a Client. What type is undefined here.
     parameter = {
         'entity_id': None,
         'jwks_uri': None,
@@ -117,7 +118,10 @@ class Entity(Unit):  # This is a Client
             _srvs = None
 
         if not _srvs:
-            _srvs = DEFAULT_OAUTH2_SERVICES
+            if client_type == 'oauth2':
+                _srvs = DEFAULT_OAUTH2_SERVICES
+            else:
+                _srvs = DEFAULT_OIDC_SERVICES
 
         self._service = init_services(service_definitions=_srvs, upstream_get=self.unit_get)
 

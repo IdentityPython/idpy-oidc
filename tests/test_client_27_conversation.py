@@ -209,7 +209,7 @@ def test_conversation():
     provider_info_service = entity.get_service("provider_info")
     info = provider_info_service.get_request_parameters()
 
-    assert info["url"] == "https://example.org/op/.well-known/openid" "-configuration"
+    assert info["url"] == "https://example.org/op/.well-known/openid-configuration"
 
     provider_info_response = json.dumps(
         {

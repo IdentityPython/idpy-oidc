@@ -118,6 +118,8 @@ class ServerMetadata(Service):
         # that. Otherwise, a new Key Jar is minted
         try:
             _keyjar = self.upstream_get('attribute', 'keyjar')
+            if _keyjar is None:
+                _keyjar = KeyJar()
         except KeyError:
             _keyjar = KeyJar()
 

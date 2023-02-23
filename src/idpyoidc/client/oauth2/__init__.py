@@ -37,6 +37,7 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
+    client_type = 'oauth2'
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -69,7 +70,7 @@ class Client(Entity):
         """
 
         if not client_type:
-            client_type = "oauth2"
+            client_type = self.client_type
 
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
