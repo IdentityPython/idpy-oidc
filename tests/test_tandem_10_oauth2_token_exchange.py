@@ -190,8 +190,8 @@ class TestEndpoint(object):
             "client_id": "client_1",
             "redirect_uris": ["https://example.com/cb"],
             "client_salt": "salted_peanuts_cooking",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
+            "response_types_supported": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         client_2_config = {
@@ -200,8 +200,8 @@ class TestEndpoint(object):
             "client_secret": "hemligtlösenord",
             "redirect_uris": ["https://example.com/cb"],
             "client_salt": "salted_peanuts_cooking",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
+            "token_endpoint_auth_methods_supported": ["client_secret_post"],
+            "response_types_supported": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         self.client_1 = Client(client_type='oauth2', config=client_1_config,
