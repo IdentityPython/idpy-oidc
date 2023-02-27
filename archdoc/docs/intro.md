@@ -20,7 +20,7 @@ More about messages in [Message](message.md).
 OAuth2 and OIDC defines endpoints that a client can send requests to and upon
 which servers listens and responds.
 
-A [Client](client.md) in IdpyOIDC therefor can access a number of services at endpoints
+A [Client](client/index.md) in IdpyOIDC therefor can access a number of services at endpoints
 (there is no one to one match, an endpoint can support more than one service).
 
 And a [Server](server.md) supports one or more endpoints. A server need not support all

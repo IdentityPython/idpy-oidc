@@ -7,7 +7,7 @@ from idpyoidc.message.oidc.backchannel_authentication import NotificationRequest
 
 
 class BackChannelAuthentication(Service):
-    """The service that talks to the Backchannel Authentication endpoint."""
+    """The service that talks to the Back-channel Authentication endpoint."""
 
     msg_type = AuthenticationRequest
     response_cls = AuthenticationResponse

@@ -23,6 +23,40 @@ a Service Instance.
 
 # Context
 
+The context contains information that all the different services needs access to.
+Below is a list of all the components
+
+### add_on
+
+Extension to the core functionality. More about this in [add_on](add_on.md)
+
+### allow
+Behavior that is not according to the standard. Examples are
+
+* issuer_mismatch (the issuer ID in the provider info doesn't match the discovery URL)
+* missing_kid (JWS,JWE without kid in the header)
+* http_links (The use of HTTP beside HTTPS)
+
+### args
+A place for add ons to place their arguments.
+
+### base_url
+
+A URL to which paths are added to support special functionality. One such example are callback URLs.
+
+### claims
+A Claims instance. More about that [here](claims.md)
+
+### clock_skew
+### cstate
+### entity_id
+### iss_hash
+The hash of the issuer ID. Used by the RPHandler for quick access to an RP instance.
+### hash_seed
+### keyjar
+### provider_info
+### registration_response
+
 # Service
 
 A Service instance is expected to be able to:

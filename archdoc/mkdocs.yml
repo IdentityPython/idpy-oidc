@@ -3,9 +3,11 @@ site_name: IdpyOIDC Architecture Documentation
 nav:
         - Introduction: intro.md
         - Message: message.md
-        - Client: client.md
+        - Client: client/index.md
         - Server: server.md
         - Persistent storage: persistence.md
+        - Code Reference:
+          - Client: client_code.md
 
 markdown_extensions:
     - toc:
@@ -17,3 +19,4 @@ theme:
 plugins:
     - search
     - git-revision-date
+    - mkdocstrings

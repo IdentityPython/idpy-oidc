@@ -1,3 +1,4 @@
+# The basic client entity
 import logging
 from typing import Callable
 from typing import Optional
@@ -136,21 +137,36 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         self.upstream_get = upstream_get
 
     def get_services(self, *arg):
+        """
+        Get a list of service instances
+        """
         return self._service
 
     def get_service_context(self, *arg):  # Want to get rid of this
         return self.context
 
     def get_context(self, *arg):
+        """
+        Get the context
+        """
         return self.context
 
     def get_service(self, service_name, *arg):
+        """
+        Get a specific service instance
+        :param service_name: The name of the service
+        """
         try:
             return self._service[service_name]
         except KeyError:
             return None
 
     def get_service_by_endpoint_name(self, endpoint_name, *arg):
+        """
+        Get a service by the name of the endpoint it listens to.
+
+        :param endpoint_name: The Endpoint name
+        """
         for service in self._service.values():
             if service.endpoint_name == endpoint_name:
                 return service
@@ -158,6 +174,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         return None
 
     def get_entity(self):
+        """
+        Provide a link to this (=self) entity
+        """
         return self
 
     def get_client_id(self):
@@ -174,7 +193,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         else:
             self.context.client_authn_methods = {}
 
-    def import_keys(self, keyspec):
+    def import_keys(self, keyspec: dict) -> KeyJar:
         """
         The client needs its own set of keys. It can either dynamically
         create them or load them from local storage.
@@ -203,5 +222,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                     _keyjar.add_kb(iss, _bundle)
         return _keyjar
 
-    def get_callback_uris(self):
+    def get_callback_uris(self) -> [str]:
+        """
+        Get a list of all callback uris
+        """
         return self.context.claims.callback_uri
