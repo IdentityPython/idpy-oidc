@@ -16,6 +16,7 @@ from idpyoidc.message.oidc import ClientRegistrationErrorResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.server.endpoint import Endpoint
+from idpyoidc.server.exception import CapabilitiesMisMatch
 from idpyoidc.server.exception import InvalidRedirectURIError
 from idpyoidc.server.exception import InvalidSectorIdentifier
 from idpyoidc.time_util import utc_time_sans_frac
@@ -155,7 +156,11 @@ class Registration(Endpoint):
                     else:
                         return None
                 else:
-                    return list(set(_val).intersection(set(val)))
+                    _ret = list(set(_val).intersection(set(val)))
+                    if len(_ret) > 0:
+                        return _ret
+                    else:
+                        raise CapabilitiesMisMatch(_my_key)
             else:
                 if val == _val:
                     return val
@@ -407,7 +412,13 @@ class Registration(Endpoint):
         request.rm_blanks()
         _context = self.upstream_get("context")
 
-        request = self.filter_client_request(request)
+        try:
+            request = self.filter_client_request(request)
+        except CapabilitiesMisMatch as err:
+            return ResponseMessage(
+                error="invalid_request",
+                error_description="Don't support proposed %s" % err,
+            )
 
         if new_id:
             if self.kwargs.get("client_id_generator"):

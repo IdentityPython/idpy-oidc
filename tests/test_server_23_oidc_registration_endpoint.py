@@ -338,6 +338,15 @@ class TestEndpoint(object):
         assert "error" in _resp
         assert _resp["error"] == "invalid_configuration_request"
 
+    def test_register_unsupported_response_type(self):
+        self.endpoint.upstream_get("context").provider_info["response_types_supported"] = ["token", "id_token"]
+        _msg = MSG.copy()
+        _msg["response_types"] = ["id_token token"]
+        _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
+        _resp = self.endpoint.process_request(request=_req)
+        assert _resp["error"] == "invalid_request"
+        assert "response_type" in _resp["error_description"]
+
 
 def test_match_sp_sep():
     assert match_sp_sep("foo bar", "bar foo")
