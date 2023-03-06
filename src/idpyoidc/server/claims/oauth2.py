@@ -29,6 +29,7 @@ class Claims(claims.Claims):
         "ui_locales_supported": [],
         "op_tos_uri": None,
         "op_policy_uri": None,
+        "deny_unknown_scopes": False
     }
 
     callback_path = {}

@@ -89,6 +89,7 @@ class Metadata(client_metadata.Metadata):
         "scopes_supported": ["openid"],
         "subject_types_supported": ["public", "pairwise", "ephemeral"],
         "tos_uri": None,
+        "deny_unknown_scopes": None
     }
 
     def __init__(self,

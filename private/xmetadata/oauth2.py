@@ -34,7 +34,8 @@ class Metadata(metadata.Metadata):
         "jwks_uri": None,
         "jwks": None,
         "software_id": None,
-        "software_version": None
+        "software_version": None,
+        "deny_unknown_scopes": None
     }
 
     callback_path = {}

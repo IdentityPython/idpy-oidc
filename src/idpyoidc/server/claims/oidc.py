@@ -58,6 +58,7 @@ class Claims(server_claims.Claims):
         'subject_types_supported': ['public', 'pairwise', 'ephemeral'],
         "op_tos_uri": None,
         "ui_locales_supported": None,
+        "deny_unknown_scopes": False
         # "version": '3.0'
         #  "verify_args": None,
     }
