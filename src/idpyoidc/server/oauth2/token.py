@@ -10,11 +10,14 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ProcessError
-from idpyoidc.server.oauth2.token_helper import AccessTokenHelper
-from idpyoidc.server.oauth2.token_helper import RefreshTokenHelper
-from idpyoidc.server.oauth2.token_helper import TokenExchangeHelper
+from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
 from idpyoidc.server.session import MintingNotAllowed
 from idpyoidc.util import importer
+from .token_helper.access_token import AccessTokenHelper
+from .token_helper.client_credentials import ClientCredentials
+from .token_helper.refresh_token import RefreshTokenHelper
+from .token_helper.resource_owner_password_credentials import ResourceOwnerPasswordCredentials
+from .token_helper.token_exchange import TokenExchangeHelper
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +37,8 @@ class Token(Endpoint):
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
         "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
+        "client_credentials": ClientCredentials,
+        "resource_owner_password_credentials": ResourceOwnerPasswordCredentials,
     }
     token_exchange_helper = TokenExchangeHelper
 
@@ -42,63 +47,81 @@ class Token(Endpoint):
         self.post_parse_request.append(self._post_parse_request)
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
-        self.configure_grant_types(kwargs.get("grant_types_helpers"))
+        self.grant_type_helper = self.configure_types(kwargs.get("grant_types_helpers"),
+                                                      self.helper_by_grant_type)
         self.grant_types_supported = kwargs.get("grant_types_supported",
-                                                list(self.helper_by_grant_type.keys()))
+                                                list(self.grant_type_helper.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
         self.resource_indicators_config = kwargs.get('resource_indicators', None)
 
-    def configure_grant_types(self, grant_types_helpers):
-        if grant_types_helpers is None:
-            self.helper = {k: v(self) for k, v in self.helper_by_grant_type.items()}
-            return
+    def configure_types(self, helpers, default_helpers):
+        if helpers is None:
+            return {k: v(self) for k, v in default_helpers.items()}
 
-        self.helper = {}
-        # TODO: do we want to allow any grant_type?
-        for grant_type, grant_type_options in grant_types_helpers.items():
-            _conf = grant_type_options.get("kwargs", {})
-            if _conf is False:
+        _helper = {}
+        for type, args in helpers.items():
+            _kwargs = args.get("kwargs", {})
+            if _kwargs is False:
                 continue
 
             try:
-                grant_class = grant_type_options["class"]
+                _class = args["class"]
             except (KeyError, TypeError):
                 raise ProcessError(
                     "Token Endpoint's grant types must be True, None or a dict with a"
                     " 'class' key."
                 )
 
-            if isinstance(grant_class, str):
+            if isinstance(_class, str):
                 try:
-                    grant_class = importer(grant_class)
+                    _class = importer(_class)
                 except (ValueError, AttributeError):
                     raise ProcessError(
-                        f"Token Endpoint's grant type class {grant_class} can't" " be imported."
+                        f"Token Endpoint's helper class {_class} can't" " be imported."
                     )
 
             try:
-                self.helper[grant_type] = grant_class(self, _conf)
+                _helper[type] = _class(self, _kwargs)
             except Exception as e:
-                raise ProcessError(f"Failed to initialize class {grant_class}: {e}")
+                raise ProcessError(f"Failed to initialize class {_class}: {e}")
+
+        return _helper
+
+    def _get_helper(self,
+                    request: Union[Message, dict],
+                    client_id: Optional[str] = "") -> Optional[Union[Message, TokenEndpointHelper]]:
+        grant_type = request.get('grant_type')
+        if grant_type:
+            _client_id = client_id or request.get('client_id')
+            if client_id:
+                client = self.upstream_get('context').cdb[client_id]
+                grant_types_supported = client.get("grant_types_supported",
+                                                   self.grant_types_supported)
+                if grant_type not in grant_types_supported:
+                    return self.error_cls(
+                        error="invalid_request",
+                        error_description=f"Unsupported grant_type: {grant_type}",
+                    )
+
+            return self.grant_type_helper.get(grant_type)
+        else:
+            return self.error_cls(
+                error="invalid_request",
+                error_description=f"Do not know how to handle this type of request",
+            )
 
     def _post_parse_request(
             self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
-        grant_type = request["grant_type"]
-        _helper = self.helper.get(grant_type)
-        client = kwargs["context"].cdb[client_id]
-        grant_types_supported = client.get("grant_types_supported", self.grant_types_supported)
-        if grant_type not in grant_types_supported:
-            return self.error_cls(
-                error="invalid_request",
-                error_description=f"Unsupported grant_type: {grant_type}",
-            )
-        if _helper:
-            return _helper.post_parse_request(request, client_id, **kwargs)
+        _resp = self._get_helper(request, client_id)
+        if isinstance(_resp, TokenEndpointHelper):
+            return _resp.post_parse_request(request, client_id, **kwargs)
+        elif _resp:
+            return _resp
         else:
             return self.error_cls(
                 error="invalid_request",
-                error_description=f"Unsupported grant_type: {grant_type}",
+                error_description=f"Do not know how to handle this type of request",
             )
 
     def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
@@ -115,7 +138,7 @@ class Token(Endpoint):
             return self.error_cls(error="invalid_request")
 
         try:
-            _helper = self.helper.get(request["grant_type"])
+            _helper = self._get_helper(request)
             if _helper:
                 response_args = _helper.process_request(request, **kwargs)
             else:

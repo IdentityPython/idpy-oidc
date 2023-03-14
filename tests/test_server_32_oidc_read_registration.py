@@ -75,6 +75,7 @@ CLI_REQ = RegistrationRequest(**msg)
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -149,7 +150,7 @@ class TestEndpoint(object):
             "client_id={}".format(_resp["response_args"]["client_id"]),
             http_info=http_info,
         )
-        assert set(_api_req.keys()) == {"client_id"}
+        assert set(_api_req.keys()) == {"client_id", 'authenticated'}
 
         _info = self.registration_api_endpoint.process_request(request=_api_req)
         assert set(_info.keys()) == {"response_args"}

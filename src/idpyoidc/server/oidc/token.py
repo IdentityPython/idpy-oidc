@@ -7,9 +7,9 @@ from idpyoidc.message import oidc
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.oauth2 import token
 from idpyoidc.server.oidc.backchannel_authentication import CIBATokenHelper
-from idpyoidc.server.oidc.token_helper import AccessTokenHelper
-from idpyoidc.server.oidc.token_helper import RefreshTokenHelper
-from idpyoidc.server.oidc.token_helper import TokenExchangeHelper
+from idpyoidc.server.oidc.token_helper.access_token import AccessTokenHelper
+from idpyoidc.server.oidc.token_helper.refresh_token import RefreshTokenHelper
+from idpyoidc.server.oidc.token_helper.token_exchange import TokenExchangeHelper
 
 logger = logging.getLogger(__name__)
 

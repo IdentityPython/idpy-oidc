@@ -16,7 +16,7 @@ from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRespo
 from idpyoidc.server import Endpoint
 from idpyoidc.server.client_authn import ClientSecretBasic
 from idpyoidc.server.exception import NoSuchAuthentication
-from idpyoidc.server.oidc.token_helper import AccessTokenHelper
+from idpyoidc.server.oidc.token_helper.access_token import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
 

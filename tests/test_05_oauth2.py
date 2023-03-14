@@ -571,16 +571,15 @@ class TestAuthorizationResponse(object):
 class TestROPCAccessTokenRequest(object):
     def test_init(self):
         ropc = ROPCAccessTokenRequest(grant_type="password", username="johndoe", password="A3ddj3w")
-
-        assert ropc["grant_type"] == "password"
+        ropc.verify()
         assert ropc["username"] == "johndoe"
         assert ropc["password"] == "A3ddj3w"
 
 
 class TestCCAccessTokenRequest(object):
     def test_init(self):
-        cc = CCAccessTokenRequest(scope="/foo")
-        assert cc["grant_type"] == "client_credentials"
+        cc = CCAccessTokenRequest(scope="/foo", grant_type='client_credentials')
+        cc.verify()
         assert cc["scope"] == ["/foo"]
 
 

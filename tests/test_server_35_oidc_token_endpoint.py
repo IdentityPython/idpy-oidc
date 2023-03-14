@@ -284,7 +284,7 @@ class TestEndpoint(_TestEndpoint):
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
-        assert set(_req.keys()) == set(_token_request.keys())
+        assert set(_req.keys()).difference(set(_token_request.keys())) == {'authenticated'}
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
@@ -938,11 +938,12 @@ class TestEndpoint(_TestEndpoint):
     def test_configure_grant_types(self):
         conf = {"access_token": {"class": "idpyoidc.server.oidc.token.AccessTokenHelper"}}
 
-        self.token_endpoint.configure_grant_types(conf)
+        _helper = self.token_endpoint.configure_types(conf,
+                                                      self.token_endpoint.helper_by_grant_type)
 
-        assert len(self.token_endpoint.helper) == 1
-        assert "access_token" in self.token_endpoint.helper
-        assert "refresh_token" not in self.token_endpoint.helper
+        assert len(_helper) == 1
+        assert "access_token" in _helper
+        assert "refresh_token" not in _helper
 
     def test_access_token_lifetime(self):
         lifetime = 100

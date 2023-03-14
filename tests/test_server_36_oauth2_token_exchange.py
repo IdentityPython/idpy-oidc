@@ -567,7 +567,7 @@ class TestEndpoint(object):
         Test that a token exchange with additional parameters including
         scope, audience and subject_token_type works.
         """
-        conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
@@ -656,7 +656,7 @@ class TestEndpoint(object):
         """
         Test that requesting a token for an unknown resource fails.
         """
-        conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
         areq = AUTH_REQ.copy()
@@ -726,7 +726,7 @@ class TestEndpoint(object):
         """
         Test that requesting a token for an unknown audience fails.
         """
-        conf = self.endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
         areq = AUTH_REQ.copy()

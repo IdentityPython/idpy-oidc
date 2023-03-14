@@ -225,6 +225,11 @@ class Endpoint(Node):
 
         if "client_id" in auth_info:
             req["client_id"] = auth_info["client_id"]
+
+            _auth_method = auth_info.get('method')
+            if _auth_method and _auth_method != 'public':
+                req['authenticated'] = True
+
             _client_id = auth_info["client_id"]
         else:
             _client_id = req.get("client_id")
@@ -239,7 +244,7 @@ class Endpoint(Node):
 
         # Do any endpoint specific parsing
         return self.do_post_parse_request(
-            request=req, client_id=_client_id, http_info=http_info, **kwargs
+            request=req, client_id=_client_id, http_info=http_info, auth_info=auth_info, **kwargs
         )
 
     def client_authentication(self, request: Message, http_info: Optional[dict] = None, **kwargs):

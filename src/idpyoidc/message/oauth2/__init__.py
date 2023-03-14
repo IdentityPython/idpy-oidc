@@ -287,6 +287,8 @@ class ROPCAccessTokenRequest(Message):
         "username": SINGLE_OPTIONAL_STRING,
         "password": SINGLE_OPTIONAL_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
     }
 
 
@@ -295,9 +297,16 @@ class CCAccessTokenRequest(Message):
     Client Credential grant flow access token request
     """
 
-    c_param = {"grant_type": SINGLE_REQUIRED_STRING, "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS}
-    c_default = {"grant_type": "client_credentials"}
-    c_allowed_values = {"grant_type": ["client_credentials"]}
+    c_param = {
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+    }
+
+    def verify(self, **kwargs):
+        if self['grant_type'] != 'client_credentials':
+            raise ValueError('Grant type MUST be client_credentials')
 
 
 class RefreshAccessTokenRequest(Message):
