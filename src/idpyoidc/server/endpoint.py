@@ -227,7 +227,7 @@ class Endpoint(Node):
             req["client_id"] = auth_info["client_id"]
 
             _auth_method = auth_info.get('method')
-            if _auth_method and _auth_method != 'public':
+            if _auth_method and _auth_method not in ['public', 'none']:
                 req['authenticated'] = True
 
             _client_id = auth_info["client_id"]

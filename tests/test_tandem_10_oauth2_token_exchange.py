@@ -94,12 +94,6 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "grant_types_supported": [
-                "authorization_code",
-                "implicit",
-                "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "refresh_token",
-            ],
             "client_authn_method": [
                 "client_secret_basic",
                 "client_secret_post",

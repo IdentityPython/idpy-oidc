@@ -78,6 +78,8 @@ class Server(Unit):
         if _token_endp:
             _token_endp.allow_refresh = allow_refresh_token(self.context)
 
+        self.context.map_supported_to_preferred()
+
     def get_endpoints(self, *arg):
         return self.endpoint
 

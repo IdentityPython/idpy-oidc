@@ -927,7 +927,7 @@ class TestClientCredentialsFlow(object):
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
-            "allowed_flows": ['client_credentials', 'resource_owner_password_credentials']
+            "grant_types_supported": ['client_credentials', 'password']
         }
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
@@ -970,7 +970,7 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
-            "grant_types_supported": ['client_credentials', 'resource_owner_password_credentials'],
+            "grant_types_supported": ['client_credentials', 'password'],
         }
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
@@ -979,7 +979,7 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
     def test_resource_owner_password_credentials(self):
         request = ROPCAccessTokenRequest(client_id="client_1",
                                          client_secret='hemligt',
-                                         grant_type='resource_owner_password_credentials',
+                                         grant_type='password',
                                          username='diana',
                                          password='krall',
                                          scope="whatever")

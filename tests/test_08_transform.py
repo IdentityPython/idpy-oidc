@@ -62,7 +62,6 @@ class TestTransform:
             'frontchannel_logout_session_required',
             'frontchannel_logout_supported',
             'frontchannel_logout_uri',
-            'grant_types_supported',
             'id_token_encryption_alg_values_supported',
             'id_token_encryption_enc_values_supported',
             'id_token_signing_alg_values_supported',
@@ -109,6 +108,7 @@ class TestTransform:
                                      'error',
                                      'error_description',
                                      'error_uri',
+                                     'grant_types_supported',
                                      'issuer',
                                      'op_policy_uri',
                                      'op_tos_uri',
@@ -159,7 +159,6 @@ class TestTransform:
                                                   'default_max_age',
                                                   'encrypt_request_object_supported',
                                                   'encrypt_userinfo_supported',
-                                                  'grant_types_supported',
                                                   'id_token_encryption_alg_values_supported',
                                                   'id_token_encryption_enc_values_supported',
                                                   'id_token_signing_alg_values_supported',
@@ -184,7 +183,7 @@ class TestTransform:
                 reg_claim.append(key)
 
         assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
-            'post_logout_redirect_uri'}
+            'post_logout_redirect_uri', 'grant_types'}
 
         # Which ones are list -> singletons
 
@@ -236,7 +235,6 @@ class TestTransform:
                                                   'default_max_age',
                                                   'encrypt_request_object_supported',
                                                   'encrypt_userinfo_supported',
-                                                  'grant_types_supported',
                                                   'id_token_encryption_alg_values_supported',
                                                   'id_token_encryption_enc_values_supported',
                                                   'id_token_signing_alg_values_supported',
@@ -340,7 +338,6 @@ class TestTransform2:
                                                     'client_name',
                                                     'contacts',
                                                     'default_max_age',
-                                                    'grant_types',
                                                     'id_token_signed_response_alg',
                                                     'logo_uri',
                                                     'redirect_uris',
@@ -382,7 +379,6 @@ class TestTransform2:
                                       'default_max_age',
                                       'encrypt_request_object_supported',
                                       'encrypt_userinfo_supported',
-                                      'grant_types',
                                       'id_token_signed_response_alg',
                                       'jwks_uri',
                                       'logo_uri',

@@ -23,6 +23,8 @@ class AccessToken(access_token.AccessToken):
     error_msg = oidc.ResponseMessage
     default_authn_method = "client_secret_basic"
 
+    _include = {"grant_types_supported": ['authorization_code']}
+
     _supports = {
         "token_endpoint_auth_methods_supported": get_client_authn_methods,
         "token_endpoint_auth_signing_alg_values_supported": get_signing_algs

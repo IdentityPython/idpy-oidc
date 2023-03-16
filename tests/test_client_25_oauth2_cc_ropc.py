@@ -1,6 +1,7 @@
 import pytest
 
 from idpyoidc.client.entity import Entity
+from idpyoidc.client.oauth2 import Client
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.util import rndstr
 
@@ -24,7 +25,7 @@ class TestCC:
             }
         }
 
-        self.entity = Entity(config=client_config, services=services)
+        self.entity = Client(config=client_config, services=services)
 
         self.entity.get_service("client_credentials").endpoint = "https://example.com/token"
 

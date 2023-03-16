@@ -27,6 +27,8 @@ class TokenExchange(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
+    _include = {'grant_types_supported': ['urn:ietf:params:oauth:grant-type:token-exchange']}
+
     def __init__(self, upstream_get, conf=None):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)

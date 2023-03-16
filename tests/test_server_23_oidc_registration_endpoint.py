@@ -170,7 +170,7 @@ class TestEndpoint(object):
         _req = self.endpoint.parse_request(CLI_REQ.to_json())
 
         assert isinstance(_req, RegistrationRequest)
-        assert set(_req.keys()).difference(set(CLI_REQ.keys())) == {'authenticated'}
+        assert set(_req.keys()).difference(set(CLI_REQ.keys())) == set()
 
     def test_process_request(self):
         _req = self.endpoint.parse_request(CLI_REQ.to_json())

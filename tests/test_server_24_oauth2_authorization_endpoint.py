@@ -579,7 +579,7 @@ class TestEndpoint(object):
         kaka = _context.cookie_handler.make_cookie_content("value", "sso")
 
         # force to 400 Http Error message if the release scope policy is heavy!
-        _context.conf["capabilities"]["deny_unknown_scopes"] = True
+        _context.claims.set_preference("deny_unknown_scopes", True)
         excp = None
         try:
             res = self.endpoint.process_request(request, http_info={"headers": {"cookie": [kaka]}})

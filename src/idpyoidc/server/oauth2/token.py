@@ -22,6 +22,7 @@ from .token_helper.token_exchange import TokenExchangeHelper
 logger = logging.getLogger(__name__)
 
 
+
 class Token(Endpoint):
     request_cls = Message
     response_cls = AccessTokenResponse
@@ -33,14 +34,19 @@ class Token(Endpoint):
     endpoint_name = "token_endpoint"
     name = "token"
     default_capabilities = {"token_endpoint_auth_signing_alg_values_supported": None}
+    token_exchange_helper = TokenExchangeHelper
+
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,
         "refresh_token": RefreshTokenHelper,
         "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
         "client_credentials": ClientCredentials,
-        "resource_owner_password_credentials": ResourceOwnerPasswordCredentials,
+        "password": ResourceOwnerPasswordCredentials,
     }
-    token_exchange_helper = TokenExchangeHelper
+
+    _supports = {
+        "grant_types_supported": list(helper_by_grant_type.keys())
+    }
 
     def __init__(self, upstream_get, new_refresh_token=False, **kwargs):
         Endpoint.__init__(self, upstream_get, **kwargs)
@@ -49,8 +55,8 @@ class Token(Endpoint):
         self.new_refresh_token = new_refresh_token
         self.grant_type_helper = self.configure_types(kwargs.get("grant_types_helpers"),
                                                       self.helper_by_grant_type)
-        self.grant_types_supported = kwargs.get("grant_types_supported",
-                                                list(self.grant_type_helper.keys()))
+        # self.grant_types_supported = kwargs.get("grant_types_supported",
+        #                                         list(self.grant_type_helper.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
         self.resource_indicators_config = kwargs.get('resource_indicators', None)
 
@@ -95,9 +101,11 @@ class Token(Endpoint):
             _client_id = client_id or request.get('client_id')
             if client_id:
                 client = self.upstream_get('context').cdb[client_id]
-                grant_types_supported = client.get("grant_types_supported",
-                                                   self.grant_types_supported)
-                if grant_type not in grant_types_supported:
+                _grant_types_supported = client.get("grant_types_supported",
+                                                    self.upstream_get('context').claims.get_claim(
+                                                        "grant_types_supported", [])
+                                                    )
+                if grant_type not in _grant_types_supported:
                     return self.error_cls(
                         error="invalid_request",
                         error_description=f"Unsupported grant_type: {grant_type}",
@@ -181,3 +189,6 @@ class Token(Endpoint):
         if _cookie:
             resp["cookie"] = [_cookie]
         return resp
+
+    def supports(self):
+        return {'grant_types_supported': list(self.grant_type_helper.keys())}

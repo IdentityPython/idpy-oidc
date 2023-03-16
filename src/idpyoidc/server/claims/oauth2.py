@@ -19,7 +19,7 @@ class Claims(claims.Claims):
 
     _supports = {
         # "client_authn_methods": get_client_authn_methods,
-        "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
+        # "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
         "response_types_supported": ["code"],
         "response_modes_supported": ["code"],
         "jwks_uri": None,

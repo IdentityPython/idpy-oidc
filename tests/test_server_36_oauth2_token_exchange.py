@@ -45,12 +45,6 @@ RESPONSE_TYPES_SUPPORTED = [
 
 CAPABILITIES = {
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ],
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -91,7 +85,7 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "capabilities": CAPABILITIES,
+            "preference": CAPABILITIES,
             "cookie_handler": {
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
@@ -180,6 +174,9 @@ class TestEndpoint(object):
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.context = server.context
+        # Necessary to get grant_types_supported into preferred
+        self.context.map_supported_to_preferred()
+
         self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
@@ -187,7 +184,6 @@ class TestEndpoint(object):
             "token_endpoint_auth_method": "client_secret_post",
             "grant_types_supported": [
                 "authorization_code",
-                "implicit",
                 "urn:ietf:params:oauth:grant-type:jwt-bearer",
                 "refresh_token",
                 "urn:ietf:params:oauth:grant-type:token-exchange"
@@ -279,6 +275,7 @@ class TestEndpoint(object):
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzI6aGVtbGlndA==")}},
         )
         _resp = self.endpoint.process_request(request=_req)
+        print(_resp['response_args'])
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
