@@ -268,7 +268,7 @@ def authn_args_gather(
 
 
 def check_unknown_scopes_policy(request_info, client_id, context):
-    if not context.claims.get_preference("deny_unknown_scopes"):
+    if not context.get_preference("deny_unknown_scopes"):
         return
 
     scope = request_info["scope"]
@@ -349,7 +349,6 @@ class Authorization(Endpoint):
         "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
         # "grant_types_supported": ["authorization_code", "implicit"],
         "scopes_supported": [],
-        "deny_unknown_scopes": False
     }
     default_capabilities = {
         "client_authn_method": ["request_param", "public"],
