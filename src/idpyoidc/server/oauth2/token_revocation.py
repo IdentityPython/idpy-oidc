@@ -19,7 +19,8 @@ class TokenRevocation(Endpoint):
     response_cls = oauth2.TokenRevocationResponse
     error_cls = oauth2.TokenRevocationErrorResponse
     request_format = "urlencoded"
-    response_format = "json"
+    response_format = "text"
+    response_body_type = "text"
     endpoint_name = "revocation_endpoint"
     name = "token_revocation"
     default_capabilities = {
@@ -130,5 +131,5 @@ def validate_token_revocation_policy(token, session_info, **kwargs):
     _token = token
     _token.revoke()
 
-    response_args = {"response_args": {}}
-    return oauth2.TokenRevocationResponse(**response_args)
+    response_args = {"response_msg": 'OK'}
+    return response_args

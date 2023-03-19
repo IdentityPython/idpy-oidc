@@ -118,7 +118,7 @@ class TestEndpoint(object):
                 },
                 "token": {
                     "path": "token",
-                    "class": "idpyoidc.server.oidc.token.Token",
+                    "class": "idpyoidc.server.oauth2.token.Token",
                     "kwargs": {},
                 },
             },
