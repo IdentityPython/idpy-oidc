@@ -318,7 +318,7 @@ class TestEndpoint:
         )
         _resp = self.revocation_endpoint.process_request(_req)
         assert _resp
-        assert set(_resp.keys()) == {"response_args"}
+        assert set(_resp.keys()) == {"response_msg"}
 
     def test_do_response(self):
         access_token = self._get_access_token(AUTH_REQ)
@@ -337,7 +337,7 @@ class TestEndpoint:
         assert isinstance(msg_info, dict)
         assert set(msg_info.keys()) == {"response", "http_headers"}
         assert msg_info["http_headers"] == [
-            ("Content-type", "application/json; charset=utf-8"),
+            ("Content-type", "text/plain"),
             ("Pragma", "no-cache"),
             ("Cache-Control", "no-store"),
         ]
@@ -366,7 +366,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
         assert access_token.revoked
 
     def test_access_token_per_client(self):
@@ -374,8 +374,9 @@ class TestEndpoint:
         def custom_token_revocation_policy(token, session_info, **kwargs):
             _token = token
             _token.revoke()
-            response_args = {"response_args": {"type": "custom"}}
-            return TokenRevocationResponse(**response_args)
+            # response_args = {"response_args": {"type": "custom"}}
+            #return TokenRevocationResponse(**response_args)
+            return {'response_msg':'OK'}
 
         access_token = self._get_access_token(AUTH_REQ)
         assert access_token.revoked is False
@@ -401,9 +402,8 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
-        assert "type" in _resp["response_args"]
-        assert _resp["response_args"]["type"] == "custom"
+        assert "response_msg" in _resp
+        assert _resp["response_msg"] == 'OK'
         assert access_token.revoked
 
     def test_missing_token_policy_per_client(self):
@@ -438,7 +438,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
         assert access_token.revoked
 
     def test_code(self):
@@ -460,7 +460,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
         assert code.revoked
 
     def test_refresh_token(self):
@@ -475,7 +475,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
         assert refresh_token.revoked
 
     def test_expired_access_token(self):
@@ -492,7 +492,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
 
     def test_revoked_access_token(self):
         access_token = self._get_access_token(AUTH_REQ)
@@ -508,7 +508,7 @@ class TestEndpoint:
             }
         )
         _resp = self.revocation_endpoint.process_request(_req)
-        assert "response_args" in _resp
+        assert "response_msg" in _resp
 
     def test_unsupported_token_type(self):
         self.revocation_endpoint.token_types_supported = ["access_token"]
