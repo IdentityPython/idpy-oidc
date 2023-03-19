@@ -391,6 +391,8 @@ class Endpoint(Node):
                     content_type = "application/json"
                 elif self.response_format in ["jws", "jwe", "jose"]:
                     content_type = "application/jose"
+                elif self.response_format == 'text':
+                    content_type = "text/plain"
                 else:
                     content_type = "application/x-www-form-urlencoded"
         else:

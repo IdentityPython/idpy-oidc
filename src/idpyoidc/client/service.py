@@ -616,12 +616,16 @@ class Service(ImpExp):
                 LOGGER.error("Missing or faulty response")
                 raise ResponseError("Missing or faulty response")
 
-            resp = self._do_response(info, sformat, **kwargs)
-
-        LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
+            if sformat == 'text':
+                resp = info
+            else:
+                resp = self._do_response(info, sformat, **kwargs)
+                LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
 
         # is this an error message
-        if is_error_message(resp):
+        if sformat == 'text':
+            pass
+        elif is_error_message(resp):
             LOGGER.debug("Error response: %s", resp)
         else:
             vargs = self.gather_verify_arguments(response=resp, behaviour_args=behaviour_args)
