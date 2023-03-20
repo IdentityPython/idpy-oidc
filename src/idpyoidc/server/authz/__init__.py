@@ -88,9 +88,7 @@ class AuthzHandling(object):
         if not scopes:
             scopes = request.get("scope", [])
         else:
-            _allowed = _context.cdb[_client_id].get('allowed_scopes', [])
-            if _allowed:
-                scopes = list(set(scopes).intersection(set(_allowed)))
+            scopes = _context.scopes_handler.filter_scopes(scopes, client_id=_client_id)
         grant.scope = scopes
 
         # After this is where user consent should be handled
