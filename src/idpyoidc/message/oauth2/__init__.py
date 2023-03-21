@@ -137,6 +137,7 @@ class AuthorizationRequest(Message):
         "redirect_uri": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING,
         "request": SINGLE_OPTIONAL_STRING,
+        "resource": OPTIONAL_LIST_OF_STRINGS  # From RFC8707
     }
 
     def merge(self, request_object, treatement="strict", whitelist=None):
@@ -227,7 +228,7 @@ class AuthorizationResponse(ResponseMessage):
         {
             "code": SINGLE_REQUIRED_STRING,
             "state": SINGLE_OPTIONAL_STRING,
-            "iss": SINGLE_OPTIONAL_STRING,
+            "iss": SINGLE_OPTIONAL_STRING,  # RFC 9207
             "client_id": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -392,8 +393,20 @@ class OauthClientMetadata(Message):
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "jwks": SINGLE_OPTIONAL_JSON,
         "software_id": SINGLE_OPTIONAL_STRING,
-        "software_version": SINGLE_OPTIONAL_STRING
+        "software_version": SINGLE_OPTIONAL_STRING,
+        "software_statement": SINGLE_OPTIONAL_JSON
     }
+
+    def verify(self, **kwargs):
+        super(OauthClientMetadata, self).verify(**kwargs)
+
+        # if grant type is present and if contains the values authorization_code or
+        # implicit then redirect_uris must be present
+
+        _grant_types = self.get('grant_types', [])
+        if set(_grant_types).intersection({'authorization_code', 'implicit'}):
+            if 'redirect_uris' not in self:
+                raise ValueError('Missing redirect_uris claim')
 
 
 def oauth_client_metadata_deser(val, sformat="json"):

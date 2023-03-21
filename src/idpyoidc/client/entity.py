@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 RESPONSE_TYPES2GRANT_TYPES = {
     "code": ["authorization_code"],
     "id_token": ["implicit"],
-    "id_token token": ["implicit"],
+    # "id_token token": ["implicit"],
     "code id_token": ["authorization_code", "implicit"],
-    "code token": ["authorization_code", "implicit"],
-    "code id_token token": ["authorization_code", "implicit"],
+    # "code token": ["authorization_code", "implicit"],
+    # "code id_token token": ["authorization_code", "implicit"],
 }
 
 

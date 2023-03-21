@@ -55,10 +55,11 @@ def pick_redirect_uri(
             else:
                 redirect_uri = _callback_uris["implicit"][0]
         else:
-            if 'code' == response_type:
-                redirect_uri = _callback_uris["code"][0]
+            if response_type == 'code' or response_type == ['code']:
+                _response_mode = 'code'
             else:
-                redirect_uri = _callback_uris["implicit"][0]
+                _response_mode = 'implicit'
+            redirect_uri = _callback_uris[_response_mode][0]
 
         logger.debug(
             f"pick_redirect_uris: response_type={response_type}, response_mode={_response_mode}, "

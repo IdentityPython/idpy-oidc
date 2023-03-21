@@ -1217,7 +1217,7 @@ def test_authz_service_conf():
         "client_id": "client_id",
         "client_secret": "a longesh password",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
-        "response_types": ["code"],
+        "response_types": ["code", 'id_token'],
     }
 
     services = {

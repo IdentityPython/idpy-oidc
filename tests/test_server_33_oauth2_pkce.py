@@ -93,10 +93,8 @@ oidc_clients:
     'token_endpoint_auth_method': 'client_secret_post'
     'response_types':
         - 'code'
-        - 'token'
         - 'code id_token'
         - 'id_token'
-        - 'code id_token token'
     allowed_scopes:
         - 'openid'
         - 'profile'
