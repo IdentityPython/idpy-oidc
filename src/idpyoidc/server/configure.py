@@ -80,12 +80,12 @@ OP_DEFAULT_CONFIG = {
                 "request_uri_parameter_supported": True,
                 "response_types_supported": [
                     "code",
-                    "token",
+                    # "token",
                     "id_token",
-                    "code token",
+                    # "code token",
                     "code id_token",
-                    "id_token token",
-                    "code id_token token",
+                    # "id_token token",
+                    # "code id_token token",
                     # "none"
                 ],
                 "response_modes_supported": ["query", "fragment", "form_post"],
@@ -160,15 +160,15 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
-        upstream_get: Optional[Callable] = None
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
+            upstream_get: Optional[Callable] = None
     ):
 
         conf = copy.deepcopy(conf)
@@ -232,14 +232,14 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         super().__init__(
             conf=conf,
@@ -256,14 +256,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,
@@ -417,12 +417,12 @@ DEFAULT_EXTENDED_CONF = {
                 "request_uri_parameter_supported": True,
                 "response_types_supported": [
                     "code",
-                    "token",
+                    # "token",
                     "id_token",
-                    "code token",
+                    # "code token",
                     "code id_token",
-                    "id_token token",
-                    "code id_token token",
+                    # "id_token token",
+                    # "code id_token token",
                     # "none"
                 ],
                 "response_modes_supported": ["query", "fragment", "form_post"],
