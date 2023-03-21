@@ -24,9 +24,6 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 class TestClient(object):
 
-    def create_client(self):
-        self.redirect_uri = "http://example.com/redirect"
-
     @pytest.fixture(autouse=True)
     def create_entities(self):
         # -------------- Server -----------------------
@@ -35,22 +32,6 @@ class TestClient(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "grant_types_supported": [
-                "authorization_code",
-                "implicit",
-                "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "refresh_token",
-            ],
-            "client_authn_method": [
-                "client_secret_basic",
-                "client_secret_post",
-                "client_secret_jwt",
-                "private_key_jwt",
-            ],
-            # "cookie_handler": {
-            #     "class": CookieHandler,
-            #     "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
-            # },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
                 'discovery': {
@@ -122,6 +103,13 @@ class TestClient(object):
                         "aud": ["https://example.org/appl"],
                     },
                 },
+                "refresh": {
+                    "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                    "kwargs": {
+                        "lifetime": 3600,
+                        "aud": ["https://example.org/appl"],
+                    },
+                },
             },
             "session_params": SESSION_PARAMS,
         }
@@ -130,11 +118,11 @@ class TestClient(object):
         # -------------- Client -----------------------
 
         client_conf = {
-            "redirect_uris": ["https://example.com/cli/authz_cb"],
+            "redirect_uris": ["https://example.com/cli/code_cb"],
             "client_id": "client_1",
             "client_secret": "abcdefghijklmnop",
             'issuer': 'https://example.com/',
-            "response_types_supported": ["code", "code id_token", "id_token"],
+            "response_types_supported": ["code"],
         }
         services = {
             "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
