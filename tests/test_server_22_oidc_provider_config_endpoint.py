@@ -57,7 +57,7 @@ class TestProviderConfigEndpoint(object):
         return {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False},
-            "capabilities": CAPABILITIES,
+            "preference": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
                 "provider_config": {

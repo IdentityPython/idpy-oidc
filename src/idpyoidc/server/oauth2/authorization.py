@@ -342,7 +342,7 @@ class Authorization(Endpoint):
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
         "request_uri_parameter_supported": True,
-        "response_types_supported": ["code", "token", "code token"],
+        "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
         "request_object_signing_alg_values_supported": claims.get_signing_algs,
         "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
