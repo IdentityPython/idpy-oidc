@@ -30,7 +30,7 @@ class Authorization(Service):
     response_body_type = "urlencoded"
 
     _supports = {
-        "response_types_supported": ["code", 'token'],
+        "response_types_supported": ["code"],
         "response_modes_supported": ['query', 'fragment'],
         # Below not OAuth2 functionality
         # "request_object_signing_alg_values_supported": claims.get_signing_algs,

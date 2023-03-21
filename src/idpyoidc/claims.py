@@ -73,7 +73,7 @@ class Claims(ImpExp):
         for type in self.get_usage("response_types", self._supports['response_types']):
             if "code" in type:
                 _uri.append('code')
-            elif type in ["id_token", "id_token token"]:
+            elif type in ["id_token"]:
                 _uri.append('implicit')
 
         if "form_post" in self._supports:
@@ -252,7 +252,10 @@ def alg_cmp(a, b):
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    return sorted(list(SIGNER_ALGS.keys()), key=cmp_to_key(alg_cmp))
+    _list = list(SIGNER_ALGS.keys())
+    # know how to do none but should not
+    _list.remove('none')
+    return sorted(_list, key=cmp_to_key(alg_cmp))
 
 
 def get_encryption_algs():

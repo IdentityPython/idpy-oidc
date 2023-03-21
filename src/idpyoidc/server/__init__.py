@@ -75,10 +75,10 @@ class Server(Unit):
             self.endpoint[endpoint_name].upstream_get = self.unit_get
 
         _token_endp = self.endpoint.get("token")
-        if _token_endp:
-            _token_endp.allow_refresh = allow_refresh_token(self.context)
 
         self.context.map_supported_to_preferred()
+        if _token_endp:
+            _token_endp.allow_refresh = allow_refresh_token(self.context)
 
     def get_endpoints(self, *arg):
         return self.endpoint
