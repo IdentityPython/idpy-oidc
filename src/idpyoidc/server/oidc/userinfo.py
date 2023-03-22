@@ -144,7 +144,7 @@ class UserInfo(Endpoint):
 
         allowed = True
         _auth_event = _grant.authentication_event
-        # if the authenticate is still active or offline_access is granted.
+        # if the authentication is still active or offline_access is granted.
         if not _auth_event["valid_until"] >= utc_time_sans_frac():
             logger.debug(
                 "authentication not valid: {} > {}".format(
