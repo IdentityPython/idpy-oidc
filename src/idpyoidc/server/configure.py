@@ -14,14 +14,8 @@ from idpyoidc.server.scopes import SCOPE2CLAIMS
 logger = logging.getLogger(__name__)
 
 OP_DEFAULT_CONFIG = {
-    "capabilities": {
+    "preference": {
         "subject_types_supported": ["public", "pairwise"],
-        "grant_types_supported": [
-            "authorization_code",
-            "implicit",
-            "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            "refresh_token",
-        ],
     },
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
@@ -157,6 +151,7 @@ class EntityConfiguration(Base):
         "httpc_params": {},
         "issuer": "",
         "key_conf": None,
+        'preference': {},
         "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
@@ -344,11 +339,11 @@ DEFAULT_EXTENDED_CONF = {
             },
         }
     },
-    "capabilities": {
+    "preference": {
         "subject_types_supported": ["public", "pairwise"],
         "grant_types_supported": [
             "authorization_code",
-            "implicit",
+            # "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
         ],

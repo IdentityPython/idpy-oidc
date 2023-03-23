@@ -217,6 +217,15 @@ class Claims(ImpExp):
     def prefers(self):
         return self.prefer
 
+    def get_claim(self, key, default=None):
+        _val = self.get_usage(key)
+        if _val is None:
+            _val = self.get_preference(key)
+
+        if _val is None:
+            return default
+        else:
+            return _val
 
 SIGNING_ALGORITHM_SORT_ORDER = ['RS', 'ES', 'PS', 'HS']
 

@@ -1,4 +1,5 @@
 """ The basic Service class upon which all the specific services are built. """
+import copy
 import json
 import logging
 from typing import Callable
@@ -13,8 +14,8 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
@@ -68,6 +69,7 @@ class Service(ImpExp):
 
     init_args = ["upstream_get"]
 
+    _include = {}
     _supports = {}
     _callback_path = {}
 
@@ -647,6 +649,14 @@ class Service(ImpExp):
             else:
                 res[key] = val
         return res
+
+    def extends(self, info):
+        for claim, val in self._include.items():
+            if claim in info:
+                info[claim].extend(val)
+            else:
+                info[claim] = copy.copy(val)
+        return info
 
     def get_callback_path(self, callback):
         return self._callback_path.get(callback)

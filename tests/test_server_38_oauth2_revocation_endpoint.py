@@ -284,7 +284,7 @@ class TestEndpoint:
         )
 
         assert isinstance(_req, TokenRevocationRequest)
-        assert set(_req.keys()) == {"token", "client_id", "client_secret"}
+        assert set(_req.keys()) == {"token", "client_id", "client_secret", 'authenticated'}
 
     def test_parse_with_wrong_client_authn(self):
         access_token = self._get_access_token(AUTH_REQ)

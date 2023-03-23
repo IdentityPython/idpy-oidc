@@ -292,6 +292,7 @@ class ServiceContext(ImpExp):
             else:
                 for service in services.values():
                     res.update(service.supports())
+                    res = service.extends(res)
         res.update(self.claims.supports())
         return res
 

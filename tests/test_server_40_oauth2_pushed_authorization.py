@@ -199,6 +199,7 @@ class TestEndpoint(object):
             "code_challenge_method",
             "client_id",
             "code_challenge",
+            'authenticated'
         }
 
     def test_pushed_auth_request(self):
@@ -225,6 +226,7 @@ class TestEndpoint(object):
             "code_challenge",
             "request",
             "__verified_request",
+            'authenticated'
         }
 
     def test_pushed_auth_urlencoded_process(self):
@@ -243,6 +245,7 @@ class TestEndpoint(object):
             "code_challenge_method",
             "client_id",
             "code_challenge",
+            'authenticated'
         }
 
         _resp = self.pushed_authorization_endpoint.process_request(_req)

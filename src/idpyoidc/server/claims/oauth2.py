@@ -18,8 +18,7 @@ class Claims(claims.Claims):
     register2preferred = REGISTER2PREFERRED
 
     _supports = {
-        # "client_authn_methods": get_client_authn_methods,
-        "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
+        "deny_unknown_scopes": False,
         "response_types_supported": ["code"],
         "response_modes_supported": ["code"],
         "jwks_uri": None,

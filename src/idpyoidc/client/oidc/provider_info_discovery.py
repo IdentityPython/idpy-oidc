@@ -46,6 +46,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     error_msg = ResponseMessage
     service_name = "provider_info"
 
+    _include = {}
     _supports = {}
 
     def __init__(self, upstream_get, conf=None):

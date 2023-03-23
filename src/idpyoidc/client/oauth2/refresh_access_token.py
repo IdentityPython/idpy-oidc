@@ -23,6 +23,8 @@ class RefreshAccessToken(Service):
     default_authn_method = "bearer_header"
     http_method = "POST"
 
+    _include = {"grant_types_supported": ['refresh_token']}
+
     def __init__(self, upstream_get, conf=None):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)

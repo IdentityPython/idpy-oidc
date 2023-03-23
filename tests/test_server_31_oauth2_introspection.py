@@ -3,8 +3,8 @@ import json
 import os
 
 import pytest
-from cryptojwt import JWT
 from cryptojwt import as_unicode
+from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 
@@ -91,6 +91,7 @@ def full_path(local_file):
 
 @pytest.mark.parametrize("jwt_token", [True, False])
 class TestEndpoint:
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self, jwt_token):
         conf = {
@@ -207,7 +208,7 @@ class TestEndpoint:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         server.keyjar.import_jwks_as_json(
-            server.keyjar.export_jwks_as_json(private=True),context.issuer
+            server.keyjar.export_jwks_as_json(private=True), context.issuer
         )
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.token_endpoint = server.get_endpoint("token")
@@ -265,7 +266,7 @@ class TestEndpoint:
         )
 
         assert isinstance(_req, TokenIntrospectionRequest)
-        assert set(_req.keys()) == {"token", "client_id", "client_secret"}
+        assert set(_req.keys()) == {"token", "client_id", "client_secret", 'authenticated'}
 
     def test_parse_with_wrong_client_authn(self):
         access_token = self._get_access_token(AUTH_REQ)

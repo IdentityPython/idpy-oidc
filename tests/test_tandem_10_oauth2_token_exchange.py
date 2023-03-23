@@ -94,12 +94,6 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "grant_types_supported": [
-                "authorization_code",
-                "implicit",
-                "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "refresh_token",
-            ],
             "client_authn_method": [
                 "client_secret_basic",
                 "client_secret_post",
@@ -401,7 +395,7 @@ class TestEndpoint(object):
         scope, audience and subject_token_type works.
         """
         endp = self.server.get_endpoint("token")
-        conf = endp.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = endp.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
@@ -436,7 +430,7 @@ class TestEndpoint(object):
         grant_types_supported (that are set in its helper attribute).
         """
         endpoint = self.server.get_endpoint("token")
-        del endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"]
+        del endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"]
 
         resp, _state, _scope = self.process_setup()
 
@@ -452,10 +446,7 @@ class TestEndpoint(object):
         _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
 
         assert _te_resp["error"] == "invalid_request"
-        assert (
-                _te_resp["error_description"]
-                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
-        )
+        assert _te_resp["error_description"] == "Do not know how to handle this type of request"
 
     def test_wrong_resource(self):
         """
@@ -463,7 +454,7 @@ class TestEndpoint(object):
         """
         endpoint = self.server.get_endpoint("token")
 
-        conf = endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
 
@@ -512,7 +503,7 @@ class TestEndpoint(object):
         Test that requesting a token for an unknown audience fails.
         """
         endpoint = self.server.get_endpoint("token")
-        conf = endpoint.helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
 

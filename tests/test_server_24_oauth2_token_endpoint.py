@@ -6,17 +6,16 @@ from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import build_keyjar
-from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
-
-from idpyoidc.message import SINGLE_REQUIRED_INT
-
-from idpyoidc.message import SINGLE_REQUIRED_STRING
-
-from idpyoidc.message import Message
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.message import Message
+from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
+from idpyoidc.message import SINGLE_REQUIRED_INT
+from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import JWTAccessToken
+from idpyoidc.message.oauth2 import ROPCAccessTokenRequest
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
@@ -257,7 +256,7 @@ class TestEndpoint(object):
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
-        assert set(_req.keys()) == set(_token_request.keys())
+        assert set(_req.keys()).difference(set(_token_request.keys())) == {'authenticated'}
 
     def test_auth_code_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
@@ -736,11 +735,12 @@ class TestEndpoint(object):
     def test_configure_grant_types(self):
         conf = {"access_token": {"class": "idpyoidc.server.oidc.token.AccessTokenHelper"}}
 
-        self.token_endpoint.configure_grant_types(conf)
+        _helper = self.token_endpoint.configure_types(conf,
+                                                      self.token_endpoint.helper_by_grant_type)
 
-        assert len(self.token_endpoint.helper) == 1
-        assert "access_token" in self.token_endpoint.helper
-        assert "refresh_token" not in self.token_endpoint.helper
+        assert len(_helper) == 1
+        assert "access_token" in _helper
+        assert "refresh_token" not in _helper
 
     def test_token_request_other_client(self):
         _context = self.context
@@ -842,6 +842,7 @@ KEYJAR = KeyJar()
 KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
 KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
 
+
 def upstream_get(what, *args):
     if what == "context":
         if not args:
@@ -849,6 +850,7 @@ def upstream_get(what, *args):
     elif what == 'attribute':
         if args[0] == 'keyjar':
             return KEYJAR
+
 
 def test_def_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **DEFAULT_TOKEN_HANDLER_ARGS)
@@ -866,6 +868,7 @@ def test_def_jwttoken():
     msg.verify()
     assert True
 
+
 def test_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
     token_handler = _handler['access_token']
@@ -882,6 +885,7 @@ def test_jwttoken():
     msg.verify()
     assert True
 
+
 class MyAccessToken(Message):
     c_param = {
         "iss": SINGLE_REQUIRED_STRING,
@@ -891,6 +895,7 @@ class MyAccessToken(Message):
         "iat": SINGLE_REQUIRED_INT,
         'usage': SINGLE_REQUIRED_STRING
     }
+
 
 def test_jwttoken_2():
     _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
@@ -907,3 +912,79 @@ def test_jwttoken_2():
     # test if all required claims are there
     msg.verify()
     assert True
+
+
+class TestClientCredentialsFlow(object):
+
+    @pytest.fixture(autouse=True)
+    def create_endpoint(self, conf):
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        context = server.context
+        context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
+            "grant_types_supported": ['client_credentials', 'password']
+        }
+        self.session_manager = context.session_manager
+        self.token_endpoint = server.get_endpoint("token")
+        self.user_id = "diana"
+        self.context = context
+
+    def test_client_credentials(self):
+        request = CCAccessTokenRequest(client_id="client_1", client_secret='hemligt',
+                                       grant_type='client_credentials', scope="whatever")
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+        assert set(response.keys()) == {'response_args', 'cookie', 'http_headers'}
+        assert set(response["response_args"].keys()) == {'access_token', 'token_type', 'scope',
+                                                         'expires_in'}
+
+
+class TestResourceOwnerPasswordCredentialsFlow(object):
+
+    @pytest.fixture(autouse=True)
+    def create_endpoint(self, conf):
+        conf["authentication"] = {
+            "user": {
+                "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
+                "class": "idpyoidc.server.user_authn.user.UserPass",
+                "kwargs": {
+                    "db_conf": {
+                        "class": "idpyoidc.server.util.JSONDictDB",
+                        "kwargs": {"filename": "passwd.json"}
+                    }
+                }
+            }
+        }
+
+        server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        context = server.context
+        context.cdb["client_1"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
+            "grant_types_supported": ['client_credentials', 'password'],
+        }
+        self.session_manager = context.session_manager
+        self.token_endpoint = server.get_endpoint("token")
+        self.context = context
+
+    def test_resource_owner_password_credentials(self):
+        request = ROPCAccessTokenRequest(client_id="client_1",
+                                         client_secret='hemligt',
+                                         grant_type='password',
+                                         username='diana',
+                                         password='krall',
+                                         scope="whatever")
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+        assert set(response.keys()) == {'response_args', 'cookie', 'http_headers'}
+        assert set(response["response_args"].keys()) == {'access_token', 'token_type', 'scope',
+                                                         'expires_in'}

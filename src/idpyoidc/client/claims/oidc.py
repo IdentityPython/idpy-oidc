@@ -75,7 +75,7 @@ class Claims(client_claims.Claims):
         "contacts": None,
         "default_max_age": 86400,
         "encrypt_id_token_supported": None,
-        "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
+        # "grant_types_supported": ["authorization_code", "refresh_token"],
         "logo_uri": None,
         "id_token_signing_alg_values_supported": claims.get_signing_algs,
         "id_token_encryption_alg_values_supported": claims.get_encryption_algs,

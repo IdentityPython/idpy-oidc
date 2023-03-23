@@ -27,6 +27,8 @@ class AccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
+    _include = {"grant_types_supported": ['authorization_code']}
+
     _supports = {
         "token_endpoint_auth_methods_supported": get_client_authn_methods,
         "token_endpoint_auth_signing_alg": get_signing_algs,

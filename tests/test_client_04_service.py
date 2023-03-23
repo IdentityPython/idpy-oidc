@@ -59,7 +59,6 @@ class TestService:
                                    'client_id',
                                    'default_max_age',
                                    'encrypt_request_object_supported',
-                                   'grant_types',
                                    'id_token_signed_response_alg',
                                    'jwks',
                                    'redirect_uris',

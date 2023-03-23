@@ -46,13 +46,8 @@ conf = {
         "client_secret_basic",
     ],
     "subject_types_supported": ["public", "pairwise"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ],
     "endpoint": {
+
         "userinfo": {
             "path": "userinfo",
             "class": Endpoint_1,
@@ -103,7 +98,6 @@ class TestEndpointContext:
     def test(self):
         self.context.set_provider_info()
         assert set(self.context.provider_info.keys()) == {
-            'grant_types_supported',
             'id_token_signing_alg_values_supported',
             'issuer',
             'jwks_uri',
@@ -111,28 +105,6 @@ class TestEndpointContext:
             'subject_types_supported',
             'userinfo_signing_alg_values_supported',
             'version'}
-
-    def test_allow_refresh_token(self):
-        assert allow_refresh_token(self.context)
-
-        # Have the software but is not expected to use it.
-        self.context.set_preference("grant_types_supported", [
-            "authorization_code",
-            "implicit",
-            "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        ])
-        assert allow_refresh_token(self.context) is False
-
-        # Don't have the software but are expected to use it.
-        self.context.set_preference("grant_types_supported", [
-            "authorization_code",
-            "implicit",
-            "urn:ietf:params:oauth:grant-type:jwt-bearer",
-            "refresh_token",
-        ])
-        del self.context.session_manager.token_handler.handler["refresh_token"]
-        with pytest.raises(OidcEndpointError):
-            assert allow_refresh_token(self.context) is False
 
 
 class Tokenish(Endpoint):
@@ -200,7 +172,6 @@ def test_provider_configuration(kwargs):
     server.context.set_provider_info()
     pi = server.context.provider_info
     assert set(pi.keys()) == {'acr_values_supported',
-                              'grant_types_supported',
                               'id_token_signing_alg_values_supported',
                               'issuer',
                               'jwks_uri',

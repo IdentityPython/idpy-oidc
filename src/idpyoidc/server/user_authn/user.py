@@ -153,13 +153,13 @@ class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-        self,
-        db,
-        template_handler,
-        template="user_pass.jinja2",
-        upstream_get=None,
-        verify_endpoint="",
-        **kwargs,
+            self,
+            db,
+            template_handler,
+            template="user_pass.jinja2",
+            upstream_get=None,
+            verify_endpoint="",
+            **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(upstream_get=upstream_get)
@@ -218,7 +218,31 @@ class UserPassJinja2(UserAuthnMethod):
             raise FailedAuthentication()
 
 
+class UserPass(UserAuthnMethod):
+
+    def __init__(
+            self,
+            db_conf,
+            upstream_get=None,
+            **kwargs,
+    ):
+
+        super(UserPass, self).__init__(upstream_get=upstream_get)
+        self.user_db = instantiate(db_conf["class"], **db_conf["kwargs"])
+
+    def __call__(self, **kwargs):
+        pass
+
+    def verify(self, *args, **kwargs):
+        username = kwargs["username"]
+        if username in self.user_db and self.user_db[username] == kwargs["password"]:
+            return username
+        else:
+            raise FailedAuthentication()
+
+
 class BasicAuthn(UserAuthnMethod):
+
     def __init__(self, pwd, ttl=5, upstream_get=None):
         UserAuthnMethod.__init__(self, upstream_get=upstream_get)
         self.passwd = pwd
@@ -249,6 +273,7 @@ class BasicAuthn(UserAuthnMethod):
 
 
 class SymKeyAuthn(UserAuthnMethod):
+
     # user authentication using a token
 
     def __init__(self, ttl, symkey, upstream_get=None):
@@ -283,6 +308,7 @@ class SymKeyAuthn(UserAuthnMethod):
 
 
 class NoAuthn(UserAuthnMethod):
+
     # Just for testing allows anyone it without authentication
 
     def __init__(self, user, upstream_get=None):
