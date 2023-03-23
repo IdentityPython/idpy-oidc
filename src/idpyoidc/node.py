@@ -111,7 +111,10 @@ class Unit(ImpExp):
             id = issuer_id or client_id
             self.keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
             if client_id:
-                self.keyjar.add_symmetric('', client_id)
+                _key = config.get("client_secret")
+                if _key:
+                    self.keyjar.add_symmetric(client_id, _key)
+                    self.keyjar.add_symmetric('', _key)
         else:
             if client_id:
                 _key = config.get("client_secret")
