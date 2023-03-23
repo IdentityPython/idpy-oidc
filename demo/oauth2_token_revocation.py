@@ -1,14 +1,13 @@
-import json
 import os
 
 from cryptojwt.key_jar import build_keyjar
 
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.server import ASConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from tests import CRYPT_CONFIG
@@ -18,32 +17,17 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
-
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
-
-def full_path(local_file):
-    return os.path.join(BASEDIR, local_file)
-
-
-USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
-
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
-}
-
-SERVER_CONF = {
+server_conf = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
     "endpoint": {
-        "metadata": {
-            "path": ".well-known/oauth-authorization-server",
-            "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+        'discovery': {
+            'path': "/.well-known/oauth-authorization-server",
+            'class': "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
             "kwargs": {},
         },
         "authorization": {
@@ -55,6 +39,15 @@ SERVER_CONF = {
             "path": "token",
             "class": "idpyoidc.server.oauth2.token.Token",
             "kwargs": {},
+        },
+        "token_revocation": {
+            'path': 'revocation',
+            "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
+            "kwargs": {},
+        },
+        'introspection': {
+            'path': 'introspection',
+            'class': "idpyoidc.server.oauth2.introspection.Introspection"
         }
     },
     "authentication": {
@@ -66,6 +59,7 @@ SERVER_CONF = {
     },
     "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
     "client_authn": verify_client,
+    "template_dir": "template",
     "authz": {
         "class": AuthzHandling,
         "kwargs": {
@@ -90,13 +84,8 @@ SERVER_CONF = {
         },
     },
     "token_handler_args": {
-        "key_conf": {"key_defs": KEYDEFS},
-        "code": {
-            "lifetime": 600,
-            "kwargs": {
-                "crypt_conf": CRYPT_CONFIG
-            }
-        },
+        "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -114,53 +103,48 @@ SERVER_CONF = {
         },
     },
     "session_params": SESSION_PARAMS,
-    'add_ons': {
-        "pkce": {
-            "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
-            "kwargs": {},
-        },
-    }
 }
-
-server_conf = SERVER_CONF.copy()
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
-CLIENT_CONFIG = {
-    "issuer": SERVER_CONF["issuer"],
-    "client_secret": "hemligtlösenord",
-    "client_id": "client",
-    "redirect_uris": ["https://example.com/cb"],
-    "token_endpoint_auth_methods_supported": ["client_secret_post"],
+# -------------- Client -----------------------
+
+client_conf = {
+    "redirect_uris": ["https://example.com/cli/code_cb"],
+    "client_id": "client_1",
+    "client_secret": "abcdefghijklmnop",
+    'issuer': 'https://example.com/',
     "response_types_supported": ["code"],
-    'add_ons': {
-        "jar": {
-            "function": "idpyoidc.client.oauth2.add_on.jar.add_support",
-            "kwargs": {
-                'request_type': 'request_parameter',
-                'request_object_signing_alg': "ES256",
-                'expires_in': 600
-            }
-        }
+}
+services = {
+    "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+    'token_revocation': {
+        'class': 'idpyoidc.client.oauth2.token_revocation.TokenRevocation'
+    },
+    'introspection': {
+        'class': 'idpyoidc.client.oauth2.introspection.Introspection'
     }
 }
 
-client = Client(client_type='oauth2', config=CLIENT_CONFIG,
-                keyjar=build_keyjar(KEYDEFS),
-                services=_OAUTH2_SERVICES)
+client = Client(config=client_conf, keyjar=build_keyjar(KEYDEFS), services=services)
 
-server.context.cdb["client"] = CLIENT_CONFIG
-server.context.keyjar.import_jwks(
-    client.keyjar.export_jwks(), "client")
-
-server.context.set_provider_info()
+# ------- tell the server about the client ----------------
+server.context.cdb["client_1"] = client_conf
+server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client_1")
 
 flow = Flow(client, server)
 msg = flow(
     [
         ['server_metadata', 'server_metadata'],
-        ['authorization', 'authorization']
+        ['authorization', 'authorization'],
+        ["accesstoken", 'token'],
+        ['introspection', 'introspection'],
+        ['token_revocation','token_revocation'],
+        ['introspection', 'introspection'],
     ],
-    scope=['foobar']
+    scope=['foobar'],
+    server_jwks=server.keyjar.export_jwks(''),
+    server_jwks_uri=server.context.provider_info['jwks_uri']
 )
 
-print(msg)
