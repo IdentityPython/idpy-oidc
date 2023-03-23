@@ -1,5 +1,8 @@
+import json
+
 import responses
 
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import rndstr
 
@@ -9,6 +12,22 @@ class Flow(object):
     def __init__(self, client, server):
         self.client = client
         self.server = server
+
+    def print(self, proc, msg):
+        print(30 * '=' + f' {proc} ' + 30 * '=')
+        print("REQUEST")
+        if msg['headers']:
+            print(msg['headers'])
+        if not msg['request']:
+            print('{}')
+        else:
+            print(json.dumps(msg['request'].to_dict(), sort_keys=True, indent=4))
+        print('RESPONSE')
+        if isinstance(msg['response'], Message):
+            print(json.dumps(msg['response'].to_dict(), sort_keys=True, indent=4))
+        else:
+            print(msg['response'])
+        print()
 
     def do_query(self, service_type, endpoint_type, request_args=None, msg=None):
         if request_args is None:
@@ -49,25 +68,35 @@ class Flow(object):
         _response = _server_endpoint.do_response(**_resp)
 
         resp = _client_service.parse_response(_response["response"])
-        _state = msg.get('state', '')
+        _state = ''
+        if service_type == 'authorization':
+            _state = areq['state']
+        else:
+            _authz = msg.get('authorization')
+            if _authz:
+                _state = _authz['request']['state']
 
-        if _client_service.service_name in ['server_metadata', 'provider_info']:
-            if 'server_jwks_uri' in msg and 'server_jwks' in msg:
-                with responses.RequestsMock() as rsps:
-                    rsps.add(
-                        "GET",
-                        msg["server_jwks_uri"],
-                        json=msg["server_jwks"],
-                        content_type="application/json",
-                        status=200,
-                    )
+        if 'response_args' in _resp:
+            if _client_service.service_name in ['server_metadata', 'provider_info']:
+                if 'server_jwks_uri' in msg and 'server_jwks' in msg:
+                    with responses.RequestsMock() as rsps:
+                        rsps.add(
+                            "GET",
+                            msg["server_jwks_uri"],
+                            json=msg["server_jwks"],
+                            content_type="application/json",
+                            status=200,
+                        )
 
+                        _client_service.update_service_context(_resp["response_args"], key=_state)
+                else:
                     _client_service.update_service_context(_resp["response_args"], key=_state)
             else:
                 _client_service.update_service_context(_resp["response_args"], key=_state)
-        else:
-            _client_service.update_service_context(_resp["response_args"], key=_state)
-        return {'request': areq, 'response': resp}
+
+        result = {'request': areq, 'response': resp, 'headers': headers}
+        self.print(service_type, result)
+        return result
 
     def server_metadata_request(self, msg):
         return {}
@@ -111,6 +140,38 @@ class Flow(object):
         }
 
         return req_args
+
+    def introspection_request(self, msg):
+        _context = self.client.get_context()
+        auth_resp = msg['authorization']['response']
+        _state = _context.cstate.get(auth_resp["state"])
+
+        return {
+            "token": _state['access_token'],
+            "token_type_hint": 'access_token'
+        }
+
+    def token_revocation_request(self, msg):
+        _context = self.client.get_context()
+        auth_resp = msg['authorization']['response']
+        _state = _context.cstate.get(auth_resp["state"])
+
+        return {
+            "token": _state['access_token'],
+            "token_type_hint": 'access_token'
+        }
+
+    def token_exchange_request(self, msg):
+        _token = msg['accesstoken']['response']['access_token']
+        _state = msg['authorization']['request']['state']
+
+        return {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "requested_token_type": 'urn:ietf:params:oauth:token-type:access_token',
+            "subject_token": _token,
+            "subject_token_type": 'urn:ietf:params:oauth:token-type:access_token',
+            "state": _state
+        }
 
     def __call__(self, request_responses: list[list], **kwargs):
         msg = kwargs
