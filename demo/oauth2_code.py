@@ -26,14 +26,9 @@ def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
 
 
-USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
+# ================ Server side ===================================
 
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
-}
+USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 SERVER_CONF = {
     "issuer": "https://example.com/",
@@ -122,29 +117,28 @@ SERVER_CONF = {
     }
 }
 
-server_conf = SERVER_CONF.copy()
-server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
+server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
+
+# ================ Client side ===================================
+
+_OAUTH2_SERVICES = {
+    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+}
 
 CLIENT_CONFIG = {
     "issuer": SERVER_CONF["issuer"],
-    "client_secret": "hemligtlösenord",
+    "client_secret": "SUPERhemligtlösenord",
     "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    "response_types_supported": ["code"],
-    'add_ons': {
-        "jar": {
-            "function": "idpyoidc.client.oauth2.add_on.jar.add_support",
-            "kwargs": {
-                'request_type': 'request_parameter',
-                'request_object_signing_alg': "ES256",
-                'expires_in': 600
-            }
-        }
-    }
+    "response_types_supported": ["code"]
 }
 
-client = Client(client_type='oauth2', config=CLIENT_CONFIG,
+client = Client(client_type='oauth2',
+                config=CLIENT_CONFIG,
                 keyjar=build_keyjar(KEYDEFS),
                 services=_OAUTH2_SERVICES)
 
@@ -158,9 +152,23 @@ flow = Flow(client, server)
 msg = flow(
     [
         ['server_metadata', 'server_metadata'],
-        ['authorization', 'authorization']
+        ['authorization', 'authorization'],
+        ["accesstoken", 'token']
     ],
-    scope=['foobar']
+    scope=['foobar'],
+    server_jwks=server.keyjar.export_jwks(''),
+    server_jwks_uri=server.context.provider_info['jwks_uri']
 )
 
-print(msg)
+for proc in ['server_metadata', 'authorization', 'accesstoken']:
+    print(30*'='+f' {proc} '+30*'=')
+    print("REQUEST")
+    if msg[proc]['headers']:
+        print(msg[proc]['headers'])
+    if not msg[proc]['request']:
+        print('{}')
+    else:
+        print(json.dumps(msg[proc]['request'].to_dict(), sort_keys=True, indent=4))
+    print('RESPONSE')
+    print(json.dumps(msg[proc]['response'].to_dict(), sort_keys=True, indent=4))
+    print()

@@ -19,13 +19,6 @@ KEYDEFS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-CLIENT_KEYJAR = build_keyjar(KEYDEFS)
-
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
-
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -34,13 +27,6 @@ def full_path(local_file):
 
 
 USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
-
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
-}
 
 SERVER_CONF = {
     "issuer": "https://example.com/",
@@ -129,7 +115,6 @@ SERVER_CONF = {
     }
 }
 
-
 server_conf = SERVER_CONF.copy()
 server_conf['add_ons'] = {
     "pkce": {
@@ -139,12 +124,18 @@ server_conf['add_ons'] = {
 }
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
+_OAUTH2_SERVICES = {
+    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+}
+
 CLIENT_CONFIG = {
     "issuer": SERVER_CONF["issuer"],
     "client_secret": "SUPERhemligtlösenord",
     "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
-    "client_salt": "salted_peanuts_cooking",
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
     "response_types_supported": ["code"],
     'add_ons': {
