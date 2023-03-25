@@ -101,6 +101,9 @@ class Flow(object):
     def server_metadata_request(self, msg):
         return {}
 
+    def provider_info_request(self, msg):
+        return {}
+
     def authorization_request(self, msg):
         # ***** Authorization Request **********
         _nonce = rndstr(24)
@@ -172,6 +175,11 @@ class Flow(object):
             "subject_token_type": 'urn:ietf:params:oauth:token-type:access_token',
             "state": _state
         }
+
+    def registration_request(self, msg):
+        _context = self.client.get_context()
+        _context.map_preferred_to_registered(registration_response=_context.provider_info)
+        return {}
 
     def __call__(self, request_responses: list[list], **kwargs):
         msg = kwargs

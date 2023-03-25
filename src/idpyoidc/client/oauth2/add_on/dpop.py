@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Optional
 
@@ -6,6 +7,7 @@ from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
 from cryptojwt.key_bundle import key_by_alg
 
+from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
@@ -13,6 +15,7 @@ from idpyoidc.message import SINGLE_REQUIRED_STRING
 from idpyoidc.message import Message
 from idpyoidc.time_util import utc_time_sans_frac
 
+logger = logging.getLogger(__name__)
 
 class DPoPProof(Message):
     c_param = {
@@ -101,30 +104,27 @@ def dpop_header(
     """
 
     provider_info = service_context.provider_info
-    dpop_key = service_context.add_on["dpop"].get("key")
+    _dpop_conf = service_context.add_on.get("dpop")
+    if not _dpop_conf:
+        logger.warning('Asked to do dpop when I do not support it')
+        return headers
+
+    dpop_key = _dpop_conf.get("key")
 
     if not dpop_key:
-        algs_supported = provider_info["dpop_signing_alg_values_supported"]
-        if not algs_supported:  # does not support DPoP
-            return headers
-
-        chosen_alg = ""
-        for alg in service_context.add_on["dpop"]["sign_algs"]:
-            if alg in algs_supported:
-                chosen_alg = alg
-                break
+        chosen_alg = _dpop_conf.get("algs_supported", [])[0]
 
         if not chosen_alg:
             return headers
 
         # Mint a new key
         dpop_key = key_by_alg(chosen_alg)
-        service_context.add_on["dpop"]["key"] = dpop_key
-        service_context.add_on["dpop"]["alg"] = chosen_alg
+        _dpop_conf["key"] = dpop_key
+        _dpop_conf["alg"] = chosen_alg
 
     header_dict = {
         "typ": "dpop+jwt",
-        "alg": service_context.add_on["dpop"]["alg"],
+        "alg": _dpop_conf["alg"],
         "jwk": dpop_key.serialize(),
         "jti": uuid.uuid4().hex,
         "htm": http_method,
@@ -155,10 +155,14 @@ def add_support(services, dpop_signing_alg_values_supported):
     # Access token request should use DPoP header
     _service = services["accesstoken"]
     _context = _service.upstream_get("context")
+    _algs_supported =  [alg for alg in dpop_signing_alg_values_supported if alg in
+                           get_signing_algs()]
     _context.add_on["dpop"] = {
         # "key": key_by_alg(signing_algorithm),
-        "sign_algs": dpop_signing_alg_values_supported
+        "algs_supported": _algs_supported
     }
+    _context.set_preference('dpop_signing_alg_values_supported', _algs_supported)
+
     _service.construct_extra_headers.append(dpop_header)
 
     # The same for userinfo requests

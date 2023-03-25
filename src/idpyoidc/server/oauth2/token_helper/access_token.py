@@ -66,12 +66,20 @@ class AccessTokenHelper(TokenEndpointHelper):
             if isinstance(req, TokenErrorResponse):
                 return req
 
-        # if "grant_types_supported" in _context.cdb[client_id]:
-        #     grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
-        # else:
-        #     grant_types_supported = _context.provider_info["grant_types_supported"]
-
         grant = _session_info["grant"]
+        token_type = "Bearer"
+
+        # Is DPOP supported
+        try:
+            _dpop_enabled = _context.dpop_enabled
+        except AttributeError:
+            _dpop_enabled = False
+
+        if _dpop_enabled:
+            _dpop_jkt = req.get("dpop_jkt")
+            if _dpop_jkt:
+                grant.extra["dpop_jkt"] = _dpop_jkt
+                token_type = "DPoP"
 
         _based_on = grant.get_token(_access_code)
         _supports_minting = _based_on.usage_rules.get("supports_minting", [])
@@ -96,7 +104,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             scope = grant.scope
 
         _response = {
-            "token_type": "Bearer",
+            "token_type": token_type,
             "scope": scope,
         }
 
