@@ -12,6 +12,8 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
+from tests import CRYPT_CONFIG
+from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -23,20 +25,6 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
-
-CRYPT_CONFIG = {
-    "kwargs": {
-        "keys": {
-            "key_defs": [
-                {"type": "OCT", "use": ["enc"], "kid": "password"},
-                {"type": "OCT", "use": ["enc"], "kid": "salt"},
-            ]
-        },
-        "iterations": 1,
-    }
-}
-
-SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}
 
 
 # ================ Server side ===================================
