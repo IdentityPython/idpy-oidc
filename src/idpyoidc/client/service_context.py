@@ -365,9 +365,29 @@ class ServiceContext(ImpExp):
                                                     info=info)
         return self.claims.prefer
 
+    def map_service_against_endpoint(self, provider_config):
+        # Check endpoints against services
+        remove = []
+        for srv_name, srv in self.upstream_get('services').items():
+            if srv.endpoint_name:
+                _match = provider_config.get(srv.endpoint_name)
+                if _match is None:
+                    for key in srv._supports.keys():
+                        if key in self.claims.prefer:
+                            del self.claims.prefer[key]
+                    remove.append(srv_name)
+
+        for item in remove:
+            del self.upstream_get('services')[item]
+
     def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
+        if registration_response:
+            self.map_service_against_endpoint(self.provider_info)
+
         self.claims.use = preferred_to_registered(
             self.claims.prefer,
             supported=self.supports(),
             registration_response=registration_response)
+
+
         return self.claims.use

@@ -5,6 +5,7 @@ from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
+from idpyoidc.claims import get_signing_algs
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
@@ -139,6 +140,8 @@ def add_support(endpoint: dict, **kwargs):
     _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
     if not _algs_supported:
         _algs_supported = ["RS256"]
+    else:
+        _algs_supported = [alg for alg in _algs_supported if alg in get_signing_algs()]
 
     _token_endp.upstream_get("context").provider_info[
         "dpop_signing_alg_values_supported"

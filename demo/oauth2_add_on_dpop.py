@@ -26,8 +26,6 @@ def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
 
 
-# ================ Server side ===================================
-
 USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 SERVER_CONF = {
@@ -111,9 +109,14 @@ SERVER_CONF = {
     "session_params": SESSION_PARAMS,
 }
 
-server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
-
-# ================ Client side ===================================
+server_conf = SERVER_CONF.copy()
+server_conf['add_ons'] = {
+    "dpop": {
+        "function": "idpyoidc.server.oauth2.add_on.dpop.add_support",
+        "kwargs": {},
+    },
+}
+server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
 _OAUTH2_SERVICES = {
     "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
@@ -128,11 +131,18 @@ CLIENT_CONFIG = {
     "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    "response_types_supported": ["code"]
+    "response_types_supported": ["code"],
+    'add_ons': {
+        "dpop": {
+            "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",
+            "kwargs": {
+                "dpop_signing_alg_values_supported": ["ES256"]
+            }
+        }
+    }
 }
 
-client = Client(client_type='oauth2',
-                config=CLIENT_CONFIG,
+client = Client(client_type='oauth2', config=CLIENT_CONFIG,
                 keyjar=build_keyjar(KEYDEFS),
                 services=_OAUTH2_SERVICES)
 
@@ -153,4 +163,4 @@ msg = flow(
     server_jwks=server.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri']
 )
-
+assert msg
