@@ -177,8 +177,8 @@ class Flow(object):
         }
 
     def registration_request(self, msg):
-        _context = self.client.get_context()
-        _context.map_preferred_to_registered(registration_response=_context.provider_info)
+        # _context = self.client.get_context()
+        # _context.map_preferred_to_registered(_context.provider_info)
         return {}
 
     def __call__(self, request_responses: list[list], **kwargs):
