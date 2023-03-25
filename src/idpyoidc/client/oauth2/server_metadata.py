@@ -135,7 +135,7 @@ class ServerMetadata(Service):
             _info = resp.to_dict()
         else:
             _info = resp
-        _context.map_supported_to_preferred(_info)
+        _context.map_service_against_endpoint(_info)
 
     def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)
