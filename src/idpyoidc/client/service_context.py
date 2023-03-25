@@ -381,9 +381,6 @@ class ServiceContext(ImpExp):
             del self.upstream_get('services')[item]
 
     def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
-        if registration_response:
-            self.map_service_against_endpoint(self.provider_info)
-
         self.claims.use = preferred_to_registered(
         self.claims.prefer,
         supported=self.supports(),
