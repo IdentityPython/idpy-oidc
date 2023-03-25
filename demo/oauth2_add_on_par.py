@@ -26,9 +26,14 @@ def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
 
 
-# ================ Server side ===================================
-
 USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
+
+_OAUTH2_SERVICES = {
+    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+}
 
 SERVER_CONF = {
     "issuer": "https://example.com/",
@@ -45,6 +50,18 @@ SERVER_CONF = {
             "path": "authorization",
             "class": "idpyoidc.server.oauth2.authorization.Authorization",
             "kwargs": {},
+        },
+        "pushed_authorization": {
+            "path": "pushed_authorization",
+            "class": 'idpyoidc.server.oauth2.pushed_authorization.PushedAuthorization',
+            "kwargs": {
+                "client_authn_method": [
+                    "client_secret_post",
+                    "client_secret_basic",
+                    "client_secret_jwt",
+                    "private_key_jwt",
+                ]
+            },
         },
         "token": {
             "path": "token",
@@ -109,30 +126,37 @@ SERVER_CONF = {
         },
     },
     "session_params": SESSION_PARAMS,
+    'add_ons': {
+        "pkce": {
+            "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
+            "kwargs": {},
+        },
+    }
 }
 
-server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
-
-# ================ Client side ===================================
-
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
-}
+server_conf = SERVER_CONF.copy()
+server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
 CLIENT_CONFIG = {
     "issuer": SERVER_CONF["issuer"],
-    "client_secret": "SUPERhemligtlösenord",
+    "client_secret": "hemligtlösenord",
     "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    "response_types_supported": ["code"]
+    "response_types_supported": ["code"],
+    'add_ons': {
+        "par": {
+            "function": "idpyoidc.client.oauth2.add_on.par.add_support",
+            "kwargs": {
+                'body_format': "jws",
+                'signing_algorithm': "RS256",
+                'merge_rule': "strict"
+            }
+        }
+    }
 }
 
-client = Client(client_type='oauth2',
-                config=CLIENT_CONFIG,
+client = Client(client_type='oauth2', config=CLIENT_CONFIG,
                 keyjar=build_keyjar(KEYDEFS),
                 services=_OAUTH2_SERVICES)
 
@@ -146,11 +170,11 @@ flow = Flow(client, server)
 msg = flow(
     [
         ['server_metadata', 'server_metadata'],
-        ['authorization', 'authorization'],
-        ["accesstoken", 'token']
+        ['authorization', 'authorization']
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri']
 )
+
 
