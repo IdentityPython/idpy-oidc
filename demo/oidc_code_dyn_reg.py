@@ -4,7 +4,7 @@ import os
 from cryptojwt.key_jar import build_keyjar
 
 from flow import Flow
-from idpyoidc.client.oauth2 import Client
+from idpyoidc.client.oidc import RP
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -38,18 +38,22 @@ SERVER_CONF = {
     "endpoint": {
         "metadata": {
             "path": ".well-known/oauth-authorization-server",
-            "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+            "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
             "kwargs": {},
         },
         "authorization": {
             "path": "authorization",
-            "class": "idpyoidc.server.oauth2.authorization.Authorization",
+            "class": "idpyoidc.server.oidc.authorization.Authorization",
             "kwargs": {},
         },
         "token": {
             "path": "token",
-            "class": "idpyoidc.server.oauth2.token.Token",
+            "class": "idpyoidc.server.oidc.token.Token",
             "kwargs": {},
+        },
+        "registration": {
+            "path": 'register',
+            "class": "idpyoidc.server.oidc.registration.Registration"
         }
     },
     "authentication": {
@@ -115,37 +119,32 @@ server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDI
 
 # ================ Client side ===================================
 
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+OIDC_SERVICES = {
+    "provider_info": {
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
+    "register": {"class": "idpyoidc.client.oidc.registration.Registration"},
+    "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
+    'userinfo': {'class': "idpyoidc.client.oidc.userinfo.UserInfo"}
 }
 
 CLIENT_CONFIG = {
     "issuer": SERVER_CONF["issuer"],
-    "client_secret": "SUPERhemligtlösenord",
-    "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
+    "allowed_scopes": ["foobar", "openid"],
     "response_types_supported": ["code"]
 }
 
-client = Client(client_type='oauth2',
-                config=CLIENT_CONFIG,
-                keyjar=build_keyjar(KEYDEFS),
-                services=_OAUTH2_SERVICES)
+client = RP(config=CLIENT_CONFIG, keyjar=build_keyjar(KEYDEFS), services=OIDC_SERVICES)
 
-server.context.cdb["client"] = CLIENT_CONFIG
-server.context.keyjar.import_jwks(
-    client.keyjar.export_jwks(), "client")
-
-server.context.set_provider_info()
+# server.context.set_provider_info()
 
 flow = Flow(client, server)
 msg = flow(
     [
-        ['server_metadata', 'server_metadata'],
+        ['provider_info', 'provider_config'],
+        ['registration', 'registration'],
         ['authorization', 'authorization'],
         ["accesstoken", 'token']
     ],
@@ -153,4 +152,3 @@ msg = flow(
     server_jwks=server.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri']
 )
-
