@@ -5,6 +5,7 @@ from typing import Optional
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
+from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_bundle import key_by_alg
 
 from idpyoidc.claims import get_signing_algs
@@ -91,6 +92,8 @@ def dpop_header(
     service_endpoint: str,
     http_method: str,
     headers: Optional[dict] = None,
+    token: Optional[str] = '',
+    nonce: Optional[str] = '',
     **kwargs
 ) -> dict:
     """
@@ -98,7 +101,10 @@ def dpop_header(
     :param service_context:
     :param service_endpoint:
     :param http_method:
-    :param headers:
+    :param headers: The HTTP headers to which the DPoP header should be added.
+    :param token: If the DPoP Proof is sent together with an access token this should lead to
+        the addition of the ath claim (hash of the token as value)
+    :param nonce: AS or RS provided nonce.
     :param kwargs:
     :return:
     """
@@ -131,6 +137,12 @@ def dpop_header(
         "htu": provider_info[service_endpoint],
         "iat": utc_time_sans_frac(),
     }
+
+    if token:
+        header_dict['ath'] = SIGNER_ALGS['RS256'].sign(token)
+
+    if nonce:
+        header_dict['nonce'] = nonce
 
     _dpop = DPoPProof(**header_dict)
     _dpop.key = dpop_key

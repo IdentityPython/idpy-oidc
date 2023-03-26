@@ -148,7 +148,7 @@ def add_support(endpoint: dict, **kwargs):
     ] = _algs_supported
 
     _context = _token_endp.upstream_get("context")
-    _context.dpop_enabled = True
+    _context.add_on['dpop'] = {'algs_supported': _algs_supported}
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header
