@@ -71,7 +71,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         # Is DPOP supported
         try:
-            _dpop_enabled = _context.dpop_enabled
+            _dpop_enabled = _context.add_on.get('dpop')
         except AttributeError:
             _dpop_enabled = False
 
