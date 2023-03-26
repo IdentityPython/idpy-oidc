@@ -17,7 +17,9 @@ class Flow(object):
         print(30 * '=' + f' {proc} ' + 30 * '=')
         print("REQUEST")
         if msg['headers']:
-            print(msg['headers'])
+            print('    HEADERS')
+            for line in json.dumps(msg['headers'], sort_keys=True, indent=4).split('\n'):
+                print('    '+line)
         if not msg['request']:
             print('{}')
         else:
@@ -44,6 +46,8 @@ class Flow(object):
         _server_endpoint = self.server.get_endpoint(endpoint_type)
         if headers:
             argv = {"http_info": {"headers": headers}}
+            argv['http_info']['url'] = req_info['url']
+            argv['http_info']['method'] = req_info['method']
         else:
             argv = {}
 
@@ -177,8 +181,9 @@ class Flow(object):
         }
 
     def registration_request(self, msg):
-        # _context = self.client.get_context()
-        # _context.map_preferred_to_registered(_context.provider_info)
+        return {}
+
+    def userinfo_request(self, msg):
         return {}
 
     def __call__(self, request_responses: list[list], **kwargs):

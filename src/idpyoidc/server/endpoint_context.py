@@ -316,7 +316,10 @@ class EndpointContext(OidcContext):
             )
 
     def do_add_on(self, endpoints):
-        _add_on_conf = self.conf.get("add_on")
+        _add_on_conf = self.conf.get("add_ons")
+        if not _add_on_conf:
+            _add_on_conf = self.conf.conf.get('add_ons')
+
         if _add_on_conf:
             for spec in _add_on_conf.values():
                 if isinstance(spec["function"], str):

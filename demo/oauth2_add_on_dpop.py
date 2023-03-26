@@ -4,6 +4,7 @@ import os
 from cryptojwt.key_jar import build_keyjar
 
 from flow import Flow
+from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
@@ -113,7 +114,9 @@ server_conf = SERVER_CONF.copy()
 server_conf['add_ons'] = {
     "dpop": {
         "function": "idpyoidc.server.oauth2.add_on.dpop.add_support",
-        "kwargs": {},
+        "kwargs": {
+            'dpop_signing_alg_values_supported': get_signing_algs()
+        },
     },
 }
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -142,7 +145,8 @@ CLIENT_CONFIG = {
     }
 }
 
-client = Client(client_type='oauth2', config=CLIENT_CONFIG,
+client = Client(client_type='oauth2',
+                config=CLIENT_CONFIG,
                 keyjar=build_keyjar(KEYDEFS),
                 services=_OAUTH2_SERVICES)
 
@@ -157,7 +161,8 @@ msg = flow(
     [
         ['server_metadata', 'server_metadata'],
         ['authorization', 'authorization'],
-        ["accesstoken", 'token']
+        ["accesstoken", 'token'],
+        ['userinfo', 'userinfo']
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
