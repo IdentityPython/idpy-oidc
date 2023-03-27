@@ -5,7 +5,8 @@ import os
 from cryptojwt.key_jar import build_keyjar
 
 from flow import Flow
-from idpyoidc.client.oauth2 import Client
+from idpyoidc.client.oidc import RP
+from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -39,18 +40,23 @@ SERVER_CONF = {
     "endpoint": {
         "metadata": {
             "path": ".well-known/oauth-authorization-server",
-            "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+            "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
             "kwargs": {},
         },
         "authorization": {
             "path": "authorization",
-            "class": "idpyoidc.server.oauth2.authorization.Authorization",
+            "class": "idpyoidc.server.oidc.authorization.Authorization",
             "kwargs": {},
         },
         "token": {
             "path": "token",
-            "class": "idpyoidc.server.oauth2.token.Token",
+            "class": "idpyoidc.server.oidc.token.Token",
             "kwargs": {},
+        },
+        "userinfo": {
+            'path': 'userinfo',
+            "class": "idpyoidc.server.oidc.userinfo.UserInfo",
+            "kwargs": {}
         }
     },
     "authentication": {
@@ -60,7 +66,10 @@ SERVER_CONF = {
             "kwargs": {"user": "diana"},
         }
     },
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
+    "userinfo": {
+        "class": UserInfo,
+        "kwargs": {"db_file": full_path("users.json")}
+    },
     "client_authn": verify_client,
     "authz": {
         "class": AuthzHandling,
@@ -68,15 +77,15 @@ SERVER_CONF = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token"],
+                        "supports_minting": ["access_token", "refresh_token", "id_token"],
                         "max_usage": 1,
                     },
                     "access_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
+                        "supports_minting": ["access_token", "refresh_token", "id_token"],
                         "expires_in": 600,
                     },
                     "refresh_token": {
-                        "supports_minting": ["access_token"],
+                        "supports_minting": ["access_token", "id_token"],
                         "audience": ["https://example.com", "https://example2.com"],
                         "expires_in": 43200,
                     },
@@ -108,19 +117,28 @@ SERVER_CONF = {
                 "aud": ["https://example.org/appl"],
             },
         },
+        "id_token": {
+            "class": "idpyoidc.server.token.id_token.IDToken",
+            "kwargs": {
+                "lifetime": 86400,
+                "add_claims_by_scope": True
+            },
+        },
     },
+    "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "session_params": SESSION_PARAMS,
 }
 
-server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
+server = Server(OPConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
 
 # ================ Client side ===================================
 
-_OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+OIDC_SERVICES = {
+    "provider_info": {
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
+    "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
+    'userinfo': {'class': "idpyoidc.client.oidc.userinfo.UserInfo"}
 }
 
 CLIENT_CONFIG = {
@@ -129,29 +147,37 @@ CLIENT_CONFIG = {
     "client_id": "client",
     "redirect_uris": ["https://example.com/cb"],
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
+    "allowed_scopes": ["foobar", "openid"],
     "response_types_supported": ["code"]
 }
 
-client = Client(client_type='oauth2',
-                config=CLIENT_CONFIG,
-                keyjar=build_keyjar(KEYDEFS),
-                services=_OAUTH2_SERVICES)
+client = RP(config=CLIENT_CONFIG,
+            keyjar=build_keyjar(KEYDEFS),
+            services=OIDC_SERVICES)
 
 server.context.cdb["client"] = CLIENT_CONFIG
 server.context.keyjar.import_jwks(
     client.keyjar.export_jwks(), "client")
 
-server.context.set_provider_info()
+# server.context.set_provider_info()
 
 flow = Flow(client, server)
 msg = flow(
     [
-        ['server_metadata', 'server_metadata'],
+        ['provider_info', 'provider_config'],
         ['authorization', 'authorization'],
-        ["accesstoken", 'token']
+        ["accesstoken", 'token'],
+        ['userinfo', 'userinfo']
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
-    server_jwks_uri=server.context.provider_info['jwks_uri']
+    server_jwks_uri=server.context.provider_info['jwks_uri'],
+    request_additions={
+        'authorization': {
+            'claims': {
+                "id_token": {"nickname": None},
+                "userinfo": {"name": None, "email": None, "email_verified": None},
+            }
+        }
+    }
 )
-
