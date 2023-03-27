@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 
 from cryptojwt.key_jar import build_keyjar
