@@ -1,9 +1,8 @@
+#!/usr/bin/env python3
 import json
 import os
-import pprint
 
 from idpyoidc.client.oauth2 import Client
-
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -117,7 +116,6 @@ CLIENT_SERVICES = {
         "class": "idpyoidc.client.oauth2.client_credentials.CCAccessTokenRequest"
     }
 }
-
 
 # Client side
 

@@ -20,7 +20,7 @@ class RefreshAccessToken(Service):
     endpoint_name = "token_endpoint"
     synchronous = True
     service_name = "refresh_token"
-    default_authn_method = "bearer_header"
+    default_authn_method = "client_secret_post"
     http_method = "POST"
 
     _include = {"grant_types_supported": ['refresh_token']}

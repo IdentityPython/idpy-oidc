@@ -162,7 +162,7 @@ msg = flow(
         ['server_metadata', 'server_metadata'],
         ['authorization', 'authorization'],
         ["accesstoken", 'token'],
-        ['userinfo', 'userinfo']
+        # ['userinfo', 'userinfo']
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),

@@ -1,4 +1,6 @@
+from typing import Callable
 from typing import Optional
+from typing import Union
 
 from cryptojwt import JWS
 from cryptojwt import as_unicode
@@ -6,10 +8,11 @@ from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
 from idpyoidc.claims import get_signing_algs
+from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
+from idpyoidc.server.client_authn import BearerHeader
 from idpyoidc.server.client_authn import ClientAuthnMethod
 from idpyoidc.server.client_authn import basic_authn
 from idpyoidc.server.exception import ClientAuthenticationError
@@ -149,12 +152,12 @@ def add_support(endpoint: dict, **kwargs):
 
     _context = _token_endp.upstream_get("context")
     _context.add_on['dpop'] = {'algs_supported': _algs_supported}
-
+    _context.client_authn_methods['dpop'] = DPoPClientAuth
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header
 
 
-class DPoPClientAuth(ClientAuthnMethod):
+class DPoPClientAuth(BearerHeader):
     tag = "dpop_client_auth"
 
     def is_usable(self, request=None, authorization_info=None, http_headers=None):
@@ -162,10 +165,19 @@ class DPoPClientAuth(ClientAuthnMethod):
             return True
         return False
 
-    def verify(self, authorization_info, **kwargs):
-        client_info = basic_authn(authorization_info)
+    def verify(self,
+               request: Optional[Union[dict, Message]] = None,
+               authorization_token: Optional[str] = None,
+               endpoint=None,  # Optional[Endpoint]
+               get_client_id_from_token: Optional[Callable] = None,
+               **kwargs,
+               ):
+        # info contains token and client_id
+        info = BearerHeader._verify(self, request, authorization_token, endpoint,
+                                    get_client_id_from_token, **kwargs)
         _context = self.upstream_get("context")
-        if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
-            return {"client_id": client_info["id"]}
-        else:
-            raise ClientAuthenticationError()
+        return {"client_id": ''}
+        # if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
+        #     return {"client_id": client_info["id"]}
+        # else:
+        #     raise ClientAuthenticationError()
