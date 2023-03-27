@@ -38,7 +38,20 @@ class Flow(object):
             msg = {}
 
         _client_service = self.client.get_service(service_type)
-        req_info = _client_service.get_request_parameters(request_args=request_args)
+
+        _additions = msg.get('request_additions')
+        if _additions:
+            _info = _additions.get(service_type)
+            if _info:
+                request_args.update(_info)
+
+        _args = msg.get('get_request_parameters', {})
+        kwargs = _args.get(service_type, {})
+
+        if service_type in ["userinfo", 'refresh_token']:
+            kwargs['state'] = msg['authorization']['request']['state']
+
+        req_info = _client_service.get_request_parameters(request_args=request_args, **kwargs)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -65,7 +78,8 @@ class Flow(object):
         if is_error_message(_pr_req):
             return areq, _pr_req
 
-        _resp = _server_endpoint.process_request(_pr_req)
+        args = msg.get('process_request_args', {})
+        _resp = _server_endpoint.process_request(_pr_req, **args.get(endpoint_type, {}))
         if is_error_message(_resp):
             return areq, _resp
 
@@ -74,7 +88,7 @@ class Flow(object):
         resp = _client_service.parse_response(_response["response"])
         _state = ''
         if service_type == 'authorization':
-            _state = areq['state']
+            _state = areq.get('state', _pr_req.get('state'))
         else:
             _authz = msg.get('authorization')
             if _authz:
@@ -180,10 +194,21 @@ class Flow(object):
             "state": _state
         }
 
+    def refresh_token_request(self, msg):
+        _state = msg['authorization']['request']['state']
+
+        return {
+            "grant_type": "refresh_token",
+            "state": _state,
+        }
+
     def registration_request(self, msg):
         return {}
 
     def userinfo_request(self, msg):
+        return {}
+
+    def client_credentials_request(self, msg):
         return {}
 
     def __call__(self, request_responses: list[list], **kwargs):

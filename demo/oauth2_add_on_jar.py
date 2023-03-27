@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 import os
 
@@ -160,7 +161,9 @@ msg = flow(
         ['server_metadata', 'server_metadata'],
         ['authorization', 'authorization']
     ],
-    scope=['foobar']
+    scope=['foobar'],
+    server_jwks=server.keyjar.export_jwks(''),
+    server_jwks_uri=server.context.provider_info['jwks_uri']
 )
 
 print(msg)
