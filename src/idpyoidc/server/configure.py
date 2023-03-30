@@ -156,6 +156,7 @@ class EntityConfiguration(Base):
         "template_dir": None,
         "token_handler_args": {},
         "userinfo": None,
+        "scopes_handler": None
     }
 
     def __init__(
@@ -347,6 +348,9 @@ DEFAULT_EXTENDED_CONF = {
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
         ],
+    },
+    "scopes_handler": {
+        "class": "idpyoidc.server.scopes.Scopes"
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "cookie_handler": {

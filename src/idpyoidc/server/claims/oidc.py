@@ -43,6 +43,7 @@ class Claims(server_claims.Claims):
         "contacts": None,
         "default_max_age": 86400,
         "deny_unknown_scopes": False,
+        "scopes_handler": None,
         "display_values_supported": None,
         "encrypt_id_token_supported": None,
         # "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],

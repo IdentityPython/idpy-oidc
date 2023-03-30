@@ -19,6 +19,7 @@ class Claims(claims.Claims):
 
     _supports = {
         "deny_unknown_scopes": False,
+        "scopes_handler": None,
         "response_types_supported": ["code"],
         "response_modes_supported": ["code"],
         "jwks_uri": None,
