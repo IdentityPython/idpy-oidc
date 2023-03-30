@@ -494,6 +494,23 @@ class TestEndpoint:
         _resp = self.introspection_endpoint.process_request(_req)
         assert _resp["response_args"]["active"] is False
 
+    def test_wrong_aud(self):
+        auth_req = AUTH_REQ.copy()
+        auth_req["client_id"] = "client_2"
+        access_token = self._get_access_token(auth_req)
+
+        _context = self.introspection_endpoint.server_get("endpoint_context")
+
+        _req = self.introspection_endpoint.parse_request(
+            {
+                "token": access_token.value,
+                "client_id": "client_1",
+                "client_secret": _context.cdb["client_1"]["client_secret"],
+            }
+        )
+        _resp = self.introspection_endpoint.process_request(_req)
+        assert _resp["response_args"]["active"] is False
+
     def test_introspect_id_token(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.token_endpoint.upstream_get("context").authz(session_id, AUTH_REQ)
