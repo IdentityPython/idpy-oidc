@@ -35,21 +35,27 @@ SERVER_CONF = {
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
     "endpoint": {
-        "metadata": {
+        "provider_info": {
             "path": ".well-known/oauth-authorization-server",
-            "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+            "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
             "kwargs": {},
         },
         "authorization": {
             "path": "authorization",
-            "class": "idpyoidc.server.oauth2.authorization.Authorization",
+            "class": "idpyoidc.server.oidc.authorization.Authorization",
             "kwargs": {},
         },
         "token": {
             "path": "token",
-            "class": "idpyoidc.server.oauth2.token.Token",
+            "class": "idpyoidc.server.oidc.token.Token",
+            "kwargs": {},
+        },
+        "userinfo": {
+            "path": "userinfo",
+            "class": "idpyoidc.server.oidc.userinfo.UserInfo",
             "kwargs": {},
         }
+
     },
     "authentication": {
         "anon": {
@@ -122,10 +128,11 @@ server_conf['add_ons'] = {
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
 _OAUTH2_SERVICES = {
-    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-    "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
-    "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+    "provider_info": {
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
+    "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
+    "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
+    'userinfo': {'class': "idpyoidc.client.oidc.userinfo.UserInfo"}
 }
 
 CLIENT_CONFIG = {
@@ -159,10 +166,10 @@ server.context.set_provider_info()
 flow = Flow(client, server)
 msg = flow(
     [
-        ['server_metadata', 'server_metadata'],
+        ['provider_info', 'provider_config'],
         ['authorization', 'authorization'],
         ["accesstoken", 'token'],
-        # ['userinfo', 'userinfo']
+        ['userinfo', 'userinfo']
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
