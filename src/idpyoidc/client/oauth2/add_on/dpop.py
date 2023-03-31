@@ -143,7 +143,7 @@ def dpop_header(
     }
 
     if token:
-        header_dict['ath'] = SIGNER_ALGS['RS256'].sign(token)
+        header_dict['ath'] = sha256(token.encode('utf8')).hexdigest()
 
     if nonce:
         header_dict['nonce'] = nonce
