@@ -1,7 +1,9 @@
 import logging
 import uuid
+from hashlib import sha256
 from typing import Optional
 
+from cryptography.hazmat.primitives import hashes
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
@@ -10,6 +12,7 @@ from cryptojwt.key_bundle import key_by_alg
 
 from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
@@ -29,9 +32,10 @@ class DPoPProof(Message):
         "htm": SINGLE_REQUIRED_STRING,
         "htu": SINGLE_REQUIRED_STRING,
         "iat": SINGLE_REQUIRED_INT,
+        "ath": SINGLE_OPTIONAL_STRING
     }
     header_params = {"typ", "alg", "jwk"}
-    body_params = {"jti", "htm", "htu", "iat"}
+    body_params = {"jti", "htm", "htu", "iat", "ath"}
 
     def __init__(self, set_defaults=True, **kwargs):
         self.key = None
@@ -60,7 +64,7 @@ class DPoPProof(Message):
             raise ValueError("'none' is not allowed as signing algorithm")
 
     def create_header(self) -> str:
-        payload = {k: self[k] for k in self.body_params}
+        payload = {k: self[k] for k in self.body_params if k in self}
         _jws = JWS(payload, alg=self["alg"])
         _jws_headers = {k: self[k] for k in self.header_params}
         _signed_jwt = _jws.sign_compact(keys=[self.key], **_jws_headers)
@@ -139,7 +143,7 @@ def dpop_header(
     }
 
     if token:
-        header_dict['ath'] = SIGNER_ALGS['RS256'].sign(token)
+        header_dict['ath'] = sha256(token.encode('utf8')).hexdigest()
 
     if nonce:
         header_dict['nonce'] = nonce

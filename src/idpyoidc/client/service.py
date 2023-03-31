@@ -381,6 +381,10 @@ class Service(ImpExp):
             request, authn_method=authn_method, authn_endpoint=self.endpoint_name, **kwargs
         )
 
+        _authz = _headers.get('Authorization')
+        if _authz and _authz.startswith('Bearer'):
+            kwargs["token"] = _authz.split(' ')[1]
+
         for meth in self.construct_extra_headers:
             _headers = meth(
                 self.upstream_get("context"),

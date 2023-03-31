@@ -207,7 +207,11 @@ class UserInfo(Endpoint):
             request["client_id"] = auth_info["client_id"]
             request["access_token"] = auth_info["token"]
 
-        return request
+        # Do any endpoint specific parsing
+        return self.do_post_parse_request(
+            request=request, client_id=auth_info["client_id"],
+            http_info=http_info, auth_info=auth_info, **kwargs
+        )
 
     def _enforce_policy(self, request, response_info, token, config):
         policy = config["policy"]
