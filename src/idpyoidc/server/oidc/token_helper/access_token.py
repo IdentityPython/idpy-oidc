@@ -63,10 +63,10 @@ class AccessTokenHelper(TokenEndpointHelper):
         token_type = "Bearer"
 
         # Is DPOP supported
-        try:
-            _dpop_enabled = _context.dpop_enabled
-        except AttributeError:
-            _dpop_enabled = False
+        _dpop_enabled = False
+        _dpop_args = _context.add_on.get('dpop')
+        if _dpop_args:
+            _dpop_enabled = True
 
         if _dpop_enabled:
             _dpop_jkt = req.get("dpop_jkt")

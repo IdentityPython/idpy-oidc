@@ -154,11 +154,7 @@ class Registration(Endpoint):
                     if val in _val:
                         return val
                 else:
-                    _ret = list(set(_val).intersection(set(val)))
-                    if len(_ret) > 0:
-                        return _ret
-                    else:
-                        raise CapabilitiesMisMatch(_my_key)
+                    return list(set(_val).intersection(set(val)))
             else:
                 if isinstance(_val, list):
                     if val in _val:
