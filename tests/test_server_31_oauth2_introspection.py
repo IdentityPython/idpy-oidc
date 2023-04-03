@@ -498,8 +498,7 @@ class TestEndpoint:
         auth_req = AUTH_REQ.copy()
         auth_req["client_id"] = "client_2"
         access_token = self._get_access_token(auth_req)
-
-        _context = self.introspection_endpoint.server_get("endpoint_context")
+        _context = self.introspection_endpoint.upstream_get("endpoint_context")
 
         _req = self.introspection_endpoint.parse_request(
             {
