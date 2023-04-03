@@ -451,6 +451,7 @@ def verify_client(
         get_client_id_from_token: Optional[Callable] = None,
         endpoint=None,  # Optional[Endpoint]
         also_known_as: Optional[Dict[str, str]] = None,
+        **kwargs
 ) -> dict:
     """
     Initiated Guessing !
@@ -510,10 +511,14 @@ def verify_client(
             client_id = also_known_as[client_id]
             auth_info["client_id"] = client_id
 
-        if client_id not in _context.cdb:
-            raise UnknownClient("Unknown Client ID")
+        _get_client_info = kwargs.get('get_client_info')
+        if _get_client_info:
+            _cinfo = _get_client_info(client_id, _context)
+        else:
+            _cinfo = _context.cdb[client_id]
 
-        _cinfo = _context.cdb[client_id]
+        if not _cinfo:
+            raise UnknownClient("Unknown Client ID")
 
         if not valid_client_info(_cinfo):
             logger.warning("Client registration has timed out or " "client secret is expired.")
