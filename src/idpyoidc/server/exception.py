@@ -128,3 +128,7 @@ class MultipleCodeUsage(OidcEndpointError):
 
 class InvalidBranchID(OidcEndpointError):
     pass
+
+
+class ClientGrantMismatch(OidcEndpointError):
+    pass
