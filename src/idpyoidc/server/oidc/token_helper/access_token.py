@@ -119,7 +119,6 @@ class AccessTokenHelper(TokenEndpointHelper):
         if (
                 issue_refresh
                 and "refresh_token" in _supports_minting
-                and "refresh_token" in grant_types_supported
         ):
             try:
                 refresh_token = self._mint_token(
