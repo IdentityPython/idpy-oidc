@@ -49,7 +49,7 @@ class Authorization(authorization.Authorization):
         "request_uris": ["req"],
         "redirect_uris": {  # based on response_types
             "code": "authz_cb",
-            "token": "authz_tok_cb",
+            "implicit": "authz_tok_cb",
             "form_post": "form"
         }
     }
