@@ -377,7 +377,7 @@ class Authorization(Endpoint):
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
-        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
+        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types_supported", [])]
         if not _registered:
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
@@ -865,7 +865,7 @@ class Authorization(Endpoint):
 
             grant = _sinfo["grant"]
 
-            if "code" in request["response_type"]:
+            if "code" in rtype:
                 _code = self.mint_token(
                     token_class="authorization_code",
                     grant=grant,
@@ -890,7 +890,7 @@ class Authorization(Endpoint):
             else:
                 _access_token = None
 
-            if "id_token" in request["response_type"]:
+            if "id_token" in rtype:
                 kwargs = {}
                 if {"code", "id_token", "token"}.issubset(rtype):
                     kwargs = {"code": _code.value, "access_token": _access_token.value}
@@ -899,7 +899,7 @@ class Authorization(Endpoint):
                 elif {"id_token", "token"}.issubset(rtype):
                     kwargs = {"access_token": _access_token.value}
 
-                if request["response_type"] == ["id_token"]:
+                if rtype == {"id_token"}:
                     kwargs["as_if"] = "userinfo"
 
                 try:

@@ -310,7 +310,7 @@ def lower_or_upper(config, param, default=None):
 
 
 IMPLICIT_RESPONSE_TYPES = [
-    {'id_token'}, {'id_token', 'token'}, {'code', 'token'}, ['code', 'id_token'],
+    {'id_token'}, {'id_token', 'token'}, {'code', 'token'}, {'code', 'id_token'},
     {'code', 'id_token', 'token'}, {'token'}
 ]
 

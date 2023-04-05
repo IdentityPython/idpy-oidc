@@ -3,12 +3,12 @@ import logging
 from typing import List
 from typing import Optional
 
-from idpyoidc import claims
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.client.util import IMPLICIT_RESPONSE_TYPES
 from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingParameter
 from idpyoidc.message import oauth2
@@ -101,9 +101,10 @@ class Authorization(Service):
         return response
 
     def _do_flow(self, flow_type, response_types):
-        if flow_type == 'code' and 'code' in response_types:
-            return True
-        elif flow_type == 'implicit':
+        if flow_type == 'code':
+            if 'code' in response_types:
+                return True
+        elif flow_type in ['implicit', 'hybrid']:
             if implicit_response_types(response_types):
                 return True
         return False

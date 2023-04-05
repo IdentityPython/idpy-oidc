@@ -129,9 +129,10 @@ class Flow(object):
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
+        _response_type = msg.get('response_type', ['code'])
 
         req_args = {
-            "response_type": ["code"],
+            "response_type": _response_type,
             "nonce": _nonce,
             "state": _state
         }
