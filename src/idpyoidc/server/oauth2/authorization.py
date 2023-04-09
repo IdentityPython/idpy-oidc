@@ -348,6 +348,7 @@ class Authorization(Endpoint):
         "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
         "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
         # "grant_types_supported": ["authorization_code", "implicit"],
+        "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],
     }
     default_capabilities = {
@@ -1087,7 +1088,7 @@ class Authorization(Endpoint):
         :return: dictionary
         """
 
-        if isinstance(request, self.error_cls):
+        if "error" in request:
             return request
 
         _cid = request["client_id"]

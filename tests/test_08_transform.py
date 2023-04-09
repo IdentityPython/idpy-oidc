@@ -117,7 +117,8 @@ class TestTransform:
                                      'service_documentation',
                                      'token_endpoint',
                                      'ui_locales_supported',
-                                     'userinfo_endpoint'}
+                                     'userinfo_endpoint',
+                                     'code_challenge_methods_supported'}
 
         # parameters that are not mapped against what the OP's provider info says
         assert set(self.supported).difference(

@@ -898,7 +898,8 @@ class ProviderConfigurationResponse(ResponseMessage):
             "frontchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
             "frontchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
             "backchannel_logout_supported": SINGLE_OPTIONAL_BOOLEAN,
-            "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN
+            "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
+            "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
             # "jwk_encryption_url": SINGLE_OPTIONAL_STRING,
             # "x509_url": SINGLE_REQUIRED_STRING,
             # "x509_encryption_url": SINGLE_OPTIONAL_STRING,
