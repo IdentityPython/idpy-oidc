@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
+"""
+Displaying how Client Credentials works
+"""
 import json
 import os
 
+from demo.flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
@@ -42,6 +46,15 @@ CONFIG = {
         "grant_types_supported": ["client_credentials", "password"]
     },
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, 'read_only': False},
+    "endpoint": {
+        "token": {
+            "path": "token",
+            "class": Token,
+            "kwargs": {
+                "client_authn_method": ["client_secret_basic", "client_secret_post"],
+            },
+        },
+    },
     "token_handler_args": {
         "jwks_defs": {"key_defs": KEYDEFS},
         "token": {
@@ -53,16 +66,6 @@ CONFIG = {
             }
         }
     },
-    "endpoint": {
-        "token": {
-            "path": "token",
-            "class": Token,
-            "kwargs": {
-                "client_authn_method": ["client_secret_basic", "client_secret_post"],
-                # "grant_types_supported": ['client_credentials', 'password']
-            },
-        },
-    },
     "client_authn": verify_client,
     "claims_interface": {
         "class": "idpyoidc.server.session.claims.OAuth2ClaimsInterface",
@@ -73,35 +76,12 @@ CONFIG = {
         "kwargs": {
             "grant_config": {
                 "usage_rules": {
-                    "authorization_code": {
-                        "expires_in": 300,
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "max_usage": 1,
-                    },
-                    "access_token": {"expires_in": 600},
-                    "refresh_token": {
-                        "expires_in": 86400,
-                        "supports_minting": ["access_token", "refresh_token"],
-                    },
-                },
-                "expires_in": 43200,
+                    "access_token": {},
+                }
             }
         },
     },
     "session_params": {"encrypter": SESSION_PARAMS},
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
-    "authentication": {
-        "user": {
-            "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
-            "class": "idpyoidc.server.user_authn.user.UserPass",
-            "kwargs": {
-                "db_conf": {
-                    "class": "idpyoidc.server.util.JSONDictDB",
-                    "kwargs": {"filename": full_path("passwd.json")}
-                }
-            }
-        }
-    }
 }
 
 CLIENT_BASE_URL = "https://example.com"
@@ -123,26 +103,18 @@ client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
 
 client_credentials_service = client.get_service('client_credentials')
 client_credentials_service.endpoint = "https://example.com/token"
-client_request_info = client_credentials_service.get_request_parameters()
 
 # Server side
 
 server = Server(ASConfiguration(conf=CONFIG, base_path=BASEDIR), cwd=BASEDIR)
 server.context.cdb["client_1"] = {
-    "client_secret": "another password",
-    "redirect_uris": [("https://example.com/cb", None)],
-    "client_salt": "salted",
-    "endpoint_auth_method": "client_secret_post",
-    "response_types": ["code", "code id_token", "id_token"],
+    "client_secret": CLIENT_CONFIG['client_secret'],
     "allowed_scopes": ["resourceA"],
 }
 
-token_endpoint = server.get_endpoint("token")
-request = token_endpoint.parse_request(client_request_info['request'])
-print(json.dumps(request.to_dict(), indent=4, sort_keys=True))
-print()
-_resp = token_endpoint.process_request(request)
-_response = token_endpoint.do_response(**_resp)
-
-resp = client_credentials_service.parse_response(_response["response"])
-print(json.dumps(resp.to_dict(), indent=4, sort_keys=True))
+flow = Flow(client, server)
+msg = flow(
+    [
+        ["client_credentials", 'token']
+    ]
+)

@@ -49,7 +49,8 @@ class TokenEndpointHelper(object):
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
         else:
-            _exp_in = DEFAULT_TOKEN_LIFETIME
+            _token_handler = _mngr.token_handler[token_class]
+            _exp_in = _token_handler.lifetime
 
         token_args = token_args or {}
         for meth in _context.token_args_methods:

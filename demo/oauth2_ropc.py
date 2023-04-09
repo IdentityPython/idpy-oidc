@@ -60,7 +60,6 @@ CONFIG = {
             "class": Token,
             "kwargs": {
                 "client_authn_method": ["client_secret_basic", "client_secret_post"],
-                # "grant_types_supported": ['client_credentials', 'password']
             },
         },
     },
@@ -76,14 +75,10 @@ CONFIG = {
                 "usage_rules": {
                     "authorization_code": {
                         "expires_in": 300,
-                        "supports_minting": ["access_token", "refresh_token"],
+                        "supports_minting": ["access_token"],
                         "max_usage": 1,
                     },
-                    "access_token": {"expires_in": 600},
-                    "refresh_token": {
-                        "expires_in": 86400,
-                        "supports_minting": ["access_token", "refresh_token"],
-                    },
+                    "access_token": {"expires_in": 3600},
                 },
                 "expires_in": 43200,
             }
