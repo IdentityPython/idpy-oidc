@@ -52,8 +52,8 @@ CONFIG = {
             "class": Token,
             "kwargs": {
                 "client_authn_method": ["client_secret_basic", "client_secret_post"],
-            },
-        },
+            }
+        }
     },
     "token_handler_args": {
         "jwks_defs": {"key_defs": KEYDEFS},
