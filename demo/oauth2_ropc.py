@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-import json
 import os
 
+from flow import Flow
 from idpyoidc.client.oauth2 import Client
-
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.oauth2.token import Token
-from idpyoidc.server.user_info import UserInfo
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -43,6 +41,15 @@ CONFIG = {
         "grant_types_supported": ["client_credentials", "password"]
     },
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, 'read_only': False},
+    "endpoint": {
+        "token": {
+            "path": "token",
+            "class": Token,
+            "kwargs": {
+                "client_authn_method": ["client_secret_basic", "client_secret_post"],
+            },
+        },
+    },
     "token_handler_args": {
         "jwks_defs": {"key_defs": KEYDEFS},
         "token": {
@@ -54,15 +61,6 @@ CONFIG = {
             }
         }
     },
-    "endpoint": {
-        "token": {
-            "path": "token",
-            "class": Token,
-            "kwargs": {
-                "client_authn_method": ["client_secret_basic", "client_secret_post"],
-            },
-        },
-    },
     "client_authn": verify_client,
     "claims_interface": {
         "class": "idpyoidc.server.session.claims.OAuth2ClaimsInterface",
@@ -73,19 +71,12 @@ CONFIG = {
         "kwargs": {
             "grant_config": {
                 "usage_rules": {
-                    "authorization_code": {
-                        "expires_in": 300,
-                        "supports_minting": ["access_token"],
-                        "max_usage": 1,
-                    },
-                    "access_token": {"expires_in": 3600},
-                },
-                "expires_in": 43200,
+                    "access_token": {"expires_in": 3600}
+                }
             }
-        },
+        }
     },
     "session_params": {"encrypter": SESSION_PARAMS},
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
     "authentication": {
         "user": {
             "acr": "urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocolPassword",
@@ -113,17 +104,12 @@ CLIENT_SERVICES = {
     }
 }
 
-
 # Client side
 
 client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
 
 ropc_service = client.get_service('resource_owner_password_credentials')
 ropc_service.endpoint = "https://example.com/token"
-
-client_request_info = ropc_service.get_request_parameters(
-    request_args={'username': 'diana', 'password': 'krall'}
-)
 
 # Server side
 
@@ -135,16 +121,14 @@ server.context.cdb["client_1"] = {
     "endpoint_auth_method": "client_secret_post",
     "response_types": ["code", "code id_token", "id_token"],
     "allowed_scopes": ["resourceA"],
-    # "grant_types_supported": ['client_credentials', 'password']
 }
 
-token_endpoint = server.get_endpoint("token")
-request = token_endpoint.parse_request(client_request_info['request'])
-print(request)
-print(json.dumps(request.to_dict(), indent=4, sort_keys=True))
-
-_resp = token_endpoint.process_request(request)
-_response = token_endpoint.do_response(**_resp)
-
-resp = ropc_service.parse_response(_response["response"])
-print(json.dumps(resp.to_dict(), indent=4, sort_keys=True))
+flow = Flow(client, server)
+msg = flow(
+    [
+        ["resource_owner_password_credentials", 'token']
+    ],
+    request_additions={
+        'resource_owner_password_credentials': {'username': 'diana', 'password': 'krall'}
+    }
+)

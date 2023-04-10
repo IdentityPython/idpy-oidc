@@ -126,6 +126,8 @@ def allow_refresh_token(context):
     refresh_token_handler = context.session_manager.token_handler.handler.get(
         "refresh_token"
     )
+    if refresh_token_handler is None:
+        return False
 
     # Is refresh_token grant type supported
     _token_supported = False
