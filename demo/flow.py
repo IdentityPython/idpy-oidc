@@ -19,7 +19,7 @@ class Flow(object):
         if msg['headers']:
             print('    HEADERS')
             for line in json.dumps(msg['headers'], sort_keys=True, indent=4).split('\n'):
-                print('    '+line)
+                print('    ' + line)
         if not msg['request']:
             print('{}')
         else:
@@ -210,6 +210,9 @@ class Flow(object):
         return {}
 
     def client_credentials_request(self, msg):
+        return {}
+
+    def resource_owner_password_credentials_request(self, msg):
         return {}
 
     def __call__(self, request_responses: list[list], **kwargs):

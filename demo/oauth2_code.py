@@ -34,7 +34,6 @@ USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 SERVER_CONF = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
     "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
     "endpoint": {
         "metadata": {
@@ -60,7 +59,6 @@ SERVER_CONF = {
             "kwargs": {"user": "diana"},
         }
     },
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
     "client_authn": verify_client,
     "authz": {
         "class": AuthzHandling,
@@ -68,20 +66,13 @@ SERVER_CONF = {
             "grant_config": {
                 "usage_rules": {
                     "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token"],
+                        "supports_minting": ["access_token"],
                         "max_usage": 1,
                     },
                     "access_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
                         "expires_in": 600,
-                    },
-                    "refresh_token": {
-                        "supports_minting": ["access_token"],
-                        "audience": ["https://example.com", "https://example2.com"],
-                        "expires_in": 43200,
-                    },
-                },
-                "expires_in": 43200,
+                    }
+                }
             }
         },
     },
@@ -97,17 +88,9 @@ SERVER_CONF = {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "add_claims_by_scope": True,
                 "aud": ["https://example.org/appl"],
             },
-        },
-        "refresh": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {
-                "lifetime": 3600,
-                "aud": ["https://example.org/appl"],
-            },
-        },
+        }
     },
     "session_params": SESSION_PARAMS,
 }
@@ -120,7 +103,6 @@ _OAUTH2_SERVICES = {
     "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
 }
 
 CLIENT_CONFIG = {
@@ -148,7 +130,7 @@ msg = flow(
     [
         ['server_metadata', 'server_metadata'],
         ['authorization', 'authorization'],
-        ["accesstoken", 'token']
+        ["accesstoken", 'token'],
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
