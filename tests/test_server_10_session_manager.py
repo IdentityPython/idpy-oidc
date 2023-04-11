@@ -671,7 +671,8 @@ class TestSessionManager:
         grant = self.session_manager[_session_id]
         grant_kwargs = grant.parameter
         for i in ("not_before", "used"):
-            grant_kwargs.pop(i)
+            if i in grant_kwargs:
+                del grant_kwargs[i]
         self.session_manager.add_grant(["diana", "client_1"], **grant_kwargs)
 
     def test_find_latest_idtoken(self):
