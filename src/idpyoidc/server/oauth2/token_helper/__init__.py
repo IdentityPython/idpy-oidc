@@ -171,7 +171,7 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         scopes = list(set(scopes).intersection(kwargs.get("scope")))
     if scopes:
         request["scope"] = scopes
-    else:
-        request.pop("scope")
+    elif 'scope' in request:
+        del request["scope"]
 
     return request
