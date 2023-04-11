@@ -80,7 +80,10 @@ class Flow(object):
                 _pr_req = _server_endpoint.parse_request(areq, **argv)
 
         if is_error_message(_pr_req):
-            return areq, _pr_req
+            result = {'request': _pr_req, 'headers': headers,
+                      'method': req_info['method'], 'url': req_info['url']}
+            self.print(f"{service_type} - ERROR", result)
+            return result
 
         args = msg.get('process_request_args', {})
         _resp = _server_endpoint.process_request(_pr_req, **args.get(endpoint_type, {}))
@@ -92,7 +95,7 @@ class Flow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        resp = _client_service.parse_response(_response["response"])
+        #resp = _client_service.parse_response(_response["response"])
         _state = ''
         if service_type == 'authorization':
             _state = areq.get('state', _pr_req.get('state'))
@@ -148,6 +151,8 @@ class Flow(object):
 
         scope = msg.get('scope')
         if scope:
+            if 'openid' not in scope:
+                scope.append('openid')
             _scope = scope
         else:
             _scope = ["openid"]
