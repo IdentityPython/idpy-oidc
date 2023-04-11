@@ -15,7 +15,10 @@ class Flow(object):
 
     def print(self, proc, msg):
         print(30 * '=' + f' {proc} ' + 30 * '=')
-        print("REQUEST")
+        print("-- REQUEST --")
+        print(f"    METHOD: {msg['method']}")
+        if 'url' in msg:
+            print(f"    URL: {msg['url']}")
         if msg['headers']:
             print('    HEADERS')
             for line in json.dumps(msg['headers'], sort_keys=True, indent=4).split('\n'):
@@ -24,11 +27,12 @@ class Flow(object):
             print('{}')
         else:
             print(json.dumps(msg['request'].to_dict(), sort_keys=True, indent=4))
-        print('RESPONSE')
-        if isinstance(msg['response'], Message):
-            print(json.dumps(msg['response'].to_dict(), sort_keys=True, indent=4))
+        print('-- RESPONSE --')
+        _resp = msg['response']
+        if isinstance(_resp, Message):
+            print(json.dumps(_resp.to_dict(), sort_keys=True, indent=4))
         else:
-            print(msg['response'])
+            print(json.dumps(_resp, sort_keys=True, indent=4))
         print()
 
     def do_query(self, service_type, endpoint_type, request_args=None, msg=None):
@@ -81,7 +85,10 @@ class Flow(object):
         args = msg.get('process_request_args', {})
         _resp = _server_endpoint.process_request(_pr_req, **args.get(endpoint_type, {}))
         if is_error_message(_resp):
-            return areq, _resp
+            result = {'request': areq, 'response': _resp, 'headers': headers,
+                      'method': req_info['method'], 'url': req_info['url']}
+            self.print(f"{service_type} - ERROR", result)
+            return result
 
         _response = _server_endpoint.do_response(**_resp)
 
@@ -112,7 +119,9 @@ class Flow(object):
             else:
                 _client_service.update_service_context(_resp["response_args"], key=_state)
 
-        result = {'request': areq, 'response': resp, 'headers': headers}
+        _response = _resp.get('response_args', _resp.get('response', _resp.get('response_msg')))
+        result = {'request': areq, 'response': _response, 'headers': headers,
+                  'method': req_info['method'], 'url': req_info['url']}
         self.print(service_type, result)
         return result
 
