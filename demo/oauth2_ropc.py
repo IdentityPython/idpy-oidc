@@ -3,10 +3,10 @@ import os
 
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.server import ASConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.oauth2.token import Token
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
@@ -34,7 +34,7 @@ CRYPT_CONFIG = {
 
 SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}
 
-CONFIG = {
+SERVER_CONFIG = {
     "issuer": "https://example.net/",
     "httpc_params": {"verify": False},
     "preference": {
@@ -96,24 +96,25 @@ CLIENT_BASE_URL = "https://example.com"
 CLIENT_CONFIG = {
     "client_id": "client_1",
     "client_secret": "another password",
-    "base_url": CLIENT_BASE_URL
-}
-CLIENT_SERVICES = {
-    "resource_owner_password_credentials": {
-        "class": "idpyoidc.client.oauth2.resource_owner_password_credentials.ROPCAccessTokenRequest"
+    "base_url": CLIENT_BASE_URL,
+    'services': {
+        "resource_owner_password_credentials": {
+            "class": "idpyoidc.client.oauth2.resource_owner_password_credentials"
+                     ".ROPCAccessTokenRequest"
+        }
     }
 }
 
 # Client side
 
-client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
+client = Client(config=CLIENT_CONFIG)
 
 ropc_service = client.get_service('resource_owner_password_credentials')
 ropc_service.endpoint = "https://example.com/token"
 
 # Server side
 
-server = Server(ASConfiguration(conf=CONFIG, base_path=BASEDIR), cwd=BASEDIR)
+server = Server(ASConfiguration(conf=SERVER_CONFIG, base_path=BASEDIR), cwd=BASEDIR)
 server.context.cdb["client_1"] = {
     "client_secret": "another password",
     "redirect_uris": [("https://example.com/cb", None)],

@@ -2,7 +2,6 @@
 """
 Displaying how Client Credentials works
 """
-import json
 import os
 
 from demo.flow import Flow
@@ -12,7 +11,6 @@ from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.oauth2.token import Token
-from idpyoidc.server.user_info import UserInfo
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -39,7 +37,7 @@ CRYPT_CONFIG = {
 
 SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}
 
-CONFIG = {
+SERVER_CONFIG = {
     "issuer": "https://example.net/",
     "httpc_params": {"verify": False},
     "preference": {
@@ -89,24 +87,24 @@ CLIENT_BASE_URL = "https://example.com"
 CLIENT_CONFIG = {
     "client_id": "client_1",
     "client_secret": "another password",
-    "base_url": CLIENT_BASE_URL
-}
-CLIENT_SERVICES = {
-    "client_credentials": {
-        "class": "idpyoidc.client.oauth2.client_credentials.CCAccessTokenRequest"
+    "base_url": CLIENT_BASE_URL,
+    'services': {
+        "client_credentials": {
+            "class": "idpyoidc.client.oauth2.client_credentials.CCAccessTokenRequest"
+        }
     }
 }
 
 # Client side
 
-client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
+client = Client(config=CLIENT_CONFIG)
 
 client_credentials_service = client.get_service('client_credentials')
 client_credentials_service.endpoint = "https://example.com/token"
 
 # Server side
 
-server = Server(ASConfiguration(conf=CONFIG, base_path=BASEDIR), cwd=BASEDIR)
+server = Server(ASConfiguration(conf=SERVER_CONFIG, base_path=BASEDIR), cwd=BASEDIR)
 server.context.cdb["client_1"] = {
     "client_secret": CLIENT_CONFIG['client_secret'],
     "allowed_scopes": ["resourceA"],
