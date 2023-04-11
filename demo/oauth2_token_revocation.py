@@ -3,6 +3,9 @@ import os
 
 from cryptojwt.key_jar import build_keyjar
 
+from demo.client_conf_oauth2 import CLIENT_CONFIG
+from demo.client_conf_oauth2 import CLIENT_ID
+from demo.server_conf_oauth2 import SERVER_CONF
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import ASConfiguration
@@ -20,12 +23,39 @@ KEYDEFS = [
 ]
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
-server_conf = {
-    "issuer": "https://example.com/",
-    "httpc_params": {"verify": False, "timeout": 1},
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
-    "endpoint": {
+# ================ Server side ===================================
+
+server_conf = SERVER_CONF.copy()
+server_conf["keys"] = {"uri_path": "jwks.json", "key_defs": KEYDEFS}
+server_conf["token_handler_args"]["key_conf"] = {"key_defs": KEYDEFS}
+server_conf["authz"]["kwargs"] = {
+    "grant_config": {
+        "usage_rules": {
+            "authorization_code": {
+                "supports_minting": ["access_token", "refresh_token"],
+                "max_usage": 1,
+            },
+            "access_token": {
+                "supports_minting": ["access_token", "refresh_token"],
+                "expires_in": 600,
+            },
+            "refresh_token": {
+                "supports_minting": ["access_token"],
+                "audience": ["https://example.com", "https://example2.com"],
+                "expires_in": 43200,
+            },
+        },
+        "expires_in": 43200,
+    }
+}
+server_conf['token_handler_args']["refresh"] = {
+    "class": "idpyoidc.server.token.jwt_token.JWTToken",
+    "kwargs": {
+        "lifetime": 3600,
+        "aud": ["https://example.org/appl"],
+    }
+}
+server_conf['endpoint'] = {
         'discovery': {
             'path': "/.well-known/oauth-authorization-server",
             'class': "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
@@ -50,74 +80,17 @@ server_conf = {
             'path': 'introspection',
             'class': "idpyoidc.server.oauth2.introspection.Introspection"
         }
-    },
-    "authentication": {
-        "anon": {
-            "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "idpyoidc.server.user_authn.user.NoAuthn",
-            "kwargs": {"user": "diana"},
-        }
-    },
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
-    "client_authn": verify_client,
-    "template_dir": "template",
-    "authz": {
-        "class": AuthzHandling,
-        "kwargs": {
-            "grant_config": {
-                "usage_rules": {
-                    "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "max_usage": 1,
-                    },
-                    "access_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "expires_in": 600,
-                    },
-                    "refresh_token": {
-                        "supports_minting": ["access_token"],
-                        "audience": ["https://example.com", "https://example2.com"],
-                        "expires_in": 43200,
-                    },
-                },
-                "expires_in": 43200,
-            }
-        },
-    },
-    "token_handler_args": {
-        "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
-        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
-        "token": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {
-                "lifetime": 3600,
-                "add_claims_by_scope": True,
-                "aud": ["https://example.org/appl"],
-            },
-        },
-        "refresh": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {
-                "lifetime": 3600,
-                "aud": ["https://example.org/appl"],
-            },
-        },
-    },
-    "session_params": SESSION_PARAMS,
-}
+    }
+
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
-# -------------- Client -----------------------
+# ================ Client side ===================================
 
-client_conf = {
-    "redirect_uris": ["https://example.com/cli/code_cb"],
-    "client_id": "client_1",
-    "client_secret": "abcdefghijklmnop",
-    'issuer': 'https://example.com/',
-    "response_types_supported": ["code"],
-}
-services = {
-    "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+client_conf = CLIENT_CONFIG.copy()
+client_conf['issuer'] = SERVER_CONF['issuer']
+client_conf['key_conf'] = {'key_defs': KEYDEFS}
+client_conf["services"] = {
+    "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
     'token_revocation': {
@@ -127,12 +100,22 @@ services = {
         'class': 'idpyoidc.client.oauth2.introspection.Introspection'
     }
 }
+client_conf["allowed_scopes"] = ["profile", "offline_access", "foobar"]
 
-client = Client(config=client_conf, keyjar=build_keyjar(KEYDEFS), services=services)
+client = Client(config=client_conf)
+
+# ==== What the server needs to know about the client.
+
+server.context.cdb[CLIENT_ID] = {k: v for k, v in CLIENT_CONFIG.items() if k not in ['services']}
+server.context.cdb[CLIENT_ID]['allowed_scopes'] = client_conf['allowed_scopes']
+
+server.context.keyjar.import_jwks(client.keyjar.export_jwks(), CLIENT_ID)
+
+# Initiating the server's metadata
+
+server.context.set_provider_info()
 
 # ------- tell the server about the client ----------------
-server.context.cdb["client_1"] = client_conf
-server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client_1")
 
 flow = Flow(client, server)
 msg = flow(
