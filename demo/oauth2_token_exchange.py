@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
 
-from client_conf_oauth2 import CLIENT_CONFIG
-from client_conf_oauth2 import CLIENT_ID
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration
-from server_conf_oauth2 import SERVER_CONF
+from oauth2_client_conf import CLIENT_CONFIG
+from oauth2_client_conf import CLIENT_ID
+from oauth2_server_conf import SERVER_CONF
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},

@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
-import json
 import os
 
-from cryptojwt.key_jar import build_keyjar
-
+from demo.oidc_client_conf import CLIENT_CONFIG
+from demo.oidc_client_conf import CLIENT_ID
+from demo.oidc_server_conf import SERVER_CONF
 from flow import Flow
 from idpyoidc.client.oidc import RP
+from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
-from idpyoidc.server.authz import AuthzHandling
-from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.configure import ASConfiguration
-from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from idpyoidc.server.user_info import UserInfo
-from tests import CRYPT_CONFIG
-from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -29,117 +23,52 @@ def full_path(local_file):
 
 # ================ Server side ===================================
 
-USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
-
-SERVER_CONF = {
-    "issuer": "https://example.com/",
-    "httpc_params": {"verify": False, "timeout": 1},
-    "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
-    "endpoint": {
-        "metadata": {
-            "path": ".well-known/oauth-authorization-server",
-            "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
-            "kwargs": {},
-        },
-        "authorization": {
-            "path": "authorization",
-            "class": "idpyoidc.server.oidc.authorization.Authorization",
-            "kwargs": {},
-        },
-        "token": {
-            "path": "token",
-            "class": "idpyoidc.server.oidc.token.Token",
-            "kwargs": {},
-        },
-        "registration": {
-            "path": 'register',
-            "class": "idpyoidc.server.oidc.registration.Registration"
-        }
+server_conf = SERVER_CONF.copy()
+server_conf["key_conf"] = {"uri_path": "jwks.json", "key_defs": KEYDEFS}
+server_conf["token_handler_args"]["key_conf"] = {"key_defs": KEYDEFS}
+server_conf["endpoint"] = {
+    "provider_info": {
+        "path": ".well-known/oauth-authorization-server",
+        "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
+        "kwargs": {},
     },
-    "authentication": {
-        "anon": {
-            "acr": INTERNETPROTOCOLPASSWORD,
-            "class": "idpyoidc.server.user_authn.user.NoAuthn",
-            "kwargs": {"user": "diana"},
-        }
+    "authorization": {
+        "path": "authorization",
+        "class": "idpyoidc.server.oidc.authorization.Authorization",
+        "kwargs": {},
     },
-    "userinfo": {"class": UserInfo, "kwargs": {"db": {}}},
-    "client_authn": verify_client,
-    "authz": {
-        "class": AuthzHandling,
-        "kwargs": {
-            "grant_config": {
-                "usage_rules": {
-                    "authorization_code": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "max_usage": 1,
-                    },
-                    "access_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "expires_in": 600,
-                    },
-                    "refresh_token": {
-                        "supports_minting": ["access_token"],
-                        "audience": ["https://example.com", "https://example2.com"],
-                        "expires_in": 43200,
-                    },
-                },
-                "expires_in": 43200,
-            }
-        },
+    "token": {
+        "path": "token",
+        "class": "idpyoidc.server.oidc.token.Token",
+        "kwargs": {},
     },
-    "token_handler_args": {
-        "key_conf": {"key_defs": KEYDEFS},
-        "code": {
-            "lifetime": 600,
-            "kwargs": {
-                "crypt_conf": CRYPT_CONFIG
-            }
-        },
-        "token": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {
-                "lifetime": 3600,
-                "add_claims_by_scope": True,
-                "aud": ["https://example.org/appl"],
-            },
-        },
-        "refresh": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {
-                "lifetime": 3600,
-                "aud": ["https://example.org/appl"],
-            },
-        },
-    },
-    "session_params": SESSION_PARAMS,
+    "registration": {
+        "path": 'register',
+        "class": "idpyoidc.server.oidc.registration.Registration"
+    }
 }
 
-server = Server(ASConfiguration(conf=SERVER_CONF, base_path=BASEDIR), cwd=BASEDIR)
+server = Server(OPConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
 # ================ Client side ===================================
 
-OIDC_SERVICES = {
+client_conf = CLIENT_CONFIG.copy()
+client_conf['issuer'] = SERVER_CONF['issuer']
+client_conf['key_conf'] = {'key_defs': KEYDEFS}
+client_conf["allowed_scopes"] = ["foobar", "openid", 'offline_access']
+client_conf['services'] = {
     "provider_info": {
         "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
     "register": {"class": "idpyoidc.client.oidc.registration.Registration"},
     "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
-    'userinfo': {'class': "idpyoidc.client.oidc.userinfo.UserInfo"}
 }
 
-CLIENT_CONFIG = {
-    "issuer": SERVER_CONF["issuer"],
-    "redirect_uris": ["https://example.com/cb"],
-    "token_endpoint_auth_methods_supported": ["client_secret_post"],
-    "allowed_scopes": ["foobar", "openid"],
-    "response_types_supported": ["code"]
-}
+client = RP(config=client_conf)
 
-client = RP(config=CLIENT_CONFIG, keyjar=build_keyjar(KEYDEFS), services=OIDC_SERVICES)
+# Initiating the server's metadata
 
-# server.context.set_provider_info()
+server.context.set_provider_info()
 
 flow = Flow(client, server)
 msg = flow(
