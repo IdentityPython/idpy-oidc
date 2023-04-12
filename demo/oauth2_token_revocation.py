@@ -1,21 +1,13 @@
 #!/usr/bin/env python3
 import os
 
-from cryptojwt.key_jar import build_keyjar
-
-from demo.client_conf_oauth2 import CLIENT_CONFIG
-from demo.client_conf_oauth2 import CLIENT_ID
-from demo.server_conf_oauth2 import SERVER_CONF
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import ASConfiguration
 from idpyoidc.server import Server
-from idpyoidc.server.authz import AuthzHandling
-from idpyoidc.server.client_authn import verify_client
-from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from idpyoidc.server.user_info import UserInfo
-from tests import CRYPT_CONFIG
-from tests import SESSION_PARAMS
+from oauth2_client_conf import CLIENT_CONFIG
+from oauth2_client_conf import CLIENT_ID
+from oauth2_server_conf import SERVER_CONF
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -56,31 +48,31 @@ server_conf['token_handler_args']["refresh"] = {
     }
 }
 server_conf['endpoint'] = {
-        'discovery': {
-            'path': "/.well-known/oauth-authorization-server",
-            'class': "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
-            "kwargs": {},
-        },
-        "authorization": {
-            "path": "authorization",
-            "class": "idpyoidc.server.oauth2.authorization.Authorization",
-            "kwargs": {},
-        },
-        "token": {
-            "path": "token",
-            "class": "idpyoidc.server.oauth2.token.Token",
-            "kwargs": {},
-        },
-        "token_revocation": {
-            'path': 'revocation',
-            "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
-            "kwargs": {},
-        },
-        'introspection': {
-            'path': 'introspection',
-            'class': "idpyoidc.server.oauth2.introspection.Introspection"
-        }
+    'discovery': {
+        'path': "/.well-known/oauth-authorization-server",
+        'class': "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+        "kwargs": {},
+    },
+    "authorization": {
+        "path": "authorization",
+        "class": "idpyoidc.server.oauth2.authorization.Authorization",
+        "kwargs": {},
+    },
+    "token": {
+        "path": "token",
+        "class": "idpyoidc.server.oauth2.token.Token",
+        "kwargs": {},
+    },
+    "token_revocation": {
+        'path': 'revocation',
+        "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
+        "kwargs": {},
+    },
+    'introspection': {
+        'path': 'introspection',
+        'class': "idpyoidc.server.oauth2.introspection.Introspection"
     }
+}
 
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -124,11 +116,10 @@ msg = flow(
         ['authorization', 'authorization'],
         ["accesstoken", 'token'],
         ['introspection', 'introspection'],
-        ['token_revocation','token_revocation'],
+        ['token_revocation', 'token_revocation'],
         ['introspection', 'introspection'],
     ],
     scope=['foobar'],
     server_jwks=server.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri']
 )
-

@@ -1,9 +1,10 @@
 # Usage stories
 
 This is a set of usage stories.
-Here to display what you can do with IdpyOIDC both for OAuth2 and OIDC.
+Here to display what you can do with IdpyOIDC using OAuth2 or OIDC.
 
-The basic idea is that a demo starts by initiating one client/RP and one AS/OP.
+Every story follows the same pattern it starts by initiating one client/RP and 
+one AS/OP.
 After that a sequence of requests/responses are performed. Each one follows this
 pattern:
 
@@ -17,22 +18,23 @@ pattern:
 
 This pattern is repeated for each request/response in the sequence.
 
+To understand the following you have to know that an AS/OP provides a 
+set of endpoints while a client/RP accesses services. An endpoint can
+support more than one service. A service can only reside at one endpoint.
+
 ## OAuth2 Stories
 
 These are based on the two basic OAuth2 RFCs;
 * [The OAuth 2.0 Authorization Framework](https://www.rfc-editor.org/rfc/rfc6749)
 * [The OAuth 2.0 Authorization Framework: Bearer Token Usage](https://www.rfc-editor.org/rfc/rfc6750)
 
-### Client Credentials (oauth2_cc.py)
+### Client Credentials Grant (oauth2_cc.py)
 
-Displays the usage of Client credentials for doing authorization.
+Displays the usage of the
+[client credentials grant](https://www.rfc-editor.org/rfc/rfc6749#section-4.4) .
 
 The client can request an access token using only its client
-credentials (or other supported means of authentication) when the
-client is requesting access to the protected resources under its
-control, or those of another resource owner that have been previously
-arranged with the authorization server (the method of which is beyond
-the scope of this specification).
+credentials (or other supported means of authentication).
 
 The request/response sequence only contains the client credential exchange.
 
@@ -40,13 +42,15 @@ The client is statically registered with the AS.
 
 #### configuration
 
-The server configuration expresses these points.
+The server configuration expresses these points:
 
 - The server needs only one endpoint, the token endpoint. 
 - The token released form the token endpoint is a signed JSON Web token (JWT)
 - The server deals only with access tokens. The default lifetime of a token is 3600
 seconds.
-- The server can deal with 2 client authentication methods: client_secret_basic and client_secret_post
+- The server can deal with 2 client authentication methods at the token endpoint: 
+  client_secret_basic and client_secret_post
+- In this example the audience for the token (the resource server) is statically set.
 
 
     "endpoint": {
@@ -64,7 +68,6 @@ seconds.
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "add_claims_by_scope": True,
                 "aud": ["https://example.org/appl"],
             }
         }
@@ -73,19 +76,23 @@ seconds.
 The client configuration
 
 - lists only one service - client credentials
-- specifies client ID and client secret
+- specifies client ID and client secret since the client is statically 
+  registered with the server.
 
 
-    CLIENT_SERVICES = {
+    "client_id": "client_1",
+    "client_secret": "another password",
+    "base_url": "https://example.com",
+    "services": {
         "client_credentials": {
             "class": "idpyoidc.client.oauth2.client_credentials.CCAccessTokenRequest"
         }
     }
-    CLIENT_CONFIG = {
-        "client_id": "client_1",
-        "client_secret": "another password",
-        "base_url": CLIENT_BASE_URL
-    }
+
+Services is a dictionary. The keys in that dictionary is for your usage only.
+Internally the software uses identifiers that are assigned every Service class.
+This means that you can not have two instances of the same class in a _services_
+definition.
 
 ### Resource Owners Password Credentials (oauth2_ropc.py)
 
