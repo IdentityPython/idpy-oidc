@@ -59,7 +59,6 @@ SERVER_CONFIG = {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "add_claims_by_scope": True,
                 "aud": ["https://example.org/appl"],
             }
         }
@@ -82,12 +81,10 @@ SERVER_CONFIG = {
     "session_params": {"encrypter": SESSION_PARAMS},
 }
 
-CLIENT_BASE_URL = "https://example.com"
-
 CLIENT_CONFIG = {
     "client_id": "client_1",
     "client_secret": "another password",
-    "base_url": CLIENT_BASE_URL,
+    "base_url": "https://example.com",
     'services': {
         "client_credentials": {
             "class": "idpyoidc.client.oauth2.client_credentials.CCAccessTokenRequest"
