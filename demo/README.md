@@ -89,14 +89,16 @@ The client configuration
         }
     }
 
-Services is a dictionary. The keys in that dictionary is for your usage only.
+**services** is a dictionary. The keys in that dictionary is for your usage only.
 Internally the software uses identifiers that are assigned every Service class.
 This means that you can not have two instances of the same class in a _services_
 definition.
 
 ### Resource Owners Password Credentials (oauth2_ropc.py)
 
-Displays the usage of the resource owners username and password for doing authorization.
+Displays the usage of the 
+[resource owners username and password](https://www.rfc-editor.org/rfc/rfc6749#section-4.3)
+for doing authorization.
 
 The resource owner password credentials grant type is suitable in
 cases where the resource owner has a trust relationship with the
@@ -126,21 +128,19 @@ This allows for a very simple username/password check against a static file.
 On the client side the change is that the service configuration now looks
 like this:
  
-    CLIENT_SERVICES = {
+    services = {
         "ropc": {
             "class": "idpyoidc.client.oauth2.resource_owner_password_credentials.ROPCAccessTokenRequest"
         }
     }
 
-It may be worth noting at this time that the key in the directory is 
-not used internally in the code. It's only a key that you have chosen
-and that has some meaning to you. It also means that you can not have two
-services based on the same class active at the same time.
 
-### Normal Code Flow (oauth2_code.py)
+### Authorization Code Grant (oauth2_code.py)
 
-The authorization code grant type is used to obtain both access
-tokens and possibly refresh tokens and is optimized for confidential clients.
+The 
+[authorization code grant](https://www.rfc-editor.org/rfc/rfc6749#section-4.1) 
+is used to obtain both access tokens and possibly refresh tokens and is optimized 
+for confidential clients.
 
 Since this is a redirection-based flow, the client must be capable of
 interacting with the resource owner's user-agent (typically a web
@@ -200,10 +200,14 @@ In this case authorization codes and access tokens.
         }
     },
 
-What this says is that an authorization token doesn't contain anything that
-anyone but the server is able to read. The token on the other hand is
-a signed JSON Web Token following the pattern described in 
+The software can produce 3 types of tokens. 
+
+- An encrypted value, unreadable by anyone but the server
+- A signed JSON Web Token following the pattern described in 
 [JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens](https://datatracker.ietf.org/doc/rfc9068/)
+- An IDToken which only is used to represent ID Tokens.
+
+In this example only the two first types are used since no ID Tokens are produced.
 
 The next part is about the grant manager.
 
@@ -240,13 +244,38 @@ while in the authz part and access tokens lifetime is defined to be
         }
     },
 
-Is convenient to use in this context since we can't deal with user interaction.
+It's convenient to use this no-authentication method in this context since we 
+can't deal with user interaction.
 What happens is that authentication is assumed to have happened and that
 it resulted in that **diana** was authenticated.
 
-### Proof Key for Code Exchange by OAuth Public Clients, RFC 7636 (oauth2_add_on_pkce.py)
+### PKCE (oauth2_add_on_pkce.py)
 
+[Proof Key for Code Exchange by OAuth Public Clients](https://datatracker.ietf.org/doc/rfc7636/).
 A technique to mitigate against the authorization code interception attack through
 the use of Proof Key for Code Exchange (PKCE).
+
+#### Configuration
+
+On the server side only one thing is added:
+
+    "add_ons": {
+        "pkce": {
+            "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
+            "kwargs": {},
+        },
+    }
+
+Similar on the client side:
+
+    "add_ons": {
+        "pkce": {
+            "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
+            "kwargs": {
+                "code_challenge_length": 64,
+                "code_challenge_method": "S256"
+            },
+        },
+    }
 
 ### JAR 
