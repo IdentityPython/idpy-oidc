@@ -90,11 +90,13 @@ The client configuration
     }
 
 **services** is a dictionary. The keys in that dictionary is for your usage only.
-Internally the software uses identifiers that are assigned every Service class.
+Internally the software uses identifiers that are statically assigned to every Service class.
 This means that you can not have two instances of the same class in a _services_
 definition.
 
 ### Resource Owners Password Credentials (oauth2_ropc.py)
+
+**NOTE** Resource Owners Password Credentials is not part of OAuth2.1
 
 Displays the usage of the 
 [resource owners username and password](https://www.rfc-editor.org/rfc/rfc6749#section-4.3)
@@ -147,8 +149,8 @@ interacting with the resource owner's user-agent (typically a web
 browser) and capable of receiving incoming requests (via redirection)
 from the authorization server.
 
-In the demon the response is transmitted directly from the server to the client
-no user agent is involved.
+In the demo implementation the response is transmitted directly from the server 
+to the client no user agent is involved.
 
 In this story the flow contains three request/responses
 
@@ -160,7 +162,7 @@ In this story the flow contains three request/responses
 
 Let's take it part by part.
 First the endpoints, straight forward support for the sequence of exchanges we 
-want to display.
+want to exercise.
 
     "endpoint": {
         "metadata": {
