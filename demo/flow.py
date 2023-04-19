@@ -55,7 +55,22 @@ class Flow(object):
         if service_type in ["userinfo", 'refresh_token']:
             kwargs['state'] = msg['authorization']['request']['state']
 
-        req_info = _client_service.get_request_parameters(request_args=request_args, **kwargs)
+        _mock_resp = msg.get('mock_response')
+        if _mock_resp:
+            _func = _mock_resp.get(service_type)
+            _info = _func(_client_service)
+            with responses.RequestsMock() as rsps:
+                rsps.add(
+                    "GET",
+                    _info["uri"],
+                    json=_info["data"],
+                    content_type="application/json",
+                    status=200,
+                )
+                req_info = _client_service.get_request_parameters(request_args=request_args,
+                                                                  **kwargs)
+        else:
+            req_info = _client_service.get_request_parameters(request_args=request_args, **kwargs)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -95,7 +110,7 @@ class Flow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        #resp = _client_service.parse_response(_response["response"])
+        # resp = _client_service.parse_response(_response["response"])
         _state = ''
         if service_type == 'authorization':
             _state = areq.get('state', _pr_req.get('state'))
