@@ -1,10 +1,12 @@
 import logging
 
 from cryptojwt import JWT
+from cryptojwt.utils import importer
 from requests import request
 
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
+from idpyoidc.util import instantiate
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +28,12 @@ def push_authorization(request_args, service, **kwargs):
         _body = request_args.to_urlencoded()
     else:
         _jwt = JWT(key_jar=service.upstream_get('attribute', 'keyjar'),
-                   iss=_context.base_url)
+                   iss=_context.claims.prefer['client_id'])
         _jws = _jwt.pack(request_args.to_dict())
 
         _msg = Message(request=_jws)
-        if method_args["merge_rule"] == "lax":
-            for param in request_args.required_parameters():
-                _msg[param] = request_args.get(param)
+        for param in request_args.required_parameters():
+            _msg[param] = request_args.get(param)
 
         _body = _msg.to_urlencoded()
 
@@ -46,10 +47,13 @@ def push_authorization(request_args, service, **kwargs):
     if resp.status_code == 200:
         _resp = Message().from_json(resp.text)
         _req = JWTSecuredAuthorizationRequest(request_uri=_resp["request_uri"])
-        if method_args["merge_rule"] == "lax":
-            for param in request_args.required_parameters():
-                _req[param] = request_args.get(param)
+        for param in request_args.required_parameters():
+            _req[param] = request_args.get(param)
         request_args = _req
+    else:
+        raise ConnectionError(
+            f'Could not connect to '
+            f'{_context.provider_info["pushed_authorization_request_endpoint"]}')
 
     return request_args
 
@@ -59,7 +63,7 @@ def add_support(
         merge_rule="strict"
 ):
     """
-    Add the necessary pieces to make Demonstration of proof of possession (DPOP).
+    Add the necessary pieces to support Pushed authorization.
 
     :param merge_rule:
     :param http_client:
@@ -69,13 +73,21 @@ def add_support(
     """
 
     if http_client is None:
-        http_client = request
+        _http_client = request
+    else:
+        if isinstance(http_client, dict):
+            if 'class' in http_client:
+                _http_client = instantiate(http_client['class'], **http_client.get('kwargs', {}))
+            else:
+                _http_client = importer(http_client['function'])
+        else:
+            _http_client = importer(http_client)
 
     _service = services["authorization"]
     _service.upstream_get("context").add_on["pushed_authorization"] = {
         "body_format": body_format,
         "signing_algorithm": signing_algorithm,
-        "http_client": http_client,
+        "http_client": _http_client,
         "merge_rule": merge_rule,
         'apply': True
     }
