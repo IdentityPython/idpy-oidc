@@ -297,7 +297,7 @@ class Service(ImpExp):
                     LOGGER.error(f"Unknown client authentication method: {authn_method}")
                     raise Unsupported(f"Unknown client authentication method: {authn_method}")
 
-            return _func.construct(request, self, http_args=http_args, **kwargs)
+            return _func.construct(request=request, service=self, http_args=http_args, **kwargs)
 
         return http_args
 

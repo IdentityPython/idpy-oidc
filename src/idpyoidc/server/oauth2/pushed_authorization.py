@@ -40,6 +40,7 @@ class PushedAuthorization(Authorization):
         _request.verify(keyjar = self.upstream_get('attribute', 'keyjar'))
 
         _urn = "urn:uuid:{}".format(uuid.uuid4())
+        # Store the parsed and verified request
         self.upstream_get("context").par_db[_urn] = _request
 
         return {
