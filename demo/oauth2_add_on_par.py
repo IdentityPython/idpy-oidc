@@ -74,7 +74,8 @@ client_conf['add_ons'] = {
         "kwargs": {
             'http_client': {
                 'class' : 'utils.EmulatePARCall'
-            }
+            },
+            'authn_method': 'client_secret_basic'
         }
     }
 }
