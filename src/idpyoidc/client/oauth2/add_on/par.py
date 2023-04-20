@@ -4,6 +4,7 @@ from cryptojwt import JWT
 from cryptojwt.utils import importer
 from requests import request
 
+from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 from idpyoidc.util import instantiate
@@ -23,6 +24,21 @@ def push_authorization(request_args, service, **kwargs):
     if method_args['apply'] is False:
         return request_args
 
+    _http_method = method_args["http_client"]
+
+    # Add client authentication if needed
+    _headers = {}
+    authn_method = method_args['authn_method']
+    if authn_method:
+        if authn_method not in _context.client_authn_methods:
+            _context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
+
+        _args = {}
+        if _context.issuer:
+            _args["iss"] = _context.issuer
+        _headers = service.get_headers(request_args, http_method=_http_method, authn_method=authn_method,
+                                       **_args)
+
     # construct the message body
     if method_args["body_format"] == "urlencoded":
         _body = request_args.to_urlencoded()
@@ -38,10 +54,11 @@ def push_authorization(request_args, service, **kwargs):
         _body = _msg.to_urlencoded()
 
     # Send it to the Pushed Authorization Request Endpoint
-    resp = method_args["http_client"](
+    resp = _http_method(
         method="GET",
         url=_context.provider_info["pushed_authorization_request_endpoint"],
-        data=_body
+        data=_body,
+        headers = _headers
     )
 
     if resp.status_code == 200:
@@ -60,7 +77,7 @@ def push_authorization(request_args, service, **kwargs):
 
 def add_support(
         services, body_format="jws", signing_algorithm="RS256", http_client=None,
-        merge_rule="strict"
+        merge_rule="strict", authn_method=''
 ):
     """
     Add the necessary pieces to support Pushed authorization.
@@ -89,7 +106,8 @@ def add_support(
         "signing_algorithm": signing_algorithm,
         "http_client": _http_client,
         "merge_rule": merge_rule,
-        'apply': True
+        'apply': True,
+        'authn_method': authn_method
     }
 
     _service.post_construct.append(push_authorization)
