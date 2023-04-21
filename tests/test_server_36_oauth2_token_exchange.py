@@ -352,7 +352,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
@@ -410,7 +410,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["openid", "profile", "offline_access"]
                     },
@@ -468,7 +468,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["openid", "profile", "offline_access"]
                     },
@@ -522,7 +522,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["openid", "offline_access"]
                     },
@@ -1041,7 +1041,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["offline_access", "profile"]
                     },
@@ -1130,7 +1130,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["profile"]
                     },
@@ -1218,7 +1218,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["offline_access", "profile"]
                     },
@@ -1326,7 +1326,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["offline_access", "profile"]
                     },
@@ -1424,7 +1424,7 @@ class TestEndpoint(object):
             "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "policy": {
                 "": {
-                    "callable": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {
                         "scope": ["profile"]
                     },

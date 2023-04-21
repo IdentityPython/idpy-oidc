@@ -386,10 +386,10 @@ class TestEndpoint:
             ],
             "policy": {
                 "": {
-                    "callable": validate_token_revocation_policy,
+                    "function": validate_token_revocation_policy,
                 },
                 "access_token": {
-                    "callable": custom_token_revocation_policy,
+                    "function": custom_token_revocation_policy,
                 }
             },
         }
@@ -423,10 +423,10 @@ class TestEndpoint:
             ],
             "policy": {
                 "": {
-                    "callable": validate_token_revocation_policy,
+                    "function": validate_token_revocation_policy,
                 },
                 "refresh_token": {
-                    "callable": custom_token_revocation_policy,
+                    "function": custom_token_revocation_policy,
                 }
             },
         }
