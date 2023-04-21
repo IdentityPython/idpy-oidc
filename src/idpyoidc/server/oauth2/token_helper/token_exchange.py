@@ -41,7 +41,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                     "urn:ietf:params:oauth:token-type:refresh_token",
                 ],
                 "default_requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
-                "policy": {"": {"callable": validate_token_exchange_policy}},
+                "policy": {"": {"function": validate_token_exchange_policy}},
             }
         else:
             self.config = config
@@ -154,21 +154,21 @@ class TokenExchangeHelper(TokenEndpointHelper):
             subject_token_type = ""
 
         policy = config["policy"][subject_token_type]
-        callable = policy["callable"]
+        function = policy["function"]
         kwargs = policy.get("kwargs", {})
 
-        if isinstance(callable, str):
+        if isinstance(function, str):
             try:
-                fn = importer(callable)
+                fn = importer(function)
             except Exception:
-                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
         else:
-            fn = callable
+            fn = function
 
         try:
             return fn(request, context=_context, subject_token=token, **kwargs)
         except Exception as e:
-            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            logger.error(f"Error while executing the {fn} policy function: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def token_exchange_response(self, token, issued_token_type):
@@ -285,9 +285,9 @@ class TokenExchangeHelper(TokenEndpointHelper):
             raise ImproperlyConfigured(
                 "Default Token Exchange policy configuration is not defined"
             )
-        if "callable" not in config["policy"][""]:
+        if "function" not in config["policy"][""]:
             raise ImproperlyConfigured(
-                "Missing 'callable' from default Token Exchange policy configuration"
+                "Missing 'function' from default Token Exchange policy configuration"
             )
 
         _default_requested_token_type = config.get("default_requested_token_type",

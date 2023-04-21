@@ -34,14 +34,14 @@ EXTRA = {
                 ],
                 "policy": {
                     "urn:ietf:params:oauth:token-type:access_token": {
-                        "callable": "/path/to/callable",
+                        "function": "/path/to/function",
                         "kwargs": {"audience": ["https://example.com"], "scopes": ["openid"]},
                     },
                     "urn:ietf:params:oauth:token-type:refresh_token": {
-                        "callable": "/path/to/callable",
+                        "function": "/path/to/function",
                         "kwargs": {"resource": ["https://example.com"], "scopes": ["openid"]},
                     },
-                    "": {"callable": "/path/to/callable", "kwargs": {"scopes": ["openid"]}},
+                    "": {"function": "/path/to/function", "kwargs": {"scopes": ["openid"]}},
                 },
             },
         },

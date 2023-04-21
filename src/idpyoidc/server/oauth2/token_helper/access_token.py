@@ -58,7 +58,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         if resource_indicators_config is not None:
             if "policy" not in resource_indicators_config:
-                policy = {"policy": {"callable": validate_resource_indicators_policy}}
+                policy = {"policy": {"function": validate_resource_indicators_policy}}
                 resource_indicators_config.update(policy)
 
             req = self._enforce_resource_indicators_policy(req, resource_indicators_config)
@@ -152,20 +152,20 @@ class AccessTokenHelper(TokenEndpointHelper):
         _context = self.endpoint.upstream_get('context')
 
         policy = config["policy"]
-        callable = policy["callable"]
+        function = policy["function"]
         kwargs = policy.get("kwargs", {})
 
-        if isinstance(callable, str):
+        if isinstance(function, str):
             try:
-                fn = importer(callable)
+                fn = importer(function)
             except Exception:
-                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
         else:
-            fn = callable
+            fn = function
         try:
             return fn(request, context=_context, **kwargs)
         except Exception as e:
-            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            logger.error(f"Error while executing the {fn} policy function: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def post_parse_request(

@@ -86,7 +86,7 @@ class TokenRevocation(Endpoint):
             self.policy = _context.cdb[client_id]["token_revocation"]["policy"]
         except Exception:
             self.policy = self.token_revocation_kwargs.get("policy", {
-                "": {"callable": validate_token_revocation_policy}})
+                "": {"function": validate_token_revocation_policy}})
 
         if _token.token_class not in self.token_types_supported:
             desc = (
@@ -108,21 +108,21 @@ class TokenRevocation(Endpoint):
             _cls = ""
 
         temp_policy = self.policy[_cls]
-        callable = temp_policy["callable"]
+        function = temp_policy["function"]
         kwargs = temp_policy.get("kwargs", {})
 
-        if isinstance(callable, str):
+        if isinstance(function, str):
             try:
-                fn = importer(callable)
+                fn = importer(function)
             except Exception:
-                raise ImproperlyConfigured(f"Error importing {callable} policy callable")
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
         else:
-            fn = callable
+            fn = function
 
         try:
             return fn(_token, session_info=session_info, **kwargs)
         except Exception as e:
-            logger.error(f"Error while executing the {fn} policy callable: {e}")
+            logger.error(f"Error while executing the {fn} policy function: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
 
 

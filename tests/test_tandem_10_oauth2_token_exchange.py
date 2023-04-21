@@ -356,7 +356,7 @@ class TestEndpoint(object):
             ],
             "policy": {
                 "": {
-                    "callable":
+                    "function":
                         "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {"scope": ["openid", "offline_access"]},
                 }

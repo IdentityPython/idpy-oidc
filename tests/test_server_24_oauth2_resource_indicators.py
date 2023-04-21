@@ -328,7 +328,7 @@ RESOURCE_INDICATORS_ENABLED = {
                 "request_uri_parameter_supported": True,
                 "resource_indicators": {
                     "policy": {
-                        "callable": validate_authorization_resource_indicators_policy,
+                        "function": validate_authorization_resource_indicators_policy,
                         "kwargs": {
                             "resource_servers_per_client": {
                                 "client_1": ["client_1", "client_2"],
@@ -350,7 +350,7 @@ RESOURCE_INDICATORS_ENABLED = {
                 ],
                 "resource_indicators": {
                     "policy": {
-                        "callable": validate_token_resource_indicators_policy,
+                        "function": validate_token_resource_indicators_policy,
                         "kwargs": {
                             "resource_servers_per_client": {
                                 "client_1": ["client_2", "client_3"]
@@ -551,7 +551,7 @@ class TestEndpoint(object):
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "authorization_code": {
                 "policy": {
-                    "callable": validate_authorization_resource_indicators_policy,
+                    "function": validate_authorization_resource_indicators_policy,
                     "kwargs": {
                         "resource_servers_per_client":["client_3"]
                     },
