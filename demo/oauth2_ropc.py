@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-import os
 
+from common import BASEDIR
+from common import KEYDEFS
+from common import SESSION_PARAMS
+from common import full_path
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import ASConfiguration
@@ -8,31 +11,6 @@ from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.oauth2.token import Token
-
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
-
-
-def full_path(local_file):
-    return os.path.join(BASEDIR, local_file)
-
-
-KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-CRYPT_CONFIG = {
-    "kwargs": {
-        "keys": {
-            "key_defs": [
-                {"type": "OCT", "use": ["enc"], "kid": "password"},
-                {"type": "OCT", "use": ["enc"], "kid": "salt"},
-            ]
-        },
-        "iterations": 1,
-    }
-}
-
-SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}
 
 SERVER_CONFIG = {
     "issuer": "https://example.net/",
