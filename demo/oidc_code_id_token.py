@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-import os
 
+from common import BASEDIR
+from common import CRYPT_CONFIG
+from common import KEYDEFS
 from flow import Flow
 from idpyoidc.client.oidc import RP
 from idpyoidc.server import OPConfiguration
@@ -8,19 +10,6 @@ from idpyoidc.server import Server
 from oidc_client_conf import CLIENT_CONFIG
 from oidc_client_conf import CLIENT_ID
 from oidc_server_conf import SERVER_CONF
-from tests import CRYPT_CONFIG
-
-KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
-
-
-def full_path(local_file):
-    return os.path.join(BASEDIR, local_file)
-
 
 # ================ Server side ===================================
 

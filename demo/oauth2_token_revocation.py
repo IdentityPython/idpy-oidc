@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-import os
 
+from common import BASEDIR
+from common import KEYDEFS
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import ASConfiguration
@@ -8,12 +9,6 @@ from idpyoidc.server import Server
 from oauth2_client_conf import CLIENT_CONFIG
 from oauth2_client_conf import CLIENT_ID
 from oauth2_server_conf import SERVER_CONF
-
-KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 # ================ Server side ===================================
 

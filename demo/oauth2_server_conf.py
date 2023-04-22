@@ -1,9 +1,8 @@
+from common import CRYPT_CONFIG
+from common import SESSION_PARAMS
 from idpyoidc.server.authz import AuthzHandling
-
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from tests import CRYPT_CONFIG
-from tests import SESSION_PARAMS
 
 SERVER_CONF = {
     "issuer": "https://example.com/",
