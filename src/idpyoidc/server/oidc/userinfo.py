@@ -26,7 +26,7 @@ class UserInfo(Endpoint):
     request_cls = Message
     response_cls = oidc.OpenIDSchema
     request_format = "json"
-    response_format = "json"
+    response_format = "jose"
     response_placement = "body"
     endpoint_name = "userinfo_endpoint"
     name = "userinfo"

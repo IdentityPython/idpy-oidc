@@ -119,12 +119,8 @@ def test_capabilities_default():
     server = Server(configuration)
     assert set(server.context.provider_info["response_types_supported"]) == {
         "code",
-        "token",
         "id_token",
-        "code token",
-        "code id_token",
-        "id_token token",
-        "code id_token token",
+        "code id_token"
     }
     assert server.context.provider_info["request_uri_parameter_supported"] is True
     assert server.context.get_preference('jwks_uri') == \

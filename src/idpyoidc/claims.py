@@ -97,7 +97,7 @@ class Claims(ImpExp):
 
         self.callback = callbacks
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         return True
 
     def locals(self, info):
@@ -172,7 +172,7 @@ class Claims(ImpExp):
                   supports: dict,
                   keyjar: Optional[KeyJar] = None) -> KeyJar:
         for attr, val in configuration.items():
-            if attr == "preference":
+            if attr in ["preference", "capabilities"]:
                 for k, v in val.items():
                     if k in supports:
                         self.set_preference(k, v)
@@ -187,7 +187,7 @@ class Claims(ImpExp):
             elif val:
                 self.set_preference(key, val)
 
-        self.verify_rules()
+        self.verify_rules(supports)
         return keyjar
 
     def get(self, key, default=None):

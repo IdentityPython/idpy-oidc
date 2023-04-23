@@ -2,6 +2,9 @@ import json
 import os
 
 from cryptojwt.key_jar import build_keyjar
+from jwkest.jws import factory as jws_factory
+from jwkest.jwe import factory as jwe_factory
+
 import pytest
 
 from idpyoidc.client.oidc import RP
@@ -217,10 +220,8 @@ class TestFlow(object):
 
         if areq:
             areq.lax = True
-            if _server_endpoint.request_format == 'json':
-                _pr_req = _server_endpoint.parse_request(areq.to_json(), **argv)
-            else:
-                _pr_req = _server_endpoint.parse_request(areq.to_urlencoded(), **argv)
+            _req = areq.serialize(_server_endpoint.request_format)
+            _pr_req = _server_endpoint.parse_request(_req, **argv)
         else:
             _pr_req = _server_endpoint.parse_request(areq, **argv)
 
@@ -235,6 +236,12 @@ class TestFlow(object):
 
         resp = _client_service.parse_response(_response["response"])
         _client_service.update_service_context(_resp["response_args"], key=state)
+        # Fake key import
+        if service_type == 'provider_info':
+            _client_service.upstream_get('attribute', 'keyjar').import_jwks(
+                _server_endpoint.upstream_get('attribute', 'keyjar').export_jwks(),
+                issuer_id=_server_endpoint.upstream_get('attribute', 'issuer')
+            )
         return areq, resp
 
     def process_setup(self, token=None, scope=None):

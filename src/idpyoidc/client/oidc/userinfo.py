@@ -39,6 +39,7 @@ class UserInfo(Service):
     endpoint_name = "userinfo_endpoint"
     service_name = "userinfo"
     default_authn_method = "bearer_header"
+    response_body_type = "jose"
 
     _supports = {
         "userinfo_signing_alg_values_supported": get_signing_algs,

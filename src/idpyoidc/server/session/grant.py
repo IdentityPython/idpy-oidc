@@ -171,8 +171,8 @@ class Grant(Item):
         return self.scope
 
     def add_acr_value(self, claims_release_point):
-        if claims_release_point == "userinfo":
-            return False
+        # if claims_release_point == "userinfo":
+        #     return False
 
         _release = self.claims.get(claims_release_point)
         if _release:

@@ -316,7 +316,7 @@ class EndpointContext(OidcContext):
             )
 
     def do_add_on(self, endpoints):
-        _add_on_conf = self.conf.get("add_ons")
+        _add_on_conf = self.conf.get("add_ons", self.conf.get('add_on'))
         if not _add_on_conf:
             _add_on_conf = self.conf.conf.get('add_ons')
 

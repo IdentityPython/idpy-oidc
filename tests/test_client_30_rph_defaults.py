@@ -102,7 +102,6 @@ class TestRPHandler(object):
                                                    'client_secret',
                                                    'default_max_age',
                                                    'encrypt_request_object_supported',
-                                                   'encrypt_userinfo_supported',
                                                    'grant_types',
                                                    'id_token_signed_response_alg',
                                                    'jwks_uri',
@@ -113,8 +112,7 @@ class TestRPHandler(object):
                                                    'scope',
                                                    'subject_type',
                                                    'token_endpoint_auth_method',
-                                                   'token_endpoint_auth_signing_alg',
-                                                   'userinfo_signed_response_alg'}
+                                                   'token_endpoint_auth_signing_alg'}
         assert _context.get_client_id() == "client uno"
         assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID

@@ -193,7 +193,8 @@ class TestFlow(object):
             else:
                 argv = {}
             areq.lax = True
-            _pr_resp = _server_endpoint.parse_request(areq.to_urlencoded(), **argv)
+            _req = areq.serialize(_server_endpoint.request_format)
+            _pr_resp = _server_endpoint.parse_request(_req, **argv)
         else:
             _pr_resp = _server_endpoint.parse_request(areq)
 

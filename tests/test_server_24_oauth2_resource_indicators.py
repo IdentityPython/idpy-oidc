@@ -589,7 +589,7 @@ class TestEndpoint(object):
         for the authorization endpoint and requested resource is not permitted for client.
         """
         request = AUTH_REQ.copy()
-        request["resource"] = "client_2"
+        request["resource"] = "client_3"
         client_id = request["client_id"]
         endpoint_context = self.endpoint.upstream_get("context")
 

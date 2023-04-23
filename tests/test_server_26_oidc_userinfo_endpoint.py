@@ -214,8 +214,9 @@ class TestEndpoint(object):
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
+            "response_types_supported": ["code", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access",
+                               "research_and_scholarship"]
         }
         self.endpoint = self.server.get_endpoint("userinfo")
         self.session_manager = self.context.session_manager
@@ -634,11 +635,15 @@ class TestEndpoint(object):
         ec = self.endpoint.upstream_get("context")
         ec.userinfo = None
 
-        session_id = self._create_session(AUTH_REQ)
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ['openid', 'email']
+
+        session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]
 
+        code = self._mint_code(grant, session_id)
         with pytest.raises(ImproperlyConfigured):
-            code = self._mint_code(grant, session_id)
+            self._mint_token("access_token", grant, session_id, code)
 
     def test_userinfo_policy(self):
         _auth_req = AUTH_REQ.copy()

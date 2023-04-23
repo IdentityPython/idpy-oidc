@@ -96,12 +96,15 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         logger.debug("All checks OK")
 
-        issue_refresh = kwargs.get("issue_refresh", False)
-
         if resource_indicators_config is not None:
             scope = req["scope"]
         else:
             scope = grant.scope
+
+        if 'offline_access' in scope and "refresh_token" in _supports_minting:
+            issue_refresh = True
+        else:
+            issue_refresh = kwargs.get("issue_refresh", False)
 
         _response = {
             "token_type": token_type,

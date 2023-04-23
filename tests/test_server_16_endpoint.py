@@ -76,7 +76,7 @@ class TestEndpoint(object):
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        server.context.cdb["client_id"] = {}
+        server.context.cdb["client_id"] = {"redirect_uris": [("https://example.com/cb", None)]}
         self.context = server.context
         _endpoints = do_endpoints(conf, server.unit_get)
         self.endpoint = _endpoints[""]

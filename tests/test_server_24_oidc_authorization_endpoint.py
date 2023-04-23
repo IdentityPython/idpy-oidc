@@ -64,13 +64,8 @@ KEYDEFS = [
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
-    ["token"],
     ["id_token"],
-    ["code", "token"],
     ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
 ]
 
 CAPABILITIES = {
@@ -120,12 +115,10 @@ oidc_clients:
         - ['https://example.com/cb', '']
     "client_salt": "salted"
     'token_endpoint_auth_method': 'client_secret_post'
-    'response_types':
+    response_types_supported:
         - 'code'
-        - 'token'
         - 'code id_token'
         - 'id_token'
-        - 'code id_token token'
     allowed_scopes:
         - 'openid'
         - 'profile'
@@ -138,14 +131,14 @@ oidc_clients:
     redirect_uris:
       - ['https://app1.example.net/foo', '']
       - ['https://app2.example.net/bar', '']
-    response_types:
+    response_types_supported:
       - code
   client3:
     client_secret: '2222222222222222222222222222222222222222'
     redirect_uris:
       - ['https://127.0.0.1:8090/authz_cb/bobcat', '']
     post_logout_redirect_uri: ['https://openidconnect.net/', '']
-    response_types:
+    response_types_supported:
       - code
     allowed_scopes:
         - 'openid'
@@ -377,14 +370,6 @@ class TestEndpoint(object):
         assert "code" not in _frag_msg
         assert "token" not in _frag_msg
 
-    def test_do_response_id_token_token(self):
-        _orig_req = AUTH_REQ_DICT.copy()
-        _orig_req["response_type"] = "id_token token"
-        _orig_req["nonce"] = "rnd_nonce"
-        _pr_resp = self.endpoint.parse_request(_orig_req)
-        assert isinstance(_pr_resp, AuthorizationErrorResponse)
-        assert _pr_resp["error"] == "invalid_request"
-
     def test_do_response_code_token(self):
         _orig_req = AUTH_REQ_DICT.copy()
         _orig_req["response_type"] = "code token"
@@ -409,22 +394,6 @@ class TestEndpoint(object):
         assert "code" in _frag_msg
         assert "access_token" not in _frag_msg
 
-    def test_do_response_code_id_token_token(self):
-        _orig_req = AUTH_REQ_DICT.copy()
-        _orig_req["response_type"] = "code id_token token"
-        _orig_req["nonce"] = "rnd_nonce"
-        _pr_resp = self.endpoint.parse_request(_orig_req)
-        _resp = self.endpoint.process_request(_pr_resp)
-        msg = self.endpoint.do_response(**_resp)
-        assert isinstance(msg, dict)
-        part = urlparse(msg["response"])
-        assert part.query == ""
-        assert part.fragment
-        _frag_msg = parse_qs(part.fragment)
-        assert _frag_msg
-        assert "id_token" in _frag_msg
-        assert "code" in _frag_msg
-        assert "access_token" in _frag_msg
 
     def test_id_token_claims(self):
         _req = AUTH_REQ_DICT.copy()
@@ -454,7 +423,7 @@ class TestEndpoint(object):
         _req["claims"] = {
             "id_token": {"acr": {"value": "http://www.swamid.se/policy/assurance/al1"}}
         }
-        _req["response_type"] = "code id_token token"
+        _req["response_type"] = "code id_token"
         _req["nonce"] = "rnd_nonce"
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
@@ -901,7 +870,7 @@ class TestEndpoint(object):
         request = AuthorizationRequest(
             client_id="client_id",
             redirect_uri="https://rp.example.com/cb",
-            response_type=["id_token token"],
+            response_type=["id_token"],
             state="state",
             nonce="nonce",
             scope="openid",
@@ -915,31 +884,13 @@ class TestEndpoint(object):
 
         assert self.endpoint.verify_response_type(request, client_info) is False
 
-        client_info["response_types"] = [
+        client_info["response_types_supported"] = [
             "code",
             "code id_token",
             "id_token",
-            "id_token token",
         ]
 
         assert self.endpoint.verify_response_type(request, client_info) is True
-
-    # @pytest.mark.parametrize("exp_in", [360, "360", 0])
-    # def test_mint_token_exp_at(self, exp_in):
-    #     request = AuthorizationRequest(
-    #         client_id="client_1",
-    #         response_type=["code"],
-    #         redirect_uri="https://example.com/cb",
-    #         state="state",
-    #         scope="openid",
-    #     )
-    #     self.session_manager.set(["user_id", "client_id", "grant.id"], grant)
-    #
-    #     code = self.endpoint.mint_token("authorization_code", grant, sid)
-    #     if exp_in in [360, "360"]:
-    #         assert code.expires_at
-    #     else:
-    #         assert code.expires_at == 0
 
     def test_do_request_uri(self):
         request = AuthorizationRequest(
@@ -950,7 +901,7 @@ class TestEndpoint(object):
         orig_request = AuthorizationRequest(
             client_id="client_id",
             redirect_uri="https://rp.example.com/cb",
-            response_type=["id_token token"],
+            response_type=["id_token"],
             state="state",
             nonce="nonce",
             scope="openid",

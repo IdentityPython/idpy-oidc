@@ -100,7 +100,7 @@ class Metadata(ImpExp):
 
         self.callback = callbacks
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         return True
 
     def locals(self, info):
@@ -188,7 +188,7 @@ class Metadata(ImpExp):
             elif val:
                 self.set_preference(key, val)
 
-        self.verify_rules()
+        self.verify_rules(supports)
         return keyjar
 
     def get(self, key, default=None):
