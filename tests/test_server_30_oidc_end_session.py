@@ -47,16 +47,11 @@ KEYJAR.import_jwks(KEYJAR.export_jwks(private=True), ISS)
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
-    ["token"],
     ["id_token"],
-    ["code", "token"],
-    ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
+    ["code", "id_token"]
 ]
 
-CAPABILITIES = {
+PREFRERENCES = {
     "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
     "token_endpoint_auth_methods_supported": [
         "client_secret_post",
@@ -106,7 +101,7 @@ class TestEndpoint(object):
             "issuer": ISS,
             "password": "mycket hemlig zebra",
             "verify_ssl": False,
-            "capabilities": CAPABILITIES,
+            "preferences": PREFRERENCES,
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
                 "provider_config": {
@@ -207,7 +202,7 @@ class TestEndpoint(object):
                 "redirect_uris": [("{}cb".format(CLI1), None)],
                 "client_salt": "salted",
                 "token_endpoint_auth_method": "client_secret_post",
-                "response_types": ["code", "token", "code id_token", "id_token"],
+                "response_types_supported": ["code", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI1}logout_cb", ""],
                 "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             },
@@ -216,7 +211,7 @@ class TestEndpoint(object):
                 "redirect_uris": [("{}cb".format(CLI2), None)],
                 "client_salt": "saltare",
                 "token_endpoint_auth_method": "client_secret_post",
-                "response_types": ["code", "token", "code id_token", "id_token"],
+                "response_types_supported": ["code", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI2}logout_cb", ""],
                 "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
             },

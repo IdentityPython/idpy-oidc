@@ -168,6 +168,7 @@ class ClaimsInterface:
             auth_req = grant.authorization_request
         else:
             auth_req = {}
+
         claims = self.get_claims_from_request(
             auth_req=auth_req,
             claims_release_point=claims_release_point,

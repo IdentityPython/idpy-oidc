@@ -122,6 +122,7 @@ class Authorization(authorization.Authorization):
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
+                _response_types = ["code"]
                 request_args["response_type"] = "code"
 
         # For OIDC 'openid' is required in scope

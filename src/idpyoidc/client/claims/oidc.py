@@ -100,12 +100,18 @@ class Claims(client_claims.Claims):
                                       prefer=prefer,
                                       callback_path=callback_path)
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         if self.get_preference("request_parameter_supported") and self.get_preference(
                 "request_uri_parameter_supported"):
             raise ValueError(
                 "You have to chose one of 'request_parameter_supported' and "
                 "'request_uri_parameter_supported'. You can't have both.")
+
+        if self.get_preference("request_parameter_supported") or self.get_preference(
+                "request_uri_parameter_supported"):
+            if not self.get_preference('request_object_signing_alg_values_supported'):
+                self.set_preference('request_object_signing_alg_values_supported',
+                                    supports['request_object_signing_alg_values_supported'])
 
         if not self.get_preference('encrypt_userinfo_supported'):
             self.set_preference('userinfo_encryption_alg_values_supported', [])

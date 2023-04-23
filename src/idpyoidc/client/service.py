@@ -8,14 +8,16 @@ from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
 
+from cryptojwt.jwe.jwe import factory as jwe_factory
+from cryptojwt.jws.jws import factory as jws_factory
 from cryptojwt.jwt import JWT
 
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
@@ -591,13 +593,19 @@ class Service(ImpExp):
         LOGGER.debug("response format: %s", sformat)
 
         resp = None
-        if sformat == "jose":
+        if sformat == "jose":  # can be jwe, jws or json
             try:
-                self._do_jwt(info)
-                sformat = "dict"
-            except Exception:
-                _keyjar = self.upstream_get("attribute", 'keyjar')
-                resp = self.response_cls().from_jwe(info, keys=_keyjar)
+                if jws_factory(info):
+                    info = self._do_jwt(info)
+            except:
+                try:
+                    if jwe_factory(info):
+                        info = self._do_jwt(info)
+                except:
+                    pass
+            if info and isinstance(info, str):
+                info = json.loads(info)
+            sformat = "dict"
         elif sformat == "jwe":
             _keyjar = self.upstream_get("attribute", 'keyjar')
             _client_id = self.upstream_get("attribute", 'client_id')

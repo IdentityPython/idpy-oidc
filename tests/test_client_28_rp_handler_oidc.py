@@ -28,10 +28,7 @@ PREF = {
     "response_types_supported": [
         "code",
         "id_token",
-        "id_token token",
         "code id_token",
-        "code id_token token",
-        "code token",
     ],
     "token_endpoint_auth_methods_supported": ["client_secret_basic"],
     "scopes_supported": ["openid", "profile", "email", "address", "phone"],
@@ -328,7 +325,7 @@ class TestRPHandler(object):
         cb = _context.get_preference('callback_uris')
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb['redirect_uris'].keys()) == {'code'}
+        assert set(cb['redirect_uris'].keys()) == {'implicit', 'code'}
         _hash = _context.iss_hash
 
         assert cb['redirect_uris']["code"] == [f"https://example.com/rp/authz_cb/{_hash}"]
