@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc import claims
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
 from idpyoidc.message.oidc import make_openid_request
@@ -79,11 +80,18 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
     except KeyError:
         pass
 
-    expires_in = _context.add_on['jar'].get('expires_in', DEFAULT_EXPIRES_IN)
+    _jar_conf = _context.add_on['jar']
+    expires_in = _jar_conf.get('expires_in', DEFAULT_EXPIRES_IN)
     if expires_in:
         req["exp"] = utc_time_sans_frac() + int(expires_in)
-    if _context.add_on['jar'].get('with_jti', False):
+
+    if _jar_conf.get('with_jti', False):
         kwargs['with_jti'] = True
+
+    _enc_enc = _jar_conf.get('request_object_encryption_enc', '')
+    if _enc_enc:
+        kwargs['request_object_encryption_enc'] = _enc_enc
+        kwargs['request_object_encryption_alg'] = _jar_conf.get('request_object_encryption_alg')
 
     # Filter out only the arguments I want
     _mor_args = {
@@ -170,7 +178,9 @@ def add_support(service,
                 request_dir: Optional[str] = '',
                 request_object_signing_alg: Optional[str] = 'RS256',
                 expires_in: Optional[int] = DEFAULT_EXPIRES_IN,
-                with_jti: Optional[bool] = False):
+                with_jti: Optional[bool] = False,
+                request_object_encryption_alg: Optional[str] = '',
+                request_object_encryption_enc: Optional[str] = ''):
     """
     JAR support can only be considered if this client can access an authorization service.
 
@@ -193,6 +203,19 @@ def add_support(service,
             args['request_uri'] = True
             if request_dir:
                 args['request_dir'] = request_dir
+
+        if request_object_encryption_enc and request_object_encryption_alg:
+            if request_object_encryption_enc in claims.get_encryption_encs():
+                if request_object_encryption_alg in claims.get_encryption_algs():
+                    args['request_object_encryption_enc'] = request_object_encryption_enc
+                    args['request_object_encryption_alg'] = request_object_encryption_alg
+                else:
+                    AttributeError(
+                        f'An encryption alg {request_object_encryption_alg} there is no support '
+                        f'for')
+            else:
+                AttributeError(
+                    f'An encryption enc {request_object_encryption_enc} there is no support for')
 
         _context.add_on["jar"] = args
     else:

@@ -10,7 +10,7 @@ pattern:
 
 - The client/RP constructs the request and possible client authentication information
 - The request and client authentication information is printed
-- The AS/OP does client authentication
+- The AS/OP does client authentication based on the authentication information received
 - The AS/OP parses and verifies the client request
 - The AS/OP constructs the server response
 - The client/RP parses and verifies the server response
@@ -18,11 +18,11 @@ pattern:
 
 This pattern is repeated for each request/response in the sequence.
 
-To understand the following you have to know that an AS/OP provides a 
-set of endpoints while a client/RP accesses services. An endpoint can
+To understand the descriptions below you have to remember that an AS/OP provides 
+**endpoints** while a client/RP accesses **services**. An endpoint can
 support more than one service. A service can only reside at one endpoint.
 
-## OAuth2 Stories
+## Basic OAuth2 Stories
 
 These are based on the two basic OAuth2 RFCs;
 * [The OAuth 2.0 Authorization Framework](https://www.rfc-editor.org/rfc/rfc6749)
@@ -251,6 +251,10 @@ can't deal with user interaction.
 What happens is that authentication is assumed to have happened and that
 it resulted in that **diana** was authenticated.
 
+## OAuth2 Extension Stories
+
+The stories display support for a set of OAuth2 extension RFCs
+
 ### PKCE (oauth2_add_on_pkce.py)
 
 [Proof Key for Code Exchange by OAuth Public Clients](https://datatracker.ietf.org/doc/rfc7636/).
@@ -280,4 +284,32 @@ Similar on the client side:
         },
     }
 
-### JAR 
+### JAR (oauth2_add_on_jar.py)
+
+[JWT-Secured Authorization Request (JAR)](https://datatracker.ietf.org/doc/rfc9101/)
+This document introduces the ability to send request parameters in a
+JSON Web Token (JWT) instead, which allows the request to be signed
+with JSON Web Signature (JWS) and encrypted with JSON Web Encryption
+(JWE) so that the integrity, source authentication, and
+confidentiality properties of the authorization request are attained.
+The request can be sent by value or by reference.
+
+#### Configuration
+
+On the server side nothing has to be done. The support for the
+request and request_uri parameters are built in to begin with.
+The reason for this is that OIDC had this from the beginning.
+
+On the client side this had to be added:
+
+    "add_ons": {
+        "jar": {
+            "function": "idpyoidc.client.oauth2.add_on.jar.add_support",
+            "kwargs": {
+                'request_type': 'request_parameter',
+                'request_object_signing_alg': "ES256",
+                'expires_in': 600
+            },
+        },
+    }
+
