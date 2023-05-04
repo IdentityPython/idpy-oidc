@@ -3,7 +3,9 @@ from typing import Optional
 from typing import Union
 
 from idpyoidc.message import Message
+from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import sanitize
 from . import TokenEndpointHelper
 
 logger = logging.getLogger(__name__)
@@ -74,4 +76,6 @@ class ClientCredentials(TokenEndpointHelper):
             client_id: Optional[str] = "",
             **kwargs
     ):
+        request = CCAccessTokenRequest(**request.to_dict())
+        logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
         return request
