@@ -190,7 +190,7 @@ def test_token_handler_from_config():
     }
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-    token_handler = server.endpoint_context.session_manager.token_handler
+    token_handler = server.context.session_manager.token_handler
     assert token_handler
     assert len(token_handler.handler) == 4
     assert set(token_handler.handler.keys()) == {
@@ -280,5 +280,5 @@ def test_file(jwks):
     }
 
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-    token_handler = server.endpoint_context.session_manager.token_handler
+    token_handler = server.context.session_manager.token_handler
     assert token_handler

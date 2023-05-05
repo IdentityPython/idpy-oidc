@@ -181,16 +181,17 @@ class Grant(Item):
     def payload_arguments(
             self,
             session_id: str,
-            endpoint_context,
+            context: object,
             item: SessionToken,
             claims_release_point: str,
+            scope: Optional[dict] = None,
             extra_payload: Optional[dict] = None,
             secondary_identifier: str = "",
     ) -> dict:
         """
 
         :param session_id: Session ID
-        :param endpoint_context: EndPoint Context
+        :param context: EndPoint Context
         :param item: A SessionToken instance
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
         :param extra_payload:
@@ -211,6 +212,10 @@ class Grant(Item):
 
         payload["jti"] = uuid1().hex
 
+        if scope is None:
+            scope = self.scope
+        payload["scope"] = scope
+
         if extra_payload:
             payload.update(extra_payload)
 
@@ -226,17 +231,17 @@ class Grant(Item):
         if item.claims:
             _claims_restriction = item.claims
         else:
-            _claims_restriction = endpoint_context.claims_interface.get_claims(
+            _claims_restriction = context.claims_interface.get_claims(
                 session_id,
                 scopes=payload["scope"],
                 claims_release_point=claims_release_point,
                 secondary_identifier=secondary_identifier,
             )
 
-        if endpoint_context.session_manager.node_type[0] == "user":
-            user_id, _, _ = endpoint_context.session_manager.decrypt_branch_id(session_id)
-            user_info = endpoint_context.claims_interface.get_user_claims(user_id,
-                                                                          _claims_restriction)
+        if context.session_manager.node_type[0] == "user":
+            user_id, _, _ = context.session_manager.decrypt_branch_id(session_id)
+            user_info = context.claims_interface.get_user_claims(user_id,
+                                                                 _claims_restriction)
             payload.update(user_info)
 
         # Should I add the acr value
@@ -250,7 +255,7 @@ class Grant(Item):
     def mint_token(
             self,
             session_id: str,
-            endpoint_context: object,
+            context: object,
             token_class: str,
             token_handler: TokenHandler = None,
             based_on: Optional[SessionToken] = None,
@@ -265,7 +270,7 @@ class Grant(Item):
         """
 
         :param session_id:
-        :param endpoint_context:
+        :param context:
         :param token_type:
         :param token_handler:
         :param based_on:
@@ -338,9 +343,9 @@ class Grant(Item):
                 **class_args,
             )
             if token_handler is None:
-                token_handler = endpoint_context.session_manager.token_handler.handler[token_class]
+                token_handler = context.session_manager.token_handler.handler[token_class]
 
-            if token_class in endpoint_context.claims_interface.claims_release_points:
+            if token_class in context.claims_interface.claims_release_points:
                 claims_release_point = token_class
             else:
                 claims_release_point = ""
@@ -356,9 +361,10 @@ class Grant(Item):
 
             token_payload = self.payload_arguments(
                 session_id,
-                endpoint_context,
+                context,
                 item=item,
                 claims_release_point=claims_release_point,
+                scope=scope,
                 extra_payload=handler_args,
                 secondary_identifier=_secondary_identifier,
             )
@@ -449,19 +455,19 @@ DEFAULT_USAGE = {
 }
 
 
-def get_usage_rules(token_type, endpoint_context, grant, client_id):
+def get_usage_rules(token_type, context, grant, client_id):
     """
     The order of importance:
     Grant, Client, EndPointContext, Default
 
     :param token_type: The type of token
-    :param endpoint_context: An EndpointContext instance
+    :param context: An EndpointContext instance
     :param grant: A Grant instance
     :param client_id: The client identifier
     :return: Usage specification
     """
 
-    _usage = endpoint_context.authz.usage_rules_for(client_id, token_type)
+    _usage = context.authz.usage_rules_for(client_id, token_type)
     if not _usage:
         _usage = DEFAULT_USAGE[token_type]
 
@@ -474,7 +480,7 @@ def get_usage_rules(token_type, endpoint_context, grant, client_id):
 
 class ExchangeGrant(Grant):
     parameter = Grant.parameter.copy()
-    parameter.update({"users": []})
+    parameter.update({"exchange_request": TokenExchangeRequest, "original_session_id": ""})
     type = "exchange_grant"
 
     def __init__(
@@ -483,6 +489,8 @@ class ExchangeGrant(Grant):
             claims: Optional[dict] = None,
             resources: Optional[list] = None,
             authorization_details: Optional[dict] = None,
+            authorization_request: Optional[Message] = None,
+            authentication_event: Optional[AuthnEvent] = None,
             issued_token: Optional[list] = None,
             usage_rules: Optional[dict] = None,
             exchange_request: Optional[TokenExchangeRequest] = None,
@@ -501,6 +509,8 @@ class ExchangeGrant(Grant):
             claims=claims,
             resources=resources,
             authorization_details=authorization_details,
+            authorization_request=authorization_request,
+            authentication_event=authentication_event,
             issued_token=issued_token,
             usage_rules=usage_rules,
             issued_at=issued_at,
@@ -517,3 +527,76 @@ class ExchangeGrant(Grant):
         }
         self.exchange_request = exchange_request
         self.original_branch_id = original_branch_id
+
+    def payload_arguments(
+            self,
+            session_id: str,
+            endpoint_context,
+            item: SessionToken,
+            claims_release_point: str,
+            scope: Optional[dict] = None,
+            extra_payload: Optional[dict] = None,
+            secondary_identifier: str = "",
+    ) -> dict:
+        """
+        :param session_id: Session ID
+        :param endpoint_context: EndPoint Context
+        :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
+        :param scope: scope from the request
+        :param extra_payload:
+        :param secondary_identifier: Used if the claims returned are also based on rules for
+            another release_point
+        :param item: A SessionToken instance
+        :type item: SessionToken
+        :return: dictionary containing information to place in a token value
+        """
+        payload = {}
+        for _in, _out in [("scope", "scope"), ("resources", "aud")]:
+            _val = getattr(item, _in)
+            if _val:
+                payload[_out] = _val
+            else:
+                _val = getattr(self, _in)
+                if _val:
+                    payload[_out] = _val
+
+        payload["jti"] = uuid1().hex
+
+        if scope is None:
+            scope = self.scope
+
+        payload = {"scope": scope, "aud": self.resources, "jti": uuid1().hex}
+
+        if extra_payload:
+            payload.update(extra_payload)
+
+        _jkt = self.extra.get("dpop_jkt")
+        if _jkt:
+            payload["cnf"] = {"jkt": _jkt}
+
+        if self.exchange_request:
+            client_id = self.exchange_request.get("client_id")
+            if client_id:
+                payload.update({"client_id": client_id, "sub": self.sub})
+
+        if item.claims:
+            _claims_restriction = item.claims
+        else:
+            _claims_restriction = endpoint_context.claims_interface.get_claims(
+                session_id,
+                scopes=scope,
+                claims_release_point=claims_release_point,
+                secondary_identifier=secondary_identifier,
+            )
+
+        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
+        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
+        payload.update(user_info)
+
+        # Should I add the acr value
+        if self.add_acr_value(claims_release_point):
+            payload["acr"] = self.authentication_event["authn_info"]
+        elif self.add_acr_value(secondary_identifier):
+            payload["acr"] = self.authentication_event["authn_info"]
+
+        return payload

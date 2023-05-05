@@ -1,8 +1,8 @@
 import logging
-import uuid
 from typing import Callable
 from typing import Optional
 from typing import Union
+import uuid
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
@@ -14,10 +14,9 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationRequest
 from idpyoidc.message.oidc.backchannel_authentication import AuthenticationResponse
 from idpyoidc.server import Endpoint
-from idpyoidc.server import EndpointContext
 from idpyoidc.server.client_authn import ClientSecretBasic
 from idpyoidc.server.exception import NoSuchAuthentication
-from idpyoidc.server.oidc.token_helper import AccessTokenHelper
+from idpyoidc.server.oidc.token_helper.access_token import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
 
@@ -36,14 +35,15 @@ class BackChannelAuthentication(Endpoint):
     response_placement = "url"
     endpoint_name = "backchannel_authentication_endpoint"
     name = "backchannel_authentication"
-    provider_info_attributes = {
+
+    _supports = {
         "backchannel_token_delivery_modes_supported": ["poll", "ping", "push"],
         "backchannel_authentication_request_signing_alg_values_supported": None,
         "backchannel_user_code_parameter_supported": True,
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
         # self.pre_construct.append(self._pre_construct)
         # self.post_parse_request.append(self._do_request_uri)
         # self.post_parse_request.append(self._post_parse_request)
@@ -59,14 +59,14 @@ class BackChannelAuthentication(Endpoint):
         elif request.get("login_hint"):
             _login_hint = request.get("login_hint")
             if _login_hint:
-                _context = self.server_get("endpoint_context")
+                _context = self.upstream_get("context")
                 if _context.login_hint_lookup:
                     _request_user = _context.login_hint_lookup(_login_hint)
         elif request.get("login_hint_token"):
-            _context = self.server_get("endpoint_context")
+            _context = self.upstream_get("context")
             _request_user = execute(
                 self.parse_login_hint_token,
-                keyjar=_context.keyjar,
+                keyjar=self.upstream_get('attribute', 'keyjar'),
                 login_hint_token=request.get("login_hint_token"),
                 context=_context,
             )
@@ -78,17 +78,17 @@ class BackChannelAuthentication(Endpoint):
         The OP MUST accept its Issuer Identifier, Token Endpoint URL, or Backchannel
         Authentication Endpoint URL as values that identify it as an intended audience.
         """
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         res = [_context.issuer]
         res.append(self.full_path)
-        res.append(self.server_get("endpoint", "token").full_path)
+        res.append(self.upstream_get("endpoint", "token").full_path)
         return set(res)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         try:
             request_user = self.do_request_user(request)
@@ -100,7 +100,7 @@ class BackChannelAuthentication(Endpoint):
             return _error_msg
 
         if request_user:  # Got a request for a legitimate user, create a session
-            _context = self.server_get("endpoint_context")
+            _context = self.upstream_get("context")
             _sid = _context.session_manager.create_session(
                 None, request, request_user, client_id=request["client_id"]
             )
@@ -136,9 +136,9 @@ class CIBATokenHelper(AccessTokenHelper):
         return session_info, _grant
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
         _session_id = _mngr.auth_req_id_map[request["auth_req_id"]]
         _info = _mngr.get_session_info(_session_id)
@@ -179,7 +179,7 @@ class CIBATokenHelper(AccessTokenHelper):
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.server_get("endpoint_context")
+        _context = self.endpoint.upstream_get("context")
 
         _mngr = _context.session_manager
         logger.debug("OIDC Access Token")
@@ -298,14 +298,14 @@ class ClientNotification(Endpoint):
         "backchannel_client_notification_endpoint": None,
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        Endpoint.__init__(self, server_get, **kwargs)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        Endpoint.__init__(self, upstream_get, **kwargs)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ) -> Union[Message, dict]:
         return {}
 
@@ -321,13 +321,11 @@ class ClientNotificationAuthn(ClientSecretBasic):
         return False
 
     def _verify(
-        self,
-        endpoint_context: EndpointContext,
-        request: Optional[Union[dict, Message]] = None,
-        authorization_token: Optional[str] = None,
-        endpoint=None,  # Optional[Endpoint]
-        get_client_id_from_token: Optional[Callable] = None,
-        **kwargs,
+            self,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            **kwargs,
     ):
         ttype, token = authorization_token.split(" ", 1)
         if ttype != "Bearer":

@@ -46,4 +46,4 @@ def test_server_login_hint_lookup():
     configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
 
     server = Server(configuration)
-    assert server.endpoint_context.login_hint_lookup("tel:0907865000") == "diana"
+    assert server.context.login_hint_lookup("tel:0907865000") == "diana"

@@ -85,11 +85,6 @@ CAPABILITIES = {
     ],
     "response_modes_supported": ["query", "fragment", "form_post"],
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-    ],
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
@@ -164,7 +159,11 @@ class TestEndpoint(object):
                     "class": Authorization,
                     "kwargs": {},
                 },
-                "token": {"path": "{}/token", "class": Token, "kwargs": {}},
+                "token": {
+                    "path": "{}/token",
+                    "class": Token,
+                    "kwargs": {"client_authn_method": ["none"]},
+                },
             },
             "client_authn": verify_client,
             "authentication": {
@@ -182,8 +181,8 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
-        self.endpoint_context = server.endpoint_context
-        self.endpoint_context.cdb["client_1"] = {
+        self.context = server.context
+        self.context.cdb["client_1"] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -192,8 +191,8 @@ class TestEndpoint(object):
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
         self.user_id = "diana"
-        self.token_endpoint = server.server_get("endpoint", "token")
-        self.session_manager = self.endpoint_context.session_manager
+        self.token_endpoint = server.get_endpoint("token")
+        self.session_manager = self.context.session_manager
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -215,7 +214,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -232,7 +231,7 @@ class TestEndpoint(object):
         auth_req = post_parse_request(
             AUTH_REQ,
             AUTH_REQ["client_id"],
-            self.endpoint_context,
+            self.context,
             http_info={
                 "headers": {"dpop": DPOP_HEADER},
                 "url": "https://server.example.com/token",
@@ -248,7 +247,7 @@ class TestEndpoint(object):
         code = self._mint_code(grant, AUTH_REQ["client_id"])
 
         _token_request = TOKEN_REQ.to_dict()
-        _context = self.endpoint_context
+        _context = self.context
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(
             _token_request,

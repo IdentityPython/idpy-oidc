@@ -2,6 +2,7 @@ import logging
 from typing import Callable
 from urllib.parse import urlsplit
 
+from idpyoidc import claims
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import verified_claim_name
@@ -74,34 +75,27 @@ class Authorization(authorization.Authorization):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
-    provider_info_attributes = {
-        "claims_parameter_supported": True,
-        "client_authn_method": ["request_param", "public"],
-        "request_parameter_supported": True,
-        "request_uri_parameter_supported": True,
-        "response_types_supported": [
-            "code",
-            "token",
-            "id_token",
-            "code token",
-            "code id_token",
-            "id_token token",
-            "code id_token token",
-        ],
-        "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": None,
-        "request_object_encryption_alg_values_supported": None,
-        "request_object_encryption_enc_values_supported": None,
-        "grant_types_supported": ["authorization_code", "implicit"],
-        "claim_types_supported": ["normal", "aggregated", "distributed"],
-    }
-    default_capabilities = {
-        "client_authn_method": ["request_param", "public"],
+
+    _supports = {
+        **authorization.Authorization._supports,
+        **{
+            "claims_parameter_supported": True,
+            "encrypt_request_object_supported": False,
+            "request_object_signing_alg_values_supported": claims.get_signing_algs,
+            "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
+            "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+            "request_parameter_supported": True,
+            "request_uri_parameter_supported": True,
+            "require_request_uri_registration": False,
+            "response_types_supported": ["code", "token", "code token", 'id_token', 'id_token token',
+                                     'code id_token', 'code id_token token'],
+            "response_modes_supported": ['query', 'fragment', 'form_post'],
+            "subject_types_supported": ["public", "pairwise", "ephemeral"],
+          },
     }
 
-    def __init__(self, server_get: Callable, **kwargs):
-        authorization.Authorization.__init__(self, server_get, **kwargs)
-        # self.pre_construct.append(self._pre_construct)
+    def __init__(self, upstream_get: Callable, **kwargs):
+        authorization.Authorization.__init__(self, upstream_get, **kwargs)
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
 
@@ -111,7 +105,7 @@ class Authorization(authorization.Authorization):
         else:
             _login_hint = request_info.get("login_hint")
             if _login_hint:
-                _context = self.server_get("endpoint_context")
+                _context = self.upstream_get("context")
                 if _context.login_hint_lookup:
                     kwargs["req_user"] = _context.login_hint_lookup(_login_hint)
         return kwargs

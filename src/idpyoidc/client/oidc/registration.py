@@ -1,5 +1,7 @@
 import logging
 
+from cryptojwt import KeyJar
+
 from idpyoidc.client.entity import response_types_to_grant_types
 from idpyoidc.client.service import Service
 from idpyoidc.message import oidc
@@ -20,28 +22,28 @@ class Registration(Service):
     request_body_type = "json"
     http_method = "POST"
 
-    usage_to_uri_map = {}
     callback_path = {}
 
-    def __init__(self, client_get, conf=None):
-        Service.__init__(self, client_get, conf=conf)
-        self.pre_construct = [
-            self.add_client_behaviour_preference,
-            # add_redirect_uris,
-        ]
+    def __init__(self, upstream_get, conf=None):
+        Service.__init__(self, upstream_get, conf=conf)
+        self.pre_construct = [self.add_client_preference]
         self.post_construct = [self.oidc_post_construct]
 
-    def add_client_behaviour_preference(self, request_args=None, **kwargs):
-        _context = self.client_get("service_context")
-        for prop in self.msg_type.c_param.keys():
+    def add_client_preference(self, request_args=None, **kwargs):
+        _context = self.upstream_get("context")
+        _use = _context.map_preferred_to_registered()
+        for prop, spec in self.msg_type.c_param.items():
             if prop in request_args:
                 continue
 
-            try:
-                request_args[prop] = _context.specs.behaviour[prop]
-            except KeyError:
-                _val = _context.specs.get_metadata(prop)
-                if _val:
+            _val = _use.get(prop)
+            if _val:
+                if isinstance(_val, list):
+                    if isinstance(spec[0], list):
+                        request_args[prop] = _val
+                    else:
+                        request_args[prop] = _val[0]  # get the first one
+                else:
                     request_args[prop] = _val
         return request_args, {}
 
@@ -60,29 +62,50 @@ class Registration(Service):
         return request_args
 
     def update_service_context(self, resp, key="", **kwargs):
-        if "token_endpoint_auth_method" not in resp:
-            resp["token_endpoint_auth_method"] = "client_secret_basic"
+        # if "token_endpoint_auth_method" not in resp:
+        #     resp["token_endpoint_auth_method"] = "client_secret_basic"
 
-        _context = self.client_get("service_context")
+        _context = self.upstream_get("context")
+        _context.map_preferred_to_registered(resp)
+
         _context.registration_response = resp
-        _client_id = resp.get("client_id")
+        _client_id = _context.get_usage("client_id")
         if _client_id:
-            _context.specs.set_metadata("client_id", _client_id)
-            if _client_id not in _context.keyjar:
-                _context.keyjar.import_jwks(
-                    _context.keyjar.export_jwks(True, ""), issuer_id=_client_id
-                )
-            _client_secret = resp.get("client_secret")
+            _context.client_id = _client_id
+            _keyjar = self.upstream_get('attribute', 'keyjar')
+            if _keyjar:
+                if _client_id not in _keyjar:
+                    _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
+            _client_secret = _context.get_usage("client_secret")
             if _client_secret:
+                if not _keyjar:
+                    _entity = self.upstream_get('unit')
+                    _keyjar = _entity.keyjar = KeyJar()
+
                 _context.client_secret = _client_secret
-                _context.keyjar.add_symmetric("", _client_secret)
-                _context.keyjar.add_symmetric(_client_id, _client_secret)
+                _keyjar.add_symmetric("", _client_secret)
+                _keyjar.add_symmetric(_client_id, _client_secret)
                 try:
-                    _context.client_secret_expires_at = resp["client_secret_expires_at"]
+                    _context.set_usage("client_secret_expires_at",
+                                       resp["client_secret_expires_at"])
                 except KeyError:
                     pass
 
         try:
-            _context.registration_access_token = resp["registration_access_token"]
+            _context.set_usage("registration_access_token", resp["registration_access_token"])
         except KeyError:
             pass
+
+    def gather_request_args(self, **kwargs):
+        """
+
+        @param kwargs:
+        @return:
+        """
+        _context = self.upstream_get("context")
+        req_args = _context.claims.create_registration_request()
+        if "request_args" in self.conf:
+            req_args.update(self.conf["request_args"])
+
+        req_args.update(kwargs)
+        return req_args

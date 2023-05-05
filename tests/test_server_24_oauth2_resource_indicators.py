@@ -328,7 +328,7 @@ RESOURCE_INDICATORS_ENABLED = {
                 "request_uri_parameter_supported": True,
                 "resource_indicators": {
                     "policy": {
-                        "callable": validate_authorization_resource_indicators_policy,
+                        "function": validate_authorization_resource_indicators_policy,
                         "kwargs": {
                             "resource_servers_per_client": {
                                 "client_1": ["client_1", "client_2"],
@@ -350,7 +350,7 @@ RESOURCE_INDICATORS_ENABLED = {
                 ],
                 "resource_indicators": {
                     "policy": {
-                        "callable": validate_token_resource_indicators_policy,
+                        "function": validate_token_resource_indicators_policy,
                         "kwargs": {
                             "resource_servers_per_client": {
                                 "client_1": ["client_2", "client_3"]
@@ -416,21 +416,21 @@ class TestEndpoint(object):
         conf = RESOURCE_INDICATORS_DISABLED
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        endpoint_context = server.endpoint_context
+        endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint_context = endpoint_context
-        self.endpoint = server.server_get("endpoint", "authorization")
-        self.token_endpoint = server.server_get("endpoint", "token")
+        self.endpoint = server.get_endpoint("authorization")
+        self.token_endpoint = server.get_endpoint("token")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.server_get("endpoint_context").keyjar.add_symmetric(
+        self.endpoint.upstream_get("endpoint_context").keyjar.add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -439,21 +439,21 @@ class TestEndpoint(object):
         conf = RESOURCE_INDICATORS_ENABLED
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
-        endpoint_context = server.endpoint_context
+        endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
         endpoint_context.keyjar.import_jwks(
             endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint_context = endpoint_context
-        self.endpoint = server.server_get("endpoint", "authorization")
-        self.token_endpoint = server.server_get("endpoint", "token")
+        self.endpoint = server.get_endpoint("authorization")
+        self.token_endpoint = server.get_endpoint("token")
         self.session_manager = endpoint_context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.server_get("endpoint_context").keyjar.add_symmetric(
+        self.endpoint.upstream_get("context").keyjar.add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -478,7 +478,7 @@ class TestEndpoint(object):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
             session_id=session_id,
-            endpoint_context=self.endpoint_context,
+            context=self.endpoint_context,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
@@ -505,7 +505,7 @@ class TestEndpoint(object):
         Test that appropriate error message is returned when resource indicators is enabled
         for the authorization endpoint and resource parameter is missing from request.
         """
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
         msg = self.endpoint._post_parse_request({}, "client_1", endpoint_context)
         assert "error" in msg
 
@@ -525,7 +525,7 @@ class TestEndpoint(object):
         """
         Test successful authorization request when resource indicators is disabled.
         """
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
         request = AUTH_REQ.copy()
         del request["resource"]
 
@@ -536,7 +536,7 @@ class TestEndpoint(object):
         """
         Test successful authorization request when resource indicators is enabled.
         """
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
         request = AUTH_REQ.copy()
 
         msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
@@ -547,11 +547,11 @@ class TestEndpoint(object):
         Test that appropriate error message is returned when resource indicators is enabled per client
         for the authorization endpoint and requested resource is not permitted for client.
         """
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "authorization_code": {
                 "policy": {
-                    "callable": validate_authorization_resource_indicators_policy,
+                    "function": validate_authorization_resource_indicators_policy,
                     "kwargs": {
                         "resource_servers_per_client":["client_3"]
                     },
@@ -572,7 +572,7 @@ class TestEndpoint(object):
         """
         request = AUTH_REQ.copy()
         client_id = request["client_id"]
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
         self.endpoint.kwargs["resource_indicators"]["policy"]["kwargs"][
             "resource_servers_per_client"
         ] = {"client_2": ["client_1"]}
@@ -591,7 +591,7 @@ class TestEndpoint(object):
         request = AUTH_REQ.copy()
         request["resource"] = "client_2"
         client_id = request["client_id"]
-        endpoint_context = self.endpoint.server_get("endpoint_context")
+        endpoint_context = self.endpoint.upstream_get("context")
 
         msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
 
@@ -603,7 +603,7 @@ class TestEndpoint(object):
         """
         Test successful access_token request when resource indicators is enabled.
         """
-        self.endpoint.server_get("endpoint_context").cdb["client_3"] = {
+        self.endpoint.upstream_get("context").cdb["client_3"] = {
             "client_id": "client_3",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
@@ -657,7 +657,7 @@ class TestEndpoint(object):
         Test that the requested access_token has the correct scopes based on the allowed scopes of
         the requested resources
         """
-        self.endpoint.server_get("endpoint_context").cdb["client_3"] = {
+        self.endpoint.upstream_get("context").cdb["client_3"] = {
             "client_id": "client_3",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",

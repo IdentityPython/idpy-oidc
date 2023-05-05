@@ -2,10 +2,10 @@ from urllib.parse import urlparse
 
 
 class LoginHintLookup(object):
-    def __init__(self, userinfo=None, server_get=None):
+    def __init__(self, userinfo=None, upstream_get=None):
         self.userinfo = userinfo
         self.default_country_code = "46"
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
     def __call__(self, arg):
         if arg.startswith("tel:"):
@@ -25,9 +25,9 @@ class LoginHint2Acrs(object):
     OIDC Login hint support
     """
 
-    def __init__(self, scheme_map, server_get=None):
+    def __init__(self, scheme_map, upstream_get=None):
         self.scheme_map = scheme_map
-        self.server_get = server_get
+        self.upstream_get = upstream_get
 
     def __call__(self, hint):
         p = urlparse(hint)

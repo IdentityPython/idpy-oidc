@@ -11,17 +11,9 @@ from idpyoidc.constant import DEFAULT_POST_CONTENT_TYPE
 from idpyoidc.constant import JOSE_ENCODED
 from idpyoidc.constant import JSON_ENCODED
 from idpyoidc.constant import URL_ENCODED
+from idpyoidc.defaults import BASECHR
 from idpyoidc.exception import UnSupported
 from idpyoidc.util import importer
-
-# Since SystemRandom is not available on all systems
-try:
-    import SystemRandom as rnd
-except ImportError:
-    import random as rnd
-
-from idpyoidc.defaults import BASECHR
-
 from .exception import TimeFormatError
 from .exception import WrongContentType
 
@@ -268,9 +260,9 @@ def get_deserialization_method(reqresp):
     if not _ctype:
         # let's try to detect the format
         try:
-            content = reqresp.json()
+            reqresp.json()
             return "json"
-        except:
+        except Exception:
             return "urlencoded"  # reasonable default ??
 
     if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
@@ -315,3 +307,21 @@ def lower_or_upper(config, param, default=None):
     if not res:
         res = config.get(param.upper(), default)
     return res
+
+
+IMPLICIT_RESPONSE_TYPES = [
+    {'id_token'}, {'id_token', 'token'}, {'code', 'token'}, ['code', 'id_token'],
+    {'code', 'id_token', 'token'}, {'token'}
+]
+
+
+def implicit_response_types(a):
+    res = []
+    for typ in a:
+        if set(typ.split(' ')) in IMPLICIT_RESPONSE_TYPES:
+            res.append(typ)
+    return res
+
+
+def get_uri(base_url, path, hex):
+    return f"{base_url}/{path}/{hex}"

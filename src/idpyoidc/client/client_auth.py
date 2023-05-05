@@ -1,7 +1,8 @@
 """Implementation of a number of client authentication methods."""
 import base64
 import logging
-from urllib.parse import quote_plus
+from typing import Optional
+from typing import Union
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -11,14 +12,14 @@ from cryptojwt.utils import importer
 
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
 from idpyoidc.message.oauth2 import AccessTokenRequest
+from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-
-from ..message import VREQUIRED
 from .util import sanitize
+from ..message import VREQUIRED
+from ..util import instantiate
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
@@ -97,7 +98,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             try:
                 passwd = request["client_secret"]
             except KeyError:
-                passwd = service.client_get("service_context").client_secret
+                passwd = service.upstream_get("context").get_usage('client_secret')
         return passwd
 
     @staticmethod
@@ -105,7 +106,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         try:
             user = kwargs["user"]
         except KeyError:
-            user = service.client_get("service_context").get_client_id()
+            user = service.upstream_get("context").get_client_id()
         return user
 
     def _get_authentication_token(self, request, service, **kwargs):
@@ -135,12 +136,12 @@ class ClientSecretBasic(ClientAuthnMethod):
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         """
         if (
-            isinstance(request, AccessTokenRequest)
-            and request["grant_type"] == "authorization_code"
+                isinstance(request, AccessTokenRequest)
+                and request["grant_type"] == "authorization_code"
         ):
             if "client_id" not in request:
                 try:
-                    request["client_id"] = service.client_get("service_context").get_client_id()
+                    request["client_id"] = service.upstream_get("context").get_client_id()
                 except AttributeError:
                     pass
         else:
@@ -217,14 +218,13 @@ class ClientSecretPost(ClientSecretBasic):
         :param request: The request
         :param service: The service that is using this authentication method
         """
-        _context = service.client_get("service_context")
+        _context = service.upstream_get("context")
         if "client_secret" not in request:
             try:
                 request["client_secret"] = kwargs["client_secret"]
             except (KeyError, TypeError):
-                if _context.client_secret:
-                    request["client_secret"] = _context.client_secret
-                else:
+                request["client_secret"] = _context.get_usage('client_secret')
+                if not request["client_secret"]:
                     raise AuthnFailure("Missing client secret")
 
         # Set the client_id in the the request
@@ -273,15 +273,9 @@ def find_token(request, token_type, service, **kwargs):
     try:
         return kwargs["access_token"]
     except KeyError:
-        # I should pick the latest acquired token, this should be the right
-        # order for that.
+        # Get the latest acquired token.
         _state = kwargs.get("state", kwargs.get("key"))
-        _arg = service.client_get("service_context").state.multiple_extend_request_args(
-            {},
-            _state,
-            ["access_token"],
-            ["auth_response", "token_response", "refresh_token_response"],
-        )
+        _arg = service.upstream_get("context").cstate.get_set(_state, claim=[token_type])
         return _arg.get("access_token")
 
 
@@ -294,7 +288,7 @@ class BearerHeader(ClientAuthnMethod):
         the Authorization header is "Bearer <access_token>".
 
         :param request: Request class instance
-        :param service: Service
+        :param service: The service this authentication method applies to.
         :param http_args: HTTP header arguments
         :param kwargs: extra keyword arguments
         :return:
@@ -408,18 +402,19 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return algorithm
 
     @staticmethod
-    def get_signing_key_from_keyjar(algorithm, service_context):
+    def get_signing_key_from_keyjar(algorithm, keyjar):
         """
         Pick signing key based on signing algorithm to be used
 
         :param algorithm: Signing algorithm
-        :param service_context: A :py:class:`idpyoidc.client.service_context.ServiceContext` instance
+        :param service_context: A :py:class:`idpyoidc.client.service_context.ServiceContext`
+        instance
         :return: A key
         """
-        return service_context.keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)
+        return keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)
 
     @staticmethod
-    def _get_key_by_kid(kid, algorithm, service_context):
+    def _get_key_by_kid(kid, algorithm, keyjar):
         """
         Pick a key that matches a given key ID and signing algorithm.
 
@@ -430,7 +425,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         :return: A matching key
         """
         # signing so using my keys
-        for _key in service_context.keyjar.get_issuer_keys(""):
+        for _key in keyjar.get_issuer_keys(""):
             if kid == _key.kid:
                 ktype = alg2keytype(algorithm)
                 if _key.kty != ktype:
@@ -440,52 +435,48 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         raise MissingKey("No key with kid:%s" % kid)
 
-    def _get_signing_key(self, algorithm, context, kid=None):
+    def _get_signing_key(self, algorithm, keyjar, key_types, kid=None):
         ktype = alg2keytype(algorithm)
         try:
             if kid:
-                signing_key = [self._get_key_by_kid(kid, algorithm, context)]
-            elif ktype in context.kid["sig"]:
+                signing_key = [self._get_key_by_kid(kid, algorithm, keyjar)]
+            elif ktype in key_types:
                 try:
                     signing_key = [
-                        self._get_key_by_kid(context.kid["sig"][ktype], algorithm, context)
+                        self._get_key_by_kid(key_types[ktype], algorithm, keyjar)
                     ]
                 except KeyError:
-                    signing_key = self.get_signing_key_from_keyjar(algorithm, context)
+                    signing_key = self.get_signing_key_from_keyjar(algorithm, keyjar)
             else:
-                signing_key = self.get_signing_key_from_keyjar(algorithm, context)
+                signing_key = self.get_signing_key_from_keyjar(algorithm, keyjar)
         except (MissingKey,) as err:
             LOGGER.error("%s", sanitize(err))
             raise
 
         return signing_key
 
-    def _get_audience_and_algorithm(self, context, entity, **kwargs):
+    def _get_audience_and_algorithm(self, context, keyjar, **kwargs):
         algorithm = None
 
         # audience for the signed JWT depends on which endpoint
         # we're talking to.
         if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
-            _alg = context.registration_response.get("token_endpoint_auth_signing_alg")
-            if _alg :
-                algorithm = _alg
-            else:
-                algorithm = entity.get_metadata_value("token_endpoint_auth_signing_alg")
-                if algorithm is None:
-                    _pi = context.provider_info
-                    try:
-                        algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
-                    except KeyError:
-                        algorithm = "RS256"  # default
-                    else:
-                        for alg in algs:  # pick the first one I support and have keys for
-                            if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
-                                alg, context
-                            ):
-                                algorithm = alg
-                                break
+            algorithm = context.get_usage("token_endpoint_auth_signing_alg")
+            if algorithm is None:
+                _pi = context.provider_info
+                try:
+                    algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
+                except KeyError:
+                    algorithm = "RS256"  # default
+                else:
+                    for alg in algs:  # pick the first one I support and have keys for
+                        if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
+                                alg, keyjar
+                        ):
+                            algorithm = alg
+                            break
 
-            audience = context.provider_info["token_endpoint"]
+            audience = context.provider_info.get("token_endpoint")
         else:
             audience = context.provider_info["issuer"]
 
@@ -494,14 +485,16 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return audience, algorithm
 
     def _construct_client_assertion(self, service, **kwargs):
-        _context = service.client_get("service_context")
-        _entity = service.client_get("entity")
-        audience, algorithm = self._get_audience_and_algorithm(_context, _entity, **kwargs)
+        _context = service.upstream_get("context")
+        _entity = service.upstream_get("entity")
+        _keyjar = service.upstream_get('attribute', 'keyjar')
+        audience, algorithm = self._get_audience_and_algorithm(_context, _keyjar, **kwargs)
 
         if "kid" in kwargs:
-            signing_key = self._get_signing_key(algorithm, _context, kid=kwargs["kid"])
+            signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"],
+                                                kid=kwargs["kid"])
         else:
-            signing_key = self._get_signing_key(algorithm, _context)
+            signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"])
 
         if not signing_key:
             raise UnsupportedAlgorithm(algorithm)
@@ -513,7 +506,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
-        return assertion_jwt(_entity.get_client_id(), signing_key, audience, algorithm, **_args)
+        return assertion_jwt(_entity.client_id, signing_key, audience, algorithm, **_args)
 
     def modify_request(self, request, service, **kwargs):
         """
@@ -576,8 +569,8 @@ class ClientSecretJWT(JWSAuthnMethod):
     def choose_algorithm(self, context="client_secret_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(context, **kwargs)
 
-    def get_signing_key_from_keyjar(self, algorithm, service_context):
-        return service_context.keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)
+    def get_signing_key_from_keyjar(self, algorithm, keyjar):
+        return keyjar.get_signing_key(alg2keytype(algorithm), alg=algorithm)
 
 
 class PrivateKeyJWT(JWSAuthnMethod):
@@ -588,8 +581,8 @@ class PrivateKeyJWT(JWSAuthnMethod):
     def choose_algorithm(self, context="private_key_jwt", **kwargs):
         return JWSAuthnMethod.choose_algorithm(context, **kwargs)
 
-    def get_signing_key_from_keyjar(self, algorithm, service_context=None):
-        return service_context.keyjar.get_signing_key(alg2keytype(algorithm), "", alg=algorithm)
+    def get_signing_key_from_keyjar(self, algorithm, keyjar):
+        return keyjar.get_signing_key(alg2keytype(algorithm), "", alg=algorithm)
 
 
 # Map from client authentication identifiers to corresponding class
@@ -622,15 +615,54 @@ def valid_service_context(service_context, when=0):
     return True
 
 
-def client_auth_setup(auth_set=None):
+def get_client_authn_class(name):
+    try:
+        return CLIENT_AUTHN_METHOD[name]
+    except KeyError:
+        return None
+
+
+def get_client_authn_methods():
+    return list(CLIENT_AUTHN_METHOD.keys())
+
+
+def method_to_item(methods):
+    if isinstance(methods, list):
+        return {k: get_client_authn_class(k) for k in methods if get_client_authn_class(k)}
+    elif isinstance(methods, dict):
+        return methods
+    elif not methods:
+        return {}
+
+
+def single_authn_setup(name, spec):
+    if isinstance(spec, dict):  # class and kwargs
+        if spec:
+            return instantiate(spec["class"], **spec["kwargs"])
+        else:
+            cls = get_client_authn_class(name)
+            return cls()
+    else:
+        if spec is None:
+            cls = get_client_authn_class(name)
+        elif isinstance(spec, str):
+            cls = importer(spec)
+        else:
+            cls = spec
+        return cls()
+
+
+def client_auth_setup(auth_set: Optional[Union[list, dict]] = None):
     if auth_set is None:
         auth_set = CLIENT_AUTHN_METHOD
-    else:
-        auth_set.update(CLIENT_AUTHN_METHOD)
+
     res = {}
 
-    for name, cls in auth_set.items():
-        if isinstance(cls, str):
-            cls = importer(cls)
-        res[name] = cls()
+    if isinstance(auth_set, list):  # From the known set
+        for name in auth_set:
+            res[name] = single_authn_setup(name, None)
+    else:
+        for name, spec in auth_set.items():
+            res[name] = single_authn_setup(name, spec)
+
     return res

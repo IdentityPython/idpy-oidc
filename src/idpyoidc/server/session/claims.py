@@ -14,8 +14,8 @@ IGNORE = ["error", "error_description", "error_uri", "_claim_names", "_claim_sou
 STANDARD_CLAIMS = [c for c in OpenIDSchema.c_param.keys() if c not in IGNORE]
 
 
-def available_claims(endpoint_context):
-    _supported = endpoint_context.provider_info.get("claims_supported")
+def available_claims(context):
+    _supported = context.provider_info.get("claims_supported")
     if _supported:
         return _supported
     else:
@@ -26,8 +26,8 @@ class ClaimsInterface:
     init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
     claims_release_points = ["userinfo", "introspection", "id_token", "access_token"]
 
-    def __init__(self, server_get):
-        self.server_get = server_get
+    def __init__(self, upstream_get):
+        self.upstream_get = upstream_get
 
     def authorization_request_claims(
         self,
@@ -39,20 +39,20 @@ class ClaimsInterface:
 
         return {}
 
-    def _get_module(self, usage, endpoint_context):
+    def _get_module(self, usage, context):
         module = None
         if usage == "userinfo":
-            module = self.server_get("endpoint", "userinfo")
+            module = self.upstream_get("endpoint", "userinfo")
         elif usage == "id_token":
             try:
-                module = endpoint_context.session_manager.token_handler["id_token"]
+                module = context.session_manager.token_handler["id_token"]
             except KeyError:
                 raise ServiceError("No support for ID Tokens")
         elif usage == "introspection":
-            module = self.server_get("endpoint", "introspection")
+            module = self.upstream_get("endpoint", "introspection")
         elif usage == "access_token":
             try:
-                module = endpoint_context.session_manager.token_handler["access_token"]
+                module = context.session_manager.token_handler["access_token"]
             except KeyError:
                 raise ServiceError("No support for Access Tokens")
 
@@ -65,14 +65,14 @@ class ClaimsInterface:
         claims_release_point: str,
         secondary_identifier: Optional[str] = "",
     ):
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
         if add_claims_by_scope:
-            _claims_by_scope = add_claims_by_scope.get(claims_release_point, False)
-            if not _claims_by_scope and secondary_identifier:
+            _claims_by_scope = add_claims_by_scope.get(claims_release_point)
+            if _claims_by_scope is None and secondary_identifier:
                 _claims_by_scope = add_claims_by_scope.get(secondary_identifier, False)
 
-            if not _claims_by_scope:
+            if _claims_by_scope is None:
                 _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
@@ -93,7 +93,7 @@ class ClaimsInterface:
         client_id: str = None,
         secondary_identifier: str = "",
     ) -> dict:
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         # which endpoint module configuration to get the base claims from
         module = self._get_module(claims_release_point, _context)
 
@@ -159,7 +159,7 @@ class ClaimsInterface:
             "userinfo"/"id_token"/"introspection"/"access_token"
         :return: Claims specification as a dictionary.
         """
-        _context = self.server_get("endpoint_context")
+        _context = self.upstream_get("context")
         session_info = _context.session_manager.get_session_info(session_id, grant=True)
         client_id = session_info["client_id"]
         grant = session_info["grant"]
@@ -189,7 +189,7 @@ class ClaimsInterface:
         return _claims
 
     def get_claims_all_usage(self, session_id: str, scopes: str) -> dict:
-        grant = self.server_get("endpoint_context").session_manager.get_grant(session_id)
+        grant = self.upstream_get("context").session_manager.get_grant(session_id)
         if grant.authorization_request:
             auth_req = grant.authorization_request
         else:
@@ -203,7 +203,7 @@ class ClaimsInterface:
         :param claims_restriction: Specifies the upper limit of which claims can be returned
         :return:
         """
-        meth = self.server_get("endpoint_context").userinfo
+        meth = self.upstream_get("context").userinfo
         if not meth:
             raise ImproperlyConfigured("userinfo MUST be defined in the configuration")
         if claims_restriction:
@@ -273,13 +273,13 @@ def by_schema(cls, **kwa):
 class OAuth2ClaimsInterface(ClaimsInterface):
     claims_release_points = ["introspection", "access_token"]
 
-    def _get_module(self, usage, endpoint_context):
+    def _get_module(self, usage, context):
         module = None
         if usage == "introspection":
-            module = self.server_get("endpoint", "introspection")
+            module = self.upstream_get("endpoint", "introspection")
         elif usage == "access_token":
             try:
-                module = endpoint_context.session_manager.token_handler["access_token"]
+                module = context.session_manager.token_handler["access_token"]
             except KeyError:
                 raise ServiceError("No support for Access Tokens")
 

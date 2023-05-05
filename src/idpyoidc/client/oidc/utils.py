@@ -7,7 +7,7 @@ from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.util import rndstr
 
 
-def request_object_encryption(msg, service_context, **kwargs):
+def request_object_encryption(msg, service_context, keyjar, **kwargs):
     """
     Created an encrypted JSON Web token with *msg* as body.
 
@@ -20,7 +20,7 @@ def request_object_encryption(msg, service_context, **kwargs):
         encalg = kwargs["request_object_encryption_alg"]
     except KeyError:
         try:
-            encalg = service_context.specs.behaviour["request_object_encryption_alg"]
+            encalg = service_context.get_usage("request_object_encryption_alg")
         except KeyError:
             return msg
 
@@ -31,7 +31,7 @@ def request_object_encryption(msg, service_context, **kwargs):
         encenc = kwargs["request_object_encryption_enc"]
     except KeyError:
         try:
-            encenc = service_context.specs.behaviour["request_object_encryption_enc"]
+            encenc = service_context.get_usage("request_object_encryption_enc")
         except KeyError:
             raise MissingRequiredAttribute("No request_object_encryption_enc specified")
 
@@ -46,14 +46,15 @@ def request_object_encryption(msg, service_context, **kwargs):
     except KeyError:
         _kid = ""
 
-    if "target" not in kwargs:
+    _target = kwargs.get('target', kwargs.get('recv', None))
+    if _target is None:
         raise MissingRequiredAttribute("No target specified")
 
     if _kid:
-        _keys = service_context.keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"], kid=_kid)
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target, kid=_kid)
         _jwe["kid"] = _kid
     else:
-        _keys = service_context.keyjar.get_encrypt_key(_kty, issuer_id=kwargs["target"])
+        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target)
 
     return _jwe.encrypt(_keys)
 

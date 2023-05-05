@@ -1,11 +1,16 @@
 import inspect
+import json
 import logging
 import string
 import sys
 
 from idpyoidc import verified_claim_name
+from idpyoidc.exception import FormatError
 from idpyoidc.exception import MissingAttribute
+from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import VerificationError
+from idpyoidc.message import Message
+from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -16,7 +21,6 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_BOOLEAN
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +49,7 @@ class ResponseMessage(Message):
     def verify(self, **kwargs):
         super(ResponseMessage, self).verify(**kwargs)
         if "error_description" in self:
-            # Verify that the characters used are within the allow ranges
+            # Verify that the characters used are within the allowed ranges
             # %x20-21 / %x23-5B / %x5D-7E
             if not all(x in error_chars for x in self["error_description"]):
                 raise ValueError("Characters outside allowed set")
@@ -108,6 +112,19 @@ class AccessTokenRequest(Message):
     c_default = {"grant_type": "authorization_code"}
 
 
+CLAIMS_WITH_VERIFIED = ["request"]
+
+
+def clear_verified_claims(msg):
+    for claim in CLAIMS_WITH_VERIFIED:
+        _vc_name = verified_claim_name(claim)
+        try:
+            del msg[_vc_name]
+        except KeyError:
+            pass
+    return msg
+
+
 class AuthorizationRequest(Message):
     """
     An authorization request
@@ -119,6 +136,7 @@ class AuthorizationRequest(Message):
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
         "redirect_uri": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING,
+        "request": SINGLE_OPTIONAL_STRING,
     }
 
     def merge(self, request_object, treatement="strict", whitelist=None):
@@ -148,6 +166,52 @@ class AuthorizationRequest(Message):
                     del self[param]
 
         self.update(request_object)
+
+    def verify(self, **kwargs):
+        """Authorization Request parameters that are OPTIONAL in the OAuth 2.0
+        specification MAY be included in the OpenID Request Object without also
+        passing them as OAuth 2.0 Authorization Request parameters, with one
+        exception: The scope parameter MUST always be present in OAuth 2.0
+        Authorization Request parameters.
+        All parameter values that are present both in the OAuth 2.0
+        Authorization Request and in the OpenID Request Object MUST exactly
+        match."""
+        super(AuthorizationRequest, self).verify(**kwargs)
+
+        clear_verified_claims(self)
+
+        args = {}
+        for arg in ["keyjar", "opponent_id", "sender", "alg", "encalg", "encenc"]:
+            try:
+                args[arg] = kwargs[arg]
+            except KeyError:
+                pass
+
+        if "opponent_id" not in kwargs:
+            args["opponent_id"] = self["client_id"]
+
+        if "request" in self:
+            if isinstance(self["request"], str):
+                # Try to decode the JWT, checks the signature
+                oidr = AuthorizationRequest().from_jwt(str(self["request"]), **args)
+
+                # check if something is change in the original message
+                for key, val in oidr.items():
+                    if key in self:
+                        if self[key] != val:
+                            # log but otherwise ignore
+                            logger.warning("{} != {}".format(self[key], val))
+
+                # remove all claims
+                _keys = list(self.keys())
+                for key in _keys:
+                    if key not in oidr:
+                        del self[key]
+
+                self.update(oidr)
+
+                # replace the JWT with the parsed and verified instance
+                self[verified_claim_name("request")] = oidr
 
 
 class AuthorizationResponse(ResponseMessage):
@@ -223,6 +287,8 @@ class ROPCAccessTokenRequest(Message):
         "username": SINGLE_OPTIONAL_STRING,
         "password": SINGLE_OPTIONAL_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
     }
 
 
@@ -231,9 +297,16 @@ class CCAccessTokenRequest(Message):
     Client Credential grant flow access token request
     """
 
-    c_param = {"grant_type": SINGLE_REQUIRED_STRING, "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS}
-    c_default = {"grant_type": "client_credentials"}
-    c_allowed_values = {"grant_type": ["client_credentials"]}
+    c_param = {
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        "grant_type": SINGLE_REQUIRED_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+    }
+
+    def verify(self, **kwargs):
+        if self['grant_type'] != 'client_credentials':
+            raise ValueError('Grant type MUST be client_credentials')
 
 
 class RefreshAccessTokenRequest(Message):
@@ -279,11 +352,86 @@ class ASConfigurationResponse(Message):
             "ui_locales_supported": OPTIONAL_LIST_OF_STRINGS,
             "op_policy_uri": SINGLE_OPTIONAL_STRING,
             "op_tos_uri": SINGLE_OPTIONAL_STRING,
+            "code_challenge_methods_supported": OPTIONAL_LIST_OF_STRINGS,
             "revocation_endpoint": SINGLE_OPTIONAL_STRING,
             "introspection_endpoint": SINGLE_OPTIONAL_STRING,
         }
     )
     c_default = {"version": "3.0"}
+
+
+def deserialize_from_one_of(val, msgtype, sformat):
+    if sformat in ["dict", "json"]:
+        flist = ["json", "urlencoded"]
+        if not isinstance(val, str):
+            val = json.dumps(val)
+    else:
+        flist = ["urlencoded", "json"]
+
+    for _format in flist:
+        try:
+            return msgtype().deserialize(val, _format)
+        except FormatError:
+            pass
+    raise FormatError("Unexpected format")
+
+
+class OauthClientMetadata(Message):
+    """Metadata for an OAuth2 Client."""
+    c_param = {
+        "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
+        "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
+        "grant_type": OPTIONAL_LIST_OF_STRINGS,
+        "response_types": OPTIONAL_LIST_OF_STRINGS,
+        "client_name": SINGLE_OPTIONAL_STRING,
+        "client_uri": SINGLE_OPTIONAL_STRING,
+        "logo_uri": SINGLE_OPTIONAL_STRING,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "contacts": OPTIONAL_LIST_OF_STRINGS,
+        "tos_uri": SINGLE_OPTIONAL_STRING,
+        "policy_uri": SINGLE_OPTIONAL_STRING,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "jwks": SINGLE_OPTIONAL_JSON,
+        "software_id": SINGLE_OPTIONAL_STRING,
+        "software_version": SINGLE_OPTIONAL_STRING
+    }
+
+
+def oauth_client_metadata_deser(val, sformat="json"):
+    """Deserializes a JSON object (most likely) into a OauthClientMetadata."""
+    return deserialize_from_one_of(val, OauthClientMetadata, sformat)
+
+
+OPTIONAL_OAUTH_CLIENT_METADATA = (Message, False, msg_ser,
+                                  oauth_client_metadata_deser, False)
+
+
+class OauthClientInformationResponse(OauthClientMetadata):
+    """The information returned by a OAuth2 Server about an OAuth2 client."""
+    c_param = OauthClientMetadata.c_param.copy()
+    c_param.update({
+        "client_id": SINGLE_REQUIRED_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+        "client_id_issued_at": SINGLE_OPTIONAL_INT,
+        "client_secret_expires_at": SINGLE_OPTIONAL_INT
+    })
+
+    def verify(self, **kwargs):
+        super(OauthClientInformationResponse, self).verify(**kwargs)
+
+        if "client_secret" in self:
+            if "client_secret_expires_at" not in self:
+                raise MissingRequiredAttribute(
+                    "client_secret_expires_at is a MUST if client_secret is present")
+
+
+def oauth_client_registration_response_deser(val, sformat="json"):
+    """Deserializes a JSON object (most likely) into a OauthClientInformationResponse."""
+    return deserialize_from_one_of(val, OauthClientInformationResponse, sformat)
+
+
+OPTIONAL_OAUTH_CLIENT_REGISTRATION_RESPONSE = (
+    Message, False, msg_ser, oauth_client_registration_response_deser, False)
 
 
 # RFC 7662
@@ -403,6 +551,72 @@ class SecurityEventToken(Message):
         "txt": SINGLE_OPTIONAL_STRING,
         "toe": SINGLE_OPTIONAL_INT,
     }
+
+
+class JWTAccessToken(Message):
+    c_param = {
+        "iss": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_INT,
+        "aud": REQUIRED_LIST_OF_STRINGS,
+        "sub": SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        "iat": SINGLE_REQUIRED_INT,
+        "jti": SINGLE_REQUIRED_STRING,
+        "auth_time": SINGLE_OPTIONAL_INT,
+        "acr": SINGLE_OPTIONAL_STRING,
+        "amr": OPTIONAL_LIST_OF_STRINGS,
+        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        'groups': OPTIONAL_LIST_OF_STRINGS,
+        'roles': OPTIONAL_LIST_OF_STRINGS,
+        'entitlements': OPTIONAL_LIST_OF_STRINGS
+    }
+
+
+class JSONWebToken(Message):
+    # implements RFC 9068
+    c_param = {
+        'iss': SINGLE_REQUIRED_STRING,
+        'exp': SINGLE_REQUIRED_STRING,
+        'aud': SINGLE_REQUIRED_STRING,
+        'sub': SINGLE_REQUIRED_STRING,
+        "client_id": SINGLE_REQUIRED_STRING,
+        'iat': SINGLE_REQUIRED_STRING,
+        'jti': SINGLE_REQUIRED_STRING,
+        'auth_time': SINGLE_OPTIONAL_INT,
+        'acr': SINGLE_OPTIONAL_STRING,
+        'amr': OPTIONAL_LIST_OF_STRINGS,
+        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        'groups': OPTIONAL_LIST_OF_STRINGS,
+        'roles': OPTIONAL_LIST_OF_STRINGS,
+        'entitlements': OPTIONAL_LIST_OF_STRINGS
+    }
+
+
+# RFC 7009
+class TokenRevocationRequest(Message):
+    c_param = {
+        "token": SINGLE_REQUIRED_STRING,
+        "token_type_hint": SINGLE_OPTIONAL_STRING,
+        # The ones below are part of authentication information
+        "client_id": SINGLE_OPTIONAL_STRING,
+        "client_secret": SINGLE_OPTIONAL_STRING,
+    }
+
+
+class TokenRevocationResponse(Message):
+    pass
+
+
+class TokenRevocationErrorResponse(ResponseMessage):
+    """
+    Error response from the revocation endpoint
+    """
+    c_allowed_values = ResponseMessage.c_allowed_values.copy()
+    c_allowed_values.update({
+        "error": [
+            "unsupported_token_type"
+        ]
+    })
 
 
 def factory(msgtype, **kwargs):

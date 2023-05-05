@@ -7,7 +7,6 @@ from typing import Union
 
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
-from idpyoidc.message.oidc import RegistrationResponse
 from .util import lower_or_upper
 
 try:
@@ -26,6 +25,7 @@ URIS = [
 
 
 class RPHConfiguration(Base):
+
     def __init__(
             self,
             conf: Dict,
@@ -63,7 +63,7 @@ class RPHConfiguration(Base):
 
         self.default = lower_or_upper(conf, "default", {})
 
-        for param in ["services", "metadata", "add_ons", "usage"]:
+        for param in ["services", "claims", "add_ons", "usage"]:
             _val = lower_or_upper(conf, param, {})
             if _val and param not in self.default:
                 self.default[param] = _val
@@ -71,7 +71,7 @@ class RPHConfiguration(Base):
         self.clients = lower_or_upper(conf, "clients")
         if self.clients:
             for id, client in self.clients.items():
-                for param in ["services", "usage", "add_ons", 'metadata']:
+                for param in ["services", "usage", "add_ons", 'claims']:
                     if param not in client:
                         if param in self.default:
                             client[param] = self.default[param]
@@ -112,7 +112,7 @@ class Configuration(Base):
         for attr, val in self.conf.items():
             if attr in ["issuer", "key_conf"]:
                 setattr(self, attr, val)
-                _del_key.append(attr)
+                # _del_key.append(attr)
 
         for _key in _del_key:
             del self.conf[_key]

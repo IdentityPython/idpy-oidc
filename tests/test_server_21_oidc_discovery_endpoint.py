@@ -51,7 +51,7 @@ class TestEndpoint(object):
             },
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        self.endpoint = server.server_get("endpoint", "discovery")
+        self.endpoint = server.get_endpoint("discovery")
 
     def test_do_response(self):
         args = self.endpoint.process_request({"resource": "acct:foo@example.com"})

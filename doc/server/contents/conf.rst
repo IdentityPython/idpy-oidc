@@ -408,6 +408,23 @@ An example::
               "normal",
               "aggregated",
               "distributed"
+            ],
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
+            }
+          }
+        },
+        "revocation": {
+          "path": "revoke",
+          "class": "idpyoidc.server.oauth2.revocation.Revocation",
+          "kwargs": {
+            "client_authn_method": [
+              "client_secret_post",
+              "client_secret_basic",
+              "client_secret_jwt",
+              "private_key_jwt",
+              "bearer_header"
             ]
           }
         },
@@ -734,6 +751,10 @@ the following::
     "userinfo": {
         "class": "oidc_provider.users.UserInfo",
         "kwargs": {
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
+            },
             "claims_map": {
                 "phone_number": "telephone",
                 "family_name": "last_name",
@@ -743,6 +764,17 @@ the following::
                 "gender": "gender",
                 "birthdate": "get_oidc_birthdate",
                 "updated_at": "get_oidc_lastlogin"
+            }
+        }
+    }
+
+The policy for userinfo endpoint is optional and can also be configured in a client's metadata, for example::
+
+    "userinfo": {
+        "kwargs": {
+            "policy": {
+              "function": "/path/to/callable",
+              "kwargs": {}
             }
         }
     }
@@ -874,6 +906,106 @@ For example::
 
         return request
 
+
+==============
+Token revocation
+==============
+
+In order to enable the token revocation endpoint a dictionary with key `token_revocation` should be placed
+under the `endpoint` key of the configuration.
+
+If present, the token revocation configuration should contain a `policy` dictionary
+that defines the behaviour for each token type. Each token type
+is mapped to a dictionary with the keys `callable` (mandatory), which must be a
+python callable or a string that represents the path to a python callable, and
+`kwargs` (optional), which must be a dict of key-value arguments that will be
+passed to the callable.
+
+The key `""` represents a fallback policy that will be used if the token
+type can't be found. If a token type is defined in the `policy` but is
+not in the `token_types_supported` list then it is ignored.
+
+"token_revocation": {
+    "path": "revoke",
+    "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
+    "kwargs": {
+      "token_types_supported": ["access_token"],
+      "client_authn_method": [
+        "client_secret_post",
+        "client_secret_basic",
+        "client_secret_jwt",
+        "private_key_jwt",
+        "bearer_header"
+      ],
+      "policy": {
+          "urn:ietf:params:oauth:token-type:access_token": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "audience": ["https://example.com"],
+              "scopes": ["openid"]
+            }
+          },
+          "urn:ietf:params:oauth:token-type:refresh_token": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "resource": ["https://example.com"],
+              "scopes": ["openid"]
+            }
+          },
+          "": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "scopes": ["openid"]
+            }
+          }
+        }
+    }
+}
+
+For the per-client configuration a similar configuration scheme should be present in the client's
+metadata under the `token_revocation` key.
+
+For example::
+
+    "token_revocation":{
+        "token_types_supported": ["access_token"],
+        "policy": {
+          "urn:ietf:params:oauth:token-type:access_token": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "audience": ["https://example.com"],
+              "scopes": ["openid"]
+            }
+          },
+          "urn:ietf:params:oauth:token-type:refresh_token": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "resource": ["https://example.com"],
+              "scopes": ["openid"]
+            }
+          },
+          "": {
+            "callable": "/path/to/callable",
+            "kwargs": {
+              "scopes": ["openid"]
+            }
+          }
+        }
+      }
+    }
+
+The policy callable accepts a specific argument list and handles the revocation appropriately and returns
+an :py:class:`idpyoidc.message.oauth2..TokenRevocationResponse` or raises an exception.
+
+For example::
+
+    def custom_token_revocation_policy(token, session_info, **kwargs):
+      if some_condition:
+        return TokenErrorResponse(
+              error="invalid_request", error_description="Some error occured"
+          )
+      response_args = {"response_args": {}}
+      return oauth2.TokenRevocationResponse(**response_args)
 
 ==================================
 idpyoidc\.server\.configure module

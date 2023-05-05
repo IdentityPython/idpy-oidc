@@ -32,7 +32,7 @@ def display(rp, id):
     _services = rp.client_get("services")
     for srv, item in _services.db.items():
         _data = {"class": qualified_name(item.__class__)}
-        for attr in ["metadata", "usage", "default_request_args", "callback_uri"]:
+        for attr in ["claims", "usage", "default_request_args", "callback_uri"]:
             _val = getattr(item, attr)
             if _val:
                 _data[attr] = _val

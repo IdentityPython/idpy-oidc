@@ -26,7 +26,7 @@ DEFAULT_OAUTH2_SERVICES = {
     },
 }
 
-DEFAULT_CLIENT_METADATA = {
+DEFAULT_CLIENT_PREFERENCES = {
     "application_type": "web",
     "response_types": [
         "code",
@@ -37,6 +37,7 @@ DEFAULT_CLIENT_METADATA = {
         "code token",
     ],
     "token_endpoint_auth_method": "client_secret_basic",
+    "scopes_supported": ["openid"],
 }
 
 DEFAULT_USAGE = {
@@ -47,8 +48,7 @@ DEFAULT_USAGE = {
 # Using PKCE is default
 DEFAULT_CLIENT_CONFIGS = {
     "": {
-        "metadata": DEFAULT_CLIENT_METADATA,
-        "usage": DEFAULT_USAGE,
+        "preference": DEFAULT_CLIENT_PREFERENCES,
         "add_ons": {
             "pkce": {
                 "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",

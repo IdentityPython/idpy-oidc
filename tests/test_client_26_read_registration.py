@@ -1,11 +1,11 @@
 import json
 import time
 
-import pytest
-import responses
 from cryptojwt.utils import as_bytes
-
+import pytest
 import requests
+import responses
+
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -18,31 +18,33 @@ class TestRegistrationRead(object):
     def create_request(self):
         self._iss = ISS
         client_config = {
-            "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
-            "metadata": {
-                "application_type": "web",
-                "response_types": ["code"],
-                "contacts": ["ops@example.org"],
-                "jwks_uri": "https://example.com/rp/static/jwks.json",
-                "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
-                "token_endpoint_auth_method": "client_secret_basic",
-                "grant_types": ["authorization_code"],
-            },
+            "application_type": "web",
+            "response_types_supported": ["code"],
+            "contacts": ["ops@example.org"],
+            "jwks_uri": "https://example.com/rp/static/jwks.json",
+            "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
+            "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+            "grant_types_supported": ["authorization_code"],
         }
         services = {
             "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
             "read_registration": {
                 "class": "idpyoidc.client.oidc.read_registration.RegistrationRead"
             },
+            'authorization': {'class': 'idpyoidc.client.oidc.authorization.Authorization'},
+            'accesstoken': {'class': 'idpyoidc.client.oidc.access_token.AccessToken'}
         }
 
         self.entity = Entity(config=client_config, services=services)
+        _context = self.entity.get_service_context()
+        _context.map_supported_to_preferred()
+        _context.map_preferred_to_registered()
 
-        self.reg_service = self.entity.client_get("service", "registration")
-        self.read_service = self.entity.client_get("service", "registration_read")
+        self.reg_service = self.entity.get_service("registration")
+        self.read_service = self.entity.get_service("registration_read")
 
     def test_construct(self):
         self.reg_service.endpoint = "{}/registration".format(ISS)

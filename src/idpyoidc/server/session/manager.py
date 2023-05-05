@@ -7,7 +7,6 @@ from typing import Optional
 import uuid
 
 from idpyoidc.encrypter import default_crypt_config
-from idpyoidc.encrypter import get_crypt_config
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.server.authn_event import AuthnEvent
@@ -94,8 +93,7 @@ class SessionManager(GrantManager):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
         session_params = self.conf.get("session_params") or {}
-        _crypt_config = get_crypt_config(session_params)
-        super(SessionManager, self).__init__(handler, _crypt_config)
+        super(SessionManager, self).__init__(handler, self.conf)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
         # Make sure node_type is a list and must contain at least one element.
@@ -196,14 +194,6 @@ class SessionManager(GrantManager):
         if "resource" in auth_req:
             resources = auth_req["resource"]
 
-        if self.node_type[0] == "user":
-            kwargs = {
-                "sub": self.sub_func[sub_type](
-                    user_id, salt=self.get_salt(), sector_identifier=sector_identifier)
-            }
-        else:
-            kwargs = {}
-
         return self.add_grant(
             path=self.make_path(user_id=user_id, client_id=client_id),
             token_usage_rules=token_usage_rules,
@@ -217,12 +207,13 @@ class SessionManager(GrantManager):
             claims=_claims,
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
-            resources=resources
+            resources=resources,
         )
 
     def create_exchange_grant(
             self,
             exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
             original_session_id: str,
             user_id: str,
             client_id: Optional[str] = "",
@@ -241,11 +232,13 @@ class SessionManager(GrantManager):
         """
 
         return self.add_exchange_grant(
+            authentication_event=original_grant.authentication_event,
+            authorization_request=original_grant.authorization_request,
             exchange_request=exchange_request,
             original_branch_id=original_session_id,
             path=self.make_path(user_id=user_id, client_id=client_id),
+            sub=original_grant.sub,
             token_usage_rules=token_usage_rules,
-            sub=self.sub_func[sub_type](user_id, salt=self.get_salt(), sector_identifier=""),
             scope=scopes
         )
 
@@ -286,6 +279,7 @@ class SessionManager(GrantManager):
     def create_exchange_session(
             self,
             exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
             original_session_id: str,
             user_id: str,
             client_id: Optional[str] = "",
@@ -309,6 +303,7 @@ class SessionManager(GrantManager):
 
         return self.create_exchange_grant(
             exchange_request=exchange_request,
+            original_grant=original_grant,
             original_session_id=original_session_id,
             user_id=user_id,
             client_id=client_id,
@@ -495,6 +490,7 @@ class SessionManager(GrantManager):
             authorization_request: Optional[bool] = False,
             handler_key: Optional[str] = "",
     ) -> dict:
+
         if handler_key:
             _token_info = self.token_handler.handler[handler_key].info(token_value)
         else:
@@ -539,6 +535,6 @@ class SessionManager(GrantManager):
         return self.unpack_branch_key(key)
 
 
-def create_session_manager(server_get, token_handler_args, sub_func=None, conf=None):
-    _token_handler = handler.factory(server_get, **token_handler_args)
+def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
+    _token_handler = handler.factory(upstream_get, **token_handler_args)
     return SessionManager(_token_handler, sub_func=sub_func, conf=conf)
