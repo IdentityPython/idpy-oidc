@@ -280,7 +280,7 @@ class ASConfiguration(EntityConfiguration):
 DEFAULT_EXTENDED_CONF = {
     "add_on": {
         "pkce": {
-            "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
+            "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
             "kwargs": {"essential": False, "code_challenge_method": "S256 S384 S512"},
         },
         "claims": {
