@@ -47,19 +47,10 @@ class UserInfo(Endpoint):
         )
         # Add the issuer ID as an allowed JWT target
         self.allowed_targets.append("")
+        self.config = kwargs or {}
 
-        if kwargs is None:
-            self.config = {
-                "policy": {
-                    "function": "/path/to/callable",
-                    "kwargs": {}
-                },
-            }
-        else:
-            self.config = kwargs
-
-    def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(
+    def get_client_id_from_token(self, context, token, request=None):
+        _info = context.session_manager.get_session_info_by_token(
             token, handler_key="access_token"
         )
         return _info["client_id"]

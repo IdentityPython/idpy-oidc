@@ -21,27 +21,20 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
-from idpyoidc.server.oidc.userinfo import validate_userinfo_policy
 from idpyoidc.time_util import utc_time_sans_frac
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
-
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-RESPONSE_TYPES_SUPPORTED = [
-    ["code"],
-    ["token"],
-    ["id_token"],
-    ["code", "token"],
-    ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
-]
+# RESPONSE_TYPES_SUPPORTED = [
+#     ["code"],
+#     ["id_token"],
+#     ["code", "id_token"],
+# ]
 
 CAPABILITIES = {
 }
