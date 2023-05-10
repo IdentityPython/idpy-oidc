@@ -11,16 +11,15 @@ def get_client_authn_methods():
 
 
 class Claims(claims.Claims):
-
     def get_base_url(self, configuration: dict):
-        _base = configuration.get('base_url')
+        _base = configuration.get("base_url")
         if not _base:
-            _base = configuration.get('client_id')
+            _base = configuration.get("client_id")
 
         return _base
 
     def get_id(self, configuration: dict):
-        return self.get_preference('client_id')
+        return self.get_preference("client_id")
 
     def _add_key_if_missing(self, keyjar, id, key):
         try:
@@ -33,12 +32,12 @@ class Claims(claims.Claims):
             keyjar.add_symmetric(issuer_id=id, key=key)
 
     def add_extra_keys(self, keyjar, id):
-        _secret = self.get_preference('client_secret')
+        _secret = self.get_preference("client_secret")
         if _secret:
             if keyjar is None:
                 keyjar = KeyJar()
             self._add_key_if_missing(keyjar, id, _secret)
-            self._add_key_if_missing(keyjar, '', _secret)
+            self._add_key_if_missing(keyjar, "", _secret)
 
     def get_jwks(self, keyjar):
         if keyjar is None:
@@ -46,14 +45,17 @@ class Claims(claims.Claims):
 
         _jwks = None
         try:
-            _own_keys = keyjar.get_issuer_keys('')
+            _own_keys = keyjar.get_issuer_keys("")
         except IssuerNotFound:
             pass
         else:
             # if only one key under the id == "", that key being a SYMKey I assume it's
             # and I have a client_secret then don't publish a JWKS
-            if len(_own_keys) == 1 and isinstance(_own_keys[0], SYMKey) and self.prefer[
-                    'client_secret']:
+            if (
+                len(_own_keys) == 1
+                and isinstance(_own_keys[0], SYMKey)
+                and self.prefer["client_secret"]
+            ):
                 pass
             else:
                 _jwks = keyjar.export_jwks()

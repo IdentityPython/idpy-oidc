@@ -21,6 +21,7 @@ from idpyoidc.time_util import utc_time_sans_frac
 
 logger = logging.getLogger(__name__)
 
+
 class DPoPProof(Message):
     c_param = {
         # header
@@ -32,7 +33,7 @@ class DPoPProof(Message):
         "htm": SINGLE_REQUIRED_STRING,
         "htu": SINGLE_REQUIRED_STRING,
         "iat": SINGLE_REQUIRED_INT,
-        "ath": SINGLE_OPTIONAL_STRING
+        "ath": SINGLE_OPTIONAL_STRING,
     }
     header_params = {"typ", "alg", "jwk"}
     body_params = {"jti", "htm", "htu", "iat", "ath"}
@@ -96,8 +97,8 @@ def dpop_header(
     service_endpoint: str,
     http_method: str,
     headers: Optional[dict] = None,
-    token: Optional[str] = '',
-    nonce: Optional[str] = '',
+    token: Optional[str] = "",
+    nonce: Optional[str] = "",
     **kwargs
 ) -> dict:
     """
@@ -116,7 +117,7 @@ def dpop_header(
     provider_info = service_context.provider_info
     _dpop_conf = service_context.add_on.get("dpop")
     if not _dpop_conf:
-        logger.warning('Asked to do dpop when I do not support it')
+        logger.warning("Asked to do dpop when I do not support it")
         return headers
 
     dpop_key = _dpop_conf.get("key")
@@ -143,10 +144,10 @@ def dpop_header(
     }
 
     if token:
-        header_dict['ath'] = sha256(token.encode('utf8')).hexdigest()
+        header_dict["ath"] = sha256(token.encode("utf8")).hexdigest()
 
     if nonce:
-        header_dict['nonce'] = nonce
+        header_dict["nonce"] = nonce
 
     _dpop = DPoPProof(**header_dict)
     _dpop.key = dpop_key
@@ -171,13 +172,14 @@ def add_support(services, dpop_signing_alg_values_supported):
     # Access token request should use DPoP header
     _service = services["accesstoken"]
     _context = _service.upstream_get("context")
-    _algs_supported =  [alg for alg in dpop_signing_alg_values_supported if alg in
-                           get_signing_algs()]
+    _algs_supported = [
+        alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()
+    ]
     _context.add_on["dpop"] = {
         # "key": key_by_alg(signing_algorithm),
         "algs_supported": _algs_supported
     }
-    _context.set_preference('dpop_signing_alg_values_supported', _algs_supported)
+    _context.set_preference("dpop_signing_alg_values_supported", _algs_supported)
 
     _service.construct_extra_headers.append(dpop_header)
 

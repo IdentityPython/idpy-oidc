@@ -23,7 +23,6 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestClient(object):
-
     @pytest.fixture(autouse=True)
     def create_entities(self):
         # -------------- Server -----------------------
@@ -34,9 +33,9 @@ class TestClient(object):
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
             "endpoint": {
-                'discovery': {
-                    'path': "/.well-known/oauth-authorization-server",
-                    'class': "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+                "discovery": {
+                    "path": "/.well-known/oauth-authorization-server",
+                    "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
                     "kwargs": {},
                 },
                 "authorization": {
@@ -50,14 +49,14 @@ class TestClient(object):
                     "kwargs": {},
                 },
                 "token_revocation": {
-                    'path': 'revocation',
+                    "path": "revocation",
                     "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
                     "kwargs": {},
                 },
-                'introspection': {
-                    'path': 'introspection',
-                    'class': "idpyoidc.server.oauth2.introspection.Introspection"
-                }
+                "introspection": {
+                    "path": "introspection",
+                    "class": "idpyoidc.server.oauth2.introspection.Introspection",
+                },
             },
             "authentication": {
                 "anon": {
@@ -121,19 +120,17 @@ class TestClient(object):
             "redirect_uris": ["https://example.com/cli/code_cb"],
             "client_id": "client_1",
             "client_secret": "abcdefghijklmnop",
-            'issuer': 'https://example.com/',
+            "issuer": "https://example.com/",
             "response_types_supported": ["code"],
         }
         services = {
             "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
             "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
             "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-            'token_revocation': {
-                'class': 'idpyoidc.client.oauth2.token_revocation.TokenRevocation'
+            "token_revocation": {
+                "class": "idpyoidc.client.oauth2.token_revocation.TokenRevocation"
             },
-            'introspection': {
-                'class': 'idpyoidc.client.oauth2.introspection.Introspection'
-            }
+            "introspection": {"class": "idpyoidc.client.oauth2.introspection.Introspection"},
         }
         self.client = Client(config=client_conf, keyjar=build_keyjar(KEYDEFS), services=services)
 
@@ -156,7 +153,7 @@ class TestClient(object):
             else:
                 argv = {}
             areq.lax = True
-            if _server.request_format == 'json':
+            if _server.request_format == "json":
                 _pr_req = _server.parse_request(areq.to_json(), **argv)
             else:
                 _pr_req = _server.parse_request(areq.to_urlencoded(), **argv)
@@ -181,21 +178,17 @@ class TestClient(object):
     def process_setup(self, token=None, scope=None):
         # ***** Discovery *********
 
-        _req, _resp = self.do_query('server_metadata', 'server_metadata', {}, '')
+        _req, _resp = self.do_query("server_metadata", "server_metadata", {}, "")
 
         # ***** Authorization Request **********
         _context = self.client.get_service_context()
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
-        _nonce = rndstr(24),
+        _nonce = (rndstr(24),)
         # bind nonce to state
         _context.cstate.bind_key(_nonce, _state)
 
-        req_args = {
-            "response_type": ["code"],
-            "nonce": _nonce,
-            "state": _state
-        }
+        req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
         if scope:
             _scope = scope
@@ -204,7 +197,7 @@ class TestClient(object):
 
         req_args["scope"] = _scope
 
-        areq, auth_response = self.do_query('authorization', 'authorization', req_args, _state)
+        areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
 
         # ***** Token Request **********
 
@@ -217,7 +210,7 @@ class TestClient(object):
             # "client_secret": _context.get_usage("client_secret"),
         }
 
-        _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
+        _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)
 
         return resp, _state, _scope
 
@@ -227,24 +220,21 @@ class TestClient(object):
         _context = self.client.get_context()
         _state = _context.cstate.get(_state)
 
-        req_args = {
-            "token": _state['access_token'],
-            "token_type_hint": 'access_token'
-        }
+        req_args = {"token": _state["access_token"], "token_type_hint": "access_token"}
 
         # Check that I have an active token
 
         _request, _resp = self.do_query("introspection", "introspection", req_args, _state)
 
-        assert _resp['active'] == True
+        assert _resp["active"] == True
 
         # ****** Token Revocation Request **********
 
         _request, _resp = self.do_query("token_revocation", "token_revocation", req_args, _state)
-        assert _resp == 'OK'
+        assert _resp == "OK"
 
         # Test if it's really revoked
 
         _request, _resp = self.do_query("introspection", "introspection", req_args, _state)
 
-        assert _resp.to_dict() == {'active': False}
+        assert _resp.to_dict() == {"active": False}

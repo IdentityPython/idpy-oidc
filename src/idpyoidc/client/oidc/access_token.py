@@ -23,19 +23,18 @@ class AccessToken(access_token.AccessToken):
     error_msg = oidc.ResponseMessage
     default_authn_method = "client_secret_basic"
 
-    _include = {"grant_types_supported": ['authorization_code']}
+    _include = {"grant_types_supported": ["authorization_code"]}
 
     _supports = {
         "token_endpoint_auth_methods_supported": get_client_authn_methods,
-        "token_endpoint_auth_signing_alg_values_supported": get_signing_algs
+        "token_endpoint_auth_signing_alg_values_supported": get_signing_algs,
     }
 
     def __init__(self, upstream_get, conf: Optional[dict] = None):
         access_token.AccessToken.__init__(self, upstream_get, conf=conf)
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -48,7 +47,7 @@ class AccessToken(access_token.AccessToken):
         kwargs = {
             "client_id": _entity.get_client_id(),
             "iss": _context.issuer,
-            "keyjar": self.upstream_get('attribute', 'keyjar'),
+            "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
             "skew": _context.clock_skew,
         }

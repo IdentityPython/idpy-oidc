@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List
 
 import pytest
 from cryptojwt.key_jar import build_keyjar
@@ -66,7 +67,7 @@ _OAUTH2_SERVICES = {
     "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+    "resource": {"class": "idpyoidc.client.oauth2.resource.Resource"},
 }
 
 SERVER_CONF = {
@@ -89,7 +90,7 @@ SERVER_CONF = {
             "path": "token",
             "class": "idpyoidc.server.oauth2.token.Token",
             "kwargs": {},
-        }
+        },
     },
     "authentication": {
         "anon": {
@@ -125,12 +126,7 @@ SERVER_CONF = {
     },
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
-        "code": {
-            "lifetime": 600,
-            "kwargs": {
-                "crypt_conf": CRYPT_CONFIG
-            }
-        },
+        "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
         "token": {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
@@ -148,12 +144,12 @@ SERVER_CONF = {
         },
     },
     "session_params": SESSION_PARAMS,
-    'add_ons': {
+    "add_ons": {
         "pkce": {
             "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
             "kwargs": {},
         },
-    }
+    },
 }
 
 CLIENT_CONFIG = {
@@ -164,20 +160,16 @@ CLIENT_CONFIG = {
     "client_salt": "salted_peanuts_cooking",
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
     "response_types_supported": ["code"],
-    'add_ons': {
+    "add_ons": {
         "pkce": {
             "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
-            "kwargs": {
-                "code_challenge_length": 64,
-                "code_challenge_method": "S256"
-            },
+            "kwargs": {"code_challenge_length": 64, "code_challenge_method": "S256"},
         },
-    }
+    },
 }
 
 
 class Flow(object):
-
     def __init__(self, client, server):
         self.client = client
         self.server = server
@@ -201,7 +193,7 @@ class Flow(object):
             argv = {}
 
         if areq:
-            if _server_endpoint.request_format == 'json':
+            if _server_endpoint.request_format == "json":
                 _pr_req = _server_endpoint.parse_request(areq.to_json(), **argv)
             else:
                 _pr_req = _server_endpoint.parse_request(areq.to_urlencoded(), **argv)
@@ -221,28 +213,24 @@ class Flow(object):
         _response = _server_endpoint.do_response(**_resp)
 
         resp = _client_service.parse_response(_response["response"])
-        _state = msg.get('state', '')
+        _state = msg.get("state", "")
         _client_service.update_service_context(_resp["response_args"], key=_state)
-        return {'request': areq, 'response': resp}
+        return {"request": areq, "response": resp}
 
     def server_metadata_request(self, msg):
         return {}
 
     def authorization_request(self, msg):
         # ***** Authorization Request **********
-        _nonce = rndstr(24),
+        _nonce = (rndstr(24),)
         _context = self.client.get_service_context()
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
 
-        req_args = {
-            "response_type": ["code"],
-            "nonce": _nonce,
-            "state": _state
-        }
+        req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
-        scope = msg.get('scope')
+        scope = msg.get("scope")
         if scope:
             _scope = scope
         else:
@@ -256,11 +244,11 @@ class Flow(object):
         # ***** Token Request **********
         _context = self.client.get_service_context()
 
-        auth_resp = msg['authorization']['response']
+        auth_resp = msg["authorization"]["response"]
         req_args = {
             "code": auth_resp["code"],
             "state": auth_resp["state"],
-            "redirect_uri": msg['authorization']['request']["redirect_uri"],
+            "redirect_uri": msg["authorization"]["request"]["redirect_uri"],
             "grant_type": "authorization_code",
             "client_id": self.client.get_client_id(),
             "client_secret": _context.get_usage("client_secret"),
@@ -268,7 +256,7 @@ class Flow(object):
 
         return req_args
 
-    def __call__(self, request_responses: list[list], **kwargs):
+    def __call__(self, request_responses: List[list], **kwargs):
         msg = kwargs
         for request, response in request_responses:
             func = getattr(self, f"{request}_request")
@@ -276,9 +264,10 @@ class Flow(object):
             msg[request] = self.do_query(request, response, req_args, msg)
         return msg
 
+
 def test_pkce():
     server_conf = SERVER_CONF.copy()
-    server_conf['add_ons'] = {
+    server_conf["add_ons"] = {
         "pkce": {
             "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
             "kwargs": {},
@@ -287,36 +276,36 @@ def test_pkce():
     server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
     client_config = CLIENT_CONFIG.copy()
-    client_config['add_ons'] = {
+    client_config["add_ons"] = {
         "pkce": {
             "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
-            "kwargs": {
-                "code_challenge_length": 64,
-                "code_challenge_method": "S256"
-            },
+            "kwargs": {"code_challenge_length": 64, "code_challenge_method": "S256"},
         },
     }
 
-    client = Client(client_type='oauth2', config=client_config,
-                    keyjar=build_keyjar(KEYDEFS),
-                    services=_OAUTH2_SERVICES)
+    client = Client(
+        client_type="oauth2",
+        config=client_config,
+        keyjar=build_keyjar(KEYDEFS),
+        services=_OAUTH2_SERVICES,
+    )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(
-        client.keyjar.export_jwks(), "client")
+    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 
     flow = Flow(client, server)
     msg = flow(
         [
-            ['server_metadata', 'server_metadata'],
-            ['authorization', 'authorization'],
-            ["accesstoken", 'token']
+            ["server_metadata", "server_metadata"],
+            ["authorization", "authorization"],
+            ["accesstoken", "token"],
         ],
-        scope=['foobar']
+        scope=["foobar"],
     )
     assert msg
+
 
 def test_jar():
     server_conf = SERVER_CONF.copy()
@@ -329,30 +318,29 @@ def test_jar():
     server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)
 
     client_config = CLIENT_CONFIG.copy()
-    client_config['add_ons'] = {
+    client_config["add_ons"] = {
         "jar": {
             "function": "idpyoidc.client.oauth2.add_on.jar.add_support",
             "kwargs": {},
         },
     }
 
-    client = Client(client_type='oauth2', config=client_config,
-                    keyjar=build_keyjar(KEYDEFS),
-                    services=_OAUTH2_SERVICES)
+    client = Client(
+        client_type="oauth2",
+        config=client_config,
+        keyjar=build_keyjar(KEYDEFS),
+        services=_OAUTH2_SERVICES,
+    )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(
-        client.keyjar.export_jwks(), "client")
+    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 
     flow = Flow(client, server)
     msg = flow(
-        [
-            ['server_metadata', 'server_metadata'],
-            ['authorization', 'authorization']
-        ],
-        scope=['foobar']
+        [["server_metadata", "server_metadata"], ["authorization", "authorization"]],
+        scope=["foobar"],
     )
 
     assert msg

@@ -87,10 +87,10 @@ class Authorization(authorization.Authorization):
             "request_parameter_supported": True,
             "request_uri_parameter_supported": True,
             "require_request_uri_registration": False,
-        "response_types_supported": ["code", 'id_token', 'code id_token'],
-            "response_modes_supported": ['query', 'fragment', 'form_post'],
+            "response_types_supported": ["code", "id_token", "code id_token"],
+            "response_modes_supported": ["query", "fragment", "form_post"],
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-          },
+        },
     }
 
     def __init__(self, upstream_get: Callable, **kwargs):

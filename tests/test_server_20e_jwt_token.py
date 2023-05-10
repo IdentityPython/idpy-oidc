@@ -62,7 +62,7 @@ CAPABILITIES = {
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
-    #"request_uri_parameter_supported": True,
+    # "request_uri_parameter_supported": True,
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -207,7 +207,7 @@ class TestEndpoint(object):
                 "always": {},
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.session_manager = self.context.session_manager
         self.user_id = "diana"
@@ -269,9 +269,7 @@ class TestEndpoint(object):
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
-        self.context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {
-            "address": None
-        }
+        self.context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {"address": None}
         self.context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
@@ -411,7 +409,15 @@ class TestEndpointWebID(object):
                 "always": {},
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "webid"]
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "webid",
+            ],
         }
         self.session_manager = self.context.session_manager
         self.user_id = "diana"
@@ -517,7 +523,7 @@ class TestEndpointWebID(object):
             grant,
             session_id,
             code,
-            scope=["openid", 'foobar'],
+            scope=["openid", "foobar"],
             aud=["https://audience.example.com"],
         )
 

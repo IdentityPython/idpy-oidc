@@ -35,9 +35,7 @@ class Claims(claims.Claims):
 
     callback_uris = ["redirect_uris"]
 
-    def __init__(self,
-                 prefer: Optional[dict] = None,
-                 callback_path: Optional[dict] = None):
+    def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
         claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def provider_info(self, supports):

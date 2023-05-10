@@ -13,14 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class TokenEndpointHelper(object):
-
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
         self.config = config
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
@@ -33,15 +32,15 @@ class TokenEndpointHelper(object):
         raise NotImplementedError
 
     def _mint_token(
-            self,
-            token_class: str,
-            grant: Grant,
-            session_id: str,
-            client_id: str,
-            based_on: Optional[SessionToken] = None,
-            scope: Optional[list] = None,
-            token_args: Optional[dict] = None,
-            token_type: Optional[str] = "",
+        self,
+        token_class: str,
+        grant: Grant,
+        session_id: str,
+        client_id: str,
+        based_on: Optional[SessionToken] = None,
+        scope: Optional[list] = None,
+        token_args: Optional[dict] = None,
+        token_type: Optional[str] = "",
     ) -> SessionToken:
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
@@ -96,8 +95,10 @@ def validate_resource_indicators_policy(request, context, **kwargs):
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", [])
 
-    if isinstance(resource_servers_per_client,
-                  dict) and client_id not in resource_servers_per_client:
+    if (
+        isinstance(resource_servers_per_client, dict)
+        and client_id not in resource_servers_per_client
+    ):
         return TokenErrorResponse(
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
@@ -155,14 +156,14 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         )
 
     if (
-            "requested_token_type" in request
-            and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
+        "requested_token_type" in request
+        and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
     ):
         if "offline_access" not in subject_token.scope:
             return TokenErrorResponse(
                 error="invalid_request",
                 error_description=f"Exchange {request['subject_token_type']} to refresh token "
-                                  f"forbidden",
+                f"forbidden",
             )
 
     scopes = request.get("scope", subject_token.scope)
@@ -171,7 +172,7 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         scopes = list(set(scopes).intersection(kwargs.get("scope")))
     if scopes:
         request["scope"] = scopes
-    elif 'scope' in request:
+    elif "scope" in request:
         del request["scope"]
 
     return request

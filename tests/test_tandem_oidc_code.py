@@ -2,8 +2,6 @@ import json
 import os
 
 from cryptojwt.key_jar import build_keyjar
-from jwkest.jws import factory as jws_factory
-from jwkest.jwe import factory as jwe_factory
 
 import pytest
 
@@ -67,11 +65,12 @@ USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 _OIDC_SERVICES = {
     "provider_info": {
-        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"},
-    "registration": {'class': "idpyoidc.client.oidc.registration.Registration"},
+        "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery"
+    },
+    "registration": {"class": "idpyoidc.client.oidc.registration.Registration"},
     "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
-    'userinfo': {'class': "idpyoidc.client.oidc.userinfo.UserInfo"}
+    "userinfo": {"class": "idpyoidc.client.oidc.userinfo.UserInfo"},
 }
 
 
@@ -108,8 +107,7 @@ class TestFlow(object):
                     "path": "user",
                     "class": "idpyoidc.server.oidc.userinfo.UserInfo",
                     "kwargs": {},
-                }
-
+                },
             },
             "authentication": {
                 "anon": {
@@ -118,10 +116,7 @@ class TestFlow(object):
                     "kwargs": {"user": "diana"},
                 }
             },
-            "userinfo": {
-                "class": UserInfo,
-                "kwargs": {"db_file": "users.json"}
-            },
+            "userinfo": {"class": UserInfo, "kwargs": {"db_file": "users.json"}},
             "client_authn": verify_client,
             "authz": {
                 "class": AuthzHandling,
@@ -148,12 +143,7 @@ class TestFlow(object):
             },
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {
-                    "lifetime": 600,
-                    "kwargs": {
-                        "crypt_conf": CRYPT_CONFIG
-                    }
-                },
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -176,8 +166,8 @@ class TestFlow(object):
                             "email": {"essential": True},
                             "email_verified": {"essential": True},
                         }
-                    }
-                }
+                    },
+                },
             },
             "session_params": SESSION_PARAMS,
         }
@@ -190,11 +180,9 @@ class TestFlow(object):
             # "client_salt": "salted_peanuts_cooking",
             "redirect_uris": ["https://example.com/cb"],
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
-            "response_types_supported": ["code", "id_token", "id_token token"]
+            "response_types_supported": ["code", "id_token", "id_token token"],
         }
-        self.rp = RP(config=client_config,
-                     keyjar=build_keyjar(KEYDEFS),
-                     services=_OIDC_SERVICES)
+        self.rp = RP(config=client_config, keyjar=build_keyjar(KEYDEFS), services=_OIDC_SERVICES)
 
         self.context = self.server.context
         # self.context.cdb["client_1"] = client_config
@@ -237,20 +225,20 @@ class TestFlow(object):
         resp = _client_service.parse_response(_response["response"])
         _client_service.update_service_context(_resp["response_args"], key=state)
         # Fake key import
-        if service_type == 'provider_info':
-            _client_service.upstream_get('attribute', 'keyjar').import_jwks(
-                _server_endpoint.upstream_get('attribute', 'keyjar').export_jwks(),
-                issuer_id=_server_endpoint.upstream_get('attribute', 'issuer')
+        if service_type == "provider_info":
+            _client_service.upstream_get("attribute", "keyjar").import_jwks(
+                _server_endpoint.upstream_get("attribute", "keyjar").export_jwks(),
+                issuer_id=_server_endpoint.upstream_get("attribute", "issuer"),
             )
         return areq, resp
 
     def process_setup(self, token=None, scope=None):
         # ***** Discovery *********
-        _req, _resp = self.do_query('provider_info', 'provider_config', {}, '')
+        _req, _resp = self.do_query("provider_info", "provider_config", {}, "")
 
         # ***** Client Registration **********
 
-        _req, _resp = self.do_query('registration', 'registration', {}, '')
+        _req, _resp = self.do_query("registration", "registration", {}, "")
 
         # ***** Authorization Request **********
 
@@ -260,11 +248,7 @@ class TestFlow(object):
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
 
-        req_args = {
-            "response_type": ["code"],
-            "nonce": _nonce,
-            "state": _state
-        }
+        req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
         if scope:
             _scope = scope
@@ -276,7 +260,7 @@ class TestFlow(object):
 
         req_args["scope"] = _scope
 
-        areq, auth_response = self.do_query('authorization', 'authorization', req_args, _state)
+        areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
 
         # ***** Token Request **********
 
@@ -289,7 +273,7 @@ class TestFlow(object):
             "client_secret": _context.get_usage("client_secret"),
         }
 
-        _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
+        _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)
 
         return resp, _state, _scope
 
@@ -299,11 +283,12 @@ class TestFlow(object):
         """
 
         resp, _state, _scope = self.process_setup(
-            token='access_token',
-            scope=["openid", "profile", "email", "address", "phone", "offline_access"])
+            token="access_token",
+            scope=["openid", "profile", "email", "address", "phone", "offline_access"],
+        )
 
         # The User Info request
 
-        _request, resp = self.do_query("userinfo", 'userinfo', {}, _state)
+        _request, resp = self.do_query("userinfo", "userinfo", {}, _state)
 
         assert resp

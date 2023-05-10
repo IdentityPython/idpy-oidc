@@ -67,7 +67,7 @@ _OAUTH2_SERVICES = {
     "metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
     "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
     "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-    'resource': {'class': "idpyoidc.client.oauth2.resource.Resource"}
+    "resource": {"class": "idpyoidc.client.oauth2.resource.Resource"},
 }
 
 
@@ -94,7 +94,7 @@ class TestFlow(object):
                     "path": "token",
                     "class": "idpyoidc.server.oauth2.token.Token",
                     "kwargs": {},
-                }
+                },
             },
             "authentication": {
                 "anon": {
@@ -130,12 +130,7 @@ class TestFlow(object):
             },
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
-                "code": {
-                    "lifetime": 600,
-                    "kwargs": {
-                        "crypt_conf": CRYPT_CONFIG
-                    }
-                },
+                "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
                 "token": {
                     "class": "idpyoidc.server.token.jwt_token.JWTToken",
                     "kwargs": {
@@ -163,17 +158,19 @@ class TestFlow(object):
             "redirect_uris": ["https://example.com/cb"],
             "client_salt": "salted_peanuts_cooking",
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
-            "response_types_supported": ["code"]
+            "response_types_supported": ["code"],
         }
         client_services = _OAUTH2_SERVICES
-        self.client = Client(client_type='oauth2', config=client_1_config,
-                               keyjar=build_keyjar(KEYDEFS),
-                               services=_OAUTH2_SERVICES)
+        self.client = Client(
+            client_type="oauth2",
+            config=client_1_config,
+            keyjar=build_keyjar(KEYDEFS),
+            services=_OAUTH2_SERVICES,
+        )
 
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
-        self.context.keyjar.import_jwks(
-            self.client.keyjar.export_jwks(), "client_1")
+        self.context.keyjar.import_jwks(self.client.keyjar.export_jwks(), "client_1")
 
         self.context.set_provider_info()
         self.session_manager = self.context.session_manager
@@ -214,20 +211,16 @@ class TestFlow(object):
     def process_setup(self, token=None, scope=None):
         # ***** Discovery *********
 
-        _req, _resp = self.do_query('server_metadata', 'server_metadata', {}, '')
+        _req, _resp = self.do_query("server_metadata", "server_metadata", {}, "")
 
         # ***** Authorization Request **********
-        _nonce = rndstr(24),
+        _nonce = (rndstr(24),)
         _context = self.client.get_service_context()
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
 
-        req_args = {
-            "response_type": ["code"],
-            "nonce": _nonce,
-            "state": _state
-        }
+        req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
         if scope:
             _scope = scope
@@ -239,7 +232,7 @@ class TestFlow(object):
 
         req_args["scope"] = _scope
 
-        areq, auth_response = self.do_query('authorization', 'authorization', req_args, _state)
+        areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
 
         # ***** Token Request **********
 
@@ -252,7 +245,7 @@ class TestFlow(object):
             "client_secret": _context.get_usage("client_secret"),
         }
 
-        _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
+        _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)
 
         return resp, _state, _scope
 
@@ -261,15 +254,15 @@ class TestFlow(object):
         Test that token exchange requests work correctly
         """
 
-        resp, _state, _scope = self.process_setup(token='access_token', scope=['foobar'])
+        resp, _state, _scope = self.process_setup(token="access_token", scope=["foobar"])
 
         # Construct the resource request
 
-        _client_service = self.client.get_service('resource')
-        req_info = _client_service.get_request_parameters(authn_method='bearer_header',
-                                                          state=_state,
-                                                          endpoint='https://resource.example.com')
+        _client_service = self.client.get_service("resource")
+        req_info = _client_service.get_request_parameters(
+            authn_method="bearer_header", state=_state, endpoint="https://resource.example.com"
+        )
 
-        assert req_info['url'] == 'https://resource.example.com'
-        assert 'Authorization' in req_info['headers']
-        assert req_info['headers']['Authorization'].startswith('Bearer')
+        assert req_info["url"] == "https://resource.example.com"
+        assert "Authorization" in req_info["headers"]
+        assert req_info["headers"]["Authorization"].startswith("Bearer")

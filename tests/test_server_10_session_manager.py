@@ -107,7 +107,14 @@ class TestSessionManager:
                     },
                     "refresh_token": {"supports_minting": ["id_token"]},
                 },
-                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                ],
             }
         }
 
@@ -151,7 +158,7 @@ class TestSessionManager:
         )
 
         _user_info_1 = self.session_manager.get_user_session_info(session_key_1)
-        assert _user_info_1.subordinate == ['diana;;client_1']
+        assert _user_info_1.subordinate == ["diana;;client_1"]
         _client_info_1 = self.session_manager.get_client_session_info(session_key_1)
         assert len(_client_info_1.subordinate) == 1
         # grant = self.session_manager.get_grant(session_key_1)
@@ -353,7 +360,7 @@ class TestSessionManager:
             "user",
             "client",
             "grant",
-            "branch_id"
+            "branch_id",
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -379,7 +386,7 @@ class TestSessionManager:
             "user_id",
             "user",
             "client",
-            "grant"
+            "grant",
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -515,7 +522,7 @@ class TestSessionManager:
                 },
                 "refresh_token": {"supports_minting": ["access_token"]},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")

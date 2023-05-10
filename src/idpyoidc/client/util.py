@@ -310,15 +310,19 @@ def lower_or_upper(config, param, default=None):
 
 
 IMPLICIT_RESPONSE_TYPES = [
-    {'id_token'}, {'id_token', 'token'}, {'code', 'token'}, {'code', 'id_token'},
-    {'code', 'id_token', 'token'}, {'token'}
+    {"id_token"},
+    {"id_token", "token"},
+    {"code", "token"},
+    {"code", "id_token"},
+    {"code", "id_token", "token"},
+    {"token"},
 ]
 
 
 def implicit_response_types(a):
     res = []
     for typ in a:
-        if set(typ.split(' ')) in IMPLICIT_RESPONSE_TYPES:
+        if set(typ.split(" ")) in IMPLICIT_RESPONSE_TYPES:
             res.append(typ)
     return res
 

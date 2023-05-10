@@ -24,9 +24,9 @@ def get_state_parameter(request_args, kwargs):
 
 
 def pick_redirect_uri(
-        context,
-        request_args: Optional[Union[Message, dict]] = None,
-        response_type: Optional[str] = "",
+    context,
+    request_args: Optional[Union[Message, dict]] = None,
+    response_type: Optional[str] = "",
 ):
     if request_args is None:
         request_args = {}
@@ -55,10 +55,10 @@ def pick_redirect_uri(
             else:
                 redirect_uri = _callback_uris["implicit"][0]
         else:
-            if response_type == 'code' or response_type == ['code']:
-                _response_mode = 'code'
+            if response_type == "code" or response_type == ["code"]:
+                _response_mode = "code"
             else:
-                _response_mode = 'implicit'
+                _response_mode = "implicit"
             redirect_uri = _callback_uris[_response_mode][0]
 
         logger.debug(
@@ -77,11 +77,11 @@ def pick_redirect_uri(
 
 
 def pre_construct_pick_redirect_uri(
-        request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None,
-        **kwargs
+    request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None, **kwargs
 ):
-    request_args["redirect_uri"] = pick_redirect_uri(service.upstream_get("context"),
-                                                     request_args=request_args)
+    request_args["redirect_uri"] = pick_redirect_uri(
+        service.upstream_get("context"), request_args=request_args
+    )
     return request_args, {}
 
 

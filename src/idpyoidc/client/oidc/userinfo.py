@@ -45,7 +45,7 @@ class UserInfo(Service):
         "userinfo_signing_alg_values_supported": get_signing_algs,
         "userinfo_encryption_alg_values_supported": get_encryption_algs,
         "userinfo_encryption_enc_values_supported": get_encryption_encs,
-        "encrypt_userinfo_supported": False
+        "encrypt_userinfo_supported": False,
     }
 
     def __init__(self, upstream_get, conf=None):
@@ -60,8 +60,7 @@ class UserInfo(Service):
             pass
         else:
             request_args = self.upstream_get("context").cstate.get_set(
-                kwargs["state"],
-                claim=["access_token"]
+                kwargs["state"], claim=["access_token"]
             )
 
         return request_args, {}
@@ -89,7 +88,7 @@ class UserInfo(Service):
                     try:
                         aggregated_claims = Message().from_jwt(
                             spec["JWT"].encode("utf-8"),
-                            keyjar=self.upstream_get('attribute', 'keyjar')
+                            keyjar=self.upstream_get("attribute", "keyjar"),
                         )
                     except MissingSigningKey as err:
                         logger.warning(
@@ -111,8 +110,7 @@ class UserInfo(Service):
         return response
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -123,7 +121,7 @@ class UserInfo(Service):
         kwargs = {
             "client_id": _context.get_client_id(),
             "iss": _context.issuer,
-            "keyjar": self.upstream_get('attribute', 'keyjar'),
+            "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
             "skew": _context.clock_skew,
         }

@@ -136,10 +136,12 @@ class Session(Endpoint):
         except KeyError:
             alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
 
-        _jws = JWT(self.upstream_get('attribute', 'keyjar'),
-                   iss=_context.issuer,
-                   lifetime=86400,
-                   sign_alg=alg)
+        _jws = JWT(
+            self.upstream_get("attribute", "keyjar"),
+            iss=_context.issuer,
+            lifetime=86400,
+            sign_alg=alg,
+        )
         _jws.with_jti = True
         _logout_token = _jws.pack(payload=payload, recv=cinfo["client_id"])
 
@@ -221,7 +223,7 @@ class Session(Endpoint):
             else:
                 alg = self.kwargs["signing_alg"]
 
-            sign_keys = self.upstream_get('attribute', 'keyjar').get_signing_key(alg2keytype(alg))
+            sign_keys = self.upstream_get("attribute", "keyjar").get_signing_key(alg2keytype(alg))
             _info = _jwt.verify_compact(keys=sign_keys, sigalg=alg)
             return _info
         else:
@@ -342,7 +344,7 @@ class Session(Endpoint):
         logger.debug("JWS payload: {}".format(payload))
         # From me to me
         _jws = JWT(
-            self.upstream_get('attribute', 'keyjar'),
+            self.upstream_get("attribute", "keyjar"),
             iss=_context.issuer,
             lifetime=86400,
             sign_alg=self.kwargs["signing_alg"],
@@ -377,7 +379,7 @@ class Session(Endpoint):
         if isinstance(request, dict):
             _context = self.upstream_get("context")
             request = self.request_cls(**request)
-            if not request.verify(keyjar=self.upstream_get('attribute', 'keyjar'), sigalg=""):
+            if not request.verify(keyjar=self.upstream_get("attribute", "keyjar"), sigalg=""):
                 raise InvalidRequest("Request didn't verify")
             # id_token_signing_alg_values_supported
             try:

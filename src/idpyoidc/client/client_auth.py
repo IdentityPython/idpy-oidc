@@ -98,7 +98,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             try:
                 passwd = request["client_secret"]
             except KeyError:
-                passwd = service.upstream_get("context").get_usage('client_secret')
+                passwd = service.upstream_get("context").get_usage("client_secret")
         return passwd
 
     @staticmethod
@@ -136,8 +136,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         """
         if (
-                isinstance(request, AccessTokenRequest)
-                and request["grant_type"] == "authorization_code"
+            isinstance(request, AccessTokenRequest)
+            and request["grant_type"] == "authorization_code"
         ):
             if "client_id" not in request:
                 try:
@@ -223,7 +223,7 @@ class ClientSecretPost(ClientSecretBasic):
             try:
                 request["client_secret"] = kwargs["client_secret"]
             except (KeyError, TypeError):
-                request["client_secret"] = _context.get_usage('client_secret')
+                request["client_secret"] = _context.get_usage("client_secret")
                 if not request["client_secret"]:
                     raise AuthnFailure("Missing client secret")
 
@@ -442,9 +442,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 signing_key = [self._get_key_by_kid(kid, algorithm, keyjar)]
             elif ktype in key_types:
                 try:
-                    signing_key = [
-                        self._get_key_by_kid(key_types[ktype], algorithm, keyjar)
-                    ]
+                    signing_key = [self._get_key_by_kid(key_types[ktype], algorithm, keyjar)]
                 except KeyError:
                     signing_key = self.get_signing_key_from_keyjar(algorithm, keyjar)
             else:
@@ -470,9 +468,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
                     algorithm = "RS256"  # default
                 else:
                     for alg in algs:  # pick the first one I support and have keys for
-                        if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(
-                                alg, keyjar
-                        ):
+                        if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(alg, keyjar):
                             algorithm = alg
                             break
 
@@ -487,12 +483,13 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def _construct_client_assertion(self, service, **kwargs):
         _context = service.upstream_get("context")
         _entity = service.upstream_get("entity")
-        _keyjar = service.upstream_get('attribute', 'keyjar')
+        _keyjar = service.upstream_get("attribute", "keyjar")
         audience, algorithm = self._get_audience_and_algorithm(_context, _keyjar, **kwargs)
 
         if "kid" in kwargs:
-            signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"],
-                                                kid=kwargs["kid"])
+            signing_key = self._get_signing_key(
+                algorithm, _keyjar, _context.kid["sig"], kid=kwargs["kid"]
+            )
         else:
             signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"])
 

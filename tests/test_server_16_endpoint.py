@@ -108,7 +108,7 @@ class TestEndpoint(object):
 
     def test_parse_jwt(self):
         self.endpoint.request_format = "jwt"
-        kj = self.endpoint.upstream_get('attribute','keyjar')
+        kj = self.endpoint.upstream_get("attribute", "keyjar")
         request = REQ.to_jwt(kj.get_signing_key("RSA"), "RS256")
         req = self.endpoint.parse_request(request)
         assert req == REQ

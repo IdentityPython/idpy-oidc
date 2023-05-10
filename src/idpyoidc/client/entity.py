@@ -48,7 +48,7 @@ def response_types_to_grant_types(response_types):
 
 
 def _set_jwks(service_context, config: Configuration, keyjar: Optional[KeyJar]):
-    _key_conf = config.get("key_conf") or config.conf.get('key_conf')
+    _key_conf = config.get("key_conf") or config.conf.get("key_conf")
 
     if _key_conf:
         keys_args = {k: v for k, v in _key_conf.items() if k != "uri_path"}
@@ -71,44 +71,51 @@ def set_jwks_uri_or_jwks(service_context, config, jwks_uri, keyjar):
 
 def redirect_uris_from_callback_uris(callback_uris):
     res = []
-    for k, v in callback_uris['redirect_uris'].items():
+    for k, v in callback_uris["redirect_uris"].items():
         res.extend(v)
     return res
 
 
 class Entity(Unit):  # This is a Client. What type is undefined here.
     parameter = {
-        'entity_id': None,
-        'jwks_uri': None,
-        'httpc_params': None,
-        'key_conf': None,
-        'keyjar': KeyJar,
-        'context': None
+        "entity_id": None,
+        "jwks_uri": None,
+        "httpc_params": None,
+        "key_conf": None,
+        "keyjar": KeyJar,
+        "context": None,
     }
 
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
-            config: Optional[Union[dict, Configuration]] = None,
-            services: Optional[dict] = None,
-            jwks_uri: Optional[str] = "",
-            httpc: Optional[Callable] = None,
-            httpc_params: Optional[dict] = None,
-            client_type: Optional[str] = "oauth2",
-            context: Optional[OidcContext] = None,
-            upstream_get: Optional[Callable] = None,
-            key_conf: Optional[dict] = None,
-            entity_id: Optional[str] = ''
+        self,
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        services: Optional[dict] = None,
+        jwks_uri: Optional[str] = "",
+        httpc: Optional[Callable] = None,
+        httpc_params: Optional[dict] = None,
+        client_type: Optional[str] = "oauth2",
+        context: Optional[OidcContext] = None,
+        upstream_get: Optional[Callable] = None,
+        key_conf: Optional[dict] = None,
+        entity_id: Optional[str] = "",
     ):
         if config is None:
             config = {}
 
-        _id = config.get('client_id')
-        self.client_id = self.entity_id = entity_id or config.get('entity_id', _id)
+        _id = config.get("client_id")
+        self.client_id = self.entity_id = entity_id or config.get("entity_id", _id)
 
-        Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
-                      httpc_params=httpc_params, config=config, key_conf=key_conf,
-                      client_id=self.client_id)
+        Unit.__init__(
+            self,
+            upstream_get=upstream_get,
+            keyjar=keyjar,
+            httpc=httpc,
+            httpc_params=httpc_params,
+            config=config,
+            key_conf=key_conf,
+            client_id=self.client_id,
+        )
 
         if services:
             _srvs = services
@@ -118,7 +125,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             _srvs = None
 
         if not _srvs:
-            if client_type == 'oauth2':
+            if client_type == "oauth2":
                 _srvs = DEFAULT_OAUTH2_SERVICES
             else:
                 _srvs = DEFAULT_OIDC_SERVICES
@@ -128,8 +135,13 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if context:
             self.context = context
         else:
-            self.context = ServiceContext(config=config, jwks_uri=jwks_uri, keyjar=self.keyjar,
-                                          upstream_get=self.unit_get, client_type=client_type)
+            self.context = ServiceContext(
+                config=config,
+                jwks_uri=jwks_uri,
+                keyjar=self.keyjar,
+                upstream_get=self.unit_get,
+                client_type=client_type,
+            )
 
         self.setup_client_authn_methods(config)
 
@@ -161,11 +173,11 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         return self
 
     def get_client_id(self):
-        _val = self.context.claims.get_usage('client_id')
+        _val = self.context.claims.get_usage("client_id")
         if _val:
             return _val
         else:
-            return self.context.claims.get_preference('client_id')
+            return self.context.claims.get_preference("client_id")
 
     def setup_client_authn_methods(self, config):
         if config and "client_authn_methods" in config:
@@ -183,7 +195,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         :param keyspec:
         """
-        _keyjar = self.get_attribute('keyjar')
+        _keyjar = self.get_attribute("keyjar")
         if _keyjar is None:
             _keyjar = KeyJar()
 
@@ -192,8 +204,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                 for typ, files in spec.items():
                     if typ == "rsa":
                         for fil in files:
-                            _key = RSAKey(priv_key=import_private_rsa_key_from_file(fil),
-                                          use="sig")
+                            _key = RSAKey(priv_key=import_private_rsa_key_from_file(fil), use="sig")
                             _bundle = KeyBundle()
                             _bundle.append(_key)
                             _keyjar.add_kb("", _bundle)

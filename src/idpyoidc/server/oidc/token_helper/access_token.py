@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
-
     def _get_session_info(self, request, session_manager):
         if request["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -64,7 +63,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         # Is DPOP supported
         _dpop_enabled = False
-        _dpop_args = _context.add_on.get('dpop')
+        _dpop_args = _context.add_on.get("dpop")
         if _dpop_args:
             _dpop_enabled = True
 
@@ -116,10 +115,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if (
-                issue_refresh
-                and "refresh_token" in _supports_minting
-        ):
+        if issue_refresh and "refresh_token" in _supports_minting:
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -161,7 +157,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens

@@ -35,8 +35,7 @@ def format_response(format, response, verified_response):
 
 
 def identity_assurance_process(response, service_context, state):
-    auth_request = service_context.cstate.get_set(state,
-                                                  message=AuthorizationRequest)
+    auth_request = service_context.cstate.get_set(state, message=AuthorizationRequest)
     claims_request = auth_request.get("claims")
     if claims_request and "userinfo" in claims_request:
         vc = VerifiedClaims(**response["verified_claims"])

@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
-
     def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
@@ -50,8 +49,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
 
-        if ("resource_indicators" in _cinfo
-                and "access_token" in _cinfo["resource_indicators"]):
+        if "resource_indicators" in _cinfo and "access_token" in _cinfo["resource_indicators"]:
             resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
         else:
             resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
@@ -71,7 +69,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         # Is DPOP supported
         try:
-            _dpop_enabled = _context.add_on.get('dpop')
+            _dpop_enabled = _context.add_on.get("dpop")
         except AttributeError:
             _dpop_enabled = False
 
@@ -101,7 +99,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         else:
             scope = grant.scope
 
-        if 'offline_access' in scope and "refresh_token" in _supports_minting:
+        if "offline_access" in scope and "refresh_token" in _supports_minting:
             issue_refresh = True
         else:
             issue_refresh = kwargs.get("issue_refresh", False)
@@ -126,7 +124,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
-                    token_args=token_args
+                    token_args=token_args,
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -135,10 +133,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if (
-                issue_refresh
-                and "refresh_token" in _supports_minting
-        ):
+        if issue_refresh and "refresh_token" in _supports_minting:
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -160,7 +155,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def _enforce_resource_indicators_policy(self, request, config):
-        _context = self.endpoint.upstream_get('context')
+        _context = self.endpoint.upstream_get("context")
 
         policy = config["policy"]
         function = policy["function"]
@@ -180,7 +175,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens

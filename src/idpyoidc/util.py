@@ -84,7 +84,6 @@ def split_uri(uri: str) -> [str, Union[dict, None]]:
 
 
 class QPKey:
-
     def serialize(self, str):
         return quote_plus(str)
 
@@ -93,7 +92,6 @@ class QPKey:
 
 
 class JSON:
-
     def serialize(self, str):
         return json.dumps(str)
 
@@ -102,7 +100,6 @@ class JSON:
 
 
 class PassThru:
-
     def serialize(self, str):
         return str
 

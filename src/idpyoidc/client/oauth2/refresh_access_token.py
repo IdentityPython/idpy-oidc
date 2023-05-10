@@ -23,7 +23,7 @@ class RefreshAccessToken(Service):
     default_authn_method = "client_secret_post"
     http_method = "POST"
 
-    _include = {"grant_types_supported": ['refresh_token']}
+    _include = {"grant_types_supported": ["refresh_token"]}
 
     def __init__(self, upstream_get, conf=None):
         Service.__init__(self, upstream_get, conf=conf)

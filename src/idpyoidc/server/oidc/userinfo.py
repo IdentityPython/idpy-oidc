@@ -38,7 +38,9 @@ class UserInfo(Endpoint):
         "userinfo_encryption_enc_values_supported": claims.get_encryption_encs,
     }
 
-    def __init__(self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
+    def __init__(
+        self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
+    ):
         Endpoint.__init__(
             self,
             upstream_get,
@@ -50,17 +52,15 @@ class UserInfo(Endpoint):
         self.config = kwargs or {}
 
     def get_client_id_from_token(self, context, token, request=None):
-        _info = context.session_manager.get_session_info_by_token(
-            token, handler_key="access_token"
-        )
+        _info = context.session_manager.get_session_info_by_token(token, handler_key="access_token")
         return _info["client_id"]
 
     def do_response(
-            self,
-            response_args: Optional[Union[Message, dict]] = None,
-            request: Optional[Union[Message, dict]] = None,
-            client_id: Optional[str] = "",
-            **kwargs
+        self,
+        response_args: Optional[Union[Message, dict]] = None,
+        request: Optional[Union[Message, dict]] = None,
+        client_id: Optional[str] = "",
+        **kwargs,
     ) -> dict:
 
         if "error" in kwargs and kwargs["error"]:
@@ -91,7 +91,7 @@ class UserInfo(Endpoint):
 
         if encrypt or sign:
             _jwt = JWT(
-                self.upstream_get('attribute', 'keyjar'),
+                self.upstream_get("attribute", "keyjar"),
                 iss=_context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,
@@ -200,8 +200,11 @@ class UserInfo(Endpoint):
 
         # Do any endpoint specific parsing
         return self.do_post_parse_request(
-            request=request, client_id=auth_info["client_id"],
-            http_info=http_info, auth_info=auth_info, **kwargs
+            request=request,
+            client_id=auth_info["client_id"],
+            http_info=http_info,
+            auth_info=auth_info,
+            **kwargs,
         )
 
     def _enforce_policy(self, request, response_info, token, config):

@@ -120,11 +120,10 @@ def test_capabilities_default():
     assert set(server.context.provider_info["response_types_supported"]) == {
         "code",
         "id_token",
-        "code id_token"
+        "code id_token",
     }
     assert server.context.provider_info["request_uri_parameter_supported"] is True
-    assert server.context.get_preference('jwks_uri') == \
-           "https://127.0.0.1:443/static/jwks.json"
+    assert server.context.get_preference("jwks_uri") == "https://127.0.0.1:443/static/jwks.json"
 
 
 def test_capabilities_subset1():

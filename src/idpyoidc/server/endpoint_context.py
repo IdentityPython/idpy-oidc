@@ -102,19 +102,19 @@ class EndpointContext(OidcContext):
         "client_authn_method": {},
     }
 
-    init_args = ['upstream_get', 'handler']
+    init_args = ["upstream_get", "handler"]
 
     def __init__(
-            self,
-            conf: Union[dict, OPConfiguration],
-            upstream_get: Callable,
-            cwd: Optional[str] = "",
-            cookie_handler: Optional[Any] = None,
-            httpc: Optional[Any] = None,
-            server_type: Optional[str] = '',
-            entity_id: Optional[str] = "",
-            keyjar: Optional[KeyJar] = None,
-            claims_class: Optional[Claims] = None
+        self,
+        conf: Union[dict, OPConfiguration],
+        upstream_get: Callable,
+        cwd: Optional[str] = "",
+        cookie_handler: Optional[Any] = None,
+        httpc: Optional[Any] = None,
+        server_type: Optional[str] = "",
+        entity_id: Optional[str] = "",
+        keyjar: Optional[KeyJar] = None,
+        claims_class: Optional[Claims] = None,
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -240,7 +240,7 @@ class EndpointContext(OidcContext):
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
         self.provider_info = self.claims.provider_info(_supports)
-        self.provider_info['issuer'] = self.issuer
+        self.provider_info["issuer"] = self.issuer
         self.provider_info.update(self._get_endpoint_info())
 
         # INTERFACES
@@ -316,9 +316,9 @@ class EndpointContext(OidcContext):
             )
 
     def do_add_on(self, endpoints):
-        _add_on_conf = self.conf.get("add_ons", self.conf.get('add_on'))
+        _add_on_conf = self.conf.get("add_ons", self.conf.get("add_on"))
         if not _add_on_conf:
-            _add_on_conf = self.conf.conf.get('add_ons')
+            _add_on_conf = self.conf.conf.get("add_ons")
 
         if _add_on_conf:
             for spec in _add_on_conf.values():
@@ -402,21 +402,21 @@ class EndpointContext(OidcContext):
     def supports(self):
         res = {}
         if self.upstream_get:
-            for endpoint in self.upstream_get('endpoints').values():
+            for endpoint in self.upstream_get("endpoints").values():
                 res.update(endpoint.supports())
         res.update(self.claims.supports())
         return res
 
     def set_provider_info(self):
         _info = self.claims.provider_info(self.supports())
-        _info.update({'issuer': self.issuer, 'version': "3.0"})
+        _info.update({"issuer": self.issuer, "version": "3.0"})
 
-        for endp in self.upstream_get('endpoints').values():
+        for endp in self.upstream_get("endpoints").values():
             if endp.endpoint_name:
                 _info[endp.endpoint_name] = endp.full_path
 
         # acr_values
-        if 'acr_values_supported' not in _info:
+        if "acr_values_supported" not in _info:
             if self.authn_broker:
                 acr_values = self.authn_broker.get_acr_values()
                 if acr_values is not None:
@@ -487,7 +487,7 @@ class EndpointContext(OidcContext):
 
     def _get_endpoint_info(self):
         _res = {}
-        for name, endp in self.upstream_get('endpoints').items():
+        for name, endp in self.upstream_get("endpoints").items():
             if endp.endpoint_name:
                 _res[endp.endpoint_name] = endp.full_path
         return _res

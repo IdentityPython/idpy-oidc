@@ -86,7 +86,6 @@ def full_path(local_file):
 
 @pytest.mark.parametrize("jwt_token", [True, False])
 class TestEndpoint:
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, jwt_token):
         conf = {
@@ -207,8 +206,15 @@ class TestEndpoint:
                 },
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access",
-                               "research_and_scholarship"]
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "research_and_scholarship",
+            ],
         }
         endpoint_context.keyjar.import_jwks_as_json(
             endpoint_context.keyjar.export_jwks_as_json(private=True),
@@ -279,7 +285,7 @@ class TestEndpoint:
         )
 
         assert isinstance(_req, TokenRevocationRequest)
-        assert set(_req.keys()) == {"token", "client_id", "client_secret", 'authenticated'}
+        assert set(_req.keys()) == {"token", "client_id", "client_secret", "authenticated"}
 
     def test_parse_with_wrong_client_authn(self):
         access_token = self._get_access_token(AUTH_REQ)
@@ -365,13 +371,12 @@ class TestEndpoint:
         assert access_token.revoked
 
     def test_access_token_per_client(self):
-
         def custom_token_revocation_policy(token, session_info, **kwargs):
             _token = token
             _token.revoke()
             # response_args = {"response_args": {"type": "custom"}}
-            #return TokenRevocationResponse(**response_args)
-            return {'response_msg':'OK'}
+            # return TokenRevocationResponse(**response_args)
+            return {"response_msg": "OK"}
 
         access_token = self._get_access_token(AUTH_REQ)
         assert access_token.revoked is False
@@ -386,7 +391,7 @@ class TestEndpoint:
                 },
                 "access_token": {
                     "function": custom_token_revocation_policy,
-                }
+                },
             },
         }
         _req = self.revocation_endpoint.parse_request(
@@ -398,11 +403,10 @@ class TestEndpoint:
         )
         _resp = self.revocation_endpoint.process_request(_req)
         assert "response_msg" in _resp
-        assert _resp["response_msg"] == 'OK'
+        assert _resp["response_msg"] == "OK"
         assert access_token.revoked
 
     def test_missing_token_policy_per_client(self):
-
         def custom_token_revocation_policy(token, session_info, **kwargs):
             _token = token
             _token.revoke()
@@ -422,7 +426,7 @@ class TestEndpoint:
                 },
                 "refresh_token": {
                     "function": custom_token_revocation_policy,
-                }
+                },
             },
         }
         _req = self.revocation_endpoint.parse_request(

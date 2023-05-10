@@ -125,11 +125,9 @@ class TestEndpoint(object):
             "add_claims": {
                 "always": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.add_symmetric(
-            "client_1", "hemligtochintekort", ["sig", "enc"]
-        )
+        server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.claims_interface = server.context.claims_interface
         self.context = server.context
         self.session_manager = self.context.session_manager

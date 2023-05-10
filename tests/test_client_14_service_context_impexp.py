@@ -19,7 +19,7 @@ def test_client_info_init():
         "base_url": BASE_URL,
         "requests_dir": "requests",
     }
-    ci = ServiceContext(config=config, client_type='oidc', base_url=BASE_URL)
+    ci = ServiceContext(config=config, client_type="oidc", base_url=BASE_URL)
     ci.claims.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
@@ -40,11 +40,11 @@ def test_client_info_init():
 
 def test_set_and_get_client_secret():
     service_context = ServiceContext(base_url=BASE_URL)
-    service_context.set_usage('client_secret', "longenoughsupersecret")
+    service_context.set_usage("client_secret", "longenoughsupersecret")
 
     srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
 
-    assert srvcnx2.get_usage('client_secret') == "longenoughsupersecret"
+    assert srvcnx2.get_usage("client_secret") == "longenoughsupersecret"
 
 
 def test_set_and_get_client_id():
@@ -97,7 +97,6 @@ def verify_alg_support(service_context, alg, usage, typ):
 
 
 class TestClientInfo(object):
-
     @pytest.fixture(autouse=True)
     def create_client_info_instance(self):
         config = {
@@ -276,17 +275,18 @@ class TestClientInfo(object):
         keyspec = {"file": {"rsa": [file_path]}}
         self.service_context.import_keys(keyspec)
 
-        _sc_state = self.service_context.dump(exclude_attributes=["context", 'upstream_get'])
+        _sc_state = self.service_context.dump(exclude_attributes=["context", "upstream_get"])
         _jsc_state = json.dumps(_sc_state)
         _o_state = json.loads(_jsc_state)
-        srvcntx = ServiceContext(base_url=BASE_URL).load(_o_state, init_args={
-            'upstream_get': self.service_context.upstream_get})
+        srvcntx = ServiceContext(base_url=BASE_URL).load(
+            _o_state, init_args={"upstream_get": self.service_context.upstream_get}
+        )
 
         # Now there should be 2, the second a RSA key for signing
-        assert len(srvcntx.upstream_get('attribute', 'keyjar').get_issuer_keys("")) == 2
+        assert len(srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):
-        _keyjar = self.service_context.upstream_get('attribute', 'keyjar')
+        _keyjar = self.service_context.upstream_get("attribute", "keyjar")
         assert len(_keyjar.get_issuer_keys("")) == 1
 
         # One EC key for signing
@@ -309,9 +309,15 @@ class TestClientInfo(object):
 
             srvcntx = ServiceContext(base_url=BASE_URL).load(
                 self.service_context.dump(exclude_attributes=["context"]),
-                init_args={'upstream_get': self.service_context.upstream_get}
+                init_args={"upstream_get": self.service_context.upstream_get},
             )
 
             # Now there should be one belonging to https://example.com
-            assert len(srvcntx.upstream_get('attribute', 'keyjar').get_issuer_keys(
-                "https://foobar.com")) == 1
+            assert (
+                len(
+                    srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys(
+                        "https://foobar.com"
+                    )
+                )
+                == 1
+            )

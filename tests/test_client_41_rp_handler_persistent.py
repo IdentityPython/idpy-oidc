@@ -51,7 +51,7 @@ CLIENT_CONFIG = {
         "client_id": "xxxxxxx",
         "client_secret": "yyyyyyyyyyyyyyyyyyyy",
         "redirect_uris": ["{}/authz_cb/linkedin".format(BASE_URL)],
-        'client_type': 'oauth2',
+        "client_type": "oauth2",
         "preference": {
             "response_types": ["code"],
             "scope": ["r_basicprofile", "r_emailaddress"],
@@ -241,10 +241,10 @@ class TestRPHandler(object):
         assert _context.get_usage("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.get("issuer") == _github_id
 
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert set(_keyjar.owners()) == {"", 'eeeeeeeee', _github_id}
+        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3  # one symmetric, one RSA and one EC
 
@@ -326,12 +326,17 @@ class TestRPHandler(object):
         auth_response = AuthorizationResponse(code="access_code", state=res["state"])
         resp = rph_1.finalize_auth(client, _session["iss"], auth_response.to_dict())
         assert set(resp.keys()) == {"state", "code"}
-        aresp = (
-            client.get_service("authorization").upstream_get("context").cstate.get(res["state"])
-        )
+        aresp = client.get_service("authorization").upstream_get("context").cstate.get(res["state"])
         assert set(aresp.keys()) == {
-            "state", "code", 'iss', 'client_id',
-            'scope', 'nonce', 'response_type', 'redirect_uri'}
+            "state",
+            "code",
+            "iss",
+            "client_id",
+            "scope",
+            "nonce",
+            "response_type",
+            "redirect_uri",
+        }
 
     def test_get_client_authn_method(self):
         rph_1 = RPHandler(
@@ -361,7 +366,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _context = client.get_context()
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         _nonce = _session["nonce"]
@@ -415,17 +420,17 @@ class TestRPHandler(object):
                 "__expires_at",
                 "__verified_id_token",
                 "access_token",
-                'client_id',
-                'code',
+                "client_id",
+                "code",
                 "expires_in",
                 "id_token",
-                'iss',
-                'nonce',
-                'redirect_uri',
-                'response_type',
-                'scope',
-                'state',
-                "token_type"
+                "iss",
+                "nonce",
+                "redirect_uri",
+                "response_type",
+                "scope",
+                "state",
+                "token_type",
             }
 
     def test_access_and_id_token(self):
@@ -443,7 +448,7 @@ class TestRPHandler(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -493,7 +498,7 @@ class TestRPHandler(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -543,7 +548,7 @@ class TestRPHandler(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)

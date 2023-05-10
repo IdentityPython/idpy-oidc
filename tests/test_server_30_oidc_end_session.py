@@ -45,11 +45,7 @@ KEYDEFS = [
 KEYJAR = build_keyjar(KEYDEFS)
 KEYJAR.import_jwks(KEYJAR.export_jwks(private=True), ISS)
 
-RESPONSE_TYPES_SUPPORTED = [
-    ["code"],
-    ["id_token"],
-    ["code", "id_token"]
-]
+RESPONSE_TYPES_SUPPORTED = [["code"], ["id_token"], ["code", "id_token"]]
 
 PREFRERENCES = {
     "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
@@ -204,7 +200,14 @@ class TestEndpoint(object):
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types_supported": ["code", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI1}logout_cb", ""],
-                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                ],
             },
             "client_2": {
                 "client_secret": "hemligare",
@@ -213,7 +216,14 @@ class TestEndpoint(object):
                 "token_endpoint_auth_method": "client_secret_post",
                 "response_types_supported": ["code", "code id_token", "id_token"],
                 "post_logout_redirect_uri": [f"{CLI2}logout_cb", ""],
-                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                ],
             },
         }
         self.context = context
@@ -331,7 +341,7 @@ class TestEndpoint(object):
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute",'keyjar'))
+        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute", "keyjar"))
 
         msg2 = Message(id_token_hint=id_token)
         msg2[verified_claim_name("id_token_hint")] = msg[verified_claim_name("id_token")]
@@ -398,7 +408,7 @@ class TestEndpoint(object):
         post_logout_redirect_uri = "https://demo.example.com/log_out"
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute",'keyjar'))
+        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute", "keyjar"))
 
         with pytest.raises(RedirectURIError):
             self.session_endpoint.process_request(
@@ -487,9 +497,7 @@ class TestEndpoint(object):
         self.session_endpoint.upstream_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_1"][
-            "client_id"
-        ] = "client_1"
+        self.session_endpoint.upstream_get("context").cdb["client_1"]["client_id"] = "client_1"
 
         res = self.session_endpoint.logout_from_client(_session_info["branch_id"])
         assert set(res.keys()) == {"blu"}
@@ -517,9 +525,7 @@ class TestEndpoint(object):
         self.session_endpoint.upstream_get("context").cdb["client_1"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_1"][
-            "client_id"
-        ] = "client_1"
+        self.session_endpoint.upstream_get("context").cdb["client_1"]["client_id"] = "client_1"
 
         res = self.session_endpoint.logout_from_client(_session_info["branch_id"])
         assert set(res.keys()) == {"flu"}
@@ -552,15 +558,11 @@ class TestEndpoint(object):
         self.session_endpoint.upstream_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_1"][
-            "client_id"
-        ] = "client_1"
+        self.session_endpoint.upstream_get("context").cdb["client_1"]["client_id"] = "client_1"
         self.session_endpoint.upstream_get("context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_2"][
-            "client_id"
-        ] = "client_2"
+        self.session_endpoint.upstream_get("context").cdb["client_2"]["client_id"] = "client_2"
 
         res = self.session_endpoint.logout_all_clients(_session_info["branch_id"])
 
@@ -630,15 +632,11 @@ class TestEndpoint(object):
         self.session_endpoint.upstream_get("context").cdb["client_1"][
             "backchannel_logout_uri"
         ] = "https://example.com/bc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_1"][
-            "client_id"
-        ] = "client_1"
+        self.session_endpoint.upstream_get("context").cdb["client_1"]["client_id"] = "client_1"
         self.session_endpoint.upstream_get("context").cdb["client_2"][
             "frontchannel_logout_uri"
         ] = "https://example.com/fc_logout"
-        self.session_endpoint.upstream_get("context").cdb["client_2"][
-            "client_id"
-        ] = "client_2"
+        self.session_endpoint.upstream_get("context").cdb["client_2"]["client_id"] = "client_2"
 
         _uid, _cid, _gid = self.session_manager.decrypt_session_id(_session_info["branch_id"])
         self.session_endpoint.upstream_get("context").session_manager.delete([_uid, _cid])

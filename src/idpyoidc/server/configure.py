@@ -151,24 +151,24 @@ class EntityConfiguration(Base):
         "httpc_params": {},
         "issuer": "",
         "key_conf": None,
-        'preference': {},
+        "preference": {},
         "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
         "userinfo": None,
-        "scopes_handler": None
+        "scopes_handler": None,
     }
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
-            upstream_get: Optional[Callable] = None
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
+        upstream_get: Optional[Callable] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -232,14 +232,14 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         super().__init__(
             conf=conf,
@@ -256,14 +256,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,
@@ -349,9 +349,7 @@ DEFAULT_EXTENDED_CONF = {
             "refresh_token",
         ],
     },
-    "scopes_handler": {
-        "class": "idpyoidc.server.scopes.Scopes"
-    },
+    "scopes_handler": {"class": "idpyoidc.server.scopes.Scopes"},
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",

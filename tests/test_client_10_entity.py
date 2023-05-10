@@ -42,7 +42,7 @@ class TestClientInfo(object):
             rsps.add(
                 "GET",
                 _jwks_url,
-                body=self.entity.get_attribute('keyjar').export_jwks_as_json(),
+                body=self.entity.get_attribute("keyjar").export_jwks_as_json(),
                 status=200,
                 adding_headers={"Content-Type": "application/json"},
             )
@@ -50,8 +50,9 @@ class TestClientInfo(object):
             self.entity.import_keys(keyspec)
 
             # Now there should be one belonging to https://example.com
-            assert len(self.entity.get_attribute('keyjar').get_issuer_keys(
-                "https://foobar.com")) == 1
+            assert (
+                len(self.entity.get_attribute("keyjar").get_issuer_keys("https://foobar.com")) == 1
+            )
 
     def test_import_keys_file_json(self):
         # Should only be one and that a symmetric key (client_secret) usable

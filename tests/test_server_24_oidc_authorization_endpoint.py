@@ -287,9 +287,7 @@ class TestEndpoint(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar.import_jwks(
-            server.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
         self.context = context
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
@@ -394,7 +392,6 @@ class TestEndpoint(object):
         assert "code" in _frag_msg
         assert "access_token" not in _frag_msg
 
-
     def test_id_token_claims(self):
         _req = AUTH_REQ_DICT.copy()
         _req["claims"] = CLAIMS
@@ -403,8 +400,7 @@ class TestEndpoint(object):
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
         idt = verify_id_token(
-            _resp["response_args"],
-            keyjar=self.endpoint.upstream_get("attribute","keyjar")
+            _resp["response_args"], keyjar=self.endpoint.upstream_get("attribute", "keyjar")
         )
         assert idt
         # from config
@@ -429,7 +425,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.upstream_get("attribute","keyjar"),
+            keyjar=self.endpoint.upstream_get("attribute", "keyjar"),
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]
@@ -576,7 +572,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         session_id = self._create_session(request)
@@ -604,7 +600,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         session_id = self._create_session(request)
@@ -799,9 +795,7 @@ class TestEndpoint(object):
             "kwargs": {"user": "knoll"},
             "class": NoAuthn,
         }
-        self.endpoint.upstream_get("context").authn_broker["foo"] = init_method(
-            method_spec, None
-        )
+        self.endpoint.upstream_get("context").authn_broker["foo"] = init_method(method_spec, None)
 
         item = self.endpoint.upstream_get("context").authn_broker.db["anon"]
         item["method"].fail = NoSuchAuthentication
@@ -833,15 +827,17 @@ class TestEndpoint(object):
                 "scope": AUTH_REQ.get("scope"),
             }
         )
-        assert set(_req.keys()) == {'__verified_request',
-                                    'aud',
-                                    'client_id',
-                                    'iat',
-                                    'iss',
-                                    'redirect_uri',
-                                    'response_type',
-                                    'scope',
-                                    'state'}
+        assert set(_req.keys()) == {
+            "__verified_request",
+            "aud",
+            "client_id",
+            "iat",
+            "iss",
+            "redirect_uri",
+            "response_type",
+            "scope",
+            "state",
+        }
 
     def test_parse_request_uri(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
@@ -1195,9 +1191,7 @@ class TestACR(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar.import_jwks(
-            server.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"
@@ -1423,11 +1417,14 @@ class TestUserAuthn(object):
             client_id=authn_req["client_id"],
         )
 
-        kakor = [{
-            'value': '{"sub": "adam", "sid": "Z0FBQUFBQmlhVl", "state": "state_identifier", '
-                     '"client_id": "client 12345"}',
-            'type': '',
-            'timestamp': '1651070251'}]
+        kakor = [
+            {
+                "value": '{"sub": "adam", "sid": "Z0FBQUFBQmlhVl", "state": "state_identifier", '
+                '"client_id": "client 12345"}',
+                "type": "",
+                "timestamp": "1651070251",
+            }
+        ]
 
         _info, _time_stamp = method.authenticated_as(client_id="client 12345", cookie=kakor)
         assert _info == {}

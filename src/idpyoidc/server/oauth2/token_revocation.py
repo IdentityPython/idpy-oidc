@@ -78,16 +78,19 @@ class TokenRevocation(Endpoint):
 
         try:
             self.token_types_supported = _context.cdb[client_id]["token_revocation"][
-                "token_types_supported"]
+                "token_types_supported"
+            ]
         except Exception:
-            self.token_types_supported = self.token_revocation_kwargs.get("token_types_supported",
-                                                                          self.token_types_supported)
+            self.token_types_supported = self.token_revocation_kwargs.get(
+                "token_types_supported", self.token_types_supported
+            )
 
         try:
             self.policy = _context.cdb[client_id]["token_revocation"]["policy"]
         except Exception:
-            self.policy = self.token_revocation_kwargs.get("policy", {
-                "": {"function": validate_token_revocation_policy}})
+            self.policy = self.token_revocation_kwargs.get(
+                "policy", {"": {"function": validate_token_revocation_policy}}
+            )
 
         if _token.token_class not in self.token_types_supported:
             desc = (
@@ -131,5 +134,5 @@ def validate_token_revocation_policy(token, session_info, **kwargs):
     _token = token
     _token.revoke()
 
-    response_args = {"response_msg": 'OK'}
+    response_args = {"response_msg": "OK"}
     return response_args

@@ -249,11 +249,11 @@ class Registration(Endpoint):
                         error_description="%s pointed to illegal URL" % item,
                     )
 
-        _keyjar = self.upstream_get('attribute', 'keyjar')
+        _keyjar = self.upstream_get("attribute", "keyjar")
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
-                _claim =_context.claims.register2preferred[item]
+                _claim = _context.claims.register2preferred[item]
                 _support = _context.provider_info.get(_claim)
                 if _support is None:
                     logger.warning(f'Lacking support for "{item}"')
@@ -470,7 +470,7 @@ class Registration(Endpoint):
 
         # Add the client_secret as a symmetric key to the key jar
         if client_secret:
-            self.upstream_get('attribute', 'keyjar').add_symmetric(client_id, str(client_secret))
+            self.upstream_get("attribute", "keyjar").add_symmetric(client_id, str(client_secret))
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))

@@ -94,9 +94,9 @@ def max_age(request):
 
 def verify_uri(
     context: EndpointContext,
-        request: Union[dict, Message],
-        uri_type: str,
-        client_id: Optional[str] = None,
+    request: Union[dict, Message],
+    uri_type: str,
+    client_id: Optional[str] = None,
 ):
     """
     A redirect URI
@@ -226,10 +226,10 @@ def get_uri(context, request, uri_type):
 
 
 def authn_args_gather(
-        request: Union[AuthorizationRequest, dict],
-        authn_class_ref: str,
-        cinfo: dict,
-        **kwargs,
+    request: Union[AuthorizationRequest, dict],
+    authn_class_ref: str,
+    cinfo: dict,
+    **kwargs,
 ):
     """
     Gather information to be used by the authentication method
@@ -291,7 +291,10 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     resource_servers_per_client = kwargs["resource_servers_per_client"]
     client_id = request["client_id"]
 
-    if isinstance(resource_servers_per_client, dict) and client_id not in resource_servers_per_client:
+    if (
+        isinstance(resource_servers_per_client, dict)
+        and client_id not in resource_servers_per_client
+    ):
         return oauth2.AuthorizationErrorResponse(
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
@@ -360,7 +363,7 @@ class Authorization(Endpoint):
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
-        self.resource_indicators_config = kwargs.get('resource_indicators', None)
+        self.resource_indicators_config = kwargs.get("resource_indicators", None)
 
     def filter_request(self, context, req):
         return req
@@ -437,12 +440,9 @@ class Authorization(Endpoint):
                     raise ValueError("A request_uri outside the registered")
 
             # Fetch the request
-            _resp = context.httpc('GET', _request_uri, **context.httpc_params)
+            _resp = context.httpc("GET", _request_uri, **context.httpc_params)
             if _resp.status_code == 200:
-                args = {
-                    "keyjar": self.upstream_get('attribute', 'keyjar'),
-                    "issuer": client_id
-                }
+                args = {"keyjar": self.upstream_get("attribute", "keyjar"), "issuer": client_id}
                 _ver_request = self.request_cls().from_jwt(_resp.text, **args)
                 self.allowed_request_algorithms(
                     client_id,
@@ -518,8 +518,10 @@ class Authorization(Endpoint):
         else:
             request["redirect_uri"] = redirect_uri
 
-        if ("resource_indicators" in _cinfo
-                and "authorization_code" in _cinfo["resource_indicators"]):
+        if (
+            "resource_indicators" in _cinfo
+            and "authorization_code" in _cinfo["resource_indicators"]
+        ):
             resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
         else:
             resource_indicators_config = self.resource_indicators_config
@@ -540,9 +542,7 @@ class Authorization(Endpoint):
         kwargs = policy.get("kwargs", {})
 
         if kwargs.get("resource_servers_per_client", None) is None:
-            kwargs["resource_servers_per_client"] = {
-                request["client_id"]: request["client_id"]
-            }
+            kwargs["resource_servers_per_client"] = {request["client_id"]: request["client_id"]}
 
         if isinstance(function, str):
             try:
@@ -618,7 +618,7 @@ class Authorization(Endpoint):
         # identity is a dict or a json object
         # the value of 'uid' in the dictionary might be a base64 encoded (b64e) json object
         if isinstance(identity, dict):
-            _uid = as_unicode(identity['uid'])
+            _uid = as_unicode(identity["uid"])
             try:
                 _id = b64d(as_bytes(_uid))
             except Exception:
@@ -635,13 +635,13 @@ class Authorization(Endpoint):
             return identity
 
     def setup_auth(
-            self,
-            request: Optional[Union[Message, dict]],
-            redirect_uri: str,
-            cinfo: dict,
-            cookie: List[dict] = None,
-            acr: str = None,
-            **kwargs,
+        self,
+        request: Optional[Union[Message, dict]],
+        redirect_uri: str,
+        cinfo: dict,
+        cookie: List[dict] = None,
+        acr: str = None,
+        **kwargs,
     ) -> dict:
         """
 
@@ -765,12 +765,12 @@ class Authorization(Endpoint):
         return ""
 
     def response_mode(
-            self,
-            request: Union[dict, AuthorizationRequest],
-            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
-            return_uri: Optional[str] = "",
-            fragment_enc: Optional[bool] = None,
-            **kwargs,
+        self,
+        request: Union[dict, AuthorizationRequest],
+        response_args: Optional[Union[dict, AuthorizationResponse]] = None,
+        return_uri: Optional[str] = "",
+        fragment_enc: Optional[bool] = None,
+        **kwargs,
     ) -> dict:
         resp_mode = request["response_mode"]
         if resp_mode == "form_post":
@@ -849,11 +849,15 @@ class Authorization(Endpoint):
             if request.get("scope"):
                 scope = request.get("scope")
             if request.get("resource"):
-                resource_scopes = [_context.cdb[s]["scope"] for s in request.get("resource") if s in _context.cdb.keys() and _context.cdb[s].get("scope")]
+                resource_scopes = [
+                    _context.cdb[s]["scope"]
+                    for s in request.get("resource")
+                    if s in _context.cdb.keys() and _context.cdb[s].get("scope")
+                ]
                 resource_scopes = [item for sublist in resource_scopes for item in sublist]
 
             aresp["scope"] = _context.scopes_handler.filter_scopes(
-                list(set(scope+resource_scopes)), _sinfo["client_id"]
+                list(set(scope + resource_scopes)), _sinfo["client_id"]
             )
 
             rtype = set(request["response_type"][:])
@@ -1076,10 +1080,10 @@ class Authorization(Endpoint):
         return kwargs
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs,
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
     ):
         """The AuthorizationRequest endpoint
 

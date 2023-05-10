@@ -20,7 +20,8 @@ class TestEntity:
     @pytest.fixture(autouse=True)
     def setup(self):
         self.entity = Entity(
-            config=MINI_CONFIG.copy(), services={"xyz": {"class": "idpyoidc.client.service.Service"}}
+            config=MINI_CONFIG.copy(),
+            services={"xyz": {"class": "idpyoidc.client.service.Service"}},
         )
 
     def test_1(self):
@@ -66,7 +67,7 @@ def test_client_authn_default():
         "keys": {"key_defs": KEYSPEC, "read_only": True},
     }
 
-    entity = Entity(config=config, client_type='oidc')
+    entity = Entity(config=config, client_type="oidc")
 
     assert entity.get_context().client_authn_methods == {}
 
@@ -77,13 +78,15 @@ def test_client_authn_by_names():
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
-        "client_authn_methods": ['client_secret_basic', 'client_secret_post']
+        "client_authn_methods": ["client_secret_basic", "client_secret_post"],
     }
 
-    entity = Entity(config=config, client_type='oidc')
+    entity = Entity(config=config, client_type="oidc")
 
-    assert set(entity.get_context().client_authn_methods.keys()) == {'client_secret_basic',
-                                                                     'client_secret_post'}
+    assert set(entity.get_context().client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+    }
 
 
 class FooBar(ClientAuthnMethod):
@@ -101,20 +104,19 @@ def test_client_authn_full():
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
         "client_authn_methods": {
-            'client_secret_basic': {},
-            'client_secret_post': None,
-            'home_brew': {
-                'class': FooBar,
-                'kwargs': {'one': 'bar'}
-            }
-        }
+            "client_secret_basic": {},
+            "client_secret_post": None,
+            "home_brew": {"class": FooBar, "kwargs": {"one": "bar"}},
+        },
     }
 
-    entity = Entity(config=config, client_type='oidc')
+    entity = Entity(config=config, client_type="oidc")
 
-    assert set(entity.get_context().client_authn_methods.keys()) == {'client_secret_basic',
-                                                                    'client_secret_post',
-                                                                    'home_brew'}
+    assert set(entity.get_context().client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+        "home_brew",
+    }
 
 
 def test_service_specific():
@@ -123,24 +125,27 @@ def test_service_specific():
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
-        "client_authn_methods": ['client_secret_basic', 'client_secret_post']
+        "client_authn_methods": ["client_secret_basic", "client_secret_post"],
     }
 
-    entity = Entity(config=config, client_type='oidc',
-                    services={
-                        "xyz": {
-                            "class": "idpyoidc.client.service.Service",
-                            "kwargs": {
-                                "client_authn_methods": ['private_key_jwt']
-                            }
-                        }
-                    })
+    entity = Entity(
+        config=config,
+        client_type="oidc",
+        services={
+            "xyz": {
+                "class": "idpyoidc.client.service.Service",
+                "kwargs": {"client_authn_methods": ["private_key_jwt"]},
+            }
+        },
+    )
 
     # A specific does not change the general
-    assert set(entity.get_context().client_authn_methods.keys()) == {'client_secret_basic',
-                                                                    'client_secret_post'}
+    assert set(entity.get_context().client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+    }
 
-    assert set(entity.get_service('').client_authn_methods.keys()) == {'private_key_jwt'}
+    assert set(entity.get_service("").client_authn_methods.keys()) == {"private_key_jwt"}
 
 
 def test_service_specific2():
@@ -149,26 +154,28 @@ def test_service_specific2():
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
-        "client_authn_methods": ['client_secret_basic', 'client_secret_post']
+        "client_authn_methods": ["client_secret_basic", "client_secret_post"],
     }
 
-    entity = Entity(config=config, client_type='oidc',
-                    services={
-                        "xyz": {
-                            "class": "idpyoidc.client.service.Service",
-                            "kwargs": {
-                                "client_authn_methods": {
-                                    'home_brew': {
-                                        'class': FooBar,
-                                        'kwargs': {'one': 'bar'}
-                                    }
-                                }
-                            }
-                        }
-                    })
+    entity = Entity(
+        config=config,
+        client_type="oidc",
+        services={
+            "xyz": {
+                "class": "idpyoidc.client.service.Service",
+                "kwargs": {
+                    "client_authn_methods": {
+                        "home_brew": {"class": FooBar, "kwargs": {"one": "bar"}}
+                    }
+                },
+            }
+        },
+    )
 
     # A specific does not change the general
-    assert set(entity.get_context().client_authn_methods.keys()) == {'client_secret_basic',
-                                                                    'client_secret_post'}
+    assert set(entity.get_context().client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+    }
 
-    assert set(entity.get_service('').client_authn_methods.keys()) == {'home_brew'}
+    assert set(entity.get_service("").client_authn_methods.keys()) == {"home_brew"}

@@ -117,7 +117,7 @@ class ServerMetadata(Service):
         # If I already have a Key Jar then I'll add then provider keys to
         # that. Otherwise, a new Key Jar is minted
         try:
-            _keyjar = self.upstream_get('attribute', 'keyjar')
+            _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar is None:
                 _keyjar = KeyJar()
         except KeyError:

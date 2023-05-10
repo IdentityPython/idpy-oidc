@@ -91,7 +91,6 @@ def full_path(local_file):
 
 @pytest.mark.parametrize("jwt_token", [True, False])
 class TestEndpoint:
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, jwt_token):
         conf = {
@@ -205,7 +204,7 @@ class TestEndpoint:
                 },
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         server.keyjar.import_jwks_as_json(
             server.keyjar.export_jwks_as_json(private=True), context.issuer
@@ -266,16 +265,14 @@ class TestEndpoint:
         )
 
         assert isinstance(_req, TokenIntrospectionRequest)
-        assert set(_req.keys()) == {"token", "client_id", "client_secret", 'authenticated'}
+        assert set(_req.keys()) == {"token", "client_id", "client_secret", "authenticated"}
 
     def test_parse_with_wrong_client_authn(self):
         access_token = self._get_access_token(AUTH_REQ)
 
         _basic_token = "{}:{}".format(
             "client_1",
-            self.introspection_endpoint.upstream_get("context").cdb["client_1"][
-                "client_secret"
-            ],
+            self.introspection_endpoint.upstream_get("context").cdb["client_1"]["client_secret"],
         )
         _basic_token = as_unicode(base64.b64encode(as_bytes(_basic_token)))
         _basic_authz = "Basic {}".format(_basic_token)

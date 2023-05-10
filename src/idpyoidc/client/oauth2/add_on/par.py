@@ -21,14 +21,14 @@ def push_authorization(request_args, service, **kwargs):
 
     _context = service.upstream_get("context")
     method_args = _context.add_on["pushed_authorization"]
-    if method_args['apply'] is False:
+    if method_args["apply"] is False:
         return request_args
 
     _http_method = method_args["http_client"]
 
     # Add client authentication if needed
     _headers = {}
-    authn_method = method_args['authn_method']
+    authn_method = method_args["authn_method"]
     if authn_method:
         if authn_method not in _context.client_authn_methods:
             _context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
@@ -36,15 +36,18 @@ def push_authorization(request_args, service, **kwargs):
         _args = {}
         if _context.issuer:
             _args["iss"] = _context.issuer
-        _headers = service.get_headers(request_args, http_method=_http_method, authn_method=authn_method,
-                                       **_args)
+        _headers = service.get_headers(
+            request_args, http_method=_http_method, authn_method=authn_method, **_args
+        )
 
     # construct the message body
     if method_args["body_format"] == "urlencoded":
         _body = request_args.to_urlencoded()
     else:
-        _jwt = JWT(key_jar=service.upstream_get('attribute', 'keyjar'),
-                   iss=_context.claims.prefer['client_id'])
+        _jwt = JWT(
+            key_jar=service.upstream_get("attribute", "keyjar"),
+            iss=_context.claims.prefer["client_id"],
+        )
         _jws = _jwt.pack(request_args.to_dict())
 
         _msg = Message(request=_jws)
@@ -58,7 +61,7 @@ def push_authorization(request_args, service, **kwargs):
         method="GET",
         url=_context.provider_info["pushed_authorization_request_endpoint"],
         data=_body,
-        headers = _headers
+        headers=_headers,
     )
 
     if resp.status_code == 200:
@@ -69,15 +72,20 @@ def push_authorization(request_args, service, **kwargs):
         request_args = _req
     else:
         raise ConnectionError(
-            f'Could not connect to '
-            f'{_context.provider_info["pushed_authorization_request_endpoint"]}')
+            f"Could not connect to "
+            f'{_context.provider_info["pushed_authorization_request_endpoint"]}'
+        )
 
     return request_args
 
 
 def add_support(
-        services, body_format="jws", signing_algorithm="RS256", http_client=None,
-        merge_rule="strict", authn_method=''
+    services,
+    body_format="jws",
+    signing_algorithm="RS256",
+    http_client=None,
+    merge_rule="strict",
+    authn_method="",
 ):
     """
     Add the necessary pieces to support Pushed authorization.
@@ -93,10 +101,10 @@ def add_support(
         _http_client = request
     else:
         if isinstance(http_client, dict):
-            if 'class' in http_client:
-                _http_client = instantiate(http_client['class'], **http_client.get('kwargs', {}))
+            if "class" in http_client:
+                _http_client = instantiate(http_client["class"], **http_client.get("kwargs", {}))
             else:
-                _http_client = importer(http_client['function'])
+                _http_client = importer(http_client["function"])
         else:
             _http_client = importer(http_client)
 
@@ -106,8 +114,8 @@ def add_support(
         "signing_algorithm": signing_algorithm,
         "http_client": _http_client,
         "merge_rule": merge_rule,
-        'apply': True,
-        'authn_method': authn_method
+        "apply": True,
+        "authn_method": authn_method,
     }
 
     _service.post_construct.append(push_authorization)

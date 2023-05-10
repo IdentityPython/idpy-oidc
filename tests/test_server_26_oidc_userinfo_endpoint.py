@@ -36,8 +36,7 @@ KEYDEFS = [
 #     ["code", "id_token"],
 # ]
 
-CAPABILITIES = {
-}
+CAPABILITIES = {}
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
@@ -74,7 +73,7 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            'claims_supported': [
+            "claims_supported": [
                 "address",
                 "birthdate",
                 "email",
@@ -95,7 +94,8 @@ class TestEndpoint(object):
                 "sub",
                 "updated_at",
                 "website",
-                "zoneinfo"],
+                "zoneinfo",
+            ],
             "grant_types_supported": [
                 "authorization_code",
                 "implicit",
@@ -208,8 +208,15 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types_supported": ["code", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access",
-                               "research_and_scholarship"]
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "research_and_scholarship",
+            ],
         }
         self.endpoint = self.server.get_endpoint("userinfo")
         self.session_manager = self.context.session_manager
@@ -250,31 +257,29 @@ class TestEndpoint(object):
 
     def test_init(self):
         assert self.endpoint
-        assert set(
-            self.endpoint.upstream_get("context").provider_info["claims_supported"]
-        ) == {
-                   "address",
-                   "birthdate",
-                   "email",
-                   "email_verified",
-                   "eduperson_scoped_affiliation",
-                   "family_name",
-                   "gender",
-                   "given_name",
-                   "locale",
-                   "middle_name",
-                   "name",
-                   "nickname",
-                   "phone_number",
-                   "phone_number_verified",
-                   "picture",
-                   "preferred_username",
-                   "profile",
-                   "sub",
-                   "updated_at",
-                   "website",
-                   "zoneinfo",
-               }
+        assert set(self.endpoint.upstream_get("context").provider_info["claims_supported"]) == {
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "eduperson_scoped_affiliation",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "sub",
+            "updated_at",
+            "website",
+            "zoneinfo",
+        }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
@@ -462,7 +467,7 @@ class TestEndpoint(object):
             "email",
             "family_name",
             "name",
-            "sub"
+            "sub",
         }
 
     def test_allowed_scopes_per_client(self):
@@ -629,7 +634,7 @@ class TestEndpoint(object):
         ec.userinfo = None
 
         _auth_req = AUTH_REQ.copy()
-        _auth_req["scope"] = ['openid', 'email']
+        _auth_req["scope"] = ["openid", "email"]
 
         session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]
@@ -673,10 +678,7 @@ class TestEndpoint(object):
             return {"custom": "policy"}
 
         self.context.cdb["client_1"]["userinfo"] = {
-            "policy": {
-                "function": _custom_validate_userinfo_policy,
-                "kwargs": {}
-            }
+            "policy": {"function": _custom_validate_userinfo_policy, "kwargs": {}}
         }
 
         _req = self.endpoint.parse_request({}, http_info=http_info)
@@ -685,4 +687,3 @@ class TestEndpoint(object):
         res = self.endpoint.do_response(request=_req, **args)
         _response = json.loads(res["response"])
         assert "custom" in _response
-

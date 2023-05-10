@@ -57,9 +57,7 @@ def include_session_id(context, client_id, where):
     return True
 
 
-def get_sign_and_encrypt_algorithms(
-    context, client_info, payload_type, sign=False, encrypt=False
-):
+def get_sign_and_encrypt_algorithms(context, client_info, payload_type, sign=False, encrypt=False):
     args = {"sign": sign, "encrypt": encrypt}
     if sign:
         try:
@@ -257,10 +255,11 @@ class IDToken(Token):
             lifetime = self.lifetime
 
         _jwt = JWT(
-            self.upstream_get('attribute', 'keyjar'),
+            self.upstream_get("attribute", "keyjar"),
             iss=_context.issuer,
             lifetime=lifetime,
-            **alg_dict)
+            **alg_dict,
+        )
 
         return _jwt.pack(_payload, recv=client_id)
 
@@ -324,8 +323,8 @@ class IDToken(Token):
         alg_dict = get_sign_and_encrypt_algorithms(_context, client_info, "id_token", sign=True)
 
         verifier = JWT(
-            key_jar=self.upstream_get('attribute', 'keyjar'),
-            allowed_sign_algs=alg_dict["sign_alg"])
+            key_jar=self.upstream_get("attribute", "keyjar"), allowed_sign_algs=alg_dict["sign_alg"]
+        )
         try:
             _payload = verifier.unpack(token)
         except JWSException:

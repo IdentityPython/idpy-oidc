@@ -72,22 +72,21 @@ class Registration(Service):
         _client_id = _context.get_usage("client_id")
         if _client_id:
             _context.client_id = _client_id
-            _keyjar = self.upstream_get('attribute', 'keyjar')
+            _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar:
                 if _client_id not in _keyjar:
                     _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
             _client_secret = _context.get_usage("client_secret")
             if _client_secret:
                 if not _keyjar:
-                    _entity = self.upstream_get('unit')
+                    _entity = self.upstream_get("unit")
                     _keyjar = _entity.keyjar = KeyJar()
 
                 _context.client_secret = _client_secret
                 _keyjar.add_symmetric("", _client_secret)
                 _keyjar.add_symmetric(_client_id, _client_secret)
                 try:
-                    _context.set_usage("client_secret_expires_at",
-                                       resp["client_secret_expires_at"])
+                    _context.set_usage("client_secret_expires_at", resp["client_secret_expires_at"])
                 except KeyError:
                     pass
 

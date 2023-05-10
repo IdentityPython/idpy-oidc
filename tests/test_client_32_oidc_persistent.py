@@ -67,9 +67,7 @@ class TestClient(object):
 
         # Bind access code to state
         req_args = {}
-        msg = client_2.get_service("accesstoken").construct(
-            request_args=req_args, state=_state
-        )
+        msg = client_2.get_service("accesstoken").construct(request_args=req_args, state=_state)
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -89,7 +87,7 @@ class TestClient(object):
             redirect_uri="https://example.com/cli/authz_cb", state=_state
         )
 
-        client_1.get_context().cstate.update(_state,auth_request)
+        client_1.get_context().cstate.update(_state, auth_request)
 
         # Client 2 carries on
         client_2 = RP(config=CONF)
@@ -100,16 +98,14 @@ class TestClient(object):
         client_2.get_context().cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.get_context().cstate.update(_state,token_response )
+        client_2.get_context().cstate.update(_state, token_response)
 
         # Back to Client 1
         _state_dump = client_2.get_context().dump()
         client_1.get_context().load(_state_dump)
 
         req_args = {}
-        msg = client_1.get_service("refresh_token").construct(
-            request_args=req_args, state=_state
-        )
+        msg = client_1.get_service("refresh_token").construct(request_args=req_args, state=_state)
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -133,10 +129,10 @@ class TestClient(object):
         client_2.get_context().load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.get_context().cstate.update(_state,auth_response)
+        client_2.get_context().cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        client_2.get_context().cstate.update(_state,token_response)
+        client_2.get_context().cstate.update(_state, token_response)
 
         # Back to Client 1
         _state_dump = client_2.get_context().dump()

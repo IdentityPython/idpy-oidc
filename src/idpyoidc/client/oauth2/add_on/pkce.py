@@ -69,7 +69,7 @@ def add_code_verifier(request_args, service, **kwargs):
     _state = request_args.get("state")
     if _state is None:
         _state = kwargs.get("state")
-    _item = service.upstream_get("context").cstate.get_set(_state, claim=['code_verifier'])
+    _item = service.upstream_get("context").cstate.get_set(_state, claim=["code_verifier"])
     request_args.update(_item)
     return request_args
 

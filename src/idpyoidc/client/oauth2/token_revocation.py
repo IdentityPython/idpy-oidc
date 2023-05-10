@@ -18,7 +18,7 @@ class TokenRevocation(Service):
     response_cls = oauth2.TokenRevocationResponse
     error_msg = oauth2.TokenRevocationErrorResponse
     endpoint_name = "revocation_endpoint"
-    response_body_type = 'text'
+    response_body_type = "text"
     synchronous = True
     service_name = "token_revocation"
     default_authn_method = "client_secret_basic"

@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
-
     def __init__(self, endpoint, config=None):
         TokenEndpointHelper.__init__(self, endpoint, config)
         self.user_db = {}
         if config:
-            _db = config.get('db')
+            _db = config.get("db")
             if _db:
                 _db_kwargs = _db.get("kwargs", {})
                 self.user_db = instantiate(_db["class"], **_db_kwargs)
@@ -30,18 +29,18 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
 
         # verify the client and the user
 
-        client_id = req['client_id']
+        client_id = req["client_id"]
         _cinfo = _context.cdb.get(client_id)
         if not _cinfo:
-            logger.error('Unknown client')
+            logger.error("Unknown client")
             return self.error_cls(error="invalid_grant", error_description="Unknown client")
 
-        if _cinfo['client_secret'] != req['client_secret']:
+        if _cinfo["client_secret"] != req["client_secret"]:
             logger.warning("Client secret mismatch")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
         _auth_method = None
-        _acr = kwargs.get('acr')
+        _acr = kwargs.get("acr")
         if _acr:
             _auth_method = _context.authn_broker.pick(_acr)
         else:
@@ -51,14 +50,15 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
                 logger.exception(f"An error occurred while picking the authN broker: {exc}")
 
         if not _auth_method:
-            return self.error_cls(error="invalid_request",
-                                  error_description="Can't authenticate user")
+            return self.error_cls(
+                error="invalid_request", error_description="Can't authenticate user"
+            )
 
         authn = _auth_method["method"]
         # authn_class_ref = _auth_method["acr"]
 
         try:
-            _username = authn.verify(username=req['username'], password=req['password'])
+            _username = authn.verify(username=req["username"], password=req["password"])
         except FailedAuthentication:
             logger.warning("User password did not match")
             return self.error_cls(error="invalid_grant", error_description="Wrong user")
@@ -68,7 +68,7 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
             _session_info = _mngr.get([_username, client_id])
             _grant = _session_info["grant"]
         except KeyError:
-            logger.debug('No previous session')
+            logger.debug("No previous session")
             branch_id = _mngr.add_grant([_username, client_id])
             _session_info = _mngr.get_session_info(branch_id)
 
@@ -76,7 +76,7 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get('allowed_scopes', [])
+        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
@@ -90,7 +90,7 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
         _resp = {
             "access_token": access_token.value,
             "token_type": access_token.token_class,
-            "scope": _allowed
+            "scope": _allowed,
         }
 
         if access_token.expires_at:
@@ -99,9 +99,6 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-            self,
-            request: Union[Message, dict],
-            client_id: Optional[str] = "",
-            **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         return request

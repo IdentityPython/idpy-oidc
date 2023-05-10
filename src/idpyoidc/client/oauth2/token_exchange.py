@@ -27,7 +27,7 @@ class TokenExchange(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
-    _include = {'grant_types_supported': ['urn:ietf:params:oauth:grant-type:token-exchange']}
+    _include = {"grant_types_supported": ["urn:ietf:params:oauth:grant-type:token-exchange"]}
 
     def __init__(self, upstream_get, conf=None):
         Service.__init__(self, upstream_get, conf=conf)
@@ -48,21 +48,21 @@ class TokenExchange(Service):
         if request_args is None:
             request_args = {}
 
-        if 'subject_token' not in request_args:
+        if "subject_token" not in request_args:
             try:
                 _key = get_state_parameter(request_args, kwargs)
             except MissingParameter:
                 raise MissingRequiredAttribute("subject_token")
 
-            parameters = {'access_token', 'scope'}
+            parameters = {"access_token", "scope"}
 
             _current = self.upstream_get("service_context").cstate
 
             _args = _current.get_set(_key, claim=parameters)
 
             request_args["subject_token"] = _args["access_token"]
-            request_args["subject_token_type"] = 'urn:ietf:params:oauth:token-type:access_token'
-            if 'scope' not in request_args and "scope" in _args:
+            request_args["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token"
+            if "scope" not in request_args and "scope" in _args:
                 request_args["scope"] = _args["scope"]
 
         return request_args, post_args

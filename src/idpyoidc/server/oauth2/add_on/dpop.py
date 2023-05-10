@@ -19,6 +19,7 @@ from idpyoidc.server.client_authn import BearerHeader
 
 logger = logging.getLogger(__name__)
 
+
 class DPoPProof(Message):
     c_param = {
         # header
@@ -30,7 +31,7 @@ class DPoPProof(Message):
         "htm": SINGLE_REQUIRED_STRING,
         "htu": SINGLE_REQUIRED_STRING,
         "iat": SINGLE_REQUIRED_INT,
-        'ath': SINGLE_OPTIONAL_STRING
+        "ath": SINGLE_OPTIONAL_STRING,
     }
     header_params = {"typ", "alg", "jwk"}
     body_params = {"jti", "htm", "htu", "iat"}
@@ -155,14 +156,14 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     if not _dpop.key:
         _dpop.key = key_from_jwk_dict(_dpop["jwk"])
 
-    ath = sha256(auth_info['token'].encode('utf8')).hexdigest()
+    ath = sha256(auth_info["token"].encode("utf8")).hexdigest()
 
     if _dpop["ath"] != ath:
         raise ValueError("'ath' in DPoP does not match the token hash")
 
     # Need something I can add as a reference when minting tokens
     request["dpop_jkt"] = as_unicode(_dpop.key.thumbprint("SHA-256"))
-    logger.debug('DPoP verified')
+    logger.debug("DPoP verified")
     return request
 
 
@@ -194,10 +195,10 @@ def add_support(endpoint: dict, **kwargs):
     ] = _algs_supported
 
     _context = _token_endp.upstream_get("context")
-    _context.add_on['dpop'] = {'algs_supported': _algs_supported}
-    _context.client_authn_methods['dpop'] = DPoPClientAuth
+    _context.add_on["dpop"] = {"algs_supported": _algs_supported}
+    _context.client_authn_methods["dpop"] = DPoPClientAuth
 
-    _userinfo_endpoint = endpoint.get('userinfo')
+    _userinfo_endpoint = endpoint.get("userinfo")
     if _userinfo_endpoint:
         _userinfo_endpoint.post_parse_request.append(userinfo_post_parse_request)
 
@@ -213,18 +214,20 @@ class DPoPClientAuth(BearerHeader):
             return True
         return False
 
-    def verify(self,
-               request: Optional[Union[dict, Message]] = None,
-               authorization_token: Optional[str] = None,
-               endpoint=None,  # Optional[Endpoint]
-               get_client_id_from_token: Optional[Callable] = None,
-               **kwargs,
-               ):
+    def verify(
+        self,
+        request: Optional[Union[dict, Message]] = None,
+        authorization_token: Optional[str] = None,
+        endpoint=None,  # Optional[Endpoint]
+        get_client_id_from_token: Optional[Callable] = None,
+        **kwargs,
+    ):
         # info contains token and client_id
-        info = BearerHeader._verify(self, request, authorization_token, endpoint,
-                                    get_client_id_from_token, **kwargs)
+        info = BearerHeader._verify(
+            self, request, authorization_token, endpoint, get_client_id_from_token, **kwargs
+        )
         _context = self.upstream_get("context")
-        return {"client_id": ''}
+        return {"client_id": ""}
         # if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
         #     return {"client_id": client_info["id"]}
         # else:

@@ -76,10 +76,7 @@ class Service(ImpExp):
     _callback_path = {}
 
     def __init__(
-            self,
-            upstream_get: Callable,
-            conf: Optional[Union[dict, Configuration]] = None,
-            **kwargs
+        self, upstream_get: Callable, conf: Optional[Union[dict, Configuration]] = None, **kwargs
     ):
         ImpExp.__init__(self)
 
@@ -96,7 +93,7 @@ class Service(ImpExp):
                 "http_method",
                 "request_body_type",
                 "response_body_type",
-                "default_authn_method"
+                "default_authn_method",
             ]:
                 if param in conf:
                     setattr(self, param, conf[param])
@@ -113,13 +110,15 @@ class Service(ImpExp):
             if self.default_authn_method:
                 if self.default_authn_method not in self.client_authn_methods:
                     self.client_authn_methods[self.default_authn_method] = single_authn_setup(
-                        self.default_authn_method, None)
+                        self.default_authn_method, None
+                    )
 
         else:
             self.conf = {}
             if self.default_authn_method:
                 self.client_authn_methods[self.default_authn_method] = single_authn_setup(
-                    self.default_authn_method, None)
+                    self.default_authn_method, None
+                )
 
         # pull in all the modifiers
         self.pre_construct = []
@@ -223,7 +222,7 @@ class Service(ImpExp):
 
         return request_args
 
-    def update_service_context(self, resp: Message, key: Optional[str] = '', **kwargs):
+    def update_service_context(self, resp: Message, key: Optional[str] = "", **kwargs):
         """
         A method run after the response has been parsed and verified.
 
@@ -331,7 +330,7 @@ class Service(ImpExp):
         return self.upstream_get("context").provider_info[self.endpoint_name]
 
     def get_authn_header(
-            self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
+        self, request: Union[dict, Message], authn_method: Optional[str] = "", **kwargs
     ) -> dict:
         """
         Construct an authorization specification to be sent in the
@@ -363,11 +362,11 @@ class Service(ImpExp):
         return self.default_authn_method
 
     def get_headers(
-            self,
-            request: Union[dict, Message],
-            http_method: str,
-            authn_method: Optional[str] = "",
-            **kwargs,
+        self,
+        request: Union[dict, Message],
+        http_method: str,
+        authn_method: Optional[str] = "",
+        **kwargs,
     ) -> dict:
         """
 
@@ -383,9 +382,9 @@ class Service(ImpExp):
             request, authn_method=authn_method, authn_endpoint=self.endpoint_name, **kwargs
         )
 
-        _authz = _headers.get('Authorization')
-        if _authz and _authz.startswith('Bearer'):
-            kwargs["token"] = _authz.split(' ')[1]
+        _authz = _headers.get("Authorization")
+        if _authz and _authz.startswith("Bearer"):
+            kwargs["token"] = _authz.split(" ")[1]
 
         for meth in self.construct_extra_headers:
             _headers = meth(
@@ -401,7 +400,7 @@ class Service(ImpExp):
         return _headers
 
     def get_request_parameters(
-            self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
+        self, request_args=None, method="", request_body_type="", authn_method="", **kwargs
     ) -> dict:
         """
         Builds the request message and constructs the HTTP headers.
@@ -503,8 +502,7 @@ class Service(ImpExp):
         return response
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -515,7 +513,7 @@ class Service(ImpExp):
         _context = self.upstream_get("context")
         kwargs = {
             "iss": _context.issuer,
-            "keyjar": self.upstream_get('attribute', 'keyjar'),
+            "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
             "client_id": _context.get_client_id(),
         }
@@ -533,7 +531,7 @@ class Service(ImpExp):
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
 
-        _jwt = JWT(key_jar=self.upstream_get('attribute', 'keyjar'), **args)
+        _jwt = JWT(key_jar=self.upstream_get("attribute", "keyjar"), **args)
         _jwt.iss = _context.get_client_id()
         return _jwt.unpack(info)
 
@@ -561,12 +559,12 @@ class Service(ImpExp):
         return resp
 
     def parse_response(
-            self,
-            info,
-            sformat: Optional[str] = "",
-            state: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
-            **kwargs,
+        self,
+        info,
+        sformat: Optional[str] = "",
+        state: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
+        **kwargs,
     ):
         """
         This the start of a pipeline that will:
@@ -607,8 +605,8 @@ class Service(ImpExp):
                 info = json.loads(info)
             sformat = "dict"
         elif sformat == "jwe":
-            _keyjar = self.upstream_get("attribute", 'keyjar')
-            _client_id = self.upstream_get("attribute", 'client_id')
+            _keyjar = self.upstream_get("attribute", "keyjar")
+            _client_id = self.upstream_get("attribute", "client_id")
             resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
@@ -628,14 +626,14 @@ class Service(ImpExp):
                 LOGGER.error("Missing or faulty response")
                 raise ResponseError("Missing or faulty response")
 
-            if sformat == 'text':
+            if sformat == "text":
                 resp = info
             else:
                 resp = self._do_response(info, sformat, **kwargs)
                 LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
 
         # is this an error message
-        if sformat == 'text':
+        if sformat == "text":
             pass
         elif is_error_message(resp):
             LOGGER.debug("Error response: %s", resp)
@@ -681,19 +679,21 @@ class Service(ImpExp):
     def get_uri(base_url, path, hex):
         return f"{base_url}/{path}/{hex}"
 
-    def construct_uris(self,
-                       base_url: str,
-                       hex: bytes,
-                       context: OidcContext,
-                       targets: Optional[List[str]] = None,
-                       response_types: Optional[list] = None):
+    def construct_uris(
+        self,
+        base_url: str,
+        hex: bytes,
+        context: OidcContext,
+        targets: Optional[List[str]] = None,
+        response_types: Optional[list] = None,
+    ):
         if not targets:
             targets = self._callback_path.keys()
 
         if not targets:
             return {}
 
-        _callback_uris = context.get_preference('callback_uris', {})
+        _callback_uris = context.get_preference("callback_uris", {})
         for uri in targets:
             if uri in _callback_uris:
                 pass
