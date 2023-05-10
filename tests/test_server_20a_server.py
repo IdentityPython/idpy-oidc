@@ -1,16 +1,16 @@
+from copy import copy
+from copy import deepcopy
 import io
 import json
 import os
-from copy import copy
-from copy import deepcopy
 
-import yaml
 from cryptojwt.key_jar import build_keyjar
+import yaml
 
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.login_hint import LoginHintLookup
-from idpyoidc.server.oidc.add_on.pkce import add_pkce_support
+from idpyoidc.server.oauth2.add_on.pkce import add_support
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.registration import Registration
@@ -73,7 +73,7 @@ CONF = {
         }
     },
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
-    "add_on": {"pkce": {"function": add_pkce_support, "kwargs": {"essential": True}}},
+    "add_on": {"pkce": {"function": add_support, "kwargs": {"essential": True}}},
     "template_dir": "template",
     "login_hint_lookup": {"class": LoginHintLookup, "kwargs": {}},
     "session_params": SESSION_PARAMS,

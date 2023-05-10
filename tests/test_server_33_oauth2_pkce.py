@@ -17,11 +17,10 @@ from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
-from idpyoidc.server.oidc.add_on.pkce import CC_METHOD
-from idpyoidc.server.oidc.add_on.pkce import add_pkce_support
+from idpyoidc.server.oauth2.add_on.pkce import CC_METHOD
+from idpyoidc.server.oauth2.add_on.pkce import add_support
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
-
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
@@ -416,7 +415,7 @@ def test_missing_authz_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.get_endpoints())
+    add_support(server.get_endpoints())
 
     assert "pkce" not in server.get_context().args
 
@@ -441,6 +440,6 @@ def test_missing_token_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_pkce_support(server.get_endpoints())
+    add_support(server.get_endpoints())
 
     assert "pkce" not in server.get_context().args
