@@ -592,6 +592,7 @@ class Service(ImpExp):
 
         resp = None
         if sformat == "jose":  # can be jwe, jws or json
+            # the checks for JWS and JWE will be replaced with functions from cryptojwt
             try:
                 if jws_factory(info):
                     info = self._do_jwt(info)
@@ -600,7 +601,7 @@ class Service(ImpExp):
                     if jwe_factory(info):
                         info = self._do_jwt(info)
                 except:
-                    pass
+                    LOGGER.debug('jwe detected')
             if info and isinstance(info, str):
                 info = json.loads(info)
             sformat = "dict"
