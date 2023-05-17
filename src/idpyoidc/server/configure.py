@@ -80,12 +80,12 @@ OP_DEFAULT_CONFIG = {
                 "request_uri_parameter_supported": True,
                 "response_types_supported": [
                     "code",
-                    "token",
+                    # "token",
                     "id_token",
-                    "code token",
+                    # "code token",
                     "code id_token",
-                    "id_token token",
-                    "code id_token token",
+                    # "id_token token",
+                    # "code id_token token",
                     # "none"
                 ],
                 "response_modes_supported": ["query", "fragment", "form_post"],
@@ -151,12 +151,12 @@ class EntityConfiguration(Base):
         "httpc_params": {},
         "issuer": "",
         "key_conf": None,
-        'preference': {},
+        "preference": {},
         "session_params": None,
         "template_dir": None,
         "token_handler_args": {},
         "userinfo": None,
-        "scopes_handler": None
+        "scopes_handler": None,
     }
 
     def __init__(
@@ -168,7 +168,7 @@ class EntityConfiguration(Base):
         port: Optional[int] = 0,
         file_attributes: Optional[List[str]] = None,
         dir_attributes: Optional[List[str]] = None,
-        upstream_get: Optional[Callable] = None
+        upstream_get: Optional[Callable] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -280,7 +280,7 @@ class ASConfiguration(EntityConfiguration):
 DEFAULT_EXTENDED_CONF = {
     "add_on": {
         "pkce": {
-            "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
+            "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
             "kwargs": {"essential": False, "code_challenge_method": "S256 S384 S512"},
         },
         "claims": {
@@ -349,9 +349,7 @@ DEFAULT_EXTENDED_CONF = {
             "refresh_token",
         ],
     },
-    "scopes_handler": {
-        "class": "idpyoidc.server.scopes.Scopes"
-    },
+    "scopes_handler": {"class": "idpyoidc.server.scopes.Scopes"},
     "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
@@ -417,12 +415,12 @@ DEFAULT_EXTENDED_CONF = {
                 "request_uri_parameter_supported": True,
                 "response_types_supported": [
                     "code",
-                    "token",
+                    # "token",
                     "id_token",
-                    "code token",
+                    # "code token",
                     "code id_token",
-                    "id_token token",
-                    "code id_token token",
+                    # "id_token token",
+                    # "code id_token token",
                     # "none"
                 ],
                 "response_modes_supported": ["query", "fragment", "form_post"],

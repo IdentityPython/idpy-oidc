@@ -28,14 +28,15 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     if "redirect_uris" not in request_args:
         # Callbacks is a dictionary with callback type 'code', 'implicit',
         # 'form_post' as keys.
-        _callback = _work_environment.get_preference('callback')
+        _callback = _work_environment.get_preference("callback")
         if _callback:
             # Filter out local additions.
             _uris = [v for k, v in _callback.items() if not k.startswith("__")]
             request_args["redirect_uris"] = _uris
         else:
             request_args["redirect_uris"] = _work_environment.get_preference(
-                "redirect_uris", _work_environment.supports.get('redirect_uris'))
+                "redirect_uris", _work_environment.supports.get("redirect_uris")
+            )
 
     return request_args, {}
 
@@ -52,13 +53,14 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     def __init__(self, upstream_get, conf=None):
         server_metadata.ServerMetadata.__init__(self, upstream_get, conf=conf)
 
-    def update_service_context(self, resp, key: Optional[str] = '', **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         _context = self.upstream_get("context")
         self._update_service_context(resp)
         _context.map_supported_to_preferred(resp)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
-            _jwks = self.upstream_get('attribute', 'keyjar').export_jwks_as_json(
-                issuer=resp["issuer"])
+            _jwks = self.upstream_get("attribute", "keyjar").export_jwks_as_json(
+                issuer=resp["issuer"]
+            )
             logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))
 
     def match_preferences(self, pcr=None, issuer=None):

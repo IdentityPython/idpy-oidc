@@ -37,22 +37,23 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
-    client_type = 'oauth2'
+    client_type = "oauth2"
+
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
-            config: Optional[Union[dict, Configuration]] = None,
-            services: Optional[dict] = None,
-            httpc: Optional[Callable] = None,
-            httpc_params: Optional[dict] = None,
-            context: Optional[OidcContext] = None,
-            upstream_get: Optional[Callable] = None,
-            key_conf: Optional[dict] = None,
-            entity_id: Optional[str] = '',
-            verify_ssl: Optional[bool] = True,
-            jwks_uri: Optional[str] = "",
-            client_type: Optional[str] = "",
-            **kwargs
+        self,
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        services: Optional[dict] = None,
+        httpc: Optional[Callable] = None,
+        httpc_params: Optional[dict] = None,
+        context: Optional[OidcContext] = None,
+        upstream_get: Optional[Callable] = None,
+        key_conf: Optional[dict] = None,
+        entity_id: Optional[str] = "",
+        verify_ssl: Optional[bool] = True,
+        jwks_uri: Optional[str] = "",
+        client_type: Optional[str] = "",
+        **kwargs
     ):
         """
 
@@ -75,9 +76,9 @@ class Client(Entity):
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
             if httpc_params:
-                httpc_params['verify'] = False
+                httpc_params["verify"] = False
             else:
-                httpc_params = {'verify': False}
+                httpc_params = {"verify": False}
 
         Entity.__init__(
             self,
@@ -91,7 +92,7 @@ class Client(Entity):
             context=context,
             upstream_get=upstream_get,
             key_conf=key_conf,
-            entity_id=entity_id
+            entity_id=entity_id,
         )
 
         self.httpc = httpc or request
@@ -105,12 +106,12 @@ class Client(Entity):
             do_add_ons(_add_ons, self._service)
 
     def do_request(
-            self,
-            request_type: str,
-            response_body_type: Optional[str] = "",
-            request_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
-            **kwargs
+        self,
+        request_type: str,
+        response_body_type: Optional[str] = "",
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
+        **kwargs
     ):
         _srv = self._service[request_type]
 
@@ -133,14 +134,14 @@ class Client(Entity):
         self.get_context().set("client_id", client_id)
 
     def get_response(
-            self,
-            service: Service,
-            url: str,
-            method: Optional[str] = "GET",
-            body: Optional[dict] = None,
-            response_body_type: Optional[str] = "",
-            headers: Optional[dict] = None,
-            **kwargs
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
     ):
         """
 
@@ -163,7 +164,7 @@ class Client(Entity):
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
-                kwargs["keyjar"] = self.get_attribute('keyjar')
+                kwargs["keyjar"] = self.get_attribute("keyjar")
             if not response_body_type:
                 response_body_type = service.response_body_type
 
@@ -176,14 +177,14 @@ class Client(Entity):
         return self.parse_request_response(service, resp, response_body_type, **kwargs)
 
     def service_request(
-            self,
-            service: Service,
-            url: str,
-            method: Optional[str] = "GET",
-            body: Optional[dict] = None,
-            response_body_type: Optional[str] = "",
-            headers: Optional[dict] = None,
-            **kwargs
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
     ) -> Message:
         """
         The method that sends the request and handles the response returned.
@@ -217,7 +218,7 @@ class Client(Entity):
         if "error" in response:
             pass
         else:
-            service.update_service_context(response, key=kwargs.get('state'), **kwargs)
+            service.update_service_context(response, key=kwargs.get("state"), **kwargs)
         return response
 
     def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):

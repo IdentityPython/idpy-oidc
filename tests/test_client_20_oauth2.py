@@ -65,7 +65,7 @@ class TestClient(object):
             "response_type": ["code"],
         }
 
-        self.client.get_context().cstate.set("ABCDE", {"iss": 'issuer'})
+        self.client.get_context().cstate.set("ABCDE", {"iss": "issuer"})
         msg = self.client.get_service("authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
@@ -87,9 +87,7 @@ class TestClient(object):
 
         self.client.get_context().cstate.update("ABCDE", auth_response)
 
-        msg = self.client.get_service("accesstoken").construct(
-            request_args=req_args, state="ABCDE"
-        )
+        msg = self.client.get_service("accesstoken").construct(request_args=req_args, state="ABCDE")
 
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
@@ -104,7 +102,7 @@ class TestClient(object):
     def test_construct_refresh_token_request(self):
         _context = self.client.get_context()
         _state = "ABCDE"
-        _context.cstate.set(_state, {'iss': "issuer"})
+        _context.cstate.set(_state, {"iss": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
@@ -146,9 +144,7 @@ class TestClient(object):
         err = ResponseMessage(error="Illegal")
         http_resp = MockResponse(500, err.to_urlencoded())
         with pytest.raises(ParseError):
-            self.client.parse_request_response(
-                self.client.get_service("authorization"), http_resp
-            )
+            self.client.parse_request_response(self.client.get_service("authorization"), http_resp)
 
     def test_error_response_2(self):
         err = ResponseMessage(error="Illegal")
@@ -157,9 +153,7 @@ class TestClient(object):
         )
 
         with pytest.raises(OidcServiceError):
-            self.client.parse_request_response(
-                self.client.get_service("authorization"), http_resp
-            )
+            self.client.parse_request_response(self.client.get_service("authorization"), http_resp)
 
 
 BASE_URL = "https://example.com"
@@ -196,7 +190,7 @@ class TestClient2(object):
         assert self.client
 
     def test_keyjar(self):
-        _keyjar = self.client.get_attribute('keyjar')
+        _keyjar = self.client.get_attribute("keyjar")
         assert len(_keyjar) == 2  # one issuer
         assert len(_keyjar[""]) == 3
         assert len(_keyjar.get("sig")) == 3

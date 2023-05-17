@@ -11,10 +11,10 @@ from idpyoidc.util import instantiate
 
 
 def create_keyjar(
-        keyjar: Optional[KeyJar] = None,
-        conf: Optional[Union[dict, Configuration]] = None,
-        key_conf: Optional[dict] = None,
-        id: Optional[str] = "",
+    keyjar: Optional[KeyJar] = None,
+    conf: Optional[Union[dict, Configuration]] = None,
+    key_conf: Optional[dict] = None,
+    id: Optional[str] = "",
 ):
     if keyjar is None:
         if key_conf:
@@ -44,7 +44,6 @@ def create_keyjar(
 
 
 class Node:
-
     def __init__(self, upstream_get: Callable = None):
         self.upstream_get = upstream_get
 
@@ -76,20 +75,21 @@ class Node:
 
 
 class Unit(ImpExp):
-    name = ''
+    name = ""
 
-    init_args = ['upstream_get']
+    init_args = ["upstream_get"]
 
-    def __init__(self,
-                 upstream_get: Callable = None,
-                 keyjar: Optional[KeyJar] = None,
-                 httpc: Optional[object] = None,
-                 httpc_params: Optional[dict] = None,
-                 config: Optional[Union[Configuration, dict]] = None,
-                 key_conf: Optional[dict] = None,
-                 issuer_id: Optional[str] = '',
-                 client_id: Optional[str] = ''
-                 ):
+    def __init__(
+        self,
+        upstream_get: Callable = None,
+        keyjar: Optional[KeyJar] = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        key_conf: Optional[dict] = None,
+        issuer_id: Optional[str] = "",
+        client_id: Optional[str] = "",
+    ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
         self.httpc = httpc
@@ -97,11 +97,11 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
-        keyjar = keyjar or config.get('keyjar')
-        key_conf = key_conf or config.get('key_conf', config.get('keys'))
+        keyjar = keyjar or config.get("keyjar")
+        key_conf = key_conf or config.get("key_conf", config.get("keys"))
 
         if not keyjar and not key_conf:
-            _jwks = config.get('jwks')
+            _jwks = config.get("jwks")
             if _jwks:
                 keyjar = KeyJar()
                 keyjar.import_jwks_as_json(_jwks, client_id)
@@ -111,14 +111,17 @@ class Unit(ImpExp):
             id = issuer_id or client_id
             self.keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
             if client_id:
-                self.keyjar.add_symmetric('', client_id)
+                _key = config.get("client_secret")
+                if _key:
+                    self.keyjar.add_symmetric(client_id, _key)
+                    self.keyjar.add_symmetric("", _key)
         else:
             if client_id:
                 _key = config.get("client_secret")
                 if _key:
                     self.keyjar = KeyJar()
                     self.keyjar.add_symmetric(client_id, _key)
-                    self.keyjar.add_symmetric('', _key)
+                    self.keyjar.add_symmetric("", _key)
             else:
                 self.keyjar = None
 
@@ -156,9 +159,9 @@ class Unit(ImpExp):
 
 
 def topmost_unit(unit):
-    if hasattr(unit, 'upstream_get'):
+    if hasattr(unit, "upstream_get"):
         if unit.upstream_get:
-            next_unit = unit.upstream_get('unit')
+            next_unit = unit.upstream_get("unit")
             if next_unit:
                 unit = topmost_unit(next_unit)
 
@@ -166,64 +169,78 @@ def topmost_unit(unit):
 
 
 class ClientUnit(Unit):
-    name = ''
+    name = ""
 
-    def __init__(self,
-                 upstream_get: Callable = None,
-                 httpc: Optional[object] = None,
-                 httpc_params: Optional[dict] = None,
-                 keyjar: Optional[KeyJar] = None,
-                 context: Optional[ImpExp] = None,
-                 config: Optional[Union[Configuration, dict]] = None,
-                 # jwks_uri: Optional[str] = "",
-                 entity_id: Optional[str] = "",
-                 key_conf: Optional[dict] = None
-                 ):
+    def __init__(
+        self,
+        upstream_get: Callable = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        keyjar: Optional[KeyJar] = None,
+        context: Optional[ImpExp] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        # jwks_uri: Optional[str] = "",
+        entity_id: Optional[str] = "",
+        key_conf: Optional[dict] = None,
+    ):
         if config is None:
             config = {}
 
-        self.entity_id = entity_id or config.get('entity_id')
-        self.client_id = config.get('client_id', entity_id)
+        self.entity_id = entity_id or config.get("entity_id")
+        self.client_id = config.get("client_id", entity_id)
 
-        Unit.__init__(self, upstream_get=upstream_get, keyjar=keyjar, httpc=httpc,
-                      httpc_params=httpc_params, config=config, client_id=self.client_id,
-                      key_conf=key_conf)
+        Unit.__init__(
+            self,
+            upstream_get=upstream_get,
+            keyjar=keyjar,
+            httpc=httpc,
+            httpc_params=httpc_params,
+            config=config,
+            client_id=self.client_id,
+            key_conf=key_conf,
+        )
 
         self.context = context or None
 
     def get_context_attribute(self, attr, *args):
         _val = getattr(self.context, attr)
         if not _val and self.upstream_get:
-            return self.upstream_get('context_attribute', attr)
+            return self.upstream_get("context_attribute", attr)
         else:
             return _val
 
 
 # Neither client nor Server
 class Collection(Unit):
-
-    def __init__(self,
-                 upstream_get: Callable = None,
-                 keyjar: Optional[KeyJar] = None,
-                 httpc: Optional[object] = None,
-                 httpc_params: Optional[dict] = None,
-                 config: Optional[Union[Configuration, dict]] = None,
-                 entity_id: Optional[str] = "",
-                 key_conf: Optional[dict] = None,
-                 functions: Optional[dict] = None,
-                 claims: Optional[dict] = None
-                 ):
+    def __init__(
+        self,
+        upstream_get: Callable = None,
+        keyjar: Optional[KeyJar] = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        entity_id: Optional[str] = "",
+        key_conf: Optional[dict] = None,
+        functions: Optional[dict] = None,
+        claims: Optional[dict] = None,
+    ):
         if config is None:
             config = {}
 
-        self.entity_id = entity_id or config.get('entity_id')
+        self.entity_id = entity_id or config.get("entity_id")
 
-        Unit.__init__(self, upstream_get, keyjar, httpc, httpc_params, config,
-                      issuer_id=self.entity_id, key_conf=key_conf)
+        Unit.__init__(
+            self,
+            upstream_get,
+            keyjar,
+            httpc,
+            httpc_params,
+            config,
+            issuer_id=self.entity_id,
+            key_conf=key_conf,
+        )
 
-        _args = {
-            'upstream_get': self.unit_get
-        }
+        _args = {"upstream_get": self.unit_get}
 
         self.claims = claims or {}
         self.upstream_get = upstream_get
@@ -236,14 +253,14 @@ class Collection(Unit):
                 setattr(self, key, instantiate(val["class"], **_kwargs))
 
     def get_context_attribute(self, attr, *args):
-        _cntx = getattr(self, 'context', None)
+        _cntx = getattr(self, "context", None)
         if _cntx:
             _val = getattr(_cntx, attr, None)
             if _val:
                 return _val
 
         if self.upstream_get:
-            return self.upstream_get('context_attribute', attr)
+            return self.upstream_get("context_attribute", attr)
         else:
             return None
 
@@ -253,6 +270,6 @@ class Collection(Unit):
             return val
 
         if self.upstream_get:
-            return self.upstream_get('attribute', attr)
+            return self.upstream_get("attribute", attr)
         else:
             return None

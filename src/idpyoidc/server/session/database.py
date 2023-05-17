@@ -44,16 +44,16 @@ class Database(ImpExp):
 
     @staticmethod
     def branch_key(*args):
-        """ Construct a key using a list of names """
+        """Construct a key using a list of names"""
         return DIVIDER.join(args)
 
     @staticmethod
     def unpack_branch_key(key):
-        """ Translate a key into an ordered list of names """
+        """Translate a key into an ordered list of names"""
         return key.split(DIVIDER)
 
     def encrypted_branch_id(self, *args) -> str:
-        """ Provided an ordered list of names construct a key and then encrypt it. """
+        """Provided an ordered list of names construct a key and then encrypt it."""
         rnd = rndstr(32)
         return base64.b64encode(
             self.crypt.encrypt(lv_pack(rnd, self.branch_key(*args)).encode())
@@ -61,8 +61,8 @@ class Database(ImpExp):
 
     def decrypt_branch_id(self, key: str) -> List[str]:
         """
-            Given an encrypted key, decrypt it and then unpack the key to return an ordered list
-            of names.
+        Given an encrypted key, decrypt it and then unpack the key to return an ordered list
+        of names.
         """
         try:
             plain = self.crypt.decrypt(base64.b64decode(key))
@@ -88,7 +88,7 @@ class Database(ImpExp):
 
         _superior = None
         for i in range(_len):
-            _key = self.branch_key(*path[0:i + 1])
+            _key = self.branch_key(*path[0 : i + 1])
             # _key = path[i]
             _info = self.db.get(_key)
             if _info is None:
@@ -115,7 +115,7 @@ class Database(ImpExp):
             _superior = _info
 
     def get(self, path: List[str]) -> Union[NodeInfo, Grant]:
-        """ Given a path return the node that matches the path. """
+        """Given a path return the node that matches the path."""
         _key = self.branch_key(*path)
         return self.db[_key]
 
@@ -156,7 +156,7 @@ class Database(ImpExp):
 
         _sub = None
         for i in range(0, len(path)):
-            _key = self.branch_key(*path[0:_len - i])
+            _key = self.branch_key(*path[0 : _len - i])
             if _key in self.db:
                 _node = self.db[_key]
                 if _sub:

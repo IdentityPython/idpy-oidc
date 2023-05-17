@@ -1,13 +1,13 @@
 import hashlib
 import logging
 from typing import Dict
+from typing import Optional
 
 from cryptojwt.utils import b64e
 
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import RefreshAccessTokenRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
-from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.endpoint import Endpoint
 
@@ -44,7 +44,7 @@ def post_authn_parse(request, client_id, context, **kwargs):
     if "pkce_essential" in client:
         essential = client["pkce_essential"]
     else:
-        essential = context.args["pkce"].get("essential", False)
+        essential = context.add_on["pkce"].get("essential", False)
     if essential and "code_challenge" not in request:
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -52,11 +52,10 @@ def post_authn_parse(request, client_id, context, **kwargs):
         )
 
     if "code_challenge_method" not in request:
-        request["code_challenge_method"] = "S256"
+        request["code_challenge_method"] = "plain"
 
     if "code_challenge" in request and (
-        request["code_challenge_method"]
-        not in context.args["pkce"]["code_challenge_methods"]
+        request["code_challenge_method"] not in context.add_on["pkce"]["code_challenge_methods"]
     ):
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -94,7 +93,7 @@ def post_token_parse(request, client_id, context, **kwargs):
     """
     if isinstance(
         request,
-        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest, CCAccessTokenRequest),
+        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest),
     ):
         return request
 
@@ -126,7 +125,12 @@ def post_token_parse(request, client_id, context, **kwargs):
     return request
 
 
-def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
+def add_support(
+    endpoint: Dict[str, Endpoint],
+    code_challenge_methods: Optional[dict] = None,
+    essential: Optional[bool] = False,
+    **kwargs
+):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
         LOGGER.warning("No authorization endpoint found, skipping PKCE configuration")
@@ -140,22 +144,16 @@ def add_pkce_support(endpoint: Dict[str, Endpoint], **kwargs):
     authn_endpoint.post_parse_request.append(post_authn_parse)
     token_endpoint.post_parse_request.append(post_token_parse)
 
-    code_challenge_methods = kwargs.get("code_challenge_methods", CC_METHOD.keys())
-    code_challenge_methods = list(
-        set(code_challenge_methods).intersection(
-            authn_endpoint._supports["code_challenge_methods_supported"]
-        )
-    )
-    if not code_challenge_methods:
-        raise ValueError(
-            "Unsupported method: {}".format(
-                ", ".join(kwargs.get("code_challenge_methods", CC_METHOD.keys()))
-            )
-        )
-    kwargs["code_challenge_methods"] = {}
-    for method in code_challenge_methods:
-        if method not in CC_METHOD:
-            raise ValueError("Unsupported method: {}".format(method))
-        kwargs["code_challenge_methods"][method] = CC_METHOD[method]
+    if code_challenge_methods is None:
+        code_challenge_methods = CC_METHOD
+    else:
+        for method in code_challenge_methods:
+            if method not in CC_METHOD:
+                raise ValueError("Unsupported method: {}".format(method))
 
-    authn_endpoint.upstream_get("context").args["pkce"] = kwargs
+    _context = authn_endpoint.upstream_get("context")
+    _context.add_on["pkce"] = {
+        "code_challenge_methods": code_challenge_methods,
+        "essential": essential,
+    }
+    _context.set_preference("code_challenge_methods_supported", list(code_challenge_methods.keys()))

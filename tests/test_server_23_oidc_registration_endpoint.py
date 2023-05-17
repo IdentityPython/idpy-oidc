@@ -163,7 +163,9 @@ class TestEndpoint(object):
             "session_params": SESSION_PARAMS,
         }
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        server.context.cdb["client_id"] = {}
+        server.context.cdb["client_id"] = {
+            "redirect_uris": [("https://example.com/cb", None)],
+        }
         self.endpoint = server.get_endpoint("registration")
 
     def test_parse(self):
@@ -339,7 +341,10 @@ class TestEndpoint(object):
         assert _resp["error"] == "invalid_configuration_request"
 
     def test_register_unsupported_response_type(self):
-        self.endpoint.upstream_get("context").provider_info["response_types_supported"] = ["token", "id_token"]
+        self.endpoint.upstream_get("context").provider_info["response_types_supported"] = [
+            "token",
+            "id_token",
+        ]
         _msg = MSG.copy()
         _msg["response_types"] = ["id_token token"]
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())

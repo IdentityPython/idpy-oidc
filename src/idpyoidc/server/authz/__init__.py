@@ -62,11 +62,9 @@ class AuthzHandling(object):
         resources: Optional[list] = None,
     ) -> Grant:
         _context = self.upstream_get("context")
-        session_info = _context.session_manager.get_session_info(
-            session_id=session_id, grant=True
-        )
+        session_info = _context.session_manager.get_session_info(session_id=session_id, grant=True)
         grant = session_info["grant"]
-        _client_id = session_info['client_id']
+        _client_id = session_info["client_id"]
 
         args = self.grant_config.copy()
 

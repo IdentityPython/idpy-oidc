@@ -107,7 +107,14 @@ class TestSessionManager:
                     },
                     "refresh_token": {"supports_minting": ["id_token"]},
                 },
-                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                ],
             }
         }
 
@@ -151,7 +158,7 @@ class TestSessionManager:
         )
 
         _user_info_1 = self.session_manager.get_user_session_info(session_key_1)
-        assert _user_info_1.subordinate == ['diana;;client_1']
+        assert _user_info_1.subordinate == ["diana;;client_1"]
         _client_info_1 = self.session_manager.get_client_session_info(session_key_1)
         assert len(_client_info_1.subordinate) == 1
         # grant = self.session_manager.get_grant(session_key_1)
@@ -353,7 +360,7 @@ class TestSessionManager:
             "user",
             "client",
             "grant",
-            "branch_id"
+            "branch_id",
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -379,7 +386,7 @@ class TestSessionManager:
             "user_id",
             "user",
             "client",
-            "grant"
+            "grant",
         }
         assert _session_info["user_id"] == "diana"
         assert _session_info["client_id"] == "client_1"
@@ -515,7 +522,7 @@ class TestSessionManager:
                 },
                 "refresh_token": {"supports_minting": ["access_token"]},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
@@ -671,7 +678,8 @@ class TestSessionManager:
         grant = self.session_manager[_session_id]
         grant_kwargs = grant.parameter
         for i in ("not_before", "used"):
-            grant_kwargs.pop(i)
+            if i in grant_kwargs:
+                del grant_kwargs[i]
         self.session_manager.add_grant(["diana", "client_1"], **grant_kwargs)
 
     def test_find_latest_idtoken(self):

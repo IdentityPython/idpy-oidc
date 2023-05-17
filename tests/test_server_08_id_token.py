@@ -173,7 +173,7 @@ class TestEndpoint(object):
                 "always": {},
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.context.session_manager
@@ -435,11 +435,7 @@ class TestEndpoint(object):
             self.context, client_info, "id_token", sign=True, encrypt=True
         )
         # default signing alg
-        assert algs == {
-            "sign": True,
-            "encrypt": True,
-            "sign_alg": "RS256"
-        }
+        assert algs == {"sign": True, "encrypt": True, "sign_alg": "RS256"}
 
     def test_available_claims(self):
         req = dict(AREQ)
@@ -506,9 +502,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         self.session_manager.token_handler["id_token"].kwargs["enable_claims_per_client"] = True
-        self.context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {
-            "address": None
-        }
+        self.context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {"address": None}
 
         _claims = self.context.claims_interface.get_claims(
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"

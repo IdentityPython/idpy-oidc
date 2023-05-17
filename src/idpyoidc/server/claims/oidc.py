@@ -57,7 +57,7 @@ class Claims(server_claims.Claims):
         "require_auth_time": None,
         "scopes_supported": ["openid"],
         "service_documentation": None,
-        'subject_types_supported': ['public', 'pairwise', 'ephemeral'],
+        "subject_types_supported": ["public", "pairwise", "ephemeral"],
         "op_tos_uri": None,
         "ui_locales_supported": None,
         # "version": '3.0'
@@ -66,30 +66,29 @@ class Claims(server_claims.Claims):
 
     register2preferred = REGISTER2PREFERRED
 
-    def __init__(self,
-                 prefer: Optional[dict] = None,
-                 callback_path: Optional[dict] = None
-                 ):
+    def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
         server_claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         if self.get_preference("request_parameter_supported") and self.get_preference(
-                "request_uri_parameter_supported"):
+            "request_uri_parameter_supported"
+        ):
             raise ValueError(
                 "You have to chose one of 'request_parameter_supported' and "
-                "'request_uri_parameter_supported'. You can't have both.")
+                "'request_uri_parameter_supported'. You can't have both."
+            )
 
-        if not self.get_preference('encrypt_userinfo_supported'):
-            self.set_preference('userinfo_encryption_alg_values_supported', [])
-            self.set_preference('userinfo_encryption_enc_values_supported', [])
+        if not self.get_preference("encrypt_userinfo_supported"):
+            self.set_preference("userinfo_encryption_alg_values_supported", [])
+            self.set_preference("userinfo_encryption_enc_values_supported", [])
 
-        if not self.get_preference('encrypt_request_object_supported'):
-            self.set_preference('request_object_encryption_alg_values_supported', [])
-            self.set_preference('request_object_encryption_enc_values_supported', [])
+        if not self.get_preference("encrypt_request_object_supported"):
+            self.set_preference("request_object_encryption_alg_values_supported", [])
+            self.set_preference("request_object_encryption_enc_values_supported", [])
 
-        if not self.get_preference('encrypt_id_token_supported'):
-            self.set_preference('id_token_encryption_alg_values_supported', [])
-            self.set_preference('id_token_encryption_enc_values_supported', [])
+        if not self.get_preference("encrypt_id_token_supported"):
+            self.set_preference("id_token_encryption_alg_values_supported", [])
+            self.set_preference("id_token_encryption_enc_values_supported", [])
 
     def provider_info(self, supports):
         _info = {}

@@ -15,26 +15,24 @@ MINI_CONFIG = {
     "base_url": "https://example.com/cli",
     "key_conf": {"key_defs": KEYDEFS},
     "issuer": "https://op.example.com",
-    "preference": {
-        "response_types": ["code"]
-    }
+    "preference": {"response_types": ["code"]},
 }
 
 
 class TestServiceContext:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.unit = Unit()
-        self.service_context = ServiceContext(config=MINI_CONFIG, upstream_get=self.unit.unit_get,
-                                              base_url="https://example.com/cli")
+        self.service_context = ServiceContext(
+            config=MINI_CONFIG, upstream_get=self.unit.unit_get, base_url="https://example.com/cli"
+        )
 
     def test_init(self):
         assert self.service_context
 
     def test_filename_from_webname(self):
         _filename = self.service_context.filename_from_webname("https://example.com/cli/jwks.json")
-        assert _filename == 'jwks.json'
+        assert _filename == "jwks.json"
 
     def test_get_sign_alg(self):
         _alg = self.service_context.get_sign_alg("id_token")
@@ -57,8 +55,9 @@ class TestServiceContext:
         assert _alg_enc == {"alg": None, "enc": None}
 
         self.service_context.claims.set_preference("userinfo_encrypted_response_alg", "RSA1_5")
-        self.service_context.claims.set_preference("userinfo_encrypted_response_enc",
-                                                     "A128CBC+HS256")
+        self.service_context.claims.set_preference(
+            "userinfo_encrypted_response_enc", "A128CBC+HS256"
+        )
 
         _alg_enc = self.service_context.get_enc_alg_enc("userinfo")
         assert _alg_enc == {"alg": "RSA1_5", "enc": "A128CBC+HS256"}

@@ -137,6 +137,7 @@ class AuthorizationRequest(Message):
         "redirect_uri": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING,
         "request": SINGLE_OPTIONAL_STRING,
+        "resource": OPTIONAL_LIST_OF_STRINGS,  # From RFC8707
     }
 
     def merge(self, request_object, treatement="strict", whitelist=None):
@@ -227,7 +228,7 @@ class AuthorizationResponse(ResponseMessage):
         {
             "code": SINGLE_REQUIRED_STRING,
             "state": SINGLE_OPTIONAL_STRING,
-            "iss": SINGLE_OPTIONAL_STRING,
+            "iss": SINGLE_OPTIONAL_STRING,  # RFC 9207
             "client_id": SINGLE_OPTIONAL_STRING,
         }
     )
@@ -301,12 +302,12 @@ class CCAccessTokenRequest(Message):
         "client_id": SINGLE_OPTIONAL_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
         "grant_type": SINGLE_REQUIRED_STRING,
-        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
     }
 
     def verify(self, **kwargs):
-        if self['grant_type'] != 'client_credentials':
-            raise ValueError('Grant type MUST be client_credentials')
+        if self["grant_type"] != "client_credentials":
+            raise ValueError("Grant type MUST be client_credentials")
 
 
 class RefreshAccessTokenRequest(Message):
@@ -378,6 +379,7 @@ def deserialize_from_one_of(val, msgtype, sformat):
 
 class OauthClientMetadata(Message):
     """Metadata for an OAuth2 Client."""
+
     c_param = {
         "redirect_uris": OPTIONAL_LIST_OF_STRINGS,
         "token_endpoint_auth_method": SINGLE_OPTIONAL_STRING,
@@ -393,8 +395,20 @@ class OauthClientMetadata(Message):
         "jwks_uri": SINGLE_OPTIONAL_STRING,
         "jwks": SINGLE_OPTIONAL_JSON,
         "software_id": SINGLE_OPTIONAL_STRING,
-        "software_version": SINGLE_OPTIONAL_STRING
+        "software_version": SINGLE_OPTIONAL_STRING,
+        "software_statement": SINGLE_OPTIONAL_JSON,
     }
+
+    def verify(self, **kwargs):
+        super(OauthClientMetadata, self).verify(**kwargs)
+
+        # if grant type is present and if contains the values authorization_code or
+        # implicit then redirect_uris must be present
+
+        _grant_types = self.get("grant_types", [])
+        if set(_grant_types).intersection({"authorization_code", "implicit"}):
+            if "redirect_uris" not in self:
+                raise ValueError("Missing redirect_uris claim")
 
 
 def oauth_client_metadata_deser(val, sformat="json"):
@@ -402,19 +416,21 @@ def oauth_client_metadata_deser(val, sformat="json"):
     return deserialize_from_one_of(val, OauthClientMetadata, sformat)
 
 
-OPTIONAL_OAUTH_CLIENT_METADATA = (Message, False, msg_ser,
-                                  oauth_client_metadata_deser, False)
+OPTIONAL_OAUTH_CLIENT_METADATA = (Message, False, msg_ser, oauth_client_metadata_deser, False)
 
 
 class OauthClientInformationResponse(OauthClientMetadata):
     """The information returned by a OAuth2 Server about an OAuth2 client."""
+
     c_param = OauthClientMetadata.c_param.copy()
-    c_param.update({
-        "client_id": SINGLE_REQUIRED_STRING,
-        "client_secret": SINGLE_OPTIONAL_STRING,
-        "client_id_issued_at": SINGLE_OPTIONAL_INT,
-        "client_secret_expires_at": SINGLE_OPTIONAL_INT
-    })
+    c_param.update(
+        {
+            "client_id": SINGLE_REQUIRED_STRING,
+            "client_secret": SINGLE_OPTIONAL_STRING,
+            "client_id_issued_at": SINGLE_OPTIONAL_INT,
+            "client_secret_expires_at": SINGLE_OPTIONAL_INT,
+        }
+    )
 
     def verify(self, **kwargs):
         super(OauthClientInformationResponse, self).verify(**kwargs)
@@ -422,7 +438,8 @@ class OauthClientInformationResponse(OauthClientMetadata):
         if "client_secret" in self:
             if "client_secret_expires_at" not in self:
                 raise MissingRequiredAttribute(
-                    "client_secret_expires_at is a MUST if client_secret is present")
+                    "client_secret_expires_at is a MUST if client_secret is present"
+                )
 
 
 def oauth_client_registration_response_deser(val, sformat="json"):
@@ -431,7 +448,12 @@ def oauth_client_registration_response_deser(val, sformat="json"):
 
 
 OPTIONAL_OAUTH_CLIENT_REGISTRATION_RESPONSE = (
-    Message, False, msg_ser, oauth_client_registration_response_deser, False)
+    Message,
+    False,
+    msg_ser,
+    oauth_client_registration_response_deser,
+    False,
+)
 
 
 # RFC 7662
@@ -565,30 +587,30 @@ class JWTAccessToken(Message):
         "auth_time": SINGLE_OPTIONAL_INT,
         "acr": SINGLE_OPTIONAL_STRING,
         "amr": OPTIONAL_LIST_OF_STRINGS,
-        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        'groups': OPTIONAL_LIST_OF_STRINGS,
-        'roles': OPTIONAL_LIST_OF_STRINGS,
-        'entitlements': OPTIONAL_LIST_OF_STRINGS
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "groups": OPTIONAL_LIST_OF_STRINGS,
+        "roles": OPTIONAL_LIST_OF_STRINGS,
+        "entitlements": OPTIONAL_LIST_OF_STRINGS,
     }
 
 
 class JSONWebToken(Message):
     # implements RFC 9068
     c_param = {
-        'iss': SINGLE_REQUIRED_STRING,
-        'exp': SINGLE_REQUIRED_STRING,
-        'aud': SINGLE_REQUIRED_STRING,
-        'sub': SINGLE_REQUIRED_STRING,
+        "iss": SINGLE_REQUIRED_STRING,
+        "exp": SINGLE_REQUIRED_STRING,
+        "aud": SINGLE_REQUIRED_STRING,
+        "sub": SINGLE_REQUIRED_STRING,
         "client_id": SINGLE_REQUIRED_STRING,
-        'iat': SINGLE_REQUIRED_STRING,
-        'jti': SINGLE_REQUIRED_STRING,
-        'auth_time': SINGLE_OPTIONAL_INT,
-        'acr': SINGLE_OPTIONAL_STRING,
-        'amr': OPTIONAL_LIST_OF_STRINGS,
-        'scope': OPTIONAL_LIST_OF_SP_SEP_STRINGS,
-        'groups': OPTIONAL_LIST_OF_STRINGS,
-        'roles': OPTIONAL_LIST_OF_STRINGS,
-        'entitlements': OPTIONAL_LIST_OF_STRINGS
+        "iat": SINGLE_REQUIRED_STRING,
+        "jti": SINGLE_REQUIRED_STRING,
+        "auth_time": SINGLE_OPTIONAL_INT,
+        "acr": SINGLE_OPTIONAL_STRING,
+        "amr": OPTIONAL_LIST_OF_STRINGS,
+        "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "groups": OPTIONAL_LIST_OF_STRINGS,
+        "roles": OPTIONAL_LIST_OF_STRINGS,
+        "entitlements": OPTIONAL_LIST_OF_STRINGS,
     }
 
 
@@ -611,12 +633,9 @@ class TokenRevocationErrorResponse(ResponseMessage):
     """
     Error response from the revocation endpoint
     """
+
     c_allowed_values = ResponseMessage.c_allowed_values.copy()
-    c_allowed_values.update({
-        "error": [
-            "unsupported_token_type"
-        ]
-    })
+    c_allowed_values.update({"error": ["unsupported_token_type"]})
 
 
 def factory(msgtype, **kwargs):

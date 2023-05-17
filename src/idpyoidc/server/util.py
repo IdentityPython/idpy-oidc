@@ -57,7 +57,6 @@ def build_endpoints(conf, upstream_get, issuer):
 
 
 class JSONDictDB(object):
-
     def __init__(self, filename):
         with open(filename, "r") as f:
             self._db = json.load(f)
@@ -94,7 +93,7 @@ def lv_unpack(txt):
     while txt:
         l, v = txt.split(":", 1)
         res.append(v[: int(l)])
-        txt = v[int(l):]
+        txt = v[int(l) :]
     return res
 
 
@@ -123,9 +122,9 @@ def get_http_params(config):
 
 def allow_refresh_token(context):
     # Are there a refresh_token handler
-    refresh_token_handler = context.session_manager.token_handler.handler.get(
-        "refresh_token"
-    )
+    refresh_token_handler = context.session_manager.token_handler.handler.get("refresh_token")
+    if refresh_token_handler is None:
+        return False
 
     # Is refresh_token grant type supported
     _token_supported = False

@@ -25,13 +25,17 @@ AUTHZ_REQ = AuthorizationRequest(
 class TestDB:
     @pytest.fixture(autouse=True)
     def setup_environment(self):
-        self.db = Database(crypt_config=CRYPT_CONFIG,
-                           session_params={"node_type": ["user", "client", "grant"],
-                                           "node_info_class": {
-                                               "user": UserSessionInfo,
-                                               "client": ClientSessionInfo,
-                                               "grant": Grant}
-                                           })
+        self.db = Database(
+            crypt_config=CRYPT_CONFIG,
+            session_params={
+                "node_type": ["user", "client", "grant"],
+                "node_info_class": {
+                    "user": UserSessionInfo,
+                    "client": ClientSessionInfo,
+                    "grant": Grant,
+                },
+            },
+        )
 
     def test_user_info(self):
         with pytest.raises(KeyError):
@@ -104,13 +108,13 @@ class TestDB:
 
         self.db.set(["diana", "client_1", "G1"], grant)
         stored_client_info = self.db.get(["diana", "client_1"])
-        assert isinstance(stored_client_info,ClientSessionInfo)
+        assert isinstance(stored_client_info, ClientSessionInfo)
         assert set(stored_client_info.keys()) == {
             "subordinate",
             "revoked",
             "type",
             "extra_args",
-            "id"
+            "id",
         }
 
         stored_grant_info = self.db.get(["diana", "client_1", "G1"])
@@ -126,7 +130,7 @@ class TestDB:
         user_info = self.db.get(["diana"])
         assert user_info.subordinate == ["diana;;client_1"]
         client_info = self.db.get(["diana", "client_1"])
-        assert client_info.subordinate == ['diana;;client_1;;G1']
+        assert client_info.subordinate == ["diana;;client_1;;G1"]
         grant_info = self.db.get(["diana", "client_1", "G1"])
         assert grant_info.issued_at
         assert len(grant_info.issued_token) == 1

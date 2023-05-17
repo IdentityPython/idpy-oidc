@@ -27,7 +27,7 @@ class AccessToken(Service):
     request_body_type = "urlencoded"
     response_body_type = "json"
 
-    _include = {"grant_types_supported": ['authorization_code']}
+    _include = {"grant_types_supported": ["authorization_code"]}
 
     _supports = {
         "token_endpoint_auth_methods_supported": get_client_authn_methods,
@@ -38,7 +38,7 @@ class AccessToken(Service):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct.append(self.oauth_pre_construct)
 
-    def update_service_context(self, resp, key: Optional[str] = '', **kwargs):
+    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
         if key:

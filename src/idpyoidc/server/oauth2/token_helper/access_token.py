@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
-
     def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
@@ -50,8 +49,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
 
-        if ("resource_indicators" in _cinfo
-                and "access_token" in _cinfo["resource_indicators"]):
+        if "resource_indicators" in _cinfo and "access_token" in _cinfo["resource_indicators"]:
             resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
         else:
             resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
@@ -66,12 +64,20 @@ class AccessTokenHelper(TokenEndpointHelper):
             if isinstance(req, TokenErrorResponse):
                 return req
 
-        # if "grant_types_supported" in _context.cdb[client_id]:
-        #     grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
-        # else:
-        #     grant_types_supported = _context.provider_info["grant_types_supported"]
-
         grant = _session_info["grant"]
+        token_type = "Bearer"
+
+        # Is DPOP supported
+        try:
+            _dpop_enabled = _context.add_on.get("dpop")
+        except AttributeError:
+            _dpop_enabled = False
+
+        if _dpop_enabled:
+            _dpop_jkt = req.get("dpop_jkt")
+            if _dpop_jkt:
+                grant.extra["dpop_jkt"] = _dpop_jkt
+                token_type = "DPoP"
 
         _based_on = grant.get_token(_access_code)
         _supports_minting = _based_on.usage_rules.get("supports_minting", [])
@@ -88,15 +94,18 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         logger.debug("All checks OK")
 
-        issue_refresh = kwargs.get("issue_refresh", False)
-
         if resource_indicators_config is not None:
             scope = req["scope"]
         else:
             scope = grant.scope
 
+        if "offline_access" in scope and "refresh_token" in _supports_minting:
+            issue_refresh = True
+        else:
+            issue_refresh = kwargs.get("issue_refresh", False)
+
         _response = {
-            "token_type": "Bearer",
+            "token_type": token_type,
             "scope": scope,
         }
 
@@ -115,7 +124,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
-                    token_args=token_args
+                    token_args=token_args,
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -124,10 +133,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 if token.expires_at:
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
-        if (
-                issue_refresh
-                and "refresh_token" in _supports_minting
-        ):
+        if issue_refresh and "refresh_token" in _supports_minting:
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -149,7 +155,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def _enforce_resource_indicators_policy(self, request, config):
-        _context = self.endpoint.upstream_get('context')
+        _context = self.endpoint.upstream_get("context")
 
         policy = config["policy"]
         function = policy["function"]
@@ -169,7 +175,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens

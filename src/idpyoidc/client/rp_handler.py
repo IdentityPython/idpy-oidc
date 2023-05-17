@@ -38,21 +38,20 @@ logger = logging.getLogger(__name__)
 
 
 class RPHandler(object):
-
     def __init__(
-            self,
-            base_url: Optional[str] = "",
-            client_configs=None,
-            services=None,
-            keyjar=None,
-            hash_seed="",
-            verify_ssl=True,
-            client_cls=None,
-            state_db=None,
-            httpc=None,
-            httpc_params=None,
-            config=None,
-            **kwargs,
+        self,
+        base_url: Optional[str] = "",
+        client_configs=None,
+        services=None,
+        keyjar=None,
+        hash_seed="",
+        verify_ssl=True,
+        client_cls=None,
+        state_db=None,
+        httpc=None,
+        httpc_params=None,
+        config=None,
+        **kwargs,
     ):
         self.base_url = base_url
         _jwks_path = kwargs.get("jwks_path")
@@ -128,8 +127,7 @@ class RPHandler(object):
         :return: An Issuer ID
         """
         for _rp in self.issuer2rp.values():
-            _iss = _rp.get_context().cstate.get_set(
-                state, claim=['iss']).get('iss')
+            _iss = _rp.get_context().cstate.get_set(state, claim=["iss"]).get("iss")
             if _iss:
                 return _iss
         return None
@@ -180,11 +178,11 @@ class RPHandler(object):
         except KeyError:
             _services = self.services
 
-        if 'base_url' not in _cnf:
-            _cnf['base_url'] = self.base_url
+        if "base_url" not in _cnf:
+            _cnf["base_url"] = self.base_url
 
         if self.jwks_uri:
-            _cnf['jwks_uri'] = self.jwks_uri
+            _cnf["jwks_uri"] = self.jwks_uri
 
         try:
             client = self.client_cls(
@@ -219,10 +217,10 @@ class RPHandler(object):
         return client
 
     def do_provider_info(
-            self,
-            client: Optional[Client] = None,
-            state: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
+        self,
+        client: Optional[Client] = None,
+        state: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Either get the provider info from configuration or through dynamic
@@ -261,7 +259,7 @@ class RPHandler(object):
                             _srv.endpoint = val
 
             if "keys" in _pi:
-                _kj = client.get_attribute('keyjar')
+                _kj = client.get_attribute("keyjar")
                 for typ, _spec in _pi["keys"].items():
                     if typ == "url":
                         for _iss, _url in _spec.items():
@@ -284,12 +282,12 @@ class RPHandler(object):
                 return _context.get("issuer")
 
     def do_client_registration(
-            self,
-            client=None,
-            iss_id: Optional[str] = "",
-            state: Optional[str] = "",
-            request_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        client=None,
+        iss_id: Optional[str] = "",
+        state: Optional[str] = "",
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ):
         """
         Prepare for and do client registration if configured to do so
@@ -345,10 +343,10 @@ class RPHandler(object):
         return temporary_client
 
     def client_setup(
-            self,
-            iss_id: Optional[str] = "",
-            user: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
+        self,
+        iss_id: Optional[str] = "",
+        user: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
     ) -> Client:
         """
         First if no issuer ID is given then the identifier for the user is
@@ -399,17 +397,16 @@ class RPHandler(object):
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
-            return req_args.get("response_type",
-                                context.claims.get_usage("response_types")[0])
+            return req_args.get("response_type", context.claims.get_usage("response_types")[0])
         else:
             return context.claims.get_usage("response_types")[0]
 
     def init_authorization(
-            self,
-            client: Optional[Client] = None,
-            state: Optional[str] = "",
-            req_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        client: Optional[Client] = None,
+        state: Optional[str] = "",
+        req_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ) -> dict:
         """
         Constructs the URL that will redirect the user to the authorization
@@ -445,7 +442,7 @@ class RPHandler(object):
 
         _scope = _context.claims.get_usage("scope")
         if _scope:
-            request_args['scope'] = _scope
+            request_args["scope"] = _scope
 
         _req_args = _context.config.get("request_args")
         if _req_args:
@@ -461,7 +458,7 @@ class RPHandler(object):
         _state = _current.create_key()
         request_args["state"] = _state
         _current.bind_key(_nonce, _state)
-        _current.set(_state, {'iss': _context.get("issuer")})
+        _current.set(_state, {"iss": _context.get("issuer")})
 
         logger.debug("Authorization request args: {}".format(request_args))
 
@@ -556,7 +553,7 @@ class RPHandler(object):
             client = self.get_client_from_session_key(state)
 
         _context = client.get_context()
-        _claims = _context.cstate.get_set(state, claim=['code', 'redirect_uri'])
+        _claims = _context.cstate.get_set(state, claim=["code", "redirect_uri"])
 
         req_args = {
             "code": _claims["code"],
@@ -666,7 +663,7 @@ class RPHandler(object):
         return res
 
     def finalize_auth(
-            self, client, issuer: str, response: dict, behaviour_args: Optional[dict] = None
+        self, client, issuer: str, response: dict, behaviour_args: Optional[dict] = None
     ):
         """
         Given the response returned to the redirect_uri, parse and verify it.
@@ -699,8 +696,9 @@ class RPHandler(object):
 
         _context = client.get_context()
         try:
-            _iss = _context.cstate.get_set(
-                authorization_response["state"], claim=['iss']).get('iss')
+            _iss = _context.cstate.get_set(authorization_response["state"], claim=["iss"]).get(
+                "iss"
+            )
         except KeyError:
             raise KeyError("Unknown state value")
 
@@ -713,11 +711,11 @@ class RPHandler(object):
         return authorization_response
 
     def get_access_and_id_token(
-            self,
-            authorization_response=None,
-            state: Optional[str] = "",
-            client: Optional[object] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        authorization_response=None,
+        state: Optional[str] = "",
+        client: Optional[object] = None,
+        behaviour_args: Optional[dict] = None,
     ):
         """
         There are a number of services where access tokens and ID tokens can
@@ -740,8 +738,9 @@ class RPHandler(object):
 
         _context = client.get_context()
 
-        resp_attr = authorization_response or _context.cstate.get_set(state,
-                                                                      message=AuthorizationResponse)
+        resp_attr = authorization_response or _context.cstate.get_set(
+            state, message=AuthorizationResponse
+        )
         if resp_attr is None:
             raise ValueError("One of authorization_response or state must be provided")
 
@@ -749,7 +748,7 @@ class RPHandler(object):
             state = authorization_response["state"]
 
         _req_attr = _context.cstate.get_set(state, AuthorizationRequest)
-        _resp_type = set(_req_attr["response_type"].split(' '))
+        _resp_type = set(_req_attr["response_type"].split(" "))
 
         access_token = None
         id_token = None
@@ -846,9 +845,7 @@ class RPHandler(object):
             _sid_support = _context.get("provider_info")["backchannel_logout_session_required"]
         except KeyError:
             try:
-                _sid_support = _context.get("provider_info")[
-                    "frontchannel_logout_session_required"
-                ]
+                _sid_support = _context.get("provider_info")["frontchannel_logout_session_required"]
             except Exception:
                 _sid_support = False
 
@@ -884,8 +881,7 @@ class RPHandler(object):
         client = self.get_client_from_session_key(state)
 
         # Look for an IdToken
-        _arg = client.get_context().cstate.get_set(state,
-                                                   claim=["__verified_id_token"])
+        _arg = client.get_context().cstate.get_set(state, claim=["__verified_id_token"])
 
         if _arg:
             _now = utc_time_sans_frac()
@@ -928,10 +924,10 @@ class RPHandler(object):
                 raise OidcServiceError("No valid access token")
 
     def logout(
-            self,
-            state: str,
-            client: Optional[Client] = None,
-            post_logout_redirect_uri: Optional[str] = "",
+        self,
+        state: str,
+        client: Optional[Client] = None,
+        post_logout_redirect_uri: Optional[str] = "",
     ) -> dict:
         """
         Does an RP initiated logout from an OP. After logout the user will be
@@ -965,8 +961,7 @@ class RPHandler(object):
         return resp
 
     def close(
-            self, state: str, issuer: Optional[str] = "",
-            post_logout_redirect_uri: Optional[str] = ""
+        self, state: str, issuer: Optional[str] = "", post_logout_redirect_uri: Optional[str] = ""
     ) -> dict:
 
         logger.debug(20 * "*" + " close " + 20 * "*")
@@ -1002,7 +997,7 @@ def backchannel_logout(client, request="", request_args=None):
     kwargs = {
         "aud": client.get_client_id(),
         "iss": _context.get("issuer"),
-        "keyjar": client.get_attribute('keyjar'),
+        "keyjar": client.get_attribute("keyjar"),
         "allowed_sign_alg": _context.get("registration_response").get(
             "id_token_signed_response_alg", "RS256"
         ),

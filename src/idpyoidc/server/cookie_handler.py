@@ -144,9 +144,7 @@ class CookieHandler:
             ]
         elif self.crypt:
             msg = lv_pack(timestamp, payload)
-            cookie_payload = [
-                bytes_timestamp,
-                base64.b64encode(self.crypt.encrypt(msg.encode()))]
+            cookie_payload = [bytes_timestamp, base64.b64encode(self.crypt.encrypt(msg.encode()))]
         else:
             cookie_payload = [bytes_timestamp, bytes_load, base64.b64encode(mac)]
 
@@ -169,7 +167,7 @@ class CookieHandler:
             msg = self.crypt.decrypt(base64.b64decode(as_bytes(enc_payload)))
             t1, payload = lv_unpack(msg.decode("utf-8"))
             if t0 != t1:
-                raise VerificationError('Suspicious timestamp')
+                raise VerificationError("Suspicious timestamp")
             return payload, t1
         elif len(parts) == 3:
             # verify the cookie signature

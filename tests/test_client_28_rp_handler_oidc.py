@@ -28,10 +28,7 @@ PREF = {
     "response_types_supported": [
         "code",
         "id_token",
-        "id_token token",
         "code id_token",
-        "code id_token token",
-        "code token",
     ],
     "token_endpoint_auth_methods_supported": ["client_secret_basic"],
     "scopes_supported": ["openid", "profile", "email", "address", "phone"],
@@ -114,7 +111,7 @@ CLIENT_CONFIG = {
         "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
         "preference": {
             "response_types_supported": ["code"],
-            "scopes_supported": ["user", "public_repo", 'openid'],
+            "scopes_supported": ["user", "public_repo", "openid"],
             "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
         },
@@ -144,7 +141,7 @@ CLIENT_CONFIG = {
             "scopes_supported": ["user", "public_repo"],
             "token_endpoint_auth_methods_supported": [],
             "verify_args": {"allow_sign_alg_none": True},
-            'encrypt_request_object': False
+            "encrypt_request_object": False,
         },
         "provider_info": {
             "authorization_endpoint": "https://github.com/login/oauth/authorize",
@@ -242,7 +239,7 @@ class TestRPHandler(object):
 
         # Neither provider info discovery not client registration has been done
         # So only preferences so far.
-        assert _context.get_preference('client_id') == "eeeeeeeee"
+        assert _context.get_preference("client_id") == "eeeeeeeee"
         assert _context.get_preference("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.issuer == "https://github.com/login/oauth/authorize"
 
@@ -254,18 +251,24 @@ class TestRPHandler(object):
         }
 
         _pref = [k for k, v in _context.prefers().items() if v]
-        assert set(_pref) == {'client_id', 'client_secret', 'redirect_uris',
-                              'response_types_supported', 'callback_uris', 'scopes_supported'}
+        assert set(_pref) == {
+            "client_id",
+            "client_secret",
+            "redirect_uris",
+            "response_types_supported",
+            "callback_uris",
+            "scopes_supported",
+        }
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         # The key jar should only contain a symmetric key that is the clients
         # secret. 2 because one is marked for encryption and the other signing
         # usage.
 
-        assert set(_keyjar.owners()) == {"", 'eeeeeeeee', _github_id}
+        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3
 
@@ -292,8 +295,8 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-                client.get_context().get_preference('callback_uris').get(
-                    "post_logout_redirect_uris") is None
+            client.get_context().get_preference("callback_uris").get("post_logout_redirect_uris")
+            is None
         )
 
     def test_do_client_setup(self):
@@ -303,11 +306,11 @@ class TestRPHandler(object):
 
         # Neither provider info discovery not client registration has been done
         # So only preferences so far.
-        assert _context.get_preference('client_id') == "eeeeeeeee"
+        assert _context.get_preference("client_id") == "eeeeeeeee"
         assert _context.get_preference("client_secret") == "aaaaaaaaaaaaaaaaaaaa"
         assert _context.issuer == _github_id
 
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
@@ -325,13 +328,13 @@ class TestRPHandler(object):
         client = self.rph.init_client("https://op.example.com/")
         _srv = client.get_service("registration")
         _context = _srv.upstream_get("context")
-        cb = _context.get_preference('callback_uris')
+        cb = _context.get_preference("callback_uris")
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb['redirect_uris'].keys()) == {'code'}
+        assert set(cb["redirect_uris"].keys()) == {"implicit", "code"}
         _hash = _context.iss_hash
 
-        assert cb['redirect_uris']["code"] == [f"https://example.com/rp/authz_cb/{_hash}"]
+        assert cb["redirect_uris"]["code"] == [f"https://example.com/rp/authz_cb/{_hash}"]
 
         assert list(self.rph.hash2issuer.keys()) == [_hash]
 
@@ -366,7 +369,7 @@ class TestRPHandler(object):
         assert query["client_id"] == ["eeeeeeeee"]
         assert query["redirect_uri"] == ["https://example.com/rp/authz_cb/github"]
         assert query["response_type"] == ["code"]
-        assert set(query["scope"][0].split(' ')) == {"openid", "user", "public_repo"}
+        assert set(query["scope"][0].split(" ")) == {"openid", "user", "public_repo"}
 
     def test_get_session_information(self):
         res = self.rph.begin(issuer_id="github")
@@ -377,7 +380,7 @@ class TestRPHandler(object):
         res = self.rph.begin(issuer_id="linkedin")
         cli1 = self.rph.get_client_from_session_key(state=res["state"])
         _session = self.rph.get_session_information(res["state"])
-        cli2 = self.rph.issuer2rp[_session['iss']]
+        cli2 = self.rph.issuer2rp[_session["iss"]]
         assert cli1 == cli2
         # redo
         self.rph.do_provider_info(state=res["state"])
@@ -388,48 +391,50 @@ class TestRPHandler(object):
     def test_finalize_auth(self):
         res = self.rph.begin(issuer_id="linkedin")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
 
         auth_response = AuthorizationResponse(code="access_code", state=res["state"])
-        resp = self.rph.finalize_auth(client, _session['iss'], auth_response.to_dict())
+        resp = self.rph.finalize_auth(client, _session["iss"], auth_response.to_dict())
         assert set(resp.keys()) == {"state", "code"}
         _state = client.get_context().cstate.get(res["state"])
-        assert set(_state.keys()) == {'client_id',
-                                      'code',
-                                      'iss',
-                                      'nonce',
-                                      'redirect_uri',
-                                      'response_type',
-                                      'scope',
-                                      'state'}
+        assert set(_state.keys()) == {
+            "client_id",
+            "code",
+            "iss",
+            "nonce",
+            "redirect_uri",
+            "response_type",
+            "scope",
+            "state",
+        }
 
     def test_get_client_authn_method(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         authn_method = self.rph.get_client_authn_method(client, "token_endpoint")
-        assert authn_method == ''
+        assert authn_method == ""
 
         res = self.rph.begin(issuer_id="linkedin")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         authn_method = self.rph.get_client_authn_method(client, "token_endpoint")
         assert authn_method == "client_secret_post"
 
     def test_get_tokens(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
 
         _github_id = iss_id("github")
         _context = client.get_context()
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -456,7 +461,7 @@ class TestRPHandler(object):
             client.get_service("accesstoken").endpoint = _url
 
             auth_response = AuthorizationResponse(code="access_code", state=res["state"])
-            resp = self.rph.finalize_auth(client, _session['iss'], auth_response.to_dict())
+            resp = self.rph.finalize_auth(client, _session["iss"], auth_response.to_dict())
 
             resp = self.rph.get_tokens(res["state"], client)
             assert set(resp.keys()) == {
@@ -469,33 +474,35 @@ class TestRPHandler(object):
             }
 
             _curr = client.get_context().cstate.get(res["state"])
-            assert set(_curr.keys()) == {'__expires_at',
-                                         '__verified_id_token',
-                                         'access_token',
-                                         'client_id',
-                                         'code',
-                                         'expires_in',
-                                         'id_token',
-                                         'iss',
-                                         'nonce',
-                                         'redirect_uri',
-                                         'response_type',
-                                         'scope',
-                                         'state',
-                                         'token_type'}
+            assert set(_curr.keys()) == {
+                "__expires_at",
+                "__verified_id_token",
+                "access_token",
+                "client_id",
+                "code",
+                "expires_in",
+                "id_token",
+                "iss",
+                "nonce",
+                "redirect_uri",
+                "response_type",
+                "scope",
+                "state",
+                "token_type",
+            }
 
     def test_access_and_id_token(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         _context = client.get_context()
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -525,7 +532,7 @@ class TestRPHandler(object):
             client.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
             resp = self.rph.get_access_and_id_token(auth_response, client=client)
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -533,15 +540,15 @@ class TestRPHandler(object):
     def test_access_and_id_token_by_reference(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         _context = client.get_context()
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -571,7 +578,7 @@ class TestRPHandler(object):
             client.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            _ = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
+            _ = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
             resp = self.rph.get_access_and_id_token(state=res["state"])
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -579,15 +586,15 @@ class TestRPHandler(object):
     def test_get_user_info(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         _context = client.get_context()
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -617,7 +624,7 @@ class TestRPHandler(object):
             client.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
 
             token_resp = self.rph.get_access_and_id_token(auth_response, client=client)
 
@@ -638,15 +645,15 @@ class TestRPHandler(object):
     def test_userinfo_in_id_token(self):
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         _context = client.get_context()
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
         idval = {
             "nonce": _nonce,
             "sub": "EndUserSubject",
-            'iss': _iss,
+            "iss": _iss,
             "aud": _aud,
             "given_name": "Diana",
             "family_name": "Krall",
@@ -671,15 +678,15 @@ class TestRPHandlerTier2(object):
         self.rph = RPHandler(BASE_URL, CLIENT_CONFIG, keyjar=CLI_KEY)
         res = self.rph.begin(issuer_id="github")
         _session = self.rph.get_session_information(res["state"])
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         _context = client.get_context()
         _nonce = _session["nonce"]
-        _iss = _session['iss']
+        _iss = _session["iss"]
         _aud = _context.get_client_id()
-        idval = {"nonce": _nonce, "sub": "EndUserSubject", 'iss': _iss, "aud": _aud}
+        idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = _context.upstream_get('attribute', 'keyjar')
+        _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
@@ -711,7 +718,7 @@ class TestRPHandlerTier2(object):
             client.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=res["state"])
-            auth_response = self.rph.finalize_auth(client, _session['iss'], _response.to_dict())
+            auth_response = self.rph.finalize_auth(client, _session["iss"], _response.to_dict())
 
             token_resp = self.rph.get_access_and_id_token(auth_response, client=client)
 
@@ -731,7 +738,7 @@ class TestRPHandlerTier2(object):
 
     def test_init_authorization(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
         res = self.rph.init_authorization(client, req_args={"scope": ["openid", "email"]})
         part = urlsplit(res["url"])
         _qp = parse_qs(part.query)
@@ -739,7 +746,7 @@ class TestRPHandlerTier2(object):
 
     def test_refresh_access_token(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
 
         _info = {"access_token": "2nd_accessTok", "token_type": "Bearer", "expires_in": 3600}
         at = AccessTokenResponse(**_info)
@@ -759,7 +766,7 @@ class TestRPHandlerTier2(object):
 
     def test_get_user_info(self):
         _session = self.rph.get_session_information(self.state)
-        client = self.rph.issuer2rp[_session['iss']]
+        client = self.rph.issuer2rp[_session["iss"]]
 
         _url = "https://github.com/userinfo"
         with responses.RequestsMock() as rsps:
@@ -841,7 +848,7 @@ class MockOP(object):
 def construct_access_token_response(nonce, issuer, client_id, key_jar):
     _aud = client_id
 
-    idval = {"nonce": nonce, "sub": "EndUserSubject", 'iss': issuer, "aud": _aud}
+    idval = {"nonce": nonce, "sub": "EndUserSubject", "iss": issuer, "aud": _aud}
 
     idts = IdToken(**idval)
     _signed_jwt = idts.to_jwt(
@@ -926,7 +933,7 @@ class TestRPHandlerWithMockOP(object):
             sub="EndUserSubject", given_name="Diana", family_name="Krall", occupation="Jazz pianist"
         )
         _github_id = iss_id("github")
-        _keyjar = client.get_attribute('keyjar')
+        _keyjar = client.get_attribute("keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -946,7 +953,7 @@ class TestRPHandlerWithMockOP(object):
 
             # do the rest (= get access token and user info)
             # assume code flow
-            resp = self.rph.finalize(_session['iss'], auth_response.to_dict())
+            resp = self.rph.finalize(_session["iss"], auth_response.to_dict())
 
         assert set(resp.keys()) == {"userinfo", "state", "token", "id_token", "session_state"}
 
@@ -983,16 +990,24 @@ class TestRPHandlerWithMockOP(object):
             "request_object_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
         }
         pcr = ProviderConfigurationResponse(**resp)
-        _crr = {"application_type": "web", "response_types": ["code", "code id_token"],
-                "redirect_uris": [
-                    "https://example.com/rp/authz_cb"
-                    "/7b7308fecf10c90b29303b6ae35ad1ef0f1914e49187f163335ae0b26a769e4f"],
-                "grant_types": ["authorization_code", "implicit"], "contacts": ["ops@example.com"],
-                "subject_type": "public", "id_token_signed_response_alg": "RS256",
-                "userinfo_signed_response_alg": "RS256", "request_object_signing_alg": "RS256",
-                "token_endpoint_auth_signing_alg": "RS256", "default_max_age": 86400,
-                "token_endpoint_auth_method": "client_secret_basic"}
-        _crr.update({'client_id':'abcdefghijkl', 'client_secret':rndstr(32)})
+        _crr = {
+            "application_type": "web",
+            "response_types": ["code", "code id_token"],
+            "redirect_uris": [
+                "https://example.com/rp/authz_cb"
+                "/7b7308fecf10c90b29303b6ae35ad1ef0f1914e49187f163335ae0b26a769e4f"
+            ],
+            "grant_types": ["authorization_code", "implicit"],
+            "contacts": ["ops@example.com"],
+            "subject_type": "public",
+            "id_token_signed_response_alg": "RS256",
+            "userinfo_signed_response_alg": "RS256",
+            "request_object_signing_alg": "RS256",
+            "token_endpoint_auth_signing_alg": "RS256",
+            "default_max_age": 86400,
+            "token_endpoint_auth_method": "client_secret_basic",
+        }
+        _crr.update({"client_id": "abcdefghijkl", "client_secret": rndstr(32)})
         cli_reg_resp = RegistrationResponse(**_crr)
         with responses.RequestsMock() as rsps:
             rsps.add(

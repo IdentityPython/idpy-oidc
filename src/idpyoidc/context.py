@@ -25,11 +25,11 @@ class OidcContext(ImpExp):
             self.entity_id = entity_id
         else:
             if config:
-                val = ''
-                for alt in ['client_id', 'issuer', 'entity_id']:
+                val = ""
+                for alt in ["client_id", "issuer", "entity_id"]:
                     val = config.get(alt)
                     if val:
                         break
                 self.entity_id = val
             else:
-                self.entity_id = ''
+                self.entity_id = ""

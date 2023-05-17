@@ -113,7 +113,7 @@ class Introspection(Endpoint):
         aud = _token.resources
         if not aud:
             aud = grant.resources
-        
+
         if request["client_id"] not in aud:
             return {"response_args": _resp}
 

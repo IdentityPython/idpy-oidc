@@ -172,7 +172,6 @@ def conf():
 
 
 class TestEndpoint(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -183,7 +182,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
@@ -256,7 +255,7 @@ class TestEndpoint(object):
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
-        assert set(_req.keys()).difference(set(_token_request.keys())) == {'authenticated'}
+        assert set(_req.keys()).difference(set(_token_request.keys())) == {"authenticated"}
 
     def test_auth_code_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
@@ -457,7 +456,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         areq = AUTH_REQ.copy()
@@ -497,7 +496,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         self.token_endpoint.revoke_refresh_on_issue = True
@@ -535,7 +534,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()
@@ -706,7 +705,7 @@ class TestEndpoint(object):
         _req = self.token_endpoint.parse_request(_request.to_json())
         res = self.token_endpoint.process_request(_req)
         assert "error" in res
-        assert res["error_description"] == 'Minting of access_token not supported'
+        assert res["error_description"] == "Minting of access_token not supported"
 
     def test_do_refresh_access_token_revoked(self):
         areq = AUTH_REQ.copy()
@@ -735,8 +734,9 @@ class TestEndpoint(object):
     def test_configure_grant_types(self):
         conf = {"access_token": {"class": "idpyoidc.server.oidc.token.AccessTokenHelper"}}
 
-        _helper = self.token_endpoint.configure_types(conf,
-                                                      self.token_endpoint.helper_by_grant_type)
+        _helper = self.token_endpoint.configure_types(
+            conf, self.token_endpoint.helper_by_grant_type
+        )
 
         assert len(_helper) == 1
         assert "access_token" in _helper
@@ -799,7 +799,7 @@ DEFAULT_TOKEN_HANDLER_ARGS = {
         "kwargs": {
             "lifetime": 3600,
             "add_claims_by_scope": True,
-            "aud": ["https://example.org/appl"]
+            "aud": ["https://example.org/appl"],
         },
     },
     "refresh": {
@@ -819,8 +819,8 @@ TOKEN_HANDLER_ARGS = {
             "lifetime": 3600,
             "add_claims_by_scope": True,
             "aud": ["https://example.org/appl"],
-            "profile": 'idpyoidc.message.oauth2.JWTAccessToken',
-            "with_jti": True
+            "profile": "idpyoidc.message.oauth2.JWTAccessToken",
+            "with_jti": True,
         },
     },
     "refresh": {
@@ -835,9 +835,7 @@ TOKEN_HANDLER_ARGS = {
 CONTEXT = OidcContext()
 CONTEXT.cwd = BASEDIR
 CONTEXT.issuer = "https://op.example.com"
-CONTEXT.cdb = {
-    "client_1": {}
-}
+CONTEXT.cdb = {"client_1": {}}
 KEYJAR = KeyJar()
 KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
 KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
@@ -847,20 +845,16 @@ def upstream_get(what, *args):
     if what == "context":
         if not args:
             return CONTEXT
-    elif what == 'attribute':
-        if args[0] == 'keyjar':
+    elif what == "attribute":
+        if args[0] == "keyjar":
             return KEYJAR
 
 
 def test_def_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **DEFAULT_TOKEN_HANDLER_ARGS)
-    token_handler = _handler['access_token']
-    token_payload = {
-        'sub': 'subject_id',
-        'aud': 'resource_1',
-        'client_id': 'client_1'
-    }
-    value = token_handler(session_id='session_id', **token_payload)
+    token_handler = _handler["access_token"]
+    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": "client_1"}
+    value = token_handler(session_id="session_id", **token_payload)
 
     _jws = factory(value)
     msg = JWTAccessToken(**_jws.jwt.payload())
@@ -871,13 +865,9 @@ def test_def_jwttoken():
 
 def test_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
-    token_handler = _handler['access_token']
-    token_payload = {
-        'sub': 'subject_id',
-        'aud': 'resource_1',
-        'client_id': 'client_1'
-    }
-    value = token_handler(session_id='session_id', **token_payload)
+    token_handler = _handler["access_token"]
+    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": "client_1"}
+    value = token_handler(session_id="session_id", **token_payload)
 
     _jws = factory(value)
     msg = JWTAccessToken(**_jws.jwt.payload())
@@ -893,19 +883,15 @@ class MyAccessToken(Message):
         "aud": REQUIRED_LIST_OF_STRINGS,
         "sub": SINGLE_REQUIRED_STRING,
         "iat": SINGLE_REQUIRED_INT,
-        'usage': SINGLE_REQUIRED_STRING
+        "usage": SINGLE_REQUIRED_STRING,
     }
 
 
 def test_jwttoken_2():
     _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
-    token_handler = _handler['access_token']
-    token_payload = {
-        'sub': 'subject_id',
-        'aud': 'Skiresort',
-        'usage': 'skilift'
-    }
-    value = token_handler(session_id='session_id', profile=MyAccessToken, **token_payload)
+    token_handler = _handler["access_token"]
+    token_payload = {"sub": "subject_id", "aud": "Skiresort", "usage": "skilift"}
+    value = token_handler(session_id="session_id", profile=MyAccessToken, **token_payload)
 
     _jws = factory(value)
     msg = MyAccessToken(**_jws.jwt.payload())
@@ -915,7 +901,6 @@ def test_jwttoken_2():
 
 
 class TestClientCredentialsFlow(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -927,7 +912,7 @@ class TestClientCredentialsFlow(object):
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
-            "grant_types_supported": ['client_credentials', 'password']
+            "grant_types_supported": ["client_credentials", "password"],
         }
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
@@ -935,17 +920,24 @@ class TestClientCredentialsFlow(object):
         self.context = context
 
     def test_client_credentials(self):
-        request = CCAccessTokenRequest(client_id="client_1", client_secret='hemligt',
-                                       grant_type='client_credentials', scope="whatever")
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+        )
         request = self.token_endpoint.parse_request(request)
         response = self.token_endpoint.process_request(request)
-        assert set(response.keys()) == {'response_args', 'cookie', 'http_headers'}
-        assert set(response["response_args"].keys()) == {'access_token', 'token_type', 'scope',
-                                                         'expires_in'}
+        assert set(response.keys()) == {"response_args", "cookie", "http_headers"}
+        assert set(response["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+        }
 
 
 class TestResourceOwnerPasswordCredentialsFlow(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         conf["authentication"] = {
@@ -955,9 +947,9 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
                 "kwargs": {
                     "db_conf": {
                         "class": "idpyoidc.server.util.JSONDictDB",
-                        "kwargs": {"filename": "passwd.json"}
+                        "kwargs": {"filename": "passwd.json"},
                     }
-                }
+                },
             }
         }
 
@@ -970,21 +962,27 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
-            "grant_types_supported": ['client_credentials', 'password'],
+            "grant_types_supported": ["client_credentials", "password"],
         }
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.context = context
 
     def test_resource_owner_password_credentials(self):
-        request = ROPCAccessTokenRequest(client_id="client_1",
-                                         client_secret='hemligt',
-                                         grant_type='password',
-                                         username='diana',
-                                         password='krall',
-                                         scope="whatever")
+        request = ROPCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="password",
+            username="diana",
+            password="krall",
+            scope="whatever",
+        )
         request = self.token_endpoint.parse_request(request)
         response = self.token_endpoint.process_request(request)
-        assert set(response.keys()) == {'response_args', 'cookie', 'http_headers'}
-        assert set(response["response_args"].keys()) == {'access_token', 'token_type', 'scope',
-                                                         'expires_in'}
+        assert set(response.keys()) == {"response_args", "cookie", "http_headers"}
+        assert set(response["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+        }

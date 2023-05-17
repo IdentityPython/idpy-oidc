@@ -117,7 +117,7 @@ class ServerMetadata(Service):
         # If I already have a Key Jar then I'll add then provider keys to
         # that. Otherwise, a new Key Jar is minted
         try:
-            _keyjar = self.upstream_get('attribute', 'keyjar')
+            _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar is None:
                 _keyjar = KeyJar()
         except KeyError:
@@ -135,7 +135,7 @@ class ServerMetadata(Service):
             _info = resp.to_dict()
         else:
             _info = resp
-        _context.map_supported_to_preferred(_info)
+        _context.map_service_against_endpoint(_info)
 
     def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)

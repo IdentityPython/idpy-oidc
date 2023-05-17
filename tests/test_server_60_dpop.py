@@ -14,7 +14,7 @@ from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oauth2.add_on.dpop import DPoPProof
-from idpyoidc.server.oauth2.add_on.dpop import post_parse_request
+from idpyoidc.server.oauth2.add_on.dpop import token_post_parse_request
 from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -66,13 +66,8 @@ KEYJAR.import_jwks(KEYJAR.export_jwks(True, ISSUER), "")
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
-    ["token"],
     ["id_token"],
-    ["code", "token"],
     ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
 ]
 
 CAPABILITIES = {
@@ -88,7 +83,7 @@ CAPABILITIES = {
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
-    "request_uri_parameter_supported": True,
+    # "request_uri_parameter_supported": True,
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -188,7 +183,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.user_id = "diana"
         self.token_endpoint = server.get_endpoint("token")
@@ -228,7 +223,7 @@ class TestEndpoint(object):
         return _code
 
     def test_post_parse_request(self):
-        auth_req = post_parse_request(
+        auth_req = token_post_parse_request(
             AUTH_REQ,
             AUTH_REQ["client_id"],
             self.context,

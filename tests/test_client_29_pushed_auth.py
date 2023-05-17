@@ -35,7 +35,7 @@ class TestPushedAuth:
             "preference": {"response_types": ["code"]},
             "add_ons": {
                 "pushed_authorization": {
-                    "function": "idpyoidc.client.oauth2.add_on.pushed_authorization.add_support",
+                    "function": "idpyoidc.client.oauth2.add_on.par.add_support",
                     "kwargs": {
                         "body_format": "jws",
                         "signing_algorithm": "RS256",

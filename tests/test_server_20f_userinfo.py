@@ -199,7 +199,7 @@ class TestCollectUserInfo:
                 "always": {},
                 "by_scope": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.session_manager = self.endpoint_context.session_manager
         self.claims_interface = ClaimsInterface(server.unit_get)
@@ -424,7 +424,15 @@ class TestCollectUserInfoCustomScopes:
         self.server = Server(conf)
         self.endpoint_context = self.server.context
         self.endpoint_context.cdb["client1"] = {
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "research_and_scholarship",
+            ]
         }
         self.session_manager = self.endpoint_context.session_manager
         self.claims_interface = ClaimsInterface(self.server.unit_get)

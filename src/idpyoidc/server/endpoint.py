@@ -170,16 +170,21 @@ class Endpoint(Node):
                 return self.error_cls(error=err)
             else:
                 # Fund a client ID I believe will work
-                self.verify_request(request=request, keyjar=keyjar, client_id=client_id,
-                                    verify_args=verify_args, lap=1)
+                self.verify_request(
+                    request=request,
+                    keyjar=keyjar,
+                    client_id=client_id,
+                    verify_args=verify_args,
+                    lap=1,
+                )
         return None
 
     def parse_request(
-            self,
-            request: Union[Message, dict, str],
-            http_info: Optional[dict] = None,
-            verify_args: Optional[dict] = None,
-            **kwargs
+        self,
+        request: Union[Message, dict, str],
+        http_info: Optional[dict] = None,
+        verify_args: Optional[dict] = None,
+        **kwargs
     ):
         """
 
@@ -193,7 +198,7 @@ class Endpoint(Node):
         LOGGER.info("Request: %s" % sanitize(request))
 
         _context = self.upstream_get("context")
-        _keyjar = self.upstream_get('attribute', 'keyjar')
+        _keyjar = self.upstream_get("attribute", "keyjar")
 
         if http_info is None:
             http_info = {}
@@ -226,17 +231,18 @@ class Endpoint(Node):
         if "client_id" in auth_info:
             req["client_id"] = auth_info["client_id"]
 
-            _auth_method = auth_info.get('method')
-            if _auth_method and _auth_method not in ['public', 'none']:
-                req['authenticated'] = True
+            _auth_method = auth_info.get("method")
+            if _auth_method and _auth_method not in ["public", "none"]:
+                req["authenticated"] = True
 
             _client_id = auth_info["client_id"]
         else:
             _client_id = req.get("client_id")
 
         # verify that the request message is correct, may have to do it twice
-        err_response = self.verify_request(request=req, keyjar=_keyjar, client_id=_client_id,
-                                           verify_args=verify_args)
+        err_response = self.verify_request(
+            request=req, keyjar=_keyjar, client_id=_client_id, verify_args=verify_args
+        )
         if err_response:
             return err_response
 
@@ -263,11 +269,7 @@ class Endpoint(Node):
         if not get_client_id_from_token:
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
-        authn_info = verify_client(
-            request=request,
-            http_info=http_info,
-            **kwargs
-        )
+        authn_info = verify_client(request=request, http_info=http_info, **kwargs)
 
         LOGGER.debug("authn_info: %s", authn_info)
         if authn_info == {} and self.client_authn_method and len(self.client_authn_method):
@@ -278,7 +280,7 @@ class Endpoint(Node):
         return authn_info
 
     def do_post_parse_request(
-            self, request: Message, client_id: Optional[str] = "", **kwargs
+        self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
         _context = self.upstream_get("context")
         for meth in self.post_parse_request:
@@ -288,7 +290,7 @@ class Endpoint(Node):
         return request
 
     def do_pre_construct(
-            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.pre_construct:
@@ -297,10 +299,10 @@ class Endpoint(Node):
         return response_args
 
     def do_post_construct(
-            self,
-            response_args: Union[Message, dict],
-            request: Optional[Union[Message, dict]] = None,
-            **kwargs
+        self,
+        response_args: Union[Message, dict],
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.post_construct:
@@ -309,10 +311,10 @@ class Endpoint(Node):
         return response_args
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs
     ) -> Union[Message, dict]:
         """
 
@@ -323,10 +325,10 @@ class Endpoint(Node):
         return {}
 
     def construct(
-            self,
-            response_args: Optional[dict] = None,
-            request: Optional[Union[Message, dict]] = None,
-            **kwargs
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
     ):
         """
         Construct the response
@@ -344,19 +346,19 @@ class Endpoint(Node):
         return self.do_post_construct(response, request, **kwargs)
 
     def response_info(
-            self,
-            response_args: Optional[dict] = None,
-            request: Optional[Union[Message, dict]] = None,
-            **kwargs
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        **kwargs
     ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
     def do_response(
-            self,
-            response_args: Optional[dict] = None,
-            request: Optional[Union[Message, dict]] = None,
-            error: Optional[str] = "",
-            **kwargs
+        self,
+        response_args: Optional[dict] = None,
+        request: Optional[Union[Message, dict]] = None,
+        error: Optional[str] = "",
+        **kwargs
     ) -> dict:
         """
         :param response_args: Information to use when constructing the response
@@ -391,6 +393,8 @@ class Endpoint(Node):
                     content_type = "application/json"
                 elif self.response_format in ["jws", "jwe", "jose"]:
                     content_type = "application/jose"
+                elif self.response_format == "text":
+                    content_type = "text/plain"
                 else:
                     content_type = "application/x-www-form-urlencoded"
         else:

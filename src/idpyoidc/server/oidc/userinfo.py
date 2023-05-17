@@ -26,7 +26,7 @@ class UserInfo(Endpoint):
     request_cls = Message
     response_cls = oidc.OpenIDSchema
     request_format = "json"
-    response_format = "json"
+    response_format = "jose"
     response_placement = "body"
     endpoint_name = "userinfo_endpoint"
     name = "userinfo"
@@ -38,7 +38,9 @@ class UserInfo(Endpoint):
         "userinfo_encryption_enc_values_supported": claims.get_encryption_encs,
     }
 
-    def __init__(self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs):
+    def __init__(
+        self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
+    ):
         Endpoint.__init__(
             self,
             upstream_get,
@@ -47,29 +49,18 @@ class UserInfo(Endpoint):
         )
         # Add the issuer ID as an allowed JWT target
         self.allowed_targets.append("")
+        self.config = kwargs or {}
 
-        if kwargs is None:
-            self.config = {
-                "policy": {
-                    "function": "/path/to/callable",
-                    "kwargs": {}
-                },
-            }
-        else:
-            self.config = kwargs
-
-    def get_client_id_from_token(self, endpoint_context, token, request=None):
-        _info = endpoint_context.session_manager.get_session_info_by_token(
-            token, handler_key="access_token"
-        )
+    def get_client_id_from_token(self, context, token, request=None):
+        _info = context.session_manager.get_session_info_by_token(token, handler_key="access_token")
         return _info["client_id"]
 
     def do_response(
-            self,
-            response_args: Optional[Union[Message, dict]] = None,
-            request: Optional[Union[Message, dict]] = None,
-            client_id: Optional[str] = "",
-            **kwargs
+        self,
+        response_args: Optional[Union[Message, dict]] = None,
+        request: Optional[Union[Message, dict]] = None,
+        client_id: Optional[str] = "",
+        **kwargs,
     ) -> dict:
 
         if "error" in kwargs and kwargs["error"]:
@@ -100,7 +91,7 @@ class UserInfo(Endpoint):
 
         if encrypt or sign:
             _jwt = JWT(
-                self.upstream_get('attribute', 'keyjar'),
+                self.upstream_get("attribute", "keyjar"),
                 iss=_context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,
@@ -144,7 +135,7 @@ class UserInfo(Endpoint):
 
         allowed = True
         _auth_event = _grant.authentication_event
-        # if the authenticate is still active or offline_access is granted.
+        # if the authentication is still active or offline_access is granted.
         if not _auth_event["valid_until"] >= utc_time_sans_frac():
             logger.debug(
                 "authentication not valid: {} > {}".format(
@@ -207,7 +198,14 @@ class UserInfo(Endpoint):
             request["client_id"] = auth_info["client_id"]
             request["access_token"] = auth_info["token"]
 
-        return request
+        # Do any endpoint specific parsing
+        return self.do_post_parse_request(
+            request=request,
+            client_id=auth_info["client_id"],
+            http_info=http_info,
+            auth_info=auth_info,
+            **kwargs,
+        )
 
     def _enforce_policy(self, request, response_info, token, config):
         policy = config["policy"]

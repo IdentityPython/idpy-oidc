@@ -40,24 +40,22 @@ REGISTER2PREFERRED = {
 PREFERRED2REGISTER = dict([(v, k) for k, v in REGISTER2PREFERRED.items()])
 
 REQUEST2REGISTER = {
-    'client_id': "client_id",
+    "client_id": "client_id",
     "client_secret": "client_secret",
     #    'acr_values': "default_acr_values" ,
     #    'max_age': "default_max_age",
-    'redirect_uri': "redirect_uris",
-    'response_type': "response_types",
-    'request_uri': "request_uris",
-    'grant_type': "grant_types",
-    "scope": 'scopes_supported',
-    'post_logout_redirect_uri': "post_logout_redirect_uris"
+    "redirect_uri": "redirect_uris",
+    "response_type": "response_types",
+    "request_uri": "request_uris",
+    "grant_type": "grant_types",
+    "scope": "scopes_supported",
+    "post_logout_redirect_uri": "post_logout_redirect_uris",
 }
 
 
 class Claims(client_claims.Claims):
     parameter = client_claims.Claims.parameter.copy()
-    parameter.update({
-        "requests_dir": None
-    })
+    parameter.update({"requests_dir": None})
 
     register2preferred = REGISTER2PREFERRED
     registration_response = RegistrationResponse
@@ -92,32 +90,38 @@ class Claims(client_claims.Claims):
         "tos_uri": None,
     }
 
-    def __init__(self,
-                 prefer: Optional[dict] = None,
-                 callback_path: Optional[dict] = None
-                 ):
-        client_claims.Claims.__init__(self,
-                                      prefer=prefer,
-                                      callback_path=callback_path)
+    def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
+        client_claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         if self.get_preference("request_parameter_supported") and self.get_preference(
-                "request_uri_parameter_supported"):
+            "request_uri_parameter_supported"
+        ):
             raise ValueError(
                 "You have to chose one of 'request_parameter_supported' and "
-                "'request_uri_parameter_supported'. You can't have both.")
+                "'request_uri_parameter_supported'. You can't have both."
+            )
 
-        if not self.get_preference('encrypt_userinfo_supported'):
-            self.set_preference('userinfo_encryption_alg_values_supported', [])
-            self.set_preference('userinfo_encryption_enc_values_supported', [])
+        if self.get_preference("request_parameter_supported") or self.get_preference(
+            "request_uri_parameter_supported"
+        ):
+            if not self.get_preference("request_object_signing_alg_values_supported"):
+                self.set_preference(
+                    "request_object_signing_alg_values_supported",
+                    supports["request_object_signing_alg_values_supported"],
+                )
 
-        if not self.get_preference('encrypt_request_object_supported'):
-            self.set_preference('request_object_encryption_alg_values_supported', [])
-            self.set_preference('request_object_encryption_enc_values_supported', [])
+        if not self.get_preference("encrypt_userinfo_supported"):
+            self.set_preference("userinfo_encryption_alg_values_supported", [])
+            self.set_preference("userinfo_encryption_enc_values_supported", [])
 
-        if not self.get_preference('encrypt_id_token_supported'):
-            self.set_preference('id_token_encryption_alg_values_supported', [])
-            self.set_preference('id_token_encryption_enc_values_supported', [])
+        if not self.get_preference("encrypt_request_object_supported"):
+            self.set_preference("request_object_encryption_alg_values_supported", [])
+            self.set_preference("request_object_encryption_enc_values_supported", [])
+
+        if not self.get_preference("encrypt_id_token_supported"):
+            self.set_preference("id_token_encryption_alg_values_supported", [])
+            self.set_preference("id_token_encryption_enc_values_supported", [])
 
     def locals(self, info):
         requests_dir = info.get("requests_dir")

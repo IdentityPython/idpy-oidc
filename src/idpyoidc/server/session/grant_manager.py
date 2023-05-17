@@ -28,17 +28,17 @@ class GrantManager(Database):
     init_args = ["handler"]
 
     def __init__(
-            self,
-            handler: TokenHandler,
-            conf: Optional[dict] = None,
-            remember_token: Optional[Callable] = None,
-            remove_inactive_token: Optional[bool] = False,
+        self,
+        handler: TokenHandler,
+        conf: Optional[dict] = None,
+        remember_token: Optional[Callable] = None,
+        remove_inactive_token: Optional[bool] = False,
     ):
         self.conf = conf or {
             "session_params": {
                 "encrypter": default_crypt_config(),
                 "node_type": ["client", "grant"],
-                "node_info_class": {"client": ClientSessionInfo, "grant": Grant}
+                "node_info_class": {"client": ClientSessionInfo, "grant": Grant},
             }
         }
 
@@ -69,7 +69,7 @@ class GrantManager(Database):
 
     def _setup_branch(self, path):
         for i in range(len(path)):
-            _id = path[0:i + 1]
+            _id = path[0 : i + 1]
 
             try:
                 _si = self.get(_id)
@@ -81,16 +81,16 @@ class GrantManager(Database):
     def _get_nodes(self, path):
         res = []
         for i in range(len(path)):
-            _id = path[0:i + 1]
+            _id = path[0 : i + 1]
             res.append(self.get(_id))
         return res
 
     def add_grant(
-            self,
-            path: List[str],
-            token_usage_rules: Optional[dict] = None,
-            scope: Optional[list] = None,
-            **kwargs
+        self,
+        path: List[str],
+        token_usage_rules: Optional[dict] = None,
+        scope: Optional[list] = None,
+        **kwargs,
     ) -> str:
         """
         Creates a Grant instance and adds it as a leaf to a branch
@@ -111,7 +111,7 @@ class GrantManager(Database):
             remember_token=self.remember_token,
             remove_inactive_token=self.remove_inactive_token,
             scope=scope,
-            **grant_args
+            **grant_args,
         )
 
         _id = path[:]
@@ -121,12 +121,12 @@ class GrantManager(Database):
         return self.encrypted_branch_id(*_id)
 
     def add_exchange_grant(
-            self,
-            exchange_request: TokenExchangeRequest,
-            original_branch_id: str,
-            path: List[str],
-            token_usage_rules: Optional[dict] = None,
-            **grant_args
+        self,
+        exchange_request: TokenExchangeRequest,
+        original_branch_id: str,
+        path: List[str],
+        token_usage_rules: Optional[dict] = None,
+        **grant_args,
     ) -> str:
         """
 
@@ -156,8 +156,9 @@ class GrantManager(Database):
 
         return self.encrypted_branch_id(*_id)
 
-    def get_node_info(self, branch_id: str, level: Optional[int] = None,
-                      node_type: Optional[str] = None) -> (str, NodeInfo):
+    def get_node_info(
+        self, branch_id: str, level: Optional[int] = None, node_type: Optional[str] = None
+    ) -> (str, NodeInfo):
         """
         Return session information for a specific node in the grant path.
 
@@ -173,7 +174,7 @@ class GrantManager(Database):
             else:
                 raise ValueError("One of level or node_type MUST be defined")
 
-        return _path[level], self.get(_path[0:level + 1])
+        return _path[level], self.get(_path[0 : level + 1])
 
     def branch_info(self, branch_id: str, *args) -> dict:
         """
@@ -230,7 +231,7 @@ class GrantManager(Database):
         else:
             if level > len(_path):
                 raise ValueError("Looking for level beyond what is available")
-            _node = self.get(_path[0:level + 1])
+            _node = self.get(_path[0 : level + 1])
         self._revoke_tree(_node)
 
     def _grants(self, path):
@@ -243,9 +244,9 @@ class GrantManager(Database):
         return _res
 
     def grants(
-            self,
-            branch_id: Optional[str] = "",
-            path: Optional[List[str]] = "",
+        self,
+        branch_id: Optional[str] = "",
+        path: Optional[List[str]] = "",
     ) -> List[Grant]:
         """
         Find all grants connected to a branch

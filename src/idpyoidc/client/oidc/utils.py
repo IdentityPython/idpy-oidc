@@ -46,7 +46,7 @@ def request_object_encryption(msg, service_context, keyjar, **kwargs):
     except KeyError:
         _kid = ""
 
-    _target = kwargs.get('target', kwargs.get('recv', None))
+    _target = kwargs.get("target", kwargs.get("recv", None))
     if _target is None:
         raise MissingRequiredAttribute("No target specified")
 

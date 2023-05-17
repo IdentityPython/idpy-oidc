@@ -205,16 +205,19 @@ class TestEndpoint(object):
 
         # Both have to use the same keyjar
         _keyjar = init_key_jar(key_defs=KEYDEFS)
-        _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""),
-                                    ENDPOINT_CONTEXT_CONFIG['issuer'])
+        _keyjar.import_jwks_as_json(
+            _keyjar.export_jwks_as_json(True, ""), ENDPOINT_CONTEXT_CONFIG["issuer"]
+        )
         server1 = Server(
-            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR,
-            keyjar=_keyjar
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR),
+            cwd=BASEDIR,
+            keyjar=_keyjar,
         )
 
         server2 = Server(
-            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR), cwd=BASEDIR,
-            keyjar=_keyjar
+            OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR),
+            cwd=BASEDIR,
+            keyjar=_keyjar,
         )
         # The top most part (Server class instance) is not
 
@@ -224,7 +227,15 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "research_and_scholarship",
+            ],
         }
 
         # make server2 endpoint context a copy of server 1 endpoint context
@@ -300,12 +311,13 @@ class TestEndpoint(object):
 
     def test_init(self):
         assert self.endpoint[1]
-        assert set(
-            self.endpoint[1].upstream_get("context").provider_info["scopes_supported"]
-        ) == {"openid"}
-        assert self.endpoint[1].upstream_get("context").provider_info[
-                   "claims_parameter_supported"] == \
-               self.endpoint[2].upstream_get("context").provider_info["claims_parameter_supported"]
+        assert set(self.endpoint[1].upstream_get("context").provider_info["scopes_supported"]) == {
+            "openid"
+        }
+        assert (
+            self.endpoint[1].upstream_get("context").provider_info["claims_parameter_supported"]
+            == self.endpoint[2].upstream_get("context").provider_info["claims_parameter_supported"]
+        )
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)

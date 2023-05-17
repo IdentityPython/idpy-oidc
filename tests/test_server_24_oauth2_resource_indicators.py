@@ -38,8 +38,12 @@ from idpyoidc.server.oauth2.authorization import get_uri
 from idpyoidc.server.oauth2.authorization import inputs
 from idpyoidc.server.oauth2.authorization import join_query
 from idpyoidc.server.oauth2.authorization import verify_uri
-from idpyoidc.server.oauth2.authorization import validate_resource_indicators_policy as validate_authorization_resource_indicators_policy
-from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy as validate_token_resource_indicators_policy
+from idpyoidc.server.oauth2.authorization import (
+    validate_resource_indicators_policy as validate_authorization_resource_indicators_policy,
+)
+from idpyoidc.server.oauth2.token_helper import (
+    validate_resource_indicators_policy as validate_token_resource_indicators_policy,
+)
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import in_a_while
 from tests import CRYPT_CONFIG
@@ -47,7 +51,7 @@ from tests import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]}
+    {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
 COOKIE_KEYDEFS = [
@@ -352,9 +356,7 @@ RESOURCE_INDICATORS_ENABLED = {
                     "policy": {
                         "function": validate_token_resource_indicators_policy,
                         "kwargs": {
-                            "resource_servers_per_client": {
-                                "client_1": ["client_2", "client_3"]
-                            },
+                            "resource_servers_per_client": {"client_1": ["client_2", "client_3"]},
                         },
                     }
                 },
@@ -409,6 +411,7 @@ RESOURCE_INDICATORS_ENABLED = {
     },
     "session_params": SESSION_PARAMS,
 }
+
 
 class TestEndpoint(object):
     @pytest.fixture(autouse=False)
@@ -482,7 +485,7 @@ class TestEndpoint(object):
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             usage_rules=usage_rules,
-            resources=grant.resources
+            resources=grant.resources,
         )
 
         if _exp_in:
@@ -521,7 +524,9 @@ class TestEndpoint(object):
         assert "error" in msg
         assert msg["error_description"] == "Missing resource parameter"
 
-    def test_authorization_code_req_no_resource_indicators_disabled(self, create_endpoint_ri_disabled):
+    def test_authorization_code_req_no_resource_indicators_disabled(
+        self, create_endpoint_ri_disabled
+    ):
         """
         Test successful authorization request when resource indicators is disabled.
         """
@@ -552,9 +557,7 @@ class TestEndpoint(object):
             "authorization_code": {
                 "policy": {
                     "function": validate_authorization_resource_indicators_policy,
-                    "kwargs": {
-                        "resource_servers_per_client":["client_3"]
-                    },
+                    "kwargs": {"resource_servers_per_client": ["client_3"]},
                 },
             },
         }
@@ -589,7 +592,7 @@ class TestEndpoint(object):
         for the authorization endpoint and requested resource is not permitted for client.
         """
         request = AUTH_REQ.copy()
-        request["resource"] = "client_2"
+        request["resource"] = "client_3"
         client_id = request["client_id"]
         endpoint_context = self.endpoint.upstream_get("context")
 
@@ -607,7 +610,7 @@ class TestEndpoint(object):
             "client_id": "client_3",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid"]
+            "allowed_scopes": ["openid"],
         }
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
@@ -661,7 +664,7 @@ class TestEndpoint(object):
             "client_id": "client_3",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid"]
+            "allowed_scopes": ["openid"],
         }
 
         session_id = self._create_session(AUTH_REQ)

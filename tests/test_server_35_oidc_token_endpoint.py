@@ -198,7 +198,6 @@ def conf():
 
 
 class TestEndpoint(_TestEndpoint):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -210,7 +209,7 @@ class TestEndpoint(_TestEndpoint):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         context.userinfo = USERINFO
@@ -284,7 +283,7 @@ class TestEndpoint(_TestEndpoint):
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
-        assert set(_req.keys()).difference(set(_token_request.keys())) == {'authenticated'}
+        assert set(_req.keys()).difference(set(_token_request.keys())) == {"authenticated"}
 
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
@@ -394,7 +393,7 @@ class TestEndpoint(_TestEndpoint):
             "scope",
         }
         AuthorizationResponse().from_jwt(
-            _resp["response_args"]["id_token"], self.server.get_attribute('keyjar'), sender=""
+            _resp["response_args"]["id_token"], self.server.get_attribute("keyjar"), sender=""
         )
 
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -774,7 +773,7 @@ class TestEndpoint(_TestEndpoint):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         areq = AUTH_REQ.copy()
@@ -814,7 +813,7 @@ class TestEndpoint(_TestEndpoint):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.token_endpoint.revoke_refresh_on_issue = True
         areq = AUTH_REQ.copy()
@@ -854,7 +853,7 @@ class TestEndpoint(_TestEndpoint):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()
@@ -938,8 +937,9 @@ class TestEndpoint(_TestEndpoint):
     def test_configure_grant_types(self):
         conf = {"access_token": {"class": "idpyoidc.server.oidc.token.AccessTokenHelper"}}
 
-        _helper = self.token_endpoint.configure_types(conf,
-                                                      self.token_endpoint.helper_by_grant_type)
+        _helper = self.token_endpoint.configure_types(
+            conf, self.token_endpoint.helper_by_grant_type
+        )
 
         assert len(_helper) == 1
         assert "access_token" in _helper
@@ -1015,7 +1015,6 @@ class TestEndpoint(_TestEndpoint):
 
 
 class TestOldTokens(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -1027,7 +1026,7 @@ class TestOldTokens(object):
             "client_salt": "salted",
             "endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
@@ -1121,7 +1120,7 @@ class TestOldTokens(object):
         # payload.update(kwargs)
         _context = _handler.upstream_get("context")
         signer = JWT(
-            key_jar=_handler.upstream_get('attribute', 'keyjar'),
+            key_jar=_handler.upstream_get("attribute", "keyjar"),
             iss=_handler.issuer,
             lifetime=300,
             sign_alg=_handler.alg,

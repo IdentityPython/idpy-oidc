@@ -22,18 +22,18 @@ class EndSession(Service):
 
     _supports = {
         "post_logout_redirect_uris": None,
-        'frontchannel_logout_supported': None,
+        "frontchannel_logout_supported": None,
         "frontchannel_logout_uri": None,
         "frontchannel_logout_session_required": None,
-        'backchannel_logout_supported': None,
+        "backchannel_logout_supported": None,
         "backchannel_logout_uri": None,
-        "backchannel_logout_session_required": None
+        "backchannel_logout_session_required": None,
     }
 
     _callback_path = {
         "frontchannel_logout_uri": "fc_logout",
         "backchannel_logout_uri": "bc_logout",
-        "post_logout_redirect_uris": ["session_logout"]
+        "post_logout_redirect_uris": ["session_logout"],
     }
 
     def __init__(self, upstream_get, conf=None):
@@ -53,7 +53,7 @@ class EndSession(Service):
         :return:
         """
 
-        _id_token = self.upstream_get("context").cstate.get_claim(kwargs["state"], claim='id_token')
+        _id_token = self.upstream_get("context").cstate.get_claim(kwargs["state"], claim="id_token")
         if _id_token:
             request_args["id_token_hint"] = _id_token
 

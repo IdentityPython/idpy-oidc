@@ -139,10 +139,11 @@ class TestEndpoint(object):
             "add_claims": {
                 "always": {},
             },
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        self.server.get_attribute('keyjar').add_symmetric("client_1", "hemligtochintekort",
-                                                          ["sig", "enc"])
+        self.server.get_attribute("keyjar").add_symmetric(
+            "client_1", "hemligtochintekort", ["sig", "enc"]
+        )
         self.claims_interface = self.context.claims_interface
 
         self.user_id = USER_ID
