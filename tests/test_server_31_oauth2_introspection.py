@@ -132,6 +132,7 @@ class TestEndpoint:
                     "kwargs": {
                         "client_authn_method": ["client_secret_post"],
                         "enable_claims_per_client": False,
+                        "enforce_audience_restriction": True,
                     },
                 },
                 "token": {
