@@ -7,6 +7,7 @@ from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.time_util import utc_time_sans_frac
+
 from . import TokenEndpointHelper
 
 logger = logging.getLogger(__name__)

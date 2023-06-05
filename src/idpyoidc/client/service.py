@@ -14,9 +14,13 @@ from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
+
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
 from .client_auth import single_authn_setup
@@ -24,9 +28,6 @@ from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
 
 __author__ = "Roland Hedberg"
 

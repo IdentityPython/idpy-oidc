@@ -6,6 +6,7 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import sanitize
+
 from . import TokenEndpointHelper
 
 logger = logging.getLogger(__name__)

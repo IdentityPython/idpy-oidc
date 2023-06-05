@@ -9,9 +9,9 @@ from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.oidc.webfinger import WebFinger
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
-from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse

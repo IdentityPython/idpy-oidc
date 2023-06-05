@@ -1,7 +1,6 @@
 import logging
 
 from idpyoidc import claims
-
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import TokenErrorResponse

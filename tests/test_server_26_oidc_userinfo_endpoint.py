@@ -18,14 +18,13 @@ from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
 from idpyoidc.server.oidc.registration import Registration
 from idpyoidc.server.oidc.token import Token
+from idpyoidc.server.oidc.userinfo import validate_userinfo_policy
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
-from idpyoidc.server.oidc.userinfo import validate_userinfo_policy
 from idpyoidc.time_util import utc_time_sans_frac
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
-
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},

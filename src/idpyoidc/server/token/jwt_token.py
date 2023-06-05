@@ -7,16 +7,18 @@ from cryptojwt.jws.exception import JWSException
 from cryptojwt.utils import importer
 
 from idpyoidc.server.exception import ToOld
+
+from ...message import Message
+from ...message.oauth2 import JWTAccessToken
+from ..constant import DEFAULT_TOKEN_LIFETIME
 from . import Token
 from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
-from ..constant import DEFAULT_TOKEN_LIFETIME
-from ...message import Message
-from ...message.oauth2 import JWTAccessToken
 
 
 class JWTToken(Token):
+    name = "jwt_token"
 
     def __init__(
             self,

@@ -1,6 +1,7 @@
 import base64
 import os
 
+import pytest
 from cryptojwt.exception import MissingKey
 from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
@@ -8,8 +9,8 @@ from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import init_key_jar
-import pytest
 
+from idpyoidc.claims import Claims
 from idpyoidc.client.client_auth import AuthnFailure
 from idpyoidc.client.client_auth import BearerBody
 from idpyoidc.client.client_auth import BearerHeader
@@ -21,7 +22,6 @@ from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
-from idpyoidc.claims import Claims
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest

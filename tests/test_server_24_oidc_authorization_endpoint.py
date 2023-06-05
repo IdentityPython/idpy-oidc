@@ -4,14 +4,14 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+import pytest
+import responses
+import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
-import pytest
-import responses
-import yaml
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError

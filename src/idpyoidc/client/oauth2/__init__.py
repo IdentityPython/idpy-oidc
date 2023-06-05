@@ -1,11 +1,10 @@
-from json import JSONDecodeError
 import logging
+from json import JSONDecodeError
 from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt.key_jar import KeyJar
-from requests import request
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ConfigurationError
@@ -21,6 +20,7 @@ from idpyoidc.context import OidcContext
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
+from requests import request
 
 __author__ = "Roland Hedberg"
 

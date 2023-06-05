@@ -11,9 +11,10 @@ from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import OidcEndpointError
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.util import allow_refresh_token
+
 from . import CRYPT_CONFIG
-from . import full_path
 from . import SESSION_PARAMS
+from . import full_path
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},

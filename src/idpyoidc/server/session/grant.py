@@ -12,12 +12,13 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.session.token import TOKEN_MAP
 from idpyoidc.server.token import Token as TokenHandler
 from idpyoidc.util import importer
+
+from ...message.oauth2 import TokenExchangeRequest
+from ...util import qualified_name
 from . import MintingNotAllowed
 from .claims import claims_match
 from .token import Item
 from .token import SessionToken
-from ...message.oauth2 import TokenExchangeRequest
-from ...util import qualified_name
 
 logger = logging.getLogger(__name__)
 

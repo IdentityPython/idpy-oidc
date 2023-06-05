@@ -39,10 +39,9 @@ from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import split_uri
-from idpyoidc.util import importer
-
 
 logger = logging.getLogger(__name__)
 

@@ -21,11 +21,12 @@ from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
 from idpyoidc.util import rndstr
+
+from ..impexp import ImpExp
 from .claims.transform import preferred_to_registered
 from .claims.transform import supported_to_preferred
 from .configure import get_configuration
 from .current import Current
-from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
 

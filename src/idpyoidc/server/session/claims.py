@@ -113,6 +113,9 @@ class ClaimsInterface:
             )
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope")
+            if not _claims_by_scope:
+                if auth_req["response_type"] == ['id_token'] and module.name == 'id_token':
+                    _claims_by_scope = True
             _always_add = module.kwargs.get("always_add_claims", {})
 
         if _always_add:

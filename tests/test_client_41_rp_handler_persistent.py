@@ -2,8 +2,8 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
-from cryptojwt.key_jar import init_key_jar
 import responses
+from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oidc import AccessTokenResponse

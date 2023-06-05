@@ -13,11 +13,12 @@ from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.oauth2.authorization import check_unknown_scopes_policy
-from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
+from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
+
 from . import TokenEndpointHelper
 from . import validate_token_exchange_policy
 

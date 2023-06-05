@@ -1,10 +1,10 @@
 import logging
 
 from cryptojwt import JWT
-from requests import request
 
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
+from requests import request
 
 logger = logging.getLogger(__name__)
 

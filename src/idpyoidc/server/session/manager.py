@@ -1,10 +1,10 @@
 import hashlib
 import logging
 import os
+import uuid
 from typing import Callable
 from typing import List
 from typing import Optional
-import uuid
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -13,15 +13,16 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
 from idpyoidc.server.session.grant_manager import GrantManager
 from idpyoidc.util import rndstr
+
+from ..token import UnknownToken
+from ..token import WrongTokenClass
+from ..token import handler
+from ..token.handler import TokenHandler
 from .database import Database
 from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
-from ..token import UnknownToken
-from ..token import WrongTokenClass
-from ..token import handler
-from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
 

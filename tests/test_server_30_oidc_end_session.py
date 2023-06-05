@@ -4,9 +4,9 @@ import os
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt.key_jar import build_keyjar
 import pytest
 import responses
+from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.exception import InvalidRequest
 from idpyoidc.message import Message

@@ -4,10 +4,10 @@ from http.cookiejar import FileCookieJar
 from http.cookies import CookieError
 from http.cookies import SimpleCookie
 
-from requests import request
 from idpyoidc.client.exception import NonFatalException
 from idpyoidc.client.util import sanitize
 from idpyoidc.client.util import set_cookie
+from requests import request
 
 __author__ = "roland"
 

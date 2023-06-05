@@ -10,14 +10,14 @@ from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
 
 from idpyoidc import claims
-from idpyoidc.util import importer
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
-from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
+from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
 

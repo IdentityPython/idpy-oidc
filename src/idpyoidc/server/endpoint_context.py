@@ -8,7 +8,6 @@ from typing import Union
 from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
-from requests import request
 
 from idpyoidc.context import OidcContext
 from idpyoidc.server import authz
@@ -19,13 +18,14 @@ from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
-from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.session.manager import SessionManager
+from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
+from requests import request
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 
-from idpyoidc.server.oauth2.token_helper.token_exchange import TokenExchangeHelper as \
-    OAuth2TokenExchangeHelper
+from idpyoidc.server.oauth2.token_helper.token_exchange import \
+    TokenExchangeHelper as OAuth2TokenExchangeHelper
 
 logger = logging.getLogger(__name__)
 

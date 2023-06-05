@@ -61,6 +61,15 @@ AREQRC = AuthorizationRequest(
     claims={"id_token": {"nickname": None}},
 )
 
+AREQ_IDT = AuthorizationRequest(
+    response_type="id_token",
+    client_id="client_1",
+    redirect_uri="http://example.com/authz",
+    scope=["openid", "address", "email"],
+    state="state000",
+    nonce="nonce"
+)
+
 conf = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
@@ -690,3 +699,80 @@ class TestEndpoint(object):
         _jwt = factory(id_token.value)
         _id_token_content = _jwt.jwt.payload()
         assert _id_token_content["acr"] == "https://refeds.org/profile/mfa"
+
+
+class TestEndpoint2(object):
+    @pytest.fixture(autouse=True)
+    def create_session_manager(self):
+        conf = {
+            "issuer": "https://example.com/",
+            "key_conf": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
+            "userinfo": {
+                "class": "idpyoidc.server.user_info.UserInfo",
+                "kwargs": {"db": USERS},
+            },
+        }
+        self.server = Server(conf)
+        self.context = self.server.context
+        self.context.cdb["client_1"] = {
+            "client_secret": "underbart_ar_kort",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "token_endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "code id_token", "id_token"],
+            "add_claims": {
+                "always": {},
+                "by_scope": {},
+            },
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+        }
+        self.server.keyjar.add_symmetric("client_1", "underbart_ar_kort", ["sig", "enc"])
+        self.session_manager = self.context.session_manager
+        self.user_id = USER_ID
+
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=""):
+        if sector_identifier:
+            authz_req = auth_req.copy()
+            authz_req["sector_identifier_uri"] = sector_identifier
+        else:
+            authz_req = auth_req
+
+        client_id = authz_req["client_id"]
+        ae = create_authn_event(self.user_id, authn_info=authn_info)
+        return self.session_manager.create_session(
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+        )
+
+    def _mint_code(self, grant, session_id):
+        # Constructing an authorization code is now done
+        return grant.mint_token(
+            session_id=session_id,
+            context=self.context,
+            token_class="authorization_code",
+            token_handler=self.session_manager.token_handler["authorization_code"],
+            expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
+        )
+
+    def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
+        return grant.mint_token(
+            session_id=session_id,
+            context=self.context,
+            token_class="id_token",
+            token_handler=self.session_manager.token_handler["id_token"],
+            expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
+            based_on=token_ref,  # Means the token (tok) was used to mint this token
+            code=code,
+            access_token=access_token,
+        )
+
+    def test_request_id_token(self):
+        session_id = self._create_session(AREQ_IDT)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+
+        id_token = self._mint_id_token(grant, session_id, token_ref=code)
+
+        _jws = factory(id_token.value)
+        assert _jws.jwt.headers["alg"] == "RS256"
+        payload = _jws.jwt.payload()
+        assert 'address' in payload

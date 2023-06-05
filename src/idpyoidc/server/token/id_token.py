@@ -116,6 +116,7 @@ class IDToken(Token):
         "id_token_encryption_alg_values_supported": None,
         "id_token_encryption_enc_values_supported": None,
     }
+    name = 'id_token'
 
     def __init__(
         self,

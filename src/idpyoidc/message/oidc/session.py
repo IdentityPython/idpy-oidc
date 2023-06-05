@@ -4,20 +4,21 @@ from cryptojwt.exception import UnsupportedAlgorithm
 
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import NotForMe
-from idpyoidc.message import Message
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
 from idpyoidc.time_util import utc_time_sans_frac
+
 from ..oauth2 import ResponseMessage
-from ..oidc import clear_verified_claims
 from ..oidc import ID_TOKEN_VERIFY_ARGS
+from ..oidc import SINGLE_OPTIONAL_IDTOKEN
 from ..oidc import IdToken
 from ..oidc import MessageWithIdToken
-from ..oidc import SINGLE_OPTIONAL_IDTOKEN
+from ..oidc import clear_verified_claims
 from ..oidc import verified_claim_name
 from ..oidc import verify_id_token
 

@@ -6,8 +6,9 @@ from idpyoidc.exception import FailedAuthentication
 from idpyoidc.message import Message
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import instantiate
-from . import TokenEndpointHelper
+
 from ...user_authn.authn_context import pick_auth
+from . import TokenEndpointHelper
 
 logger = logging.getLogger(__name__)
 

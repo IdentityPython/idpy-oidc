@@ -4,9 +4,9 @@ from typing import Optional
 
 from idpyoidc.message import oauth2
 from idpyoidc.server.endpoint import Endpoint
+from idpyoidc.server.exception import ToOld
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.token.exception import WrongTokenClass
-from idpyoidc.server.exception import ToOld
 
 LOGGER = logging.getLogger(__name__)
 

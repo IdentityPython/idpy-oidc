@@ -1,6 +1,5 @@
 from idpyoidc.context import OidcContext
 
-
 ENTITY_ID = 'https://example.com'
 
 

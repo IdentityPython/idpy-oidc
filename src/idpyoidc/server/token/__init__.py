@@ -35,6 +35,8 @@ def is_expired(exp, when=0):
 
 
 class Token(object):
+    name = "token"
+
     def __init__(self, token_class, lifetime=300, **kwargs):
         self.token_class = token_class
         try:

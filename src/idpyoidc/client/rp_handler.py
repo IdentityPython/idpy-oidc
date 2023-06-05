@@ -3,8 +3,8 @@ import sys
 import traceback
 from typing import Optional
 
-from cryptojwt import as_unicode
 from cryptojwt import KeyJar
+from cryptojwt import as_unicode
 from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
@@ -28,11 +28,12 @@ from idpyoidc.message.oidc.session import BackChannelLogoutRequest
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
+
+from ..message.oauth2 import ResponseMessage
 from . import oidc
 from .oauth2 import Client
 from .oauth2 import dynamic_provider_info_discovery
 from .oauth2.utils import pick_redirect_uri
-from ..message.oauth2 import ResponseMessage
 
 logger = logging.getLogger(__name__)
 
