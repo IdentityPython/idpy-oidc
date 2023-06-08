@@ -2,7 +2,6 @@ import json
 import os
 from typing import List
 
-import pytest
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.oauth2 import Client
@@ -170,6 +169,7 @@ CLIENT_CONFIG = {
 
 
 class Flow(object):
+
     def __init__(self, client, server):
         self.client = client
         self.server = server

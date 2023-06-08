@@ -61,6 +61,7 @@ PREFERENCE2PROVIDER = {
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
+    "response_modes": "response_modes_supported",
     "grant_types": "grant_types_supported",
 }
 
