@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.oauth2 import server_metadata
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -46,6 +47,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     response_cls = oidc.ProviderConfigurationResponse
     error_msg = ResponseMessage
     service_name = "provider_info"
+    url_pattern = OIDCONF_PATTERN
 
     _include = {}
     _supports = {}

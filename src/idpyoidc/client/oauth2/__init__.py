@@ -70,6 +70,8 @@ class Client(Entity):
 
         if not client_type:
             client_type = self.client_type
+        else:
+            self.client_type = client_type
 
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
@@ -310,17 +312,20 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     :param behaviour_args:
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    try:
-        client.get_service("provider_info")
-    except KeyError:
-        raise ConfigurationError("Can not do dynamic provider info discovery")
-    else:
-        _context = client.get_context()
-        try:
-            _context.set("issuer", _context.config["srv_discovery_url"])
-        except KeyError:
-            pass
 
-        response = client.do_request("provider_info", behaviour_args=behaviour_args)
-        if is_error_message(response):
-            raise OidcServiceError(response["error"])
+    if client.client_type == 'oidc' and client.get_service("provider_info"):
+        service = 'provider_info'
+    elif client.client_type == 'oauth2' and client.get_service('server_metadata'):
+        service = 'server_metadata'
+    else:
+        raise ConfigurationError("Can not do dynamic provider info discovery")
+
+    _context = client.get_context()
+    try:
+        _context.set("issuer", _context.config["srv_discovery_url"])
+    except KeyError:
+        pass
+
+    response = client.do_request(service, behaviour_args=behaviour_args)
+    if is_error_message(response):
+        raise OidcServiceError(response["error"])

@@ -71,6 +71,8 @@ DEFAULT_RP_KEY_DEFS = {
 }
 
 OIDCONF_PATTERN = "{}/.well-known/openid-configuration"
+OAUTH2_SERVER_METADATA_URL = "{}/.well-known/oauth-authorization-server"
+
 CC_METHOD = {
     "S256": hashlib.sha256,
     "S384": hashlib.sha384,

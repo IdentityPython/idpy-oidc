@@ -52,19 +52,21 @@ class StandAloneClient(Client):
         Either get the provider info from configuration or through dynamic
         discovery.
 
-        :param behaviour_args:
-        :param state: A key by which the state of the session can be
-            retrieved
+        :param behaviour_args: Behaviour specific attributes
         :return: issuer ID
         """
         logger.debug(20 * "*" + " do_provider_info " + 20 * "*")
 
         _context = self.get_context()
-        if not _context.get("provider_info"):
+        _pi = _context.get("provider_info")
+        if _pi is None:
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
             return _context.get("provider_info")["issuer"]
+        elif len(_pi) == 1 and 'issuer' in _pi:
+            _context.issuer = _pi['issuer']
+            dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
+            return _context.issuer
         else:
-            _pi = _context.get("provider_info")
             for key, val in _pi.items():
                 # All service endpoint parameters in the provider info has
                 # a name ending in '_endpoint' so I can look specifically
@@ -141,6 +143,9 @@ class StandAloneClient(Client):
         else:
             return context.claims.get_usage("response_types")[0]
 
+    def _get_response_mode(self, context, response_type):
+        pass
+
     def init_authorization(
             self,
             req_args: Optional[dict] = None,
@@ -161,6 +166,7 @@ class StandAloneClient(Client):
 
         _context = self.get_context()
         _response_type = self._get_response_type(_context, req_args)
+        _response_mode = self._get_response_mode(_context, _response_type)
         request_args = {
             "redirect_uri": pick_redirect_uri(
                 _context, request_args=req_args, response_type=_response_type
