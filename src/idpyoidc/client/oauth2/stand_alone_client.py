@@ -61,11 +61,11 @@ class StandAloneClient(Client):
         _pi = _context.get("provider_info")
         if _pi is None:
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
-            return _context.get("provider_info")["issuer"]
+            _pi = _context.provider_info
         elif len(_pi) == 1 and 'issuer' in _pi:
             _context.issuer = _pi['issuer']
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
-            return _context.issuer
+            _pi = _context.provider_info
         else:
             for key, val in _pi.items():
                 # All service endpoint parameters in the provider info has
@@ -95,12 +95,8 @@ class StandAloneClient(Client):
                     else:
                         raise ValueError("Unknown provider JWKS type: {}".format(typ))
 
-            _context.map_supported_to_preferred(info=_pi)
-
-            try:
-                return _context.get("provider_info")["issuer"]
-            except KeyError:
-                return _context.get("issuer")
+        _context.map_supported_to_preferred(info=_pi)
+        return _context.provider_info['issuer']
 
     def do_client_registration(
             self,
