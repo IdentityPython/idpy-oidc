@@ -261,7 +261,7 @@ class StandAloneClient(Client):
             "redirect_uri": _claims["redirect_uri"],
             "grant_type": "authorization_code",
             "client_id": self.get_client_id(),
-            "client_secret": _context.get("client_secret"),
+            "client_secret": _context.claims.get_usage("client_secret"),
         }
         logger.debug("request_args: {}".format(req_args))
         try:
