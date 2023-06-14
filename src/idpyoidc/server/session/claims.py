@@ -1,4 +1,5 @@
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -26,8 +27,10 @@ class ClaimsInterface:
     init_args = {"add_claims_by_scope": False, "enable_claims_per_client": False}
     claims_release_points = ["userinfo", "introspection", "id_token", "access_token"]
 
-    def __init__(self, upstream_get):
+    def __init__(self, upstream_get, claims_release_points:List[str] = None):
         self.upstream_get = upstream_get
+        if claims_release_points:
+            self.claims_release_points = claims_release_points
 
     def authorization_request_claims(
         self,

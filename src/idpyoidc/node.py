@@ -3,8 +3,10 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import instantiate
@@ -101,9 +103,9 @@ class Unit(ImpExp):
         key_conf = key_conf or config.get("key_conf", config.get("keys"))
 
         if not keyjar and not key_conf:
+            keyjar = KeyJar()
             _jwks = config.get("jwks")
             if _jwks:
-                keyjar = KeyJar()
                 keyjar.import_jwks_as_json(_jwks, client_id)
 
         if keyjar or key_conf:
@@ -123,7 +125,9 @@ class Unit(ImpExp):
                     self.keyjar.add_symmetric(client_id, _key)
                     self.keyjar.add_symmetric("", _key)
             else:
-                self.keyjar = None
+                self.keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+                if issuer_id:
+                    self.keyjar.import_jwks(self.keyjar.export_jwks(private=True), issuer_id)
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 
