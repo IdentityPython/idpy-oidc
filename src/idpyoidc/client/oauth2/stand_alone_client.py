@@ -16,6 +16,7 @@ from idpyoidc.client.oauth2.utils import pick_redirect_uri
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 class StandAloneClient(Client):
 
-    def get_session_information(self, key, client=None):
+    def get_session_information(self,key):
         """
         This is the second of the methods users of this class should know about.
         It will return the complete session information as an
@@ -42,7 +43,7 @@ class StandAloneClient(Client):
         :return: A State instance
         """
 
-        return client.get_context().cstate.get(key)
+        return self.get_context().cstate.get(key)
 
     def do_provider_info(
             self,
@@ -59,7 +60,7 @@ class StandAloneClient(Client):
 
         _context = self.get_context()
         _pi = _context.get("provider_info")
-        if _pi is None:
+        if _pi is None or _pi == {}:
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
             _pi = _context.provider_info
         elif len(_pi) == 1 and 'issuer' in _pi:
@@ -96,7 +97,11 @@ class StandAloneClient(Client):
                         raise ValueError("Unknown provider JWKS type: {}".format(typ))
 
         _context.map_supported_to_preferred(info=_pi)
-        return _context.provider_info['issuer']
+
+        try:
+            return _context.provider_info['issuer']
+        except:
+            return _context.issuer
 
     def do_client_registration(
             self,
@@ -338,7 +343,7 @@ class StandAloneClient(Client):
         return resp
 
     @staticmethod
-    def userinfo_in_id_token(id_token, user_info_claims: Optional[List] = None):
+    def userinfo_in_id_token(id_token: Message, user_info_claims: Optional[List] = None) -> dict:
         """
         Given a verified ID token return all the claims that may be user information.
 
@@ -359,7 +364,6 @@ class StandAloneClient(Client):
         Given the response returned to the redirect_uri, parse and verify it.
 
         :param behaviour_args: For finetuning behaviour
-        :param issuer: An Issuer ID
         :param response: The authorization response as a dictionary
         :return: An :py:class:`idpyoidc.message.oidc.AuthorizationResponse` or
             :py:class:`idpyoidc.message.oauth2.AuthorizationResponse` instance.
@@ -391,7 +395,11 @@ class StandAloneClient(Client):
         except KeyError:
             raise KeyError("Unknown state value")
 
-        issuer = _context.provider_info['issuer']
+        try:
+            issuer = _context.provider_info['issuer']
+        except KeyError:
+            issuer = _context.issuer
+
         if _iss != issuer:
             logger.error("Issuer problem: {} != {}".format(_iss, issuer))
             # got it from the wrong bloke
@@ -550,7 +558,7 @@ class StandAloneClient(Client):
             "token": token["access_token"],
             "id_token": _id_token,
             "session_state": authorization_response.get("session_state", ""),
-            "issuer": _context.provider_info['issuer']
+            "issuer": _context.issuer
         }
 
     def has_active_authentication(self, state):

@@ -31,10 +31,7 @@ DEFAULT_CLIENT_PREFERENCES = {
     "response_types": [
         "code",
         "id_token",
-        "id_token token",
         "code id_token",
-        "code id_token token",
-        "code token",
     ],
     "token_endpoint_auth_method": "client_secret_basic",
     "scopes_supported": ["openid"],
@@ -48,6 +45,7 @@ DEFAULT_USAGE = {
 # Using PKCE is default
 DEFAULT_CLIENT_CONFIGS = {
     "": {
+        "client_type": "oidc",
         "preference": DEFAULT_CLIENT_PREFERENCES,
         "add_ons": {
             "pkce": {
