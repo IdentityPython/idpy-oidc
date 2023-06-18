@@ -49,7 +49,10 @@ def pick_redirect_uri(
 
         if _response_mode:
             if _response_mode == "form_post":
-                redirect_uri = _callback_uris["form_post"][0]
+                try:
+                    redirect_uri = _callback_uris["form_post"][0]
+                except KeyError:
+                    redirect_uri = _callback_uris["code"][0]
             elif response_type == "code" or response_type == ["code"]:
                 redirect_uri = _callback_uris["code"][0]
             else:

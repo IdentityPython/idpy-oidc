@@ -167,13 +167,16 @@ class StandAloneClient(Client):
 
         _context = self.get_context()
         _response_type = self._get_response_type(_context, req_args)
-        _response_mode = self._get_response_mode(_context, _response_type)
         request_args = {
             "redirect_uri": pick_redirect_uri(
                 _context, request_args=req_args, response_type=_response_type
             ),
             "response_type": _response_type,
         }
+
+        _response_mode = self._get_response_mode(_context, _response_type)
+        if _response_mode:
+            request_args['response_mode'] = _response_mode
 
         _nonce = ''
         if self.client_type == 'oidc':
@@ -213,15 +216,6 @@ class StandAloneClient(Client):
         )
         logger.debug("Authorization info: {}".format(_info))
         return _info["url"]
-
-    @staticmethod
-    def get_response_type(self):
-        """
-        Return the response_type a client wants to use.
-
-        :return: The response_type
-        """
-        return self.service_context.claims.get_usage("response_types")[0]
 
     @staticmethod
     def get_client_authn_method(self, endpoint):

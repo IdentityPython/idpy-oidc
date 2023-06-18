@@ -100,13 +100,17 @@ class Authorization(Service):
                         pass
         return response
 
-    def _do_flow(self, flow_type, response_types):
+    def _do_flow(self, flow_type, response_types, context):
         if flow_type == "code":
             if "code" in response_types:
                 return True
         elif flow_type in ["implicit", "hybrid"]:
             if implicit_response_types(response_types):
                 return True
+        elif flow_type == 'form_post':
+            rm = context.get_preference('response_modes_supported')
+            if rm and 'form_post' in rm:
+                return context.config.conf.get("separate_form_post_cb", True)
         return False
 
     def _do_redirect_uris(self, base_url, hex, context, callback_uris, response_types):
@@ -116,7 +120,7 @@ class Authorization(Service):
                 # the same redirect_uris for all flow types
                 callback_uris["redirect_uris"] = {}
                 for flow_type in self._callback_path["redirect_uris"].keys():
-                    if self._do_flow(flow_type, response_types):
+                    if self._do_flow(flow_type, response_types, context):
                         callback_uris["redirect_uris"][flow_type] = _redirect_uris
         elif callback_uris:
             if "redirect_uris" in callback_uris:
@@ -124,14 +128,14 @@ class Authorization(Service):
             else:
                 callback_uris["redirect_uris"] = {}
                 for flow_type, path in self._callback_path["redirect_uris"].items():
-                    if self._do_flow(flow_type, response_types):
+                    if self._do_flow(flow_type, response_types, context):
                         callback_uris["redirect_uris"][flow_type] = [
                             self.get_uri(base_url, path, hex)
                         ]
         else:
             callback_uris["redirect_uris"] = {}
             for flow_type, path in self._callback_path["redirect_uris"].items():
-                if self._do_flow(flow_type, response_types):
+                if self._do_flow(flow_type, response_types, context):
                     callback_uris["redirect_uris"][flow_type] = [self.get_uri(base_url, path, hex)]
         return callback_uris
 

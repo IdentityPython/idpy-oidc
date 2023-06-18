@@ -186,7 +186,7 @@ def repost_fragment():
     return finalize(op_identifier, args)
 
 
-@oidc_rp_views.route('/authz_im_cb')
+@oidc_rp_views.route('/authz_tok_cb')
 def authz_im_cb(op_identifier='', **kwargs):
     logger.debug('implicit_hybrid_flow kwargs: {}'.format(kwargs))
     return render_template('repost_fragment.html', op_identifier=op_identifier)
