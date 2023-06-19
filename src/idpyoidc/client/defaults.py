@@ -92,3 +92,12 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
 BASECHR = string.ascii_letters + string.digits
+
+DEFAULT_RESPONSE_MODE = {
+    "code": "query",
+    "id_token": "fragment",
+    "token": "fragment",
+    "code token": "fragment",
+    "code id_token": "fragment",
+    "code id_token token": "fragment",
+}

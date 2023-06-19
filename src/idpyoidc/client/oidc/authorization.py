@@ -47,9 +47,9 @@ class Authorization(authorization.Authorization):
 
     _callback_path = {
         "request_uris": ["req"],
-        "redirect_uris": {  # based on response_types
-            "code": "authz_cb",
-            "implicit": "authz_tok_cb",
+        "redirect_uris": {  # based on response_mode
+            "query": "authz_cb",
+            "fragment": "authz_tok_cb",
             "form_post": "authz_cb_form",
         },
     }
@@ -368,15 +368,15 @@ class Authorization(authorization.Authorization):
     def _do_type(self, context, typ, response_types):
         if typ == "code" and "code" in response_types:
             if typ in context.get_preference("response_modes_supported"):
-                return True
+                return "query"
         elif typ == "implicit":
             if typ in context.get_preference("response_modes_supported"):
                 if implicit_response_types(response_types):
-                    return True
+                    return "fragment"
         elif typ == "form_post":
             if typ in context.get_preference("response_modes_supported"):
-                return True
-        return False
+                return "form_post"
+        return ''
 
     def construct_uris(
         self,

@@ -8,6 +8,7 @@ from cryptojwt import as_unicode
 from cryptojwt.key_bundle import keybundle_from_local_file
 
 from idpyoidc import verified_claim_name
+from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.oauth2 import Client
@@ -17,8 +18,8 @@ from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Claims
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class StandAloneClient(Client):
 
-    def get_session_information(self,key):
+    def get_session_information(self, key):
         """
         This is the second of the methods users of this class should know about.
         It will return the complete session information as an
@@ -144,8 +145,32 @@ class StandAloneClient(Client):
         else:
             return context.claims.get_usage("response_types")[0]
 
-    def _get_response_mode(self, context, response_type):
-        pass
+    def _get_response_mode(self, context, response_type, request_args):
+        if request_args:
+            _requested = request_args.get('response_mode')
+        else:
+            _requested = None
+        _supported = context.claims.get_usage('response_modes')
+        if _requested:
+            if _supported and _requested not in _supported:
+                raise ValueError(
+                    "You can not use a response_mode you have not stated should be supported")
+
+            if DEFAULT_RESPONSE_MODE[response_type] == _requested:
+                return None
+            else:
+                return _requested
+        elif _supported:
+            _type = response_type.split(' ')
+            _type.sort()
+            response_type = " ".join(_type)
+            # Is it the default response mode
+            if DEFAULT_RESPONSE_MODE[response_type] in _supported:
+                return None
+            else:
+                return _supported[0]
+        else:
+            return None
 
     def init_authorization(
             self,
@@ -167,14 +192,16 @@ class StandAloneClient(Client):
 
         _context = self.get_context()
         _response_type = self._get_response_type(_context, req_args)
+        _response_mode = self._get_response_mode(_context, _response_type, req_args)
+
         request_args = {
             "redirect_uri": pick_redirect_uri(
-                _context, request_args=req_args, response_type=_response_type
+                _context, request_args=req_args, response_type=_response_type,
+                response_mode=_response_mode
             ),
             "response_type": _response_type,
         }
 
-        _response_mode = self._get_response_mode(_context, _response_type)
         if _response_mode:
             request_args['response_mode'] = _response_mode
 

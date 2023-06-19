@@ -108,7 +108,7 @@ class TestRPHandler(object):
             "jwks_uri",
             "redirect_uris",
             "request_object_signing_alg",
-            "response_modes_supported",
+            "response_modes",
             "response_types",
             "scope",
             "subject_type",

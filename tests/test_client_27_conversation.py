@@ -410,6 +410,7 @@ def test_conversation():
         "redirect_uris",
         "request_object_signing_alg",
         "request_uris",
+        "response_modes",
         "response_types",
         "subject_type",
         "token_endpoint_auth_method",

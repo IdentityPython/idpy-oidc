@@ -27,6 +27,7 @@ def pick_redirect_uri(
     context,
     request_args: Optional[Union[Message, dict]] = None,
     response_type: Optional[str] = "",
+    response_mode: Optional[str] = ""
 ):
     if request_args is None:
         request_args = {}
@@ -36,33 +37,31 @@ def pick_redirect_uri(
 
     _callback_uris = context.get_preference("callback_uris")
     if _callback_uris:
-        _callback_uris = _callback_uris.get("redirect_uris")
-
-    if _callback_uris:
-        if not response_type:
-            _conf_resp_types = context.get_usage("response_types", [])
-            response_type = request_args.get("response_type")
-            if not response_type and _conf_resp_types:
-                response_type = _conf_resp_types[0]
-
-        _response_mode = request_args.get("response_mode")
+        _redirect_uris = _callback_uris.get("redirect_uris")
+        _response_mode = request_args.get("response_mode") or response_mode
 
         if _response_mode:
             if _response_mode == "form_post":
                 try:
-                    redirect_uri = _callback_uris["form_post"][0]
+                    redirect_uri = _redirect_uris["form_post"][0]
                 except KeyError:
-                    redirect_uri = _callback_uris["code"][0]
+                    redirect_uri = _redirect_uris["code"][0]
             elif response_type == "code" or response_type == ["code"]:
-                redirect_uri = _callback_uris["code"][0]
+                redirect_uri = _redirect_uris["code"][0]
             else:
-                redirect_uri = _callback_uris["implicit"][0]
+                redirect_uri = _redirect_uris["implicit"][0]
         else:
+            if not response_type:
+                _conf_resp_types = context.get_usage("response_types", [])
+                response_type = request_args.get("response_type")
+                if not response_type and _conf_resp_types:
+                    response_type = _conf_resp_types[0]
+
             if response_type == "code" or response_type == ["code"]:
-                _response_mode = "code"
+                _response_mode = "query"
             else:
-                _response_mode = "implicit"
-            redirect_uri = _callback_uris[_response_mode][0]
+                _response_mode = "fragment"
+            redirect_uri = _redirect_uris[_response_mode][0]
 
         logger.debug(
             f"pick_redirect_uris: response_type={response_type}, response_mode={_response_mode}, "

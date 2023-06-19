@@ -76,8 +76,8 @@ class TestAuthorization(object):
             "client_secret": "a longesh password",
             "callback_uris": {
                 "redirect_uris": {  # different flows
-                    "code": ["https://example.com/cli/authz_cb"],
-                    "implicit": ["https://example.com/cli/imp_cb"],
+                    "query": ["https://example.com/cli/authz_cb"],
+                    "fragment": ["https://example.com/cli/imp_cb"],
                     "form_post": ["https://example.com/cli/form"],
                 }
             },
@@ -318,8 +318,8 @@ class TestAuthorizationCallback(object):
             "client_secret": "a longesh password",
             "callback_uris": {
                 "redirect_uris": {
-                    "code": ["https://example.com/cli/authz_cb"],
-                    "implicit": ["https://example.com/cli/authz_im_cb"],
+                    "query": ["https://example.com/cli/authz_cb"],
+                    "fragment": ["https://example.com/cli/authz_im_cb"],
                     "form_post": ["https://example.com/cli/authz_fp_cb"],
                 },
             },
@@ -759,7 +759,7 @@ class TestProviderInfo(object):
             "post_logout_redirect_uris": ["https://rp.example.com/post"],
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "request_object_signing_alg": "ES256",
-            "response_modes_supported": ["query", "fragment", "form_post"],
+            "response_modes": ["query", "fragment", "form_post"],
             "response_types": ["code"],
             "scope": ["openid"],
             "subject_type": "public",
@@ -822,7 +822,7 @@ class TestProviderInfo(object):
             "post_logout_redirect_uris": ["https://rp.example.com/post"],
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "request_object_signing_alg": "ES256",
-            "response_modes_supported": ["query", "fragment", "form_post"],
+            "response_modes": ["query", "fragment", "form_post"],
             "response_types": ["code"],
             "scope": ["openid"],
             "subject_type": "public",
@@ -882,6 +882,7 @@ class TestRegistration(object):
             "jwks",
             "redirect_uris",
             "request_object_signing_alg",
+            "response_modes",
             "response_types",
             "subject_type",
             "token_endpoint_auth_method",
@@ -905,6 +906,7 @@ class TestRegistration(object):
             "post_logout_redirect_uri",
             "redirect_uris",
             "request_object_signing_alg",
+            "response_modes",
             "response_types",
             "subject_type",
             "token_endpoint_auth_method",
@@ -941,6 +943,7 @@ def test_config_with_required_request_uri():
     assert isinstance(_req, RegistrationRequest)
     assert set(_req.keys()) == {
         "application_type",
+        "response_modes",
         "response_types",
         "jwks",
         "redirect_uris",
@@ -1002,6 +1005,7 @@ def test_config_logout_uri():
         "redirect_uris",
         "request_object_signing_alg",
         "request_uris",
+        "response_modes",
         "response_types",
         "subject_type",
         "token_endpoint_auth_method",

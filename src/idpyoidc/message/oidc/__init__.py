@@ -635,6 +635,7 @@ class RegistrationRequest(Message):
         "backchannel_logout_session_required": SINGLE_OPTIONAL_BOOLEAN,
         # "federation_type": OPTIONAL_LIST_OF_STRINGS,
         # "organization_name": SINGLE_OPTIONAL_STRING,
+        "response_modes": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"application_type": "web", "response_types": ["code"]}
     c_allowed_values = {

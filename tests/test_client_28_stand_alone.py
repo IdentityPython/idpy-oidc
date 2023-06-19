@@ -1,9 +1,9 @@
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
+from cryptojwt.key_jar import build_keyjar
 import pytest
 import responses
-from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.defaults import OIDCONF_PATTERN
@@ -81,7 +81,7 @@ class TestStandAloneClientOIDCStatic(object):
 def test_response_mode():
     conf = STATIC_CONFIG.copy()
     conf.update({
-        "response_modes_supported": ['code','form_post'],
+        "response_modes_supported": ['query', 'form_post'],
         'separate_form_post_cb': True
     })
     client = StandAloneClient(config=conf)
@@ -99,10 +99,11 @@ def test_response_mode():
     assert qs['response_type'][0] == 'code'
     assert qs['response_mode'][0] == 'form_post'
 
-def test_response_mode_not_separate():
+
+def test_response_mode_not_separate_endpoint():
     conf = STATIC_CONFIG.copy()
     conf.update({
-        "response_modes_supported": ['code','form_post'],
+        "response_modes_supported": ['query', 'form_post'],
         'separate_form_post_cb': False
     })
     client = StandAloneClient(config=conf)
@@ -116,6 +117,7 @@ def test_response_mode_not_separate():
     p = urlsplit(url)
     qs = parse_qs(p.query)
     assert 'authz_cb_form' not in qs['redirect_uri'][0]
+    assert 'authz_cb' in qs['redirect_uri'][0]
     assert qs['client_id'][0] == STATIC_CONFIG['client_id']
     assert qs['response_type'][0] == 'code'
     assert qs['response_mode'][0] == 'form_post'
@@ -230,3 +232,70 @@ class TestStandAloneClientOIDCDyn(object):
             self.client.do_client_registration()
 
         assert self.client.context.get_usage('client_id') == 'client_1'
+
+
+def test_request_type_mode_1():
+    config = STATIC_CONFIG.copy()
+    config.update({
+        "response_modes_supported": ['query', 'form_post'],
+        "response_types_supported": ['code', 'code idtoken']
+    })
+    client = StandAloneClient(config=config)
+    client.do_provider_info()
+    client.do_client_registration()
+
+    # Explicitly set
+    url = client.init_authorization()
+
+    assert url
+    p = urlsplit(url)
+    qs = parse_qs(p.query)
+    assert 'authz_cb' in qs['redirect_uri'][0]
+    assert qs['client_id'][0] == STATIC_CONFIG['client_id']
+    assert qs['response_type'][0] == 'code'
+
+    assert 'response_mode' not in qs
+
+
+def test_request_type_mode_2():
+    config = STATIC_CONFIG.copy()
+    config.update({
+        "response_modes_supported": ['form_post'],
+        "response_types_supported": ['code', 'code idtoken']
+    })
+    client = StandAloneClient(config=config)
+    client.do_provider_info()
+    client.do_client_registration()
+
+    # Explicitly set
+    url = client.init_authorization()
+
+    assert url
+    p = urlsplit(url)
+    qs = parse_qs(p.query)
+    assert 'authz_cb' in qs['redirect_uri'][0]
+    assert qs['client_id'][0] == STATIC_CONFIG['client_id']
+    assert qs['response_type'][0] == 'code'
+    assert qs['response_mode'][0] == 'form_post'
+
+
+def test_request_type_mode_3():
+    config = STATIC_CONFIG.copy()
+    config.update({
+        "response_modes_supported": ['form_post'],
+        "response_types_supported": ['id_token code']
+    })
+    client = StandAloneClient(config=config)
+    client.do_provider_info()
+    client.do_client_registration()
+
+    # Explicitly set
+    url = client.init_authorization()
+
+    assert url
+    p = urlsplit(url)
+    qs = parse_qs(p.query)
+    assert 'authz_cb' in qs['redirect_uri'][0]
+    assert qs['client_id'][0] == STATIC_CONFIG['client_id']
+    assert qs['response_type'][0] == 'id_token code'
+    assert qs['response_mode'][0] == 'form_post'

@@ -340,10 +340,10 @@ class TestRPHandler(object):
         cb = _context.get_preference("callback_uris")
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb["redirect_uris"].keys()) == {"implicit", "code"}
+        assert set(cb["redirect_uris"].keys()) == {"query", "fragment"}
         _hash = _context.iss_hash
 
-        assert cb["redirect_uris"]["code"] == [f"https://example.com/rp/authz_cb/{_hash}"]
+        assert cb["redirect_uris"]["query"] == [f"https://example.com/rp/authz_cb/{_hash}"]
 
         assert list(self.rph.hash2issuer.keys()) == [_hash]
 
