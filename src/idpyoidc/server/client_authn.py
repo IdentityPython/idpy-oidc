@@ -512,7 +512,10 @@ def verify_client(
         if _get_client_info:
             _cinfo = _get_client_info(client_id, _context)
         else:
-            _cinfo = _context.cdb[client_id]
+            try:
+                _cinfo = _context.cdb[client_id]
+            except KeyError:
+                raise UnknownClient("Unknown Client ID")
 
         if not _cinfo:
             raise UnknownClient("Unknown Client ID")
