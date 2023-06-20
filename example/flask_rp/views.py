@@ -244,9 +244,10 @@ def session_logout(op_identifier):
 @oidc_rp_views.route('/logout')
 def logout():
     logger.debug('logout')
-    _info = current_app.rph.logout(state=session['state'])
-    logger.debug('logout redirect to "{}"'.format(_info['url']))
-    return redirect(_info['url'], 303)
+    _request_info = current_app.rph.logout(state=session['state'])
+    _url = _request_info["url"]
+    logger.debug(f'logout redirect to "{_url}"')
+    return redirect(_url, 303)
 
 
 @oidc_rp_views.route('/bc_logout/<op_identifier>', methods=['GET', 'POST'])

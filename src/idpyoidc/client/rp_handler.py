@@ -124,7 +124,12 @@ class RPHandler(object):
         :return: An Issuer ID
         """
         for _rp in self.issuer2rp.values():
-            _iss = _rp.get_context().cstate.get_set(state, claim=["iss"]).get("iss")
+            try:
+                _set = _rp.get_context().cstate.get_set(state, claim=["iss"])
+            except KeyError:
+                continue
+
+            _iss = _set.get("iss")
             if _iss:
                 return _iss
         return None

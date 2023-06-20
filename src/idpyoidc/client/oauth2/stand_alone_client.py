@@ -11,6 +11,7 @@ from idpyoidc import verified_claim_name
 from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
+from idpyoidc.client.exception import Unsupported
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.client.oauth2 import dynamic_provider_info_discovery
 from idpyoidc.client.oauth2.utils import pick_redirect_uri
@@ -18,8 +19,8 @@ from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Claims
@@ -193,12 +194,19 @@ class StandAloneClient(Client):
         _context = self.get_context()
         _response_type = self._get_response_type(_context, req_args)
         _response_mode = self._get_response_mode(_context, _response_type, req_args)
-
-        request_args = {
-            "redirect_uri": pick_redirect_uri(
+        try:
+            _redirect_uri = pick_redirect_uri(
                 _context, request_args=req_args, response_type=_response_type,
                 response_mode=_response_mode
-            ),
+            )
+        except KeyError:
+            raise Unsupported(
+                'Could not pick a redirect_uri based on the given response_type and response_mode')
+        except [MissingRequiredAttribute, ValueError]:
+            raise
+
+        request_args = {
+            "redirect_uri": _redirect_uri,
             "response_type": _response_type,
         }
 
@@ -247,21 +255,22 @@ class StandAloneClient(Client):
     @staticmethod
     def get_client_authn_method(self, endpoint):
         """
-        Return the client authentication method a client wants to use a
+        Return the client authentication method a client wants to use at a
         specific endpoint
 
         :param endpoint: The endpoint at which the client has to authenticate
         :return: The client authentication method
         """
         if endpoint == "token_endpoint":
-            am = self.get_context().get_usage("token_endpoint_auth_method")
-            if not am:
+            auth_method = self.get_context().get_usage("token_endpoint_auth_method")
+            if not auth_method:
                 return ""
             else:
-                if isinstance(am, str):
-                    return am
+                if isinstance(auth_method, str):
+                    return auth_method
                 else:  # a list
-                    return am[0]
+                    return auth_method[0]
+        return ""
 
     def get_tokens(self, state):
         """
@@ -431,7 +440,7 @@ class StandAloneClient(Client):
 
     def get_access_and_id_token(
             self,
-            authorization_response=None,
+            authorization_response: Optional[Message] = None,
             state: Optional[str] = "",
             behaviour_args: Optional[dict] = None,
     ):
@@ -660,10 +669,10 @@ class StandAloneClient(Client):
         else:
             request_args = {}
 
-        resp = srv.get_request_parameters(state=state, request_args=request_args)
+        _info = srv.get_request_parameters(state=state, request_args=request_args)
 
-        logger.debug(f"EndSession Request: {resp}")
-        return resp
+        logger.debug(f"EndSession Request: {_info['request'].to_dict()}")
+        return _info
 
     def close(
             self, state: str, post_logout_redirect_uri: Optional[str] = ""

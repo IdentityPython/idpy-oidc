@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingParameter
 from idpyoidc.exception import MissingRequiredAttribute
@@ -45,11 +46,9 @@ def pick_redirect_uri(
                 try:
                     redirect_uri = _redirect_uris["form_post"][0]
                 except KeyError:
-                    redirect_uri = _redirect_uris["code"][0]
-            elif response_type == "code" or response_type == ["code"]:
-                redirect_uri = _redirect_uris["code"][0]
+                    redirect_uri = _redirect_uris["query"][0]
             else:
-                redirect_uri = _redirect_uris["implicit"][0]
+                redirect_uri = _redirect_uris[_response_mode]
         else:
             if not response_type:
                 _conf_resp_types = context.get_usage("response_types", [])
@@ -57,10 +56,15 @@ def pick_redirect_uri(
                 if not response_type and _conf_resp_types:
                     response_type = _conf_resp_types[0]
 
-            if response_type == "code" or response_type == ["code"]:
-                _response_mode = "query"
-            else:
-                _response_mode = "fragment"
+            if isinstance(response_type, list):
+                response_type.sort()
+                response_type = " ".join(response_type)
+
+            try:
+                _response_mode = DEFAULT_RESPONSE_MODE[response_type]
+            except KeyError:
+                raise ValueError(f"Unknown response_type: {response_type}")
+
             redirect_uri = _redirect_uris[_response_mode][0]
 
         logger.debug(
