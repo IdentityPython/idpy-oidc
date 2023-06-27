@@ -99,5 +99,6 @@ DEFAULT_RESPONSE_MODE = {
     "token": "fragment",
     "code token": "fragment",
     "code id_token": "fragment",
+    "id_token token": "fragment",
     "code id_token token": "fragment",
 }

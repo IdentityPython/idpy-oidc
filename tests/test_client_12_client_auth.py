@@ -71,6 +71,8 @@ def test_quote():
 
 class TestClientSecretBasic(object):
     def test_construct(self, entity):
+        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(
             request_args={"redirect_uri": "http://example.com", "state": "ABCDE"}
@@ -234,6 +236,8 @@ class TestBearerBody(object):
 
 class TestClientSecretPost(object):
     def test_construct(self, entity):
+        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(redirect_uri="http://example.com", state="ABCDE")
         csp = ClientSecretPost()
@@ -250,6 +254,8 @@ class TestClientSecretPost(object):
         assert http_args is None
 
     def test_modify_1(self, entity):
+        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")
         csp = ClientSecretPost()
@@ -259,6 +265,8 @@ class TestClientSecretPost(object):
         assert "client_secret" in request
 
     def test_modify_2(self, entity):
+        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")
         csp = ClientSecretPost()
