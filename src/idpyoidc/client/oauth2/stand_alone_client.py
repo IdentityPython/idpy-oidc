@@ -463,7 +463,10 @@ class StandAloneClient(Client):
             state = authorization_response["state"]
 
         _req_attr = _context.cstate.get_set(state, AuthorizationRequest)
-        _resp_type = set(_req_attr["response_type"].split(" "))
+        if isinstance(_req_attr["response_type"], list):
+            _resp_type = set(_req_attr["response_type"])
+        else:
+            _resp_type = set(_req_attr["response_type"].split(" "))
 
         access_token = None
         id_token = None

@@ -171,6 +171,10 @@ class ServiceContext(ImpExp):
 
         self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar)
 
+        _jwks_uri = self.provider_info.get('jwks_uri')
+        if _jwks_uri:
+            self.keyjar.load_keys(self.provider_info.get('issuer'), jwks_uri=_jwks_uri)
+
         _response_types = self.get_preference(
             "response_types_supported", self.supports().get("response_types_supported", [])
         )

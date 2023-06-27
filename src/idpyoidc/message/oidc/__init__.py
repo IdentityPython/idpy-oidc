@@ -240,6 +240,7 @@ ID_TOKEN_VERIFY_ARGS = [
     "encenc",
     "sigalg",
     "issuer",
+    "iss",
     "allow_missing_kid",
     "no_kid_issuer",
     "trusting",

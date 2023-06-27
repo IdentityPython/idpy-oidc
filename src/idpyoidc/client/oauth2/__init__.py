@@ -82,6 +82,8 @@ class Client(Entity):
             else:
                 httpc_params = {"verify": False}
 
+        jwks_uri = jwks_uri or config.get('jwks_uri', '')
+
         Entity.__init__(
             self,
             keyjar=keyjar,
