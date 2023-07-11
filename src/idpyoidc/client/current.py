@@ -56,16 +56,14 @@ class Current(ImpExp):
     ) -> dict:
         """
 
-        @param key: The key to a seet of current claims
+        @param key: The key to a set of current claims
         @param message: A message class
         @param claim: A list of claims
         @return: Dictionary
+        @raise KeyError if no such key
         """
 
-        try:
-            _current = self.get(key)
-        except KeyError:
-            return {}
+        _current = self.get(key)
 
         if message:
             _res = {k: _current[k] for k in message.c_param.keys() if k in _current}

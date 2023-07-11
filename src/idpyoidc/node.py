@@ -3,18 +3,20 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import instantiate
 
 
 def create_keyjar(
-    keyjar: Optional[KeyJar] = None,
-    conf: Optional[Union[dict, Configuration]] = None,
-    key_conf: Optional[dict] = None,
-    id: Optional[str] = "",
+        keyjar: Optional[KeyJar] = None,
+        conf: Optional[Union[dict, Configuration]] = None,
+        key_conf: Optional[dict] = None,
+        id: Optional[str] = "",
 ):
     if keyjar is None:
         if key_conf:
@@ -41,6 +43,49 @@ def create_keyjar(
         return _keyjar
     else:
         return keyjar
+
+
+def make_keyjar(
+        keyjar: Optional[Union[KeyJar, bool]] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        key_conf: Optional[dict] = None,
+        issuer_id: Optional[str] = "",
+        client_id: Optional[str] = "",
+    ):
+    if keyjar is False:
+        return None
+
+    keyjar = keyjar or config.get("keyjar")
+    key_conf = key_conf or config.get("key_conf", config.get("keys"))
+
+    if not keyjar and not key_conf:
+        keyjar = KeyJar()
+        _jwks = config.get("jwks")
+        if _jwks:
+            keyjar.import_jwks_as_json(_jwks, client_id)
+
+    if keyjar or key_conf:
+        # Should be either one
+        id = issuer_id or client_id
+        keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
+        if client_id:
+            _key = config.get("client_secret")
+            if _key:
+                keyjar.add_symmetric(client_id, _key)
+                keyjar.add_symmetric("", _key)
+    else:
+        if client_id:
+            _key = config.get("client_secret")
+            if _key:
+                keyjar = KeyJar()
+                keyjar.add_symmetric(client_id, _key)
+                keyjar.add_symmetric("", _key)
+        else:
+            keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+            if issuer_id:
+                keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
+
+    return keyjar
 
 
 class Node:
@@ -80,15 +125,15 @@ class Unit(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        keyjar: Optional[KeyJar] = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        key_conf: Optional[dict] = None,
-        issuer_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            upstream_get: Callable = None,
+            keyjar: Optional[Union[KeyJar, bool]] = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            key_conf: Optional[dict] = None,
+            issuer_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
@@ -97,33 +142,7 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
-        keyjar = keyjar or config.get("keyjar")
-        key_conf = key_conf or config.get("key_conf", config.get("keys"))
-
-        if not keyjar and not key_conf:
-            _jwks = config.get("jwks")
-            if _jwks:
-                keyjar = KeyJar()
-                keyjar.import_jwks_as_json(_jwks, client_id)
-
-        if keyjar or key_conf:
-            # Should be either one
-            id = issuer_id or client_id
-            self.keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
-            if client_id:
-                _key = config.get("client_secret")
-                if _key:
-                    self.keyjar.add_symmetric(client_id, _key)
-                    self.keyjar.add_symmetric("", _key)
-        else:
-            if client_id:
-                _key = config.get("client_secret")
-                if _key:
-                    self.keyjar = KeyJar()
-                    self.keyjar.add_symmetric(client_id, _key)
-                    self.keyjar.add_symmetric("", _key)
-            else:
-                self.keyjar = None
+        self.keyjar = make_keyjar(keyjar, config, key_conf, issuer_id, client_id)
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 
@@ -172,16 +191,16 @@ class ClientUnit(Unit):
     name = ""
 
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        keyjar: Optional[KeyJar] = None,
-        context: Optional[ImpExp] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        # jwks_uri: Optional[str] = "",
-        entity_id: Optional[str] = "",
-        key_conf: Optional[dict] = None,
+            self,
+            upstream_get: Callable = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            keyjar: Optional[KeyJar] = None,
+            context: Optional[ImpExp] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            # jwks_uri: Optional[str] = "",
+            entity_id: Optional[str] = "",
+            key_conf: Optional[dict] = None,
     ):
         if config is None:
             config = {}
@@ -213,16 +232,16 @@ class ClientUnit(Unit):
 # Neither client nor Server
 class Collection(Unit):
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        keyjar: Optional[KeyJar] = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        entity_id: Optional[str] = "",
-        key_conf: Optional[dict] = None,
-        functions: Optional[dict] = None,
-        claims: Optional[dict] = None,
+            self,
+            upstream_get: Callable = None,
+            keyjar: Optional[KeyJar] = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            entity_id: Optional[str] = "",
+            key_conf: Optional[dict] = None,
+            functions: Optional[dict] = None,
+            claims: Optional[dict] = None,
     ):
         if config is None:
             config = {}

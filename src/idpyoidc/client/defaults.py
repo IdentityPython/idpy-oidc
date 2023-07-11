@@ -31,10 +31,7 @@ DEFAULT_CLIENT_PREFERENCES = {
     "response_types": [
         "code",
         "id_token",
-        "id_token token",
         "code id_token",
-        "code id_token token",
-        "code token",
     ],
     "token_endpoint_auth_method": "client_secret_basic",
     "scopes_supported": ["openid"],
@@ -48,6 +45,7 @@ DEFAULT_USAGE = {
 # Using PKCE is default
 DEFAULT_CLIENT_CONFIGS = {
     "": {
+        "client_type": "oidc",
         "preference": DEFAULT_CLIENT_PREFERENCES,
         "add_ons": {
             "pkce": {
@@ -71,6 +69,8 @@ DEFAULT_RP_KEY_DEFS = {
 }
 
 OIDCONF_PATTERN = "{}/.well-known/openid-configuration"
+OAUTH2_SERVER_METADATA_URL = "{}/.well-known/oauth-authorization-server"
+
 CC_METHOD = {
     "S256": hashlib.sha256,
     "S384": hashlib.sha384,
@@ -92,3 +92,13 @@ JWT_BEARER = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 SAML2_BEARER_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 
 BASECHR = string.ascii_letters + string.digits
+
+DEFAULT_RESPONSE_MODE = {
+    "code": "query",
+    "id_token": "fragment",
+    "token": "fragment",
+    "code token": "fragment",
+    "code id_token": "fragment",
+    "id_token token": "fragment",
+    "code id_token token": "fragment",
+}

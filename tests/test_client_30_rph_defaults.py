@@ -14,6 +14,7 @@ BASE_URL = "https://example.com"
 
 
 class TestRPHandler(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL)
@@ -36,23 +37,22 @@ class TestRPHandler(object):
         _context = client.get_context()
 
         assert set(_context.claims.prefer.keys()) == {
-            "application_type",
-            "callback_uris",
-            "id_token_encryption_alg_values_supported",
-            "id_token_encryption_enc_values_supported",
-            "jwks_uri",
-            "redirect_uris",
-            "request_object_encryption_alg_values_supported",
-            "request_object_encryption_enc_values_supported",
-            "scopes_supported",
-            "userinfo_encryption_alg_values_supported",
-            "userinfo_encryption_enc_values_supported",
-        }
+            'application_type',
+            'callback_uris',
+            'id_token_encryption_alg_values_supported',
+            'id_token_encryption_enc_values_supported',
+            'jwks_uri',
+            'redirect_uris',
+            'request_object_encryption_alg_values_supported',
+            'request_object_encryption_enc_values_supported',
+            'scopes_supported',
+            'userinfo_encryption_alg_values_supported',
+            'userinfo_encryption_enc_values_supported'}
 
         _keyjar = client.get_attribute("keyjar")
         assert list(_keyjar.owners()) == ["", BASE_URL]
         keys = _keyjar.get_issuer_keys("")
-        assert len(keys) == 2
+        assert len(keys) == 4
 
         assert _context.base_url == BASE_URL
 
@@ -108,7 +108,7 @@ class TestRPHandler(object):
             "jwks_uri",
             "redirect_uris",
             "request_object_signing_alg",
-            "response_modes_supported",
+            "response_modes",
             "response_types",
             "scope",
             "subject_type",
@@ -119,13 +119,11 @@ class TestRPHandler(object):
         assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 
-        res = self.rph.init_authorization(client)
-        assert set(res.keys()) == {"url", "state"}
-        p = urlparse(res["url"])
+        url = self.rph.init_authorization(client)
+        p = urlparse(url)
         assert p.hostname == "op.example.org"
         assert p.path == "/authorization"
         qs = parse_qs(p.query)
-        assert qs["state"] == [res["state"]]
         # PKCE stuff
         assert "code_challenge" in qs
         assert qs["code_challenge_method"] == ["S256"]

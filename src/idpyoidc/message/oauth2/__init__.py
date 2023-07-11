@@ -346,7 +346,7 @@ class ASConfigurationResponse(Message):
             "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
             "response_types_supported": REQUIRED_LIST_OF_STRINGS,
             "response_modes_supported": OPTIONAL_LIST_OF_STRINGS,
-            "grant_types_supported": REQUIRED_LIST_OF_STRINGS,
+            "grant_types_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_methods_supported": OPTIONAL_LIST_OF_STRINGS,
             "token_endpoint_auth_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
             "service_documentation": SINGLE_OPTIONAL_STRING,

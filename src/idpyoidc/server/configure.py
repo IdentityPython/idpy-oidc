@@ -7,16 +7,14 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from idpyoidc.client.defaults import OAUTH2_SERVER_METADATA_URL
 from idpyoidc.configure import Base
 from idpyoidc.server.client_configure import verify_oidc_client_information
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 
 logger = logging.getLogger(__name__)
 
-OP_DEFAULT_CONFIG = {
-    "preference": {
-        "subject_types_supported": ["public", "pairwise"],
-    },
+_DEFAULT_CONFIG = {
     "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
@@ -39,7 +37,83 @@ OP_DEFAULT_CONFIG = {
             },
         },
     },
-    "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
+    },
+    "httpc_params": {"verify": False, "timeout": 4},
+    "issuer": "https://{domain}:{port}",
+    "template_dir": "templates"
+}
+
+AS_DEFAULT_CONFIG = copy.deepcopy(_DEFAULT_CONFIG)
+_C = {
+    "authz": {
+        "class": "idpyoidc.server.authz.AuthzHandling",
+        "kwargs": {
+            "grant_config": {
+                "usage_rules": {
+                    "authorization_code": {
+                        "supports_minting": ["access_token", "refresh_token"],
+                        "max_usage": 1,
+                        "expires_in": 120  # 2 minutes
+                    },
+                    "access_token": {"expires_in": 3600},  # An hour
+                    "refresh_token": {
+                        "supports_minting": ["access_token", "refresh_token"],
+                        "expires_in": 86400,  # One day
+                    },
+                },
+                "expires_in": 2592000,  # a month, 30 days
+            }
+        }
+    },
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {
+            "claims_release_points": ["introspection", "access_token"]
+        }
+    },
+    "endpoint": {
+        "provider_info": {
+            "path": OAUTH2_SERVER_METADATA_URL[3:],
+            "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+            "kwargs": {"client_authn_method": None},
+        },
+        "authorization": {
+            "path": "authorization",
+            "class": "idpyoidc.server.oauth2.authorization.Authorization",
+            "kwargs": {
+                "client_authn_method": None,
+                "claims_parameter_supported": True,
+                "request_parameter_supported": True,
+                "request_uri_parameter_supported": True,
+                "response_types_supported": ["code"],
+                "response_modes_supported": ["query", "fragment", "form_post"],
+            },
+        },
+        "token": {
+            "path": "token",
+            "class": "idpyoidc.server.oauth2.token.Token",
+            "kwargs": {
+                "client_authn_method": [
+                    "client_secret_post",
+                    "client_secret_basic",
+                    "client_secret_jwt",
+                    "private_key_jwt",
+                ]
+            }
+        }
+    }
+}
+
+AS_DEFAULT_CONFIG.update(_C)
+
+OP_DEFAULT_CONFIG = copy.deepcopy(_DEFAULT_CONFIG)
+OP_DEFAULT_CONFIG.update({
+    "preference": {
+        "subject_types_supported": ["public", "pairwise"],
+    },
     "authz": {
         "class": "idpyoidc.server.authz.AuthzHandling",
         "kwargs": {
@@ -52,18 +126,22 @@ OP_DEFAULT_CONFIG = {
                             "id_token",
                         ],
                         "max_usage": 1,
+                        'expires_in': 120  # 2 minutes
                     },
-                    "access_token": {},
+                    "access_token": {'expires_in': 3600},  # An hour
                     "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token"],
-                        "expires_in": -1,
+                        "supports_minting": ["access_token", "refresh_token", "id_token"],
+                        "expires_in": 86400,  # One day
                     },
                 },
-                "expires_in": 43200,
+                "expires_in": 2592000,  # a month, 30 days
             }
         },
     },
-    "httpc_params": {"verify": False, "timeout": 4},
+    "claims_interface": {
+        "class": "idpyoidc.server.session.claims.ClaimsInterface",
+        "kwargs": {}
+    },
     "endpoint": {
         "provider_info": {
             "path": ".well-known/openid-configuration",
@@ -109,8 +187,6 @@ OP_DEFAULT_CONFIG = {
             "kwargs": {"claim_types_supported": ["normal", "aggregated", "distributed"]},
         },
     },
-    "issuer": "https://{domain}:{port}",
-    "template_dir": "templates",
     "token_handler_args": {
         "jwks_file": "private/token_jwks.json",
         "code": {"kwargs": {"lifetime": 600}},
@@ -125,13 +201,8 @@ OP_DEFAULT_CONFIG = {
         "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
     },
     "scopes_to_claims": SCOPE2CLAIMS,
-}
+})
 
-AS_DEFAULT_CONFIG = copy.deepcopy(OP_DEFAULT_CONFIG)
-AS_DEFAULT_CONFIG["claims_interface"] = {
-    "class": "idpyoidc.server.session.claims.OAuth2ClaimsInterface",
-    "kwargs": {},
-}
 
 
 class EntityConfiguration(Base):
@@ -160,15 +231,15 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
-        upstream_get: Optional[Callable] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
+            upstream_get: Optional[Callable] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -232,14 +303,14 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         super().__init__(
             conf=conf,
@@ -256,14 +327,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,

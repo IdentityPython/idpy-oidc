@@ -222,7 +222,7 @@ class TestFlow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        resp = _client_service.parse_response(_response["response"])
+        resp = _client_service.parse_response(_response["response"], state=state)
         _client_service.update_service_context(_resp["response_args"], key=state)
         # Fake key import
         if service_type == "provider_info":

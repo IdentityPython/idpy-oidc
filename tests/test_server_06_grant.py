@@ -439,7 +439,7 @@ class TestGrant:
         # Default usage rules
         self.context.cdb["client_id"] = {}
         rules = get_usage_rules("access_token", self.context, grant, "client_id")
-        assert rules == {"supports_minting": [], "expires_in": 3600}
+        assert rules == {"expires_in": 3600}
 
         # client specific usage rules
         self.context.cdb["client_id"] = {"access_token": {"expires_in": 600}}

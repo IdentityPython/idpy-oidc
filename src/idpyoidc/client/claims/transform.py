@@ -21,6 +21,7 @@ REGISTER2PREFERRED = {
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "response_types": "response_types_supported",
+    "response_modes": "response_modes_supported",
     "grant_types": "grant_types_supported",
     # In OAuth2 but not in OIDC
     "scope": "scopes_supported",
