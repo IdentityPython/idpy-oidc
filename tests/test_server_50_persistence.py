@@ -243,7 +243,6 @@ class TestEndpoint(object):
         server2.context.load(
             _store,
             init_args={
-                "upstream_get": server2.upstream_get,
                 "handler": server2.context.session_manager.token_handler,
             },
         )
@@ -305,9 +304,10 @@ class TestEndpoint(object):
 
     def _dump_restore(self, fro, to):
         _store = self.session_manager[fro].dump()
-        self.session_manager[to].load(
-            _store, init_args={"upstream_get": self.endpoint[to].upstream_get}
-        )
+        # self.session_manager[to].load(
+        #     _store, init_args={"upstream_get": self.endpoint[to].upstream_get}
+        # )
+        self.session_manager[to].load(_store)
 
     def test_init(self):
         assert self.endpoint[1]

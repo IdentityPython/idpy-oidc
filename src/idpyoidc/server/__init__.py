@@ -48,20 +48,20 @@ class Server(Unit):
         key_conf: Optional[dict] = None,
     ):
         self.entity_id = entity_id or conf.get("entity_id")
-        self.issuer = conf.get("issuer", self.entity_id)
+        _issuer = conf.get("issuer", self.entity_id)
 
         Unit.__init__(
             self,
-            config=conf,
+            upstream_get=upstream_get,
             keyjar=keyjar,
             httpc=httpc,
-            upstream_get=upstream_get,
             httpc_params=httpc_params,
+            config=conf,
             key_conf=key_conf,
-            issuer_id=self.issuer,
+            issuer_id=_issuer
         )
+        self.issuer_id = _issuer
 
-        self.upstream_get = upstream_get
         if isinstance(conf, OPConfiguration) or isinstance(conf, ASConfiguration):
             self.conf = conf
         else:

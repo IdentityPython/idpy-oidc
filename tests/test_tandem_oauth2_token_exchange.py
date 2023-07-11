@@ -212,8 +212,8 @@ class TestEndpoint(object):
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
         self.context.cdb["client_2"] = client_2_config
-        self.context.keyjar.import_jwks(self.client_1.keyjar.export_jwks(), "client_1")
-        self.context.keyjar.import_jwks(self.client_2.keyjar.export_jwks(), "client_2")
+        self.client_1.keyjar.import_jwks(self.client_1.keyjar.export_jwks(), "client_1")
+        self.client_2.keyjar.import_jwks(self.client_2.keyjar.export_jwks(), "client_2")
 
         self.context.set_provider_info()
 

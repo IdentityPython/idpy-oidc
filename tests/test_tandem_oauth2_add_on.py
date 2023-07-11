@@ -291,7 +291,7 @@ def test_pkce():
     )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
+    server.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 
@@ -333,7 +333,7 @@ def test_jar():
     )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
+    server.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 

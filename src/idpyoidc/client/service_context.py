@@ -114,14 +114,14 @@ class ServiceContext(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-        self,
-        upstream_get: Optional[Callable] = None,
-        base_url: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        cstate: Optional[Current] = None,
-        client_type: Optional[str] = "oauth2",
-        **kwargs,
+            self,
+            upstream_get: Optional[Callable] = None,
+            base_url: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            cstate: Optional[Current] = None,
+            client_type: Optional[str] = "oauth2",
+            **kwargs,
     ):
         ImpExp.__init__(self)
         config = get_configuration(config)
@@ -169,11 +169,17 @@ class ServiceContext(ImpExp):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar)
+        keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar)
 
         _jwks_uri = self.provider_info.get('jwks_uri')
         if _jwks_uri:
-            self.keyjar.load_keys(self.provider_info.get('issuer'), jwks_uri=_jwks_uri)
+            keyjar.load_keys(self.provider_info.get('issuer'), jwks_uri=_jwks_uri)
+
+        if self.upstream_get:
+            _unit = self.upstream_get('unit')
+            _unit.keyjar = keyjar
+        else:
+            self.keyjar = keyjar
 
         _response_types = self.get_preference(
             "response_types_supported", self.supports().get("response_types_supported", [])
@@ -200,7 +206,7 @@ class ServiceContext(ImpExp):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url) :]
+        _name = webname[len(self.base_url):]
         if _name.startswith("/"):
             return _name[1:]
 
@@ -237,8 +243,7 @@ class ServiceContext(ImpExp):
                     _keyjar.add_kb(iss, _bundle)
 
         if new:
-            _unit = self.upstream_get("unit")
-            _unit.setattribute("keyjar", _keyjar)
+            self.keyjar = _keyjar
 
     def _get_crypt(self, typ, attr):
         _item_typ = CLI_REG_MAP.get(typ)
@@ -397,3 +402,18 @@ class ServiceContext(ImpExp):
         )
 
         return self.claims.use
+
+    @property
+    def keyjar(self): # for backward compatibility
+        if self.upstream_get:
+            return self.upstream_get('attribute', 'keyjar')
+        else:
+            return self._keyjar
+
+    @keyjar.setter
+    def keyjar(self, value):
+        if self.upstream_get:
+            _unit = self.upstream_get('unit')
+            _unit.keyjar = value
+        else:
+            self._keyjar = value

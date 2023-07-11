@@ -17,6 +17,7 @@ from ...message.oauth2 import JWTAccessToken
 
 
 class JWTToken(Token):
+    linked = True
     def __init__(
         self,
         token_class,

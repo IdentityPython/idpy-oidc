@@ -170,7 +170,7 @@ class TestFlow(object):
 
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
-        self.context.keyjar.import_jwks(self.client.keyjar.export_jwks(), "client_1")
+        self.client.keyjar.import_jwks(self.client.keyjar.export_jwks(), "client_1")
 
         self.context.set_provider_info()
         self.session_manager = self.context.session_manager

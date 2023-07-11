@@ -15,13 +15,20 @@ def fully_qualified_name(cls):
     return cls.__module__ + "." + cls.__class__.__name__
 
 
+def add_upstream_get(item, func):
+    if hasattr(item, 'linked') and func:
+        item.upstream_get = func
+
+    return item
+
+
 class ImpExp:
     parameter = {}
     special_load_dump = {}
     init_args = []
 
     def __init__(self):
-        pass
+        self.upstream_get = None
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
         if cls in [None, 0, "", [], {}, bool, b""]:
@@ -78,11 +85,11 @@ class ImpExp:
         pass
 
     def load_attr(
-        self,
-        cls: Any,
-        item: dict,
-        init_args: Optional[dict] = None,
-        load_args: Optional[dict] = None,
+            self,
+            cls: Any,
+            item: dict,
+            init_args: Optional[dict] = None,
+            load_args: Optional[dict] = None,
     ) -> Any:
         if load_args:
             _kwargs = {"load_args": load_args}
@@ -101,6 +108,7 @@ class ImpExp:
             if list(item.keys()) == ["DICT_TYPE"]:
                 _spec = item["DICT_TYPE"]
                 val = importer(_spec["class"])(**_spec["kwargs"])
+                val = add_upstream_get(val, self.upstream_get)
             else:
                 val = item
         elif cls == object:
@@ -116,18 +124,18 @@ class ImpExp:
             else:
                 _args = {}
 
-            val = [_cls(**_args).load(v, **_kwargs) for v in item]
+            val = [add_upstream_get(_cls(**_args).load(v, **_kwargs), self.upstream_get) for v in item]
         elif issubclass(cls, Message):
             _cls_name = list(item.keys())[0]
             _cls = importer(_cls_name)
-            val = _cls().from_dict(item[_cls_name])
+            val = add_upstream_get(_cls().from_dict(item[_cls_name]), self.upstream_get)
         else:
             if issubclass(cls, ImpExp) and init_args:
                 _args = {k: v for k, v in init_args.items() if k in cls.init_args}
             else:
                 _args = {}
 
-            val = cls(**_args).load(item, **_kwargs)
+            val = add_upstream_get(cls(**_args).load(item, **_kwargs), self.upstream_get)
 
         return val
 

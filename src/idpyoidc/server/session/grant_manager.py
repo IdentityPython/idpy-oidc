@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class GrantManager(Database):
     parameter = Database.parameter.copy()
     init_args = ["handler"]
+    linked = True
 
     def __init__(
         self,

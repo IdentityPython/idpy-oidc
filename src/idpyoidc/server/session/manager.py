@@ -81,7 +81,7 @@ class SessionManager(GrantManager):
     parameter = Database.parameter.copy()
     # parameter.update({"salt": ""})
     init_args = ["handler"]
-
+    linked = True
     def __init__(
         self,
         handler: TokenHandler,

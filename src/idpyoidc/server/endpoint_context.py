@@ -19,8 +19,8 @@ from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
-from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.session.manager import SessionManager
+from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
@@ -101,20 +101,20 @@ class EndpointContext(OidcContext):
         # "userinfo": UserInfo,
         "client_authn_method": {},
     }
-
+    linked = True
     init_args = ["upstream_get", "handler"]
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        upstream_get: Callable,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-        server_type: Optional[str] = "",
-        entity_id: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        claims_class: Optional[Claims] = None,
+            self,
+            conf: Union[dict, OPConfiguration],
+            upstream_get: Callable,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            server_type: Optional[str] = "",
+            entity_id: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            claims_class: Optional[Claims] = None,
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -238,7 +238,12 @@ class EndpointContext(OidcContext):
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
         _supports = self.supports()
-        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
+
+        _keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
+        if self.upstream_get:
+            _unit = self.upstream_get('unit')
+            _unit.keyjar = _keyjar
+
         self.provider_info = self.claims.provider_info(_supports)
         self.provider_info["issuer"] = self.issuer
         self.provider_info.update(self._get_endpoint_info())
@@ -491,3 +496,18 @@ class EndpointContext(OidcContext):
             if endp.endpoint_name:
                 _res[endp.endpoint_name] = endp.full_path
         return _res
+
+    @property
+    def keyjar(self): # for backward compatibility
+        if self.upstream_get:
+            return self.upstream_get('attribute', 'keyjar')
+        else:
+            return self._keyjar
+
+    @keyjar.setter
+    def keyjar(self, value):
+        if self.upstream_get:
+            _unit = self.upstream_get('unit')
+            _unit.keyjar = value
+        else:
+            self._keyjar = value

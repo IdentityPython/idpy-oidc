@@ -175,18 +175,15 @@ class TestFlow(object):
 
         client_config = {
             "issuer": server_conf["issuer"],
-            # "client_secret": "hemligtlösenord",
-            # "client_id": "client_1",
-            # "client_salt": "salted_peanuts_cooking",
             "redirect_uris": ["https://example.com/cb"],
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
             "response_types_supported": ["code", "id_token", "id_token token"],
         }
         self.rp = RP(config=client_config, keyjar=build_keyjar(KEYDEFS), services=_OIDC_SERVICES)
 
+        # self.server.keyjar.import_jwks(self.rp.keyjar.export_jwks(), "client_1")
         self.context = self.server.context
         # self.context.cdb["client_1"] = client_config
-        # self.context.keyjar.import_jwks(self.rp.keyjar.export_jwks(), "client_1")
 
         self.context.set_provider_info()
         # self.session_manager = self.context.session_manager
@@ -228,7 +225,7 @@ class TestFlow(object):
         if service_type == "provider_info":
             _client_service.upstream_get("attribute", "keyjar").import_jwks(
                 _server_endpoint.upstream_get("attribute", "keyjar").export_jwks(),
-                issuer_id=_server_endpoint.upstream_get("attribute", "issuer"),
+                issuer_id=_server_endpoint.upstream_get("attribute", "issuer_id"),
             )
         return areq, resp
 

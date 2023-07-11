@@ -51,7 +51,7 @@ def make_keyjar(
         key_conf: Optional[dict] = None,
         issuer_id: Optional[str] = "",
         client_id: Optional[str] = "",
-    ):
+):
     if keyjar is False:
         return None
 
@@ -89,11 +89,19 @@ def make_keyjar(
 
 
 class Node:
+    linked = True
+
     def __init__(self, upstream_get: Callable = None):
         self.upstream_get = upstream_get
 
     def unit_get(self, what, *arg):
         _func = getattr(self, f"get_{what}", None)
+        if _func:
+            return _func(*arg)
+        return None
+
+    def unit_set(self, what, *arg):
+        _func = getattr(self, f"set_{what}", None)
         if _func:
             return _func(*arg)
         return None
@@ -119,7 +127,7 @@ class Node:
         return self
 
 
-class Unit(ImpExp):
+class Unit(ImpExp, Node):
     name = ""
 
     init_args = ["upstream_get"]
@@ -136,7 +144,7 @@ class Unit(ImpExp):
             client_id: Optional[str] = "",
     ):
         ImpExp.__init__(self)
-        self.upstream_get = upstream_get
+        Node.__init__(self, upstream_get=upstream_get)
         self.httpc = httpc
 
         if config is None:
@@ -149,32 +157,6 @@ class Unit(ImpExp):
         if self.keyjar:
             self.keyjar.httpc = self.httpc
             self.keyjar.httpc_params = self.httpc_params
-
-    def unit_get(self, what, *arg):
-        _func = getattr(self, f"get_{what}", None)
-        if _func:
-            return _func(*arg)
-        return None
-
-    def get_attribute(self, attr, *args):
-        try:
-            val = getattr(self, attr)
-        except AttributeError:
-            if self.upstream_get:
-                return self.upstream_get("attribute", attr)
-            else:
-                return None
-        else:
-            if val is None and self.upstream_get:
-                return self.upstream_get("attribute", attr)
-            else:
-                return val
-
-    def set_attribute(self, attr, val):
-        setattr(self, attr, val)
-
-    def get_unit(self, *args):
-        return self
 
 
 def topmost_unit(unit):

@@ -422,8 +422,8 @@ class TestEndpoint(object):
         endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint_context = endpoint_context
         self.endpoint = server.get_endpoint("authorization")
@@ -433,7 +433,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.upstream_get("endpoint_context").keyjar.add_symmetric(
+        self.endpoint.upstream_get("unit").keyjar.add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -445,8 +445,8 @@ class TestEndpoint(object):
         endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
+        server.keyjar.import_jwks(
+            server.keyjar.export_jwks(True, ""), conf["issuer"]
         )
         self.endpoint_context = endpoint_context
         self.endpoint = server.get_endpoint("authorization")
@@ -456,7 +456,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.upstream_get("context").keyjar.add_symmetric(
+        self.endpoint.upstream_get("unit").keyjar.add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -626,7 +626,7 @@ class TestEndpoint(object):
 
         access_token = TokenErrorResponse().from_jwt(
             _resp["response_args"]["access_token"],
-            self.endpoint_context.keyjar,
+            self.endpoint.upstream_get('unit').keyjar,
             sender="",
         )
 

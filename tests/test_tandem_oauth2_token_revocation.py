@@ -137,7 +137,7 @@ class TestClient(object):
         # ------- tell the server about the client ----------------
         self.context = self.server.context
         self.context.cdb["client_1"] = client_conf
-        self.context.keyjar.import_jwks(self.client.keyjar.export_jwks(), "client_1")
+        self.server.keyjar.import_jwks(self.client.keyjar.export_jwks(), "client_1")
 
     def do_query(self, service_type, endpoint_type, request_args, state):
         _client = self.client.get_service(service_type)

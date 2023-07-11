@@ -216,8 +216,8 @@ class TestEndpoint:
                 "research_and_scholarship",
             ],
         }
-        endpoint_context.keyjar.import_jwks_as_json(
-            endpoint_context.keyjar.export_jwks_as_json(private=True),
+        server.keyjar.import_jwks_as_json(
+            server.keyjar.export_jwks_as_json(private=True),
             endpoint_context.issuer,
         )
         self.revocation_endpoint = server.get_endpoint("token_revocation")
