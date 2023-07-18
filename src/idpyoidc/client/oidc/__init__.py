@@ -61,6 +61,7 @@ PREFERENCE2PROVIDER = {
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     "response_types": "response_types_supported",
+    "response_modes": "response_modes_supported",
     "grant_types": "grant_types_supported",
 }
 
@@ -77,21 +78,21 @@ class FetchException(Exception):
 
 
 class RP(oauth2.Client):
-    client_type = 'oidc'
+    client_type = "oidc"
 
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
-            config: Optional[Union[dict, Configuration]] = None,
-            services: Optional[dict] = None,
-            httpc: Optional[Callable] = None,
-            httpc_params: Optional[dict] = None,
-            upstream_get: Optional[Callable] = None,
-            key_conf: Optional[dict] = None,
-            entity_id: Optional[str] = '',
-            verify_ssl: Optional[bool] = True,
-            jwks_uri: Optional[str] = "",
-            **kwargs
+        self,
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        services: Optional[dict] = None,
+        httpc: Optional[Callable] = None,
+        httpc_params: Optional[dict] = None,
+        upstream_get: Optional[Callable] = None,
+        key_conf: Optional[dict] = None,
+        entity_id: Optional[str] = "",
+        verify_ssl: Optional[bool] = True,
+        jwks_uri: Optional[str] = "",
+        **kwargs
     ):
         self.upstream_get = upstream_get
         if services:
@@ -111,13 +112,13 @@ class RP(oauth2.Client):
             entity_id=entity_id,
             verify_ssl=verify_ssl,
             jwks_uri=jwks_uri,
-            client_type='oidc',
+            client_type="oidc",
             **kwargs
         )
 
         _context = self.get_service_context()
-        if _context.get_preference('callback_uris') is None:
-            _context.set_preference('callback_uris', {})
+        if _context.get_preference("callback_uris") is None:
+            _context.set_preference("callback_uris", {})
 
     def fetch_distributed_claims(self, userinfo, callback=None):
         """

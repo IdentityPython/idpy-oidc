@@ -270,7 +270,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.upstream_get("attribute",'keyjar').add_symmetric(
+        self.endpoint.upstream_get("attribute", "keyjar").add_symmetric(
             "client_1", "hemligtkodord1234567890"
         )
 
@@ -491,7 +491,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         session_id = self._create_session(request)
@@ -570,7 +570,7 @@ class TestEndpoint(object):
             "client_id": "client_id",
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
         _context = self.endpoint.upstream_get("context")
@@ -708,14 +708,14 @@ class TestEndpoint(object):
 
     def test_unwrap_identity(self):
         identity = {
-            'sid':
-                'Z0FBQUFBQmlZQXFBeDlvSjRENVVYSDBFeTZ6YzVQWTRGVy1laFk2ZmJIbWdPeUhzbVJYbWo5clVPQ045MXpiSVYwS0pfZkREaVUwX2VaVU9HMk9hUktxaGR0R0dQMlRLOXVWQWVTYWJMdDFsVWZJUEItWS1NVi1WQXllNEVlYm9KMDJsSmFYU0pLYWVJeVRKZkJCYmE1T2RpWXRPM3ZmanRlMThfLUNvcnd4ZXVxcFBWdDY0M18tbXNzbjFvbGl4OFdJRTF6YTcwQ3dqNjdsRHdUa1V4ZTlZMjU3SVlXaXdSSTVJSFJJNENwand3a2pOdmV2WGFPRGZhSnZma2NkZ01ZZk1iS3hma1phcQ==',
-            'state': '80ec120d9a322e70e02503e9a99e734174c1e6cb',
-            'timestamp': 1650461312,
-            'uid': '6260077f56d8970e543aa380',
-            'grant_id': 'c636b820c0ad11ecbdd1acde48001122'}
+            "sid": "Z0FBQUFBQmlZQXFBeDlvSjRENVVYSDBFeTZ6YzVQWTRGVy1laFk2ZmJIbWdPeUhzbVJYbWo5clVPQ045MXpiSVYwS0pfZkREaVUwX2VaVU9HMk9hUktxaGR0R0dQMlRLOXVWQWVTYWJMdDFsVWZJUEItWS1NVi1WQXllNEVlYm9KMDJsSmFYU0pLYWVJeVRKZkJCYmE1T2RpWXRPM3ZmanRlMThfLUNvcnd4ZXVxcFBWdDY0M18tbXNzbjFvbGl4OFdJRTF6YTcwQ3dqNjdsRHdUa1V4ZTlZMjU3SVlXaXdSSTVJSFJJNENwand3a2pOdmV2WGFPRGZhSnZma2NkZ01ZZk1iS3hma1phcQ==",
+            "state": "80ec120d9a322e70e02503e9a99e734174c1e6cb",
+            "timestamp": 1650461312,
+            "uid": "6260077f56d8970e543aa380",
+            "grant_id": "c636b820c0ad11ecbdd1acde48001122",
+        }
         _id = self.endpoint._unwrap_identity(identity)
-        assert _id["uid"] == '6260077f56d8970e543aa380'
+        assert _id["uid"] == "6260077f56d8970e543aa380"
 
     # def test_sso(self):
     #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT)

@@ -119,8 +119,13 @@ class UserAuthnMethod(object):
                 # verify session ID
                 try:
                     _context.session_manager[_info["sid"]]
-                except (KeyError, ValueError, InconsistentDatabase,
-                        NoSuchClientSession, NoSuchGrant) as err:
+                except (
+                    KeyError,
+                    ValueError,
+                    InconsistentDatabase,
+                    NoSuchClientSession,
+                    NoSuchGrant,
+                ) as err:
                     logger.info(f"Verifying session ID fail due to {err}")
                     return {}
 
@@ -153,13 +158,13 @@ class UserPassJinja2(UserAuthnMethod):
     url_endpoint = "/verify/user_pass_jinja"
 
     def __init__(
-            self,
-            db,
-            template_handler,
-            template="user_pass.jinja2",
-            upstream_get=None,
-            verify_endpoint="",
-            **kwargs,
+        self,
+        db,
+        template_handler,
+        template="user_pass.jinja2",
+        upstream_get=None,
+        verify_endpoint="",
+        **kwargs,
     ):
 
         super(UserPassJinja2, self).__init__(upstream_get=upstream_get)
@@ -193,7 +198,7 @@ class UserPassJinja2(UserAuthnMethod):
         if not self.upstream_get:
             raise Exception(f"{self.__class__.__name__} doesn't have a working upstream_get")
         _context = self.upstream_get("context")
-        _keyjar = self.upstream_get("attribute", 'keyjar')
+        _keyjar = self.upstream_get("attribute", "keyjar")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
         jws = create_signed_jwt(_context.issuer, _keyjar, **kwargs)
@@ -219,12 +224,11 @@ class UserPassJinja2(UserAuthnMethod):
 
 
 class UserPass(UserAuthnMethod):
-
     def __init__(
-            self,
-            db_conf,
-            upstream_get=None,
-            **kwargs,
+        self,
+        db_conf,
+        upstream_get=None,
+        **kwargs,
     ):
 
         super(UserPass, self).__init__(upstream_get=upstream_get)
@@ -242,7 +246,6 @@ class UserPass(UserAuthnMethod):
 
 
 class BasicAuthn(UserAuthnMethod):
-
     def __init__(self, pwd, ttl=5, upstream_get=None):
         UserAuthnMethod.__init__(self, upstream_get=upstream_get)
         self.passwd = pwd

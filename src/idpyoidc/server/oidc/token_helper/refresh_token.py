@@ -18,8 +18,8 @@ from idpyoidc.util import sanitize
 
 logger = logging.getLogger(__name__)
 
-class RefreshTokenHelper(TokenEndpointHelper):
 
+class RefreshTokenHelper(TokenEndpointHelper):
     def process_request(self, req: Union[Message, dict], **kwargs):
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
@@ -113,9 +113,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-                "client_id" in req
-                and req["client_id"] in _context.cdb
-                and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+            "client_id" in req
+            and req["client_id"] in _context.cdb
+            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
         ):
             revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
@@ -127,10 +127,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-            self,
-            request: Union[Message, dict],
-            client_id: Optional[str] = "",
-            **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -143,8 +140,9 @@ class RefreshTokenHelper(TokenEndpointHelper):
         request = RefreshAccessTokenRequest(**request.to_dict())
         _context = self.endpoint.upstream_get("context")
 
-        request.verify(keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
-                       opponent_id=client_id)
+        request.verify(
+            keyjar=self.endpoint.upstream_get("attribute", "keyjar"), opponent_id=client_id
+        )
 
         _mngr = _context.session_manager
         try:
@@ -176,4 +174,3 @@ class RefreshTokenHelper(TokenEndpointHelper):
                 )
 
         return request
-

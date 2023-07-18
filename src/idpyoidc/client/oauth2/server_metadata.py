@@ -4,6 +4,7 @@ from typing import Optional
 
 from cryptojwt.key_jar import KeyJar
 
+from idpyoidc.client.defaults import OAUTH2_SERVER_METADATA_URL
 from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service import Service
@@ -23,6 +24,7 @@ class ServerMetadata(Service):
     synchronous = True
     service_name = "server_metadata"
     http_method = "GET"
+    url_pattern = OAUTH2_SERVER_METADATA_URL
 
     _supports = {}
 
@@ -41,9 +43,9 @@ class ServerMetadata(Service):
             _iss = self.endpoint
 
         if _iss.endswith("/"):
-            return OIDCONF_PATTERN.format(_iss[:-1])
+            return self.url_pattern.format(_iss[:-1])
 
-        return OIDCONF_PATTERN.format(_iss)
+        return self.url_pattern.format(_iss)
 
     def get_request_parameters(self, method="GET", **kwargs):
         """
@@ -117,7 +119,7 @@ class ServerMetadata(Service):
         # If I already have a Key Jar then I'll add then provider keys to
         # that. Otherwise, a new Key Jar is minted
         try:
-            _keyjar = self.upstream_get('attribute', 'keyjar')
+            _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar is None:
                 _keyjar = KeyJar()
         except KeyError:
@@ -135,7 +137,7 @@ class ServerMetadata(Service):
             _info = resp.to_dict()
         else:
             _info = resp
-        _context.map_supported_to_preferred(_info)
+        _context.map_service_against_endpoint(_info)
 
     def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
         return self._update_service_context(resp)

@@ -13,11 +13,11 @@ class TestCurrent:
 
     def test_create_key_no_key(self):
         state_key = self.current.create_key()
-        self.current.set(state_key, {'iss': ISSUER})
-        _iss = self.current.get(state_key)['iss']
+        self.current.set(state_key, {"iss": ISSUER})
+        _iss = self.current.get(state_key)["iss"]
         assert _iss == ISSUER
-        _item = self.current.get_set(state_key, claim=['iss'])
-        assert _item['iss'] == ISSUER
+        _item = self.current.get_set(state_key, claim=["iss"])
+        assert _item["iss"] == ISSUER
 
     def test_store_and_retrieve_state_item(self):
         state_key = self.current.create_key()
@@ -51,7 +51,7 @@ class TestCurrent:
         assert _state_key == state_key
 
     def test_remove(self):
-        state_key = self.current.create_state(iss='foo')
+        state_key = self.current.create_state(iss="foo")
         self.current.bind_key("subject_id", state_key)
         self.current.bind_key("nonce", state_key)
         self.current.bind_key("session_id", state_key)

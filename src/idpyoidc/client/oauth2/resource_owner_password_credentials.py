@@ -24,16 +24,14 @@ class ROPCAccessTokenRequest(Service):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct.append(self.ropc_pre_construct)
 
-    def ropc_pre_construct(self,
-                           request: Union[Message, dict],
-                           service: Service,
-                           post_args: Optional[dict],
-                           **_args):
-        _grant_type = request.get('grant_type')
+    def ropc_pre_construct(
+        self, request: Union[Message, dict], service: Service, post_args: Optional[dict], **_args
+    ):
+        _grant_type = request.get("grant_type")
         if not _grant_type:
-            request['grant_type'] = 'password'
-        elif _grant_type != 'password':
-            logging.error('Wrong grant_type')
+            request["grant_type"] = "password"
+        elif _grant_type != "password":
+            logging.error("Wrong grant_type")
 
         return request, post_args
 

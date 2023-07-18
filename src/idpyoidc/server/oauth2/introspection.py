@@ -32,6 +32,7 @@ class Introspection(Endpoint):
     def __init__(self, upstream_get, **kwargs):
         Endpoint.__init__(self, upstream_get, **kwargs)
         self.offset = kwargs.get("offset", 0)
+        self.enforce_aud_restriction = kwargs.get("enforce_audience_restriction", True)
 
     def _introspect(self, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
@@ -113,9 +114,18 @@ class Introspection(Endpoint):
         aud = _token.resources
         if not aud:
             aud = grant.resources
-        
-        if request["client_id"] not in aud:
-            return {"response_args": _resp}
+
+        client_id = request["client_id"]
+        try:
+            _cinfo = _context.cdb[client_id]
+            enforce_aud_restriction = _cinfo.get(
+                "enforce_audience_restriction", self.enforce_aud_restriction
+            )
+        except:
+            enforce_aud_restriction = self.enforce_aud_restriction
+        if enforce_aud_restriction:
+            if request["client_id"] not in aud:
+                return {"response_args": _resp}
 
         _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
         if _info is None:

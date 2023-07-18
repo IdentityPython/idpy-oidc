@@ -1,7 +1,7 @@
 from idpyoidc.context import OidcContext
 
 
-ENTITY_ID = 'https://example.com'
+ENTITY_ID = "https://example.com"
 
 
 class TestDumpLoad(object):

@@ -24,10 +24,11 @@ class AbstractFileSystem(DictType):
     """
 
     def __init__(
-        self, fdir: Optional[str] = "",
-            key_conv: Optional[str] = "",
-            value_conv: Optional[str] = "",
-            **kwargs
+        self,
+        fdir: Optional[str] = "",
+        key_conv: Optional[str] = "",
+        value_conv: Optional[str] = "",
+        **kwargs
     ):
         """
         items = FileSystem(

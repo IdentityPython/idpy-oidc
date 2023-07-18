@@ -186,7 +186,7 @@ class TestEndpoint(object):
                 "authorization_code",
                 "urn:ietf:params:oauth:grant-type:jwt-bearer",
                 "refresh_token",
-                "urn:ietf:params:oauth:grant-type:token-exchange"
+                "urn:ietf:params:oauth:grant-type:token-exchange",
             ],
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
@@ -267,7 +267,7 @@ class TestEndpoint(object):
         token_exchange_req = TokenExchangeRequest(
             grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
             subject_token=_token_value,
-            subject_token_type=token[list(token.keys())[0]]
+            subject_token_type=token[list(token.keys())[0]],
         )
 
         _req = self.endpoint.parse_request(
@@ -275,7 +275,7 @@ class TestEndpoint(object):
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzI6aGVtbGlndA==")}},
         )
         _resp = self.endpoint.process_request(request=_req)
-        print(_resp['response_args'])
+        print(_resp["response_args"])
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
@@ -411,14 +411,17 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["openid", "profile", "offline_access"]
-                    },
+                    "kwargs": {"scope": ["openid", "profile", "offline_access"]},
                 }
             },
         }
 
-        self.context.cdb["client_1"]["allowed_scopes"] = ["openid", "email", "profile", "offline_access"]
+        self.context.cdb["client_1"]["allowed_scopes"] = [
+            "openid",
+            "email",
+            "profile",
+            "offline_access",
+        ]
 
         areq = AUTH_REQ.copy()
         areq["scope"].append("profile")
@@ -440,7 +443,7 @@ class TestEndpoint(object):
             subject_token=_token_value,
             subject_token_type="urn:ietf:params:oauth:token-type:access_token",
             requested_token_type="urn:ietf:params:oauth:token-type:access_token",
-            scope="openid profile offline_access"
+            scope="openid profile offline_access",
         )
 
         _req = self.endpoint.parse_request(
@@ -469,12 +472,10 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["openid", "profile", "offline_access"]
-                    },
+                    "kwargs": {"scope": ["openid", "profile", "offline_access"]},
                 }
             },
-            "allowed_scopes": ["openid", "email", "profile", "offline_access"]
+            "allowed_scopes": ["openid", "email", "profile", "offline_access"],
         }
 
         areq = AUTH_REQ.copy()
@@ -496,7 +497,7 @@ class TestEndpoint(object):
             subject_token=_token_value,
             subject_token_type="urn:ietf:params:oauth:token-type:access_token",
             requested_token_type="urn:ietf:params:oauth:token-type:access_token",
-            scope="email"
+            scope="email",
         )
 
         _req = self.endpoint.parse_request(
@@ -523,12 +524,10 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["openid", "offline_access"]
-                    },
+                    "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
-            "allowed_scopes": ["openid", "email", "profile", "offline_access"]
+            "allowed_scopes": ["openid", "email", "profile", "offline_access"],
         }
 
         areq = AUTH_REQ.copy()
@@ -549,7 +548,7 @@ class TestEndpoint(object):
             grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
             subject_token=_token_value,
             subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-            requested_token_type="urn:ietf:params:oauth:token-type:access_token"
+            requested_token_type="urn:ietf:params:oauth:token-type:access_token",
         )
 
         _req = self.endpoint.parse_request(
@@ -564,7 +563,9 @@ class TestEndpoint(object):
         Test that a token exchange with additional parameters including
         scope, audience and subject_token_type works.
         """
-        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper[
+            "urn:ietf:params:oauth:grant-type:token-exchange"
+        ].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
@@ -612,10 +613,10 @@ class TestEndpoint(object):
         grant_types_supported (that are set in its helper attribute).
         """
         self.context.cdb["client_1"]["grant_types_supported"] = [
-            'authorization_code',
-            'implicit',
-            'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'refresh_token'
+            "authorization_code",
+            "implicit",
+            "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "refresh_token",
         ]
 
         areq = AUTH_REQ.copy()
@@ -645,15 +646,17 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+            _resp["error_description"]
+            == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
     def test_wrong_resource(self):
         """
         Test that requesting a token for an unknown resource fails.
         """
-        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper[
+            "urn:ietf:params:oauth:grant-type:token-exchange"
+        ].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
         areq = AUTH_REQ.copy()
@@ -723,7 +726,9 @@ class TestEndpoint(object):
         """
         Test that requesting a token for an unknown audience fails.
         """
-        conf = self.endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
+        conf = self.endpoint.grant_type_helper[
+            "urn:ietf:params:oauth:grant-type:token-exchange"
+        ].config
         conf["policy"][""]["kwargs"] = {}
         conf["policy"][""]["kwargs"]["audience"] = ["https://example.com"]
         areq = AUTH_REQ.copy()
@@ -1042,9 +1047,7 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["offline_access", "profile"]
-                    },
+                    "kwargs": {"scope": ["offline_access", "profile"]},
                 }
             },
         }
@@ -1131,9 +1134,7 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["profile"]
-                    },
+                    "kwargs": {"scope": ["profile"]},
                 }
             },
         }
@@ -1219,17 +1220,15 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["offline_access", "profile"]
-                    },
+                    "kwargs": {"scope": ["offline_access", "profile"]},
                 }
             },
         }
         self.context.cdb["client_1"]["grant_types_supported"] = [
-            'authorization_code',
-            'implicit',
-            'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'urn:ietf:params:oauth:grant-type:token-exchange'
+            "authorization_code",
+            "implicit",
+            "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "urn:ietf:params:oauth:grant-type:token-exchange",
         ]
 
         areq = AUTH_REQ.copy()
@@ -1327,17 +1326,15 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["offline_access", "profile"]
-                    },
+                    "kwargs": {"scope": ["offline_access", "profile"]},
                 }
             },
         }
         self.context.cdb["client_1"]["grant_types_supported"] = [
-            'authorization_code',
-            'implicit',
-            'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'urn:ietf:params:oauth:grant-type:token-exchange'
+            "authorization_code",
+            "implicit",
+            "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "urn:ietf:params:oauth:grant-type:token-exchange",
         ]
 
         areq = AUTH_REQ.copy()
@@ -1377,8 +1374,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Exchanging this subject token to refresh token forbidden"
+            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1425,9 +1421,7 @@ class TestEndpoint(object):
             "policy": {
                 "": {
                     "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
-                    "kwargs": {
-                        "scope": ["profile"]
-                    },
+                    "kwargs": {"scope": ["profile"]},
                 }
             },
         }
@@ -1460,8 +1454,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Exchanging this subject token to refresh token forbidden"
+            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "profile"
@@ -1473,8 +1466,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Exchanging this subject token to refresh token forbidden"
+            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1485,10 +1477,7 @@ class TestEndpoint(object):
         )
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_scope"
-        assert (
-                _resp["error_description"]
-                == "Invalid requested scopes"
-        )
+        assert _resp["error_description"] == "Invalid requested scopes"
 
         token_exchange_req["scope"] = "offline_access profile"
 
@@ -1499,7 +1488,5 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-                _resp["error_description"]
-                == "Exchanging this subject token to refresh token forbidden"
+            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
-

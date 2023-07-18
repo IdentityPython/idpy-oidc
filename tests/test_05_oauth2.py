@@ -578,7 +578,7 @@ class TestROPCAccessTokenRequest(object):
 
 class TestCCAccessTokenRequest(object):
     def test_init(self):
-        cc = CCAccessTokenRequest(scope="/foo", grant_type='client_credentials')
+        cc = CCAccessTokenRequest(scope="/foo", grant_type="client_credentials")
         cc.verify()
         assert cc["scope"] == ["/foo"]
 

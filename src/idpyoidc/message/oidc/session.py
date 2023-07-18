@@ -135,7 +135,7 @@ class LogoutToken(Message):
         except KeyError:
             _skew = 0
 
-        if 'iat' in self and self["iat"] > (_now + _skew):
+        if "iat" in self and self["iat"] > (_now + _skew):
             raise ValueError("Invalid issued_at time")
 
         _allowed = kwargs.get("allowed_sign_alg")

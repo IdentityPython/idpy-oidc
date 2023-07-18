@@ -11,13 +11,12 @@ BASE_URL = "https://example.com"
 
 
 class TestCC:
-
     @pytest.fixture(autouse=True)
     def create_service(self):
         client_config = {
             "client_id": "client_id",
             "client_secret": "another password",
-            "base_url": BASE_URL
+            "base_url": BASE_URL,
         }
         services = {
             "client_credentials": {
@@ -34,8 +33,10 @@ class TestCC:
         _info = _srv.get_request_parameters()
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
-        assert _info[
-                   "body"] == "grant_type=client_credentials&client_id=client_id&client_secret=another+password"
+        assert (
+            _info["body"]
+            == "grant_type=client_credentials&client_id=client_id&client_secret=another+password"
+        )
 
         assert _info["headers"] == {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -63,30 +64,29 @@ class TestCC:
 
 
 class TestROPC:
-
     @pytest.fixture(autouse=True)
     def create_service(self):
         client_config = {
             "client_id": "client_id",
             "client_secret": "another password",
-            "base_url": BASE_URL
+            "base_url": BASE_URL,
         }
         services = {
             "resource_owner_password_credentials": {
-                "class":
-                    "idpyoidc.client.oauth2.resource_owner_password_credentials"
-                    ".ROPCAccessTokenRequest"
+                "class": "idpyoidc.client.oauth2.resource_owner_password_credentials"
+                ".ROPCAccessTokenRequest"
             }
         }
 
         self.entity = Entity(config=client_config, services=services)
 
         self.entity.get_service(
-            "resource_owner_password_credentials").endpoint = "https://example.com/token"
+            "resource_owner_password_credentials"
+        ).endpoint = "https://example.com/token"
 
     def test_token_get_request(self):
         _srv = self.entity.get_service("resource_owner_password_credentials")
-        _info = _srv.get_request_parameters({'username': 'diana', 'password': 'krall'})
+        _info = _srv.get_request_parameters({"username": "diana", "password": "krall"})
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
         assert _info["body"] == (
@@ -94,7 +94,8 @@ class TestROPC:
             "password=krall&"
             "grant_type=password&"
             "client_id=client_id&"
-            "client_secret=another+password")
+            "client_secret=another+password"
+        )
 
         assert _info["headers"] == {
             "Content-Type": "application/x-www-form-urlencoded",

@@ -1,6 +1,10 @@
+from typing import Optional
+from typing import Union
 import uuid
 
+from idpyoidc.message import Message
 from idpyoidc.message import oauth2
+from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.oauth2.authorization import Authorization
 
 
@@ -20,7 +24,7 @@ class PushedAuthorization(Authorization):
         self.post_parse_request.append(self._post_parse_request)
         self.ttl = kwargs.get("ttl", 3600)
 
-    def process_request(self, request=None, **kwargs):
+    def process_request(self, request: Optional[Union[Message, str]] = None, **kwargs):
         """
         Store the request and return a URI.
 
@@ -28,10 +32,18 @@ class PushedAuthorization(Authorization):
         """
         # create URN
 
+        if isinstance(request, str):
+            _request = AuthorizationRequest().from_urlencoded(request)
+        else:
+            _request = AuthorizationRequest(**request)
+
+        _request.verify(keyjar=self.upstream_get("attribute", "keyjar"))
+
         _urn = "urn:uuid:{}".format(uuid.uuid4())
-        self.upstream_get("context").par_db[_urn] = request
+        # Store the parsed and verified request
+        self.upstream_get("context").par_db[_urn] = _request
 
         return {
             "http_response": {"request_uri": _urn, "expires_in": self.ttl},
-            "return_uri": request["redirect_uri"],
+            "return_uri": _request["redirect_uri"],
         }

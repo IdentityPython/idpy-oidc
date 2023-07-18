@@ -81,9 +81,7 @@ _OAUTH2_SERVICES = {
     "refresh_access_token": {
         "class": "idpyoidc.client.oauth2.refresh_access_token.RefreshAccessToken"
     },
-    "token_exchange": {
-        "class": "idpyoidc.client.oauth2.token_exchange.TokenExchange"
-    }
+    "token_exchange": {"class": "idpyoidc.client.oauth2.token_exchange.TokenExchange"},
 }
 
 
@@ -118,7 +116,7 @@ class TestEndpoint(object):
                 },
                 "token": {
                     "path": "token",
-                    "class": "idpyoidc.server.oidc.token.Token",
+                    "class": "idpyoidc.server.oauth2.token.Token",
                     "kwargs": {},
                 },
             },
@@ -185,7 +183,7 @@ class TestEndpoint(object):
             "redirect_uris": ["https://example.com/cb"],
             "client_salt": "salted_peanuts_cooking",
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
-            "response_types_supported": ["code", "token", "code id_token", "id_token"],
+            "response_types_supported": ["code", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
         client_2_config = {
@@ -195,23 +193,27 @@ class TestEndpoint(object):
             "redirect_uris": ["https://example.com/cb"],
             "client_salt": "salted_peanuts_cooking",
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
-            "response_types_supported": ["code", "token", "code id_token", "id_token"],
+            "response_types_supported": ["code", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
-        self.client_1 = Client(client_type='oauth2', config=client_1_config,
-                               keyjar=build_keyjar(KEYDEFS),
-                               services=_OAUTH2_SERVICES)
-        self.client_2 = Client(client_type='oauth2', config=client_2_config,
-                               keyjar=build_keyjar(KEYDEFS),
-                               services=_OAUTH2_SERVICES)
+        self.client_1 = Client(
+            client_type="oauth2",
+            config=client_1_config,
+            keyjar=build_keyjar(KEYDEFS),
+            services=_OAUTH2_SERVICES,
+        )
+        self.client_2 = Client(
+            client_type="oauth2",
+            config=client_2_config,
+            keyjar=build_keyjar(KEYDEFS),
+            services=_OAUTH2_SERVICES,
+        )
 
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
         self.context.cdb["client_2"] = client_2_config
-        self.context.keyjar.import_jwks(
-            self.client_1.keyjar.export_jwks(), "client_1")
-        self.context.keyjar.import_jwks(
-            self.client_2.keyjar.export_jwks(), "client_2")
+        self.context.keyjar.import_jwks(self.client_1.keyjar.export_jwks(), "client_1")
+        self.context.keyjar.import_jwks(self.client_2.keyjar.export_jwks(), "client_2")
 
         self.context.set_provider_info()
 
@@ -234,7 +236,8 @@ class TestEndpoint(object):
             else:
                 argv = {}
             areq.lax = True
-            _pr_resp = _server.parse_request(areq.to_urlencoded(), **argv)
+            _req = areq.serialize(_server.request_format)
+            _pr_resp = _server.parse_request(_req, **argv)
         else:
             _pr_resp = _server.parse_request(areq)
 
@@ -254,20 +257,16 @@ class TestEndpoint(object):
     def process_setup(self, token=None, scope=None):
         # ***** Discovery *********
 
-        _req, _resp = self.do_query('server_metadata', 'server_metadata', {}, '')
+        _req, _resp = self.do_query("server_metadata", "server_metadata", {}, "")
 
         # ***** Authorization Request **********
-        _nonce = rndstr(24),
+        _nonce = (rndstr(24),)
         _context = self.client_1.get_service_context()
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
 
-        req_args = {
-            "response_type": ["code"],
-            "nonce": _nonce,
-            "state": _state
-        }
+        req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
         if scope:
             _scope = scope
@@ -279,7 +278,7 @@ class TestEndpoint(object):
 
         req_args["scope"] = _scope
 
-        areq, auth_response = self.do_query('authorization', 'authorization', req_args, _state)
+        areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
 
         # ***** Token Request **********
 
@@ -292,7 +291,7 @@ class TestEndpoint(object):
             "client_secret": _context.get_usage("client_secret"),
         }
 
-        _token_request, resp = self.do_query("accesstoken", 'token', req_args, _state)
+        _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)
 
         return resp, _state, _scope
 
@@ -316,12 +315,13 @@ class TestEndpoint(object):
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "requested_token_type": token[list(token.keys())[0]],
             "subject_token": resp["access_token"],
-            "subject_token_type": 'urn:ietf:params:oauth:token-type:access_token',
-            "state": _state
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "state": _state,
         }
 
-        _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
-                                                          _state)
+        _token_exchange_request, _te_resp = self.do_query(
+            "token_exchange", "token", req_args, _state
+        )
 
         assert set(_te_resp.keys()) == {
             "access_token",
@@ -356,8 +356,7 @@ class TestEndpoint(object):
             ],
             "policy": {
                 "": {
-                    "function":
-                        "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },
@@ -371,12 +370,13 @@ class TestEndpoint(object):
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "requested_token_type": token[list(token.keys())[0]],
             "subject_token": resp["access_token"],
-            "subject_token_type": 'urn:ietf:params:oauth:token-type:access_token',
-            "state": _state
+            "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "state": _state,
         }
 
-        _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
-                                                          _state)
+        _token_exchange_request, _te_resp = self.do_query(
+            "token_exchange", "token", req_args, _state
+        )
 
         assert set(_te_resp.keys()) == {
             "access_token",
@@ -413,8 +413,9 @@ class TestEndpoint(object):
             "resource": ["https://example.com"],
         }
 
-        _token_exchange_request, _te_resp = self.do_query("token_exchange", "token", req_args,
-                                                          _state)
+        _token_exchange_request, _te_resp = self.do_query(
+            "token_exchange", "token", req_args, _state
+        )
 
         assert set(_te_resp.keys()) == {
             "access_token",
@@ -440,7 +441,7 @@ class TestEndpoint(object):
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token": resp["access_token"],
             "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-            "resource": ["https://example.com/api"]
+            "resource": ["https://example.com/api"],
         }
 
         _te_request, _te_resp = self.do_query("token_exchange", "token", req_args, _state)
@@ -481,7 +482,8 @@ class TestEndpoint(object):
         """
 
         resp, _state, _scope = self.process_setup(
-            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"})
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"}
+        )
 
         # ****** Token Exchange Request **********
 
@@ -529,7 +531,8 @@ class TestEndpoint(object):
         Test whether exchanging a refresh token to another refresh token works.
         """
         resp, _state, _scope = self.process_setup(
-            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"})
+            {"refresh_token": "urn:ietf:params:oauth:token-type:refresh_token"}
+        )
 
         # ****** Token Exchange Request **********
 

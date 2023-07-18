@@ -167,15 +167,11 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
-        server.keyjar.import_jwks(
-            server.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
 
         self.rp_keyjar = init_key_jar(key_defs=KEYDEFS, issuer_id="s6BhdRkqt3")
         # Add RP's keys to the OP's keyjar
-        server.keyjar.import_jwks(
-            self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3"
-        )
+        server.keyjar.import_jwks(self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3")
 
         self.pushed_authorization_endpoint = server.get_endpoint("pushed_authorization")
         self.authorization_endpoint = server.get_endpoint("authorization")
@@ -199,7 +195,7 @@ class TestEndpoint(object):
             "code_challenge_method",
             "client_id",
             "code_challenge",
-            'authenticated'
+            "authenticated",
         }
 
     def test_pushed_auth_request(self):
@@ -226,7 +222,7 @@ class TestEndpoint(object):
             "code_challenge",
             "request",
             "__verified_request",
-            'authenticated'
+            "authenticated",
         }
 
     def test_pushed_auth_urlencoded_process(self):
@@ -245,7 +241,7 @@ class TestEndpoint(object):
             "code_challenge_method",
             "client_id",
             "code_challenge",
-            'authenticated'
+            "authenticated",
         }
 
         _resp = self.pushed_authorization_endpoint.process_request(_req)

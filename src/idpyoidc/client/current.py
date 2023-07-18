@@ -51,22 +51,19 @@ class Current(ImpExp):
     def get_claim(self, key: str, claim: str) -> Union[str, None]:
         return self.get(key).get(claim)
 
-    def get_set(self,
-                key: str,
-                message: Optional[type(Message)] = None,
-                claim: Optional[list] = None) -> dict:
+    def get_set(
+        self, key: str, message: Optional[type(Message)] = None, claim: Optional[list] = None
+    ) -> dict:
         """
 
-        @param key: The key to a seet of current claims
+        @param key: The key to a set of current claims
         @param message: A message class
         @param claim: A list of claims
         @return: Dictionary
+        @raise KeyError if no such key
         """
 
-        try:
-            _current = self.get(key)
-        except KeyError:
-            return {}
+        _current = self.get(key)
 
         if message:
             _res = {k: _current[k] for k in message.c_param.keys() if k in _current}

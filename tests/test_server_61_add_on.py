@@ -28,13 +28,8 @@ KEYJAR.import_jwks(KEYJAR.export_jwks(True, ISSUER), "")
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
-    ["token"],
     ["id_token"],
-    ["code", "token"],
     ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
 ]
 
 CAPABILITIES = {
@@ -55,7 +50,7 @@ CAPABILITIES = {
     "claim_types_supported": ["normal", "aggregated", "distributed"],
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
-    "request_uri_parameter_supported": True,
+    # "request_uri_parameter_supported": True,
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -143,7 +138,7 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.endpoint = server.get_endpoint("authorization")
 

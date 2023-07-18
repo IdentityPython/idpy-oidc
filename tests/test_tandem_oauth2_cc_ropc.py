@@ -37,10 +37,8 @@ SESSION_PARAMS = {"encrypter": CRYPT_CONFIG}
 CONFIG = {
     "issuer": "https://example.net/",
     "httpc_params": {"verify": False},
-    "preference": {
-        "grant_types_supported": ["client_credentials", "password"]
-    },
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, 'read_only': False},
+    "preference": {"grant_types_supported": ["client_credentials", "password"]},
+    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, "read_only": False},
     "token_handler_args": {
         "jwks_defs": {"key_defs": KEYDEFS},
         "token": {
@@ -49,8 +47,8 @@ CONFIG = {
                 "lifetime": 3600,
                 "add_claims_by_scope": True,
                 "aud": ["https://example.org/appl"],
-            }
-        }
+            },
+        },
     },
     "endpoint": {
         "token": {
@@ -96,11 +94,11 @@ CONFIG = {
             "kwargs": {
                 "db_conf": {
                     "class": "idpyoidc.server.util.JSONDictDB",
-                    "kwargs": {"filename": full_path("passwd.json")}
+                    "kwargs": {"filename": full_path("passwd.json")},
                 }
-            }
+            },
         }
-    }
+    },
 }
 
 CLIENT_BASE_URL = "https://example.com"
@@ -108,7 +106,7 @@ CLIENT_BASE_URL = "https://example.com"
 CLIENT_CONFIG = {
     "client_id": "client_1",
     "client_secret": "another password",
-    "base_url": CLIENT_BASE_URL
+    "base_url": CLIENT_BASE_URL,
 }
 CLIENT_SERVICES = {
     "resource_owner_password_credentials": {
@@ -123,9 +121,10 @@ def test_ropc():
     client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
     client.get_service("resource_owner_password_credentials").endpoint = "https://example.com/token"
 
-    service = client.get_service('resource_owner_password_credentials')
+    service = client.get_service("resource_owner_password_credentials")
     client_request_info = service.get_request_parameters(
-        request_args={'username': 'diana', 'password': 'krall'})
+        request_args={"username": "diana", "password": "krall"}
+    )
 
     # Server side
 
@@ -141,5 +140,5 @@ def test_ropc():
     }
 
     token_endpoint = server.get_endpoint("token")
-    request = token_endpoint.parse_request(client_request_info['request'])
+    request = token_endpoint.parse_request(client_request_info["request"])
     assert request

@@ -72,7 +72,7 @@ DEFAULT_VALUE = {
     "redirect_uris": [],
     "provider_info": {},
     "callback": {},
-    "issuer": ""
+    "issuer": "",
 }
 
 
@@ -97,7 +97,7 @@ class ServiceContext(ImpExp):
         "httpc_params": None,
         "iss_hash": None,
         "issuer": None,
-        'keyjar': KeyJar,
+        "keyjar": KeyJar,
         "claims": Claims,
         "provider_info": None,
         "requests_dir": None,
@@ -111,16 +111,18 @@ class ServiceContext(ImpExp):
         "specs": {"load": claims_load, "dump": claims_dump},
     }
 
-    init_args = ['upstream_get']
+    init_args = ["upstream_get"]
 
-    def __init__(self,
-                 upstream_get: Optional[Callable] = None,
-                 base_url: Optional[str] = "",
-                 keyjar: Optional[KeyJar] = None,
-                 config: Optional[Union[dict, Configuration]] = None,
-                 cstate: Optional[Current] = None,
-                 client_type: Optional[str] = 'oauth2',
-                 **kwargs):
+    def __init__(
+        self,
+        upstream_get: Optional[Callable] = None,
+        base_url: Optional[str] = "",
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        cstate: Optional[Current] = None,
+        client_type: Optional[str] = "oauth2",
+        **kwargs,
+    ):
         ImpExp.__init__(self)
         config = get_configuration(config)
         self.config = config
@@ -138,7 +140,7 @@ class ServiceContext(ImpExp):
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.allow = config.conf.get('allow', {})
+        self.allow = config.conf.get("allow", {})
         self.base_url = base_url or config.conf.get("base_url", "")
         self.provider_info = config.conf.get("provider_info", {})
 
@@ -167,12 +169,15 @@ class ServiceContext(ImpExp):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(),
-                                            keyjar=keyjar)
+        self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar)
+
+        _jwks_uri = self.provider_info.get('jwks_uri')
+        if _jwks_uri:
+            self.keyjar.load_keys(self.provider_info.get('issuer'), jwks_uri=_jwks_uri)
 
         _response_types = self.get_preference(
-            'response_types_supported',
-            self.supports().get('response_types_supported', []))
+            "response_types_supported", self.supports().get("response_types_supported", [])
+        )
 
         self.construct_uris(response_types=_response_types)
 
@@ -195,7 +200,7 @@ class ServiceContext(ImpExp):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url):]
+        _name = webname[len(self.base_url) :]
         if _name.startswith("/"):
             return _name[1:]
 
@@ -210,7 +215,7 @@ class ServiceContext(ImpExp):
 
         :param keyspec:
         """
-        _keyjar = self.upstream_get('attribute', 'keyjar')
+        _keyjar = self.upstream_get("attribute", "keyjar")
         if _keyjar is None:
             _keyjar = KeyJar()
             new = True
@@ -232,12 +237,12 @@ class ServiceContext(ImpExp):
                     _keyjar.add_kb(iss, _bundle)
 
         if new:
-            _unit = self.upstream_get('unit')
-            _unit.setattribute('keyjar', _keyjar)
+            _unit = self.upstream_get("unit")
+            _unit.setattribute("keyjar", _keyjar)
 
     def _get_crypt(self, typ, attr):
         _item_typ = CLI_REG_MAP.get(typ)
-        _alg = ''
+        _alg = ""
         if _item_typ:
             _alg = self.claims.get_usage(_item_typ[attr])
             if not _alg:
@@ -256,7 +261,7 @@ class ServiceContext(ImpExp):
         :param typ: ['id_token', 'userinfo', 'request_object']
         :return: signing algorithm
         """
-        return self._get_crypt(typ, 'sign')
+        return self._get_crypt(typ, "sign")
 
     def get_enc_alg_enc(self, typ):
         """
@@ -286,7 +291,7 @@ class ServiceContext(ImpExp):
     def supports(self):
         res = {}
         if self.upstream_get:
-            services = self.upstream_get('services')
+            services = self.upstream_get("services")
             if not services:
                 pass
             else:
@@ -313,7 +318,7 @@ class ServiceContext(ImpExp):
 
     def _callback_per_service(self):
         _cb = {}
-        for service in self.upstream_get('services').values():
+        for service in self.upstream_get("services").values():
             _cbs = service._callback_path.keys()
             if _cbs:
                 _cb[service.service_name] = _cbs
@@ -329,45 +334,66 @@ class ServiceContext(ImpExp):
 
         _base_url = self.get("base_url")
 
-        _callback_uris = self.get_preference('callback_uris', {})
+        _callback_uris = self.get_preference("callback_uris", {})
         if self.upstream_get:
-            services = self.upstream_get('services')
+            services = self.upstream_get("services")
             if services:
                 for service in services.values():
-                    _callback_uris.update(service.construct_uris(base_url=_base_url, hex=_hex,
-                                                                 context=self,
-                                                                 response_types=response_types))
+                    _callback_uris.update(
+                        service.construct_uris(
+                            base_url=_base_url,
+                            hex=_hex,
+                            context=self,
+                            response_types=response_types,
+                        )
+                    )
 
-        self.set_preference('callback_uris', _callback_uris)
-        if 'redirect_uris' in _callback_uris:
+        self.set_preference("callback_uris", _callback_uris)
+        if "redirect_uris" in _callback_uris:
             _redirect_uris = set()
-            for flow, _uris in _callback_uris['redirect_uris'].items():
+            for flow, _uris in _callback_uris["redirect_uris"].items():
                 _redirect_uris.update(set(_uris))
-            self.set_preference('redirect_uris', list(_redirect_uris))
+            self.set_preference("redirect_uris", list(_redirect_uris))
 
     def prefer_or_support(self, claim):
         if claim in self.claims.prefer:
-            return 'prefer'
+            return "prefer"
         else:
-            for service in self.upstream_get('services').values():
+            for service in self.upstream_get("services").values():
                 _res = service.prefer_or_support(claim)
                 if _res:
                     return _res
 
         if claim in self.claims.supported(claim):
-            return 'support'
+            return "support"
         return None
 
     def map_supported_to_preferred(self, info: Optional[dict] = None):
-        self.claims.prefer = supported_to_preferred(self.supports(),
-                                                    self.claims.prefer,
-                                                    base_url=self.base_url,
-                                                    info=info)
+        self.claims.prefer = supported_to_preferred(
+            self.supports(), self.claims.prefer, base_url=self.base_url, info=info
+        )
         return self.claims.prefer
+
+    def map_service_against_endpoint(self, provider_config):
+        # Check endpoints against services
+        remove = []
+        for srv_name, srv in self.upstream_get("services").items():
+            if srv.endpoint_name:
+                _match = provider_config.get(srv.endpoint_name)
+                if _match is None:
+                    for key in srv._supports.keys():
+                        if key in self.claims.prefer:
+                            del self.claims.prefer[key]
+                    remove.append(srv_name)
+
+        for item in remove:
+            del self.upstream_get("services")[item]
 
     def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
         self.claims.use = preferred_to_registered(
             self.claims.prefer,
             supported=self.supports(),
-            registration_response=registration_response)
+            registration_response=registration_response,
+        )
+
         return self.claims.use

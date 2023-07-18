@@ -153,8 +153,6 @@ class Registration(Endpoint):
                 if isinstance(val, str):
                     if val in _val:
                         return val
-                    else:
-                        return None
                 else:
                     _ret = list(set(_val).intersection(set(val)))
                     if len(_ret) > 0:
@@ -162,12 +160,13 @@ class Registration(Endpoint):
                     else:
                         raise CapabilitiesMisMatch(_my_key)
             else:
-                if val == _val:
+                if isinstance(_val, list):
+                    if val in _val:
+                        return val
+                elif val == _val:
                     return val
-                else:
-                    return None
-        else:
-            return None
+
+        return None
 
     def filter_client_request(self, request: dict) -> dict:
         _args = {}
@@ -250,12 +249,18 @@ class Registration(Endpoint):
                         error_description="%s pointed to illegal URL" % item,
                     )
 
-        _keyjar = self.upstream_get('attribute', 'keyjar')
+        _keyjar = self.upstream_get("attribute", "keyjar")
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
-                if request[item] in _context.provider_info[
-                        _context.claims.register2preferred[item]]:
+                _claim = _context.claims.register2preferred[item]
+                _support = _context.provider_info.get(_claim)
+                if _support is None:
+                    logger.warning(f'Lacking support for "{item}"')
+                    del _cinfo[item]
+                    continue
+
+                if request[item] in _support:
                     ktyp = alg2keytype(request[item])
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
@@ -465,7 +470,7 @@ class Registration(Endpoint):
 
         # Add the client_secret as a symmetric key to the key jar
         if client_secret:
-            self.upstream_get('attribute', 'keyjar').add_symmetric(client_id, str(client_secret))
+            self.upstream_get("attribute", "keyjar").add_symmetric(client_id, str(client_secret))
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))

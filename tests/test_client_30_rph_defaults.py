@@ -49,10 +49,10 @@ class TestRPHandler(object):
             'userinfo_encryption_alg_values_supported',
             'userinfo_encryption_enc_values_supported'}
 
-        _keyjar = client.get_attribute('keyjar')
+        _keyjar = client.get_attribute("keyjar")
         assert list(_keyjar.owners()) == ["", BASE_URL]
         keys = _keyjar.get_issuer_keys("")
-        assert len(keys) == 2
+        assert len(keys) == 4
 
         assert _context.base_url == BASE_URL
 
@@ -96,36 +96,34 @@ class TestRPHandler(object):
 
         self.rph.issuer2rp[issuer] = client
 
-        assert set(_context.claims.use.keys()) == {'application_type',
-                                                   'callback_uris',
-                                                   'client_id',
-                                                   'client_secret',
-                                                   'default_max_age',
-                                                   'encrypt_request_object_supported',
-                                                   'encrypt_userinfo_supported',
-                                                   'grant_types',
-                                                   'id_token_signed_response_alg',
-                                                   'jwks_uri',
-                                                   'redirect_uris',
-                                                   'request_object_signing_alg',
-                                                   'response_modes_supported',
-                                                   'response_types',
-                                                   'scope',
-                                                   'subject_type',
-                                                   'token_endpoint_auth_method',
-                                                   'token_endpoint_auth_signing_alg',
-                                                   'userinfo_signed_response_alg'}
+        assert set(_context.claims.use.keys()) == {
+            "application_type",
+            "callback_uris",
+            "client_id",
+            "client_secret",
+            "default_max_age",
+            "encrypt_request_object_supported",
+            "grant_types",
+            "id_token_signed_response_alg",
+            "jwks_uri",
+            "redirect_uris",
+            "request_object_signing_alg",
+            "response_modes",
+            "response_types",
+            "scope",
+            "subject_type",
+            "token_endpoint_auth_method",
+            "token_endpoint_auth_signing_alg",
+        }
         assert _context.get_client_id() == "client uno"
         assert _context.get_usage("client_secret") == "VerySecretAndLongEnough"
         assert _context.get("issuer") == ISS_ID
 
-        res = self.rph.init_authorization(client)
-        assert set(res.keys()) == {"url", "state"}
-        p = urlparse(res["url"])
+        url = self.rph.init_authorization(client)
+        p = urlparse(url)
         assert p.hostname == "op.example.org"
         assert p.path == "/authorization"
         qs = parse_qs(p.query)
-        assert qs["state"] == [res["state"]]
         # PKCE stuff
         assert "code_challenge" in qs
         assert qs["code_challenge_method"] == ["S256"]

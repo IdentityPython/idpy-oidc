@@ -66,7 +66,7 @@ class BackChannelAuthentication(Endpoint):
             _context = self.upstream_get("context")
             _request_user = execute(
                 self.parse_login_hint_token,
-                keyjar=self.upstream_get('attribute', 'keyjar'),
+                keyjar=self.upstream_get("attribute", "keyjar"),
                 login_hint_token=request.get("login_hint_token"),
                 context=_context,
             )
@@ -85,10 +85,10 @@ class BackChannelAuthentication(Endpoint):
         return set(res)
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs,
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
     ):
         try:
             request_user = self.do_request_user(request)
@@ -136,7 +136,7 @@ class CIBATokenHelper(AccessTokenHelper):
         return session_info, _grant
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
@@ -302,10 +302,10 @@ class ClientNotification(Endpoint):
         Endpoint.__init__(self, upstream_get, **kwargs)
 
     def process_request(
-            self,
-            request: Optional[Union[Message, dict]] = None,
-            http_info: Optional[dict] = None,
-            **kwargs,
+        self,
+        request: Optional[Union[Message, dict]] = None,
+        http_info: Optional[dict] = None,
+        **kwargs,
     ) -> Union[Message, dict]:
         return {}
 
@@ -321,11 +321,11 @@ class ClientNotificationAuthn(ClientSecretBasic):
         return False
 
     def _verify(
-            self,
-            authorization_token: Optional[str] = None,
-            endpoint=None,  # Optional[Endpoint]
-            get_client_id_from_token: Optional[Callable] = None,
-            **kwargs,
+        self,
+        authorization_token: Optional[str] = None,
+        endpoint=None,  # Optional[Endpoint]
+        get_client_id_from_token: Optional[Callable] = None,
+        **kwargs,
     ):
         ttype, token = authorization_token.split(" ", 1)
         if ttype != "Bearer":

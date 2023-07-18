@@ -35,7 +35,7 @@ class AccessToken(access_token.AccessToken):
 
     _supports = {
         "token_endpoint_auth_methods_supported": get_client_authn_methods,
-        "token_endpoint_auth_signing_alg_values_supported": get_signing_algs
+        "token_endpoint_auth_signing_alg_values_supported": get_signing_algs,
     }
 
 

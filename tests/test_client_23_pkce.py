@@ -48,23 +48,17 @@ class TestPKCE256:
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "redirect_uris": ["https://example.com/cli/authz_cb"],
-            "preference": {
-                "response_types": ["code"]
-            },
+            "preference": {"response_types": ["code"]},
             "add_ons": {
                 "pkce": {
                     "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
-                    "kwargs": {
-                        "code_challenge_length": 64,
-                        "code_challenge_method": "S256"
-                    },
+                    "kwargs": {"code_challenge_length": 64, "code_challenge_method": "S256"},
                 }
             },
         }
-        self.entity = Entity(keyjar=CLI_KEY,
-                             config=config,
-                             services=DEFAULT_OAUTH2_SERVICES,
-                             client_type='oauth2')
+        self.entity = Entity(
+            keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES, client_type="oauth2"
+        )
 
         if "add_ons" in config:
             do_add_ons(config["add_ons"], self.entity.get_services())
@@ -105,8 +99,8 @@ class TestPKCE256:
         auth_response = AuthorizationResponse(code="access code")
         _context = self.entity.get_context()
         _context.cstate.update(_state, auth_response)
-        #auth_serv = self.entity.get_service("authorization")
-        #_state = _context.cstate.create_state(iss="Issuer")
+        # auth_serv = self.entity.get_service("authorization")
+        # _state = _context.cstate.create_state(iss="Issuer")
 
         token_service = self.entity.get_service("accesstoken")
         request = token_service.construct_request(state=_state)

@@ -46,14 +46,7 @@ conf = {
         "client_secret_basic",
     ],
     "subject_types_supported": ["public", "pairwise"],
-    "endpoint": {
-
-        "userinfo": {
-            "path": "userinfo",
-            "class": Endpoint_1,
-            "kwargs": {}
-        }
-    },
+    "endpoint": {"userinfo": {"path": "userinfo", "class": Endpoint_1, "kwargs": {}}},
     "token_handler_args": {
         "jwks_def": {
             "private_path": "private/token_jwks.json",
@@ -88,7 +81,6 @@ conf = {
 
 
 class TestEndpointContext:
-
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self):
         server = Server(conf)
@@ -98,13 +90,14 @@ class TestEndpointContext:
     def test(self):
         self.context.set_provider_info()
         assert set(self.context.provider_info.keys()) == {
-            'id_token_signing_alg_values_supported',
-            'issuer',
-            'jwks_uri',
-            'scopes_supported',
-            'subject_types_supported',
-            'userinfo_signing_alg_values_supported',
-            'version'}
+            "id_token_signing_alg_values_supported",
+            "issuer",
+            "jwks_uri",
+            "scopes_supported",
+            "subject_types_supported",
+            "userinfo_signing_alg_values_supported",
+            "version",
+        }
 
 
 class Tokenish(Endpoint):
@@ -171,27 +164,35 @@ def test_provider_configuration(kwargs):
     server.context.cdb["client_id"] = {}
     server.context.set_provider_info()
     pi = server.context.provider_info
-    assert set(pi.keys()) == {'acr_values_supported',
-                              'id_token_signing_alg_values_supported',
-                              'issuer',
-                              'jwks_uri',
-                              'scopes_supported',
-                              'subject_types_supported',
-                              'token_endpoint_auth_methods_supported',
-                              'version'}
+    assert set(pi.keys()) == {
+        "acr_values_supported",
+        "id_token_signing_alg_values_supported",
+        "issuer",
+        "jwks_uri",
+        "scopes_supported",
+        "subject_types_supported",
+        "token_endpoint_auth_methods_supported",
+        "version",
+    }
 
     if kwargs:
-        if 'token_endpoint_auth_methods_supported' in kwargs:
-            assert pi["token_endpoint_auth_methods_supported"] == ['client_secret_jwt',
-                                                                   'private_key_jwt']
+        if "token_endpoint_auth_methods_supported" in kwargs:
+            assert pi["token_endpoint_auth_methods_supported"] == [
+                "client_secret_jwt",
+                "private_key_jwt",
+            ]
         else:
-            assert pi["token_endpoint_auth_methods_supported"] == ['client_secret_post',
-                                                                   'client_secret_basic',
-                                                                   'client_secret_jwt',
-                                                                   'private_key_jwt']
+            assert pi["token_endpoint_auth_methods_supported"] == [
+                "client_secret_post",
+                "client_secret_basic",
+                "client_secret_jwt",
+                "private_key_jwt",
+            ]
 
     else:
-        assert pi["token_endpoint_auth_methods_supported"] == ['client_secret_post',
-                                                               'client_secret_basic',
-                                                               'client_secret_jwt',
-                                                               'private_key_jwt']
+        assert pi["token_endpoint_auth_methods_supported"] == [
+            "client_secret_post",
+            "client_secret_basic",
+            "client_secret_jwt",
+            "private_key_jwt",
+        ]

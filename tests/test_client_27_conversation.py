@@ -27,22 +27,21 @@ JWKS_OP = {
     "keys": [
         {
             "d": "mcAW1xeNsjzyV1M7F7_cUHz0MIR"
-                 "-tcnKFJnbbo5UXxMRUPu17qwRHr8ttep1Ie64r2L9QlphcT9BjYd0KQ8ll3flIzLtiJv__MNPQVjk5bsYzb_erQRzSwLJU-aCcNFB8dIyQECzu-p44UVEPQUGzykImsSShvMQhcvrKiqqg7NlijJuEKHaKynV9voPsjwKYSqk6lH8kMloCaVS-dOkK-r7bZtbODUxx9GJWnxhX0JWXcdrPZRb29y9cdthrMcEaCXG23AxnMEfp-enDqarLHYTQrCBJXs_b-9k2d8v9zLm7E-Pf-0YGmaoJtX89lwQkO_SmFF3sXsnI2cFreqU3Q",
+            "-tcnKFJnbbo5UXxMRUPu17qwRHr8ttep1Ie64r2L9QlphcT9BjYd0KQ8ll3flIzLtiJv__MNPQVjk5bsYzb_erQRzSwLJU-aCcNFB8dIyQECzu-p44UVEPQUGzykImsSShvMQhcvrKiqqg7NlijJuEKHaKynV9voPsjwKYSqk6lH8kMloCaVS-dOkK-r7bZtbODUxx9GJWnxhX0JWXcdrPZRb29y9cdthrMcEaCXG23AxnMEfp-enDqarLHYTQrCBJXs_b-9k2d8v9zLm7E-Pf-0YGmaoJtX89lwQkO_SmFF3sXsnI2cFreqU3Q",
             "e": "AQAB",
             "kid": "c19uYlBJXzVfNjNZeGVnYmxncHZwUzZTZDVwUFdxdVJLU3AxQXdwaFdfbw",
             "kty": "RSA",
             "n": "3ZblhNL2CjRktLM9vyDn8jnA4G1B1HCpPh"
-                 "-gv2AK4m9qDBZPYZGOGqzeW3vanvLTBlqnPm0GHg4rOrfMEwwLrfMcgmg1y4GD0vVU8G9HP1"
-                 "-oUPtKUqaKOp313tFKzFh9_OHGQ6EmhxG7gegPR9kQXduTDXqBFi81MzRplIQ8DHLM3-n2CyDW1V"
-                 "-dhRVh"
-                 "-AM0ZcJyzR_DvZ3mhG44DysPdHQOSeWnpdn1d81"
-                 "-PriqZfhAF9tn1ihgtjXd5swf1HTSjLd7xv1hitGf2245Xmr"
-                 "-V2pQFzeMukLM3JKbTYbElsB7Zm0wZx49hZMtgx35XMoO04bifdbO3yLtTA5ovXN3fQ",
+            "-gv2AK4m9qDBZPYZGOGqzeW3vanvLTBlqnPm0GHg4rOrfMEwwLrfMcgmg1y4GD0vVU8G9HP1"
+            "-oUPtKUqaKOp313tFKzFh9_OHGQ6EmhxG7gegPR9kQXduTDXqBFi81MzRplIQ8DHLM3-n2CyDW1V"
+            "-dhRVh"
+            "-AM0ZcJyzR_DvZ3mhG44DysPdHQOSeWnpdn1d81"
+            "-PriqZfhAF9tn1ihgtjXd5swf1HTSjLd7xv1hitGf2245Xmr"
+            "-V2pQFzeMukLM3JKbTYbElsB7Zm0wZx49hZMtgx35XMoO04bifdbO3yLtTA5ovXN3fQ",
             "p": "88aNu59aBn0elksaVznzoVKkdbT5B4euhOIEqJoFvFbEocw9mC4k"
-                 "-yozIAQSV5FEakoSPOl8lrymCoM3Q1fVHfaM9Rbb9RCRlsV1JOeVVZOE05HUdz8zOIqLBDEGM_oQqDwF_kp"
-                 "-4nDTZ1-dtnGdTo4Cf7QRuApzE_dwVabUCTc",
-            "q":
-                "6LOHuM7H_0kDrMTwUEX7Aubzr792GoJ6EgTKIQY25SAFTZpYwuC3NnqlAdy8foIa3d7eGU2yICRbBG0S_ITcooDFrOa7nZ6enMUclMTxW8FwwvBXeIHo9cIsrKYtOThGplz43Cvl73MK5M58ZRmuhaNYa6Mk4PL4UokARfEiDus",
+            "-yozIAQSV5FEakoSPOl8lrymCoM3Q1fVHfaM9Rbb9RCRlsV1JOeVVZOE05HUdz8zOIqLBDEGM_oQqDwF_kp"
+            "-4nDTZ1-dtnGdTo4Cf7QRuApzE_dwVabUCTc",
+            "q": "6LOHuM7H_0kDrMTwUEX7Aubzr792GoJ6EgTKIQY25SAFTZpYwuC3NnqlAdy8foIa3d7eGU2yICRbBG0S_ITcooDFrOa7nZ6enMUclMTxW8FwwvBXeIHo9cIsrKYtOThGplz43Cvl73MK5M58ZRmuhaNYa6Mk4PL4UokARfEiDus",
             "use": "sig",
         },
         {
@@ -70,15 +69,13 @@ RP_JWKS = {
             "kid": "Mk0yN2w0N3BZLWtyOEpQWGFmNDZvQi1hbDl2azR3ai1WNElGdGZQSFd6MA",
             "e": "AQAB",
             "n": "yPrOADZtGoa9jxFCmDsJ1nAYmzgznUxCtUlb_ty33"
-                 "-AFNEqzW_pSLr5g6RQAPGsvVQqbsb9AB18QNgz"
-                 "-eG7cnvKIIR7JXWCuGv_Q9MwoRD0-zaYGRbRvFoTZokZMB6euBfMo6kijJ"
-                 "-gdKuSaxIE84X_Fcf1ESAKJ0EX6Cxdm8hKkBelGIDPMW5z7EHQ8OuLCQtTJnDvbjEOk9sKzkKqVj53XFs5vjd4WUhxS6xIDcWE-lTafUpm0BsobklLePidHxyAMGOunL_Pt3RCLZGlWeWOO9fZhLtydiDWiZlcNR0FQEX_mfV1kCOHHBFN1VKOY2pyJpjp9djdtHxPZ9fP35w",
-            "d":
-                "aRBTqGDLYFaXuba4LYSPe_5Vnq8erFg1dzfGU9Fmfi5KCjAS2z5cv_reBnpiNTODJt3Izn7AJhpYCyl3zdWGl8EJ0OabNalY2txoi9A-LI4nyrHEDaRpfkgszVwaWtYZbxrShMc8I5x_wvCGx7sX7Hoy6YgQreRFzw8Fy86MDncpmcUwQTnXVUMLgioeYz5gW6rwXkqj_NVyuHPiheykJG026cXFNBWplCk4ET1bvf_6ZB9QmLwO16Pu2O-dtu1HHDOqI7y6-YgKIC6mcLrQrF9-FO7NkilcOB7zODNiYzhDBQ2YJAbcdn_3M_lkhaFwR-n4WB7vCM0vNqz7lEg6QQ",
-            "p":
-                "_STNoJFkX9_uw8whytVmTrHP5K7vcZBIH9nuCTvj137lC48ZpR1UARx4qShxHLfK7DrufHd7TYnJkEMNUHFmdKvkaVQMY0_BsBSvCrUl10gzxsI08hg53L17E1Pe73iZp3f5nA4eB-1YB-km1Cc-Xs10OPWedJHf9brlCPDLAb8",
+            "-AFNEqzW_pSLr5g6RQAPGsvVQqbsb9AB18QNgz"
+            "-eG7cnvKIIR7JXWCuGv_Q9MwoRD0-zaYGRbRvFoTZokZMB6euBfMo6kijJ"
+            "-gdKuSaxIE84X_Fcf1ESAKJ0EX6Cxdm8hKkBelGIDPMW5z7EHQ8OuLCQtTJnDvbjEOk9sKzkKqVj53XFs5vjd4WUhxS6xIDcWE-lTafUpm0BsobklLePidHxyAMGOunL_Pt3RCLZGlWeWOO9fZhLtydiDWiZlcNR0FQEX_mfV1kCOHHBFN1VKOY2pyJpjp9djdtHxPZ9fP35w",
+            "d": "aRBTqGDLYFaXuba4LYSPe_5Vnq8erFg1dzfGU9Fmfi5KCjAS2z5cv_reBnpiNTODJt3Izn7AJhpYCyl3zdWGl8EJ0OabNalY2txoi9A-LI4nyrHEDaRpfkgszVwaWtYZbxrShMc8I5x_wvCGx7sX7Hoy6YgQreRFzw8Fy86MDncpmcUwQTnXVUMLgioeYz5gW6rwXkqj_NVyuHPiheykJG026cXFNBWplCk4ET1bvf_6ZB9QmLwO16Pu2O-dtu1HHDOqI7y6-YgKIC6mcLrQrF9-FO7NkilcOB7zODNiYzhDBQ2YJAbcdn_3M_lkhaFwR-n4WB7vCM0vNqz7lEg6QQ",
+            "p": "_STNoJFkX9_uw8whytVmTrHP5K7vcZBIH9nuCTvj137lC48ZpR1UARx4qShxHLfK7DrufHd7TYnJkEMNUHFmdKvkaVQMY0_BsBSvCrUl10gzxsI08hg53L17E1Pe73iZp3f5nA4eB-1YB-km1Cc-Xs10OPWedJHf9brlCPDLAb8",
             "q": "yz9T0rPEc0ZPjSi45gsYiQL2KJ3UsPHmLrgOHq0D4UvsB6UFtUtOWh7A1UpQdmBuHjIJz"
-                 "-Iq7VH4kzlI6VxoXhwE69oxBXr4I7fBudZRvlLuIJS9M2wvsTVouj0DBYSR6ZlAQHCCou89P2P6zQCEaqu7bWXNcpyTixbbvOU1w9k",
+            "-Iq7VH4kzlI6VxoXhwE69oxBXr4I7fBudZRvlLuIJS9M2wvsTVouj0DBYSR6ZlAQHCCou89P2P6zQCEaqu7bWXNcpyTixbbvOU1w9k",
         },
         {
             "kty": "EC",
@@ -106,31 +103,14 @@ SERVICES = {
     "WebFinger": {"class": WebFinger},
     "discovery": {
         "class": "idpyoidc.client.oidc.provider_info_discovery.ProviderInfoDiscovery",
-        "kwargs": {}
+        "kwargs": {},
     },
-    "registration": {
-        "class": "idpyoidc.client.oidc.registration.Registration",
-        "kwargs": {}
-    },
-    "authorization": {
-        "class": "idpyoidc.client.oidc.authorization.Authorization",
-        "kwargs": {}
-    },
-    "accesstoken": {
-        "class": "idpyoidc.client.oidc.access_token.AccessToken",
-        "kwargs": {}
-    },
-    "refresh_token": {
-        "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
-    },
-    "userinfo": {
-        "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-        "kwargs": {}
-    },
-    "end_session": {
-        "class": "idpyoidc.client.oidc.end_session.EndSession",
-        "kwargs": {}
-    }
+    "registration": {"class": "idpyoidc.client.oidc.registration.Registration", "kwargs": {}},
+    "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization", "kwargs": {}},
+    "accesstoken": {"class": "idpyoidc.client.oidc.access_token.AccessToken", "kwargs": {}},
+    "refresh_token": {"class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"},
+    "userinfo": {"class": "idpyoidc.client.oidc.userinfo.UserInfo", "kwargs": {}},
+    "end_session": {"class": "idpyoidc.client.oidc.end_session.EndSession", "kwargs": {}},
 }
 
 
@@ -149,12 +129,12 @@ def test_conversation():
         "post_logout_redirect_uri": "https://rp.example.com/post",
         "backchannel_logout_uri": "https://rp.example.com/back",
         "backchannel_logout_session_required": True,
-        'allow': {'missing_kid': True},
-        "client_authn_methods": ['bearer_header'],
-        "services": SERVICES
+        "allow": {"missing_kid": True},
+        "client_authn_methods": ["bearer_header"],
+        "services": SERVICES,
     }
 
-    entity = Entity(config=config, keyjar=RP_KEYJAR, client_type='oidc')
+    entity = Entity(config=config, keyjar=RP_KEYJAR, client_type="oidc")
 
     assert set(entity.get_services().keys()) == {
         "accesstoken",
@@ -164,7 +144,7 @@ def test_conversation():
         "refresh_token",
         "userinfo",
         "provider_info",
-        'end_session',
+        "end_session",
     }
     service_context = entity.get_context()
 
@@ -174,11 +154,11 @@ def test_conversation():
     info = webfinger_service.get_request_parameters(request_args={"resource": "foobar@example.org"})
 
     assert (
-            info["url"] == "https://example.org/.well-known/webfinger?rel=http"
-                           "%3A%2F"
-                           "%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
-                           "&resource"
-                           "=acct%3Afoobar%40example.org"
+        info["url"] == "https://example.org/.well-known/webfinger?rel=http"
+        "%3A%2F"
+        "%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
+        "&resource"
+        "=acct%3Afoobar%40example.org"
     )
 
     webfinger_response = json.dumps(
@@ -405,7 +385,7 @@ def test_conversation():
     resp = provider_info_service.parse_response(provider_info_response)
 
     assert isinstance(resp, ProviderConfigurationResponse)
-    provider_info_service.update_service_context(resp, '')
+    provider_info_service.update_service_context(resp, "")
 
     _pi = entity.get_context().provider_info
     assert _pi["issuer"] == OP_BASEURL
@@ -418,22 +398,25 @@ def test_conversation():
 
     assert info["url"] == "https://example.org/op/registration"
     _body = json.loads(info["body"])
-    assert set(_body.keys()) == {'application_type',
-                                 'backchannel_logout_session_required',
-                                 'backchannel_logout_uri',
-                                 'contacts',
-                                 'default_max_age',
-                                 'grant_types',
-                                 'id_token_signed_response_alg',
-                                 'jwks',
-                                 'redirect_uris',
-                                 'request_object_signing_alg',
-                                 'request_uris',
-                                 'response_types',
-                                 'subject_type',
-                                 'token_endpoint_auth_method',
-                                 'token_endpoint_auth_signing_alg',
-                                 'userinfo_signed_response_alg'}
+    assert set(_body.keys()) == {
+        "application_type",
+        "backchannel_logout_session_required",
+        "backchannel_logout_uri",
+        "contacts",
+        "default_max_age",
+        "grant_types",
+        "id_token_signed_response_alg",
+        "jwks",
+        "redirect_uris",
+        "request_object_signing_alg",
+        "request_uris",
+        "response_modes",
+        "response_types",
+        "subject_type",
+        "token_endpoint_auth_method",
+        "token_endpoint_auth_signing_alg",
+        "userinfo_signed_response_alg",
+    }
     assert info["headers"] == {"Content-Type": "application/json"}
 
     now = int(time.time())
@@ -460,7 +443,7 @@ def test_conversation():
     registration_service.update_service_context(response)
 
     assert service_context.get_client_id() == "zls2qhN1jO6A"
-    assert service_context.get_usage('client_secret') == "c8434f28cf9375d9a7"
+    assert service_context.get_usage("client_secret") == "c8434f28cf9375d9a7"
     assert set(service_context.registration_response.keys()) == {
         "client_secret_expires_at",
         "contacts",
@@ -525,11 +508,7 @@ def test_conversation():
     assert info["url"] == "https://example.org/op/token"
     _qp = parse_qs(info["body"])
     # since the default is private_key_jwt !!!
-    assert set(_qp.keys()) == {'client_id',
-                               'code',
-                               'grant_type',
-                               'redirect_uri',
-                               'state'}
+    assert set(_qp.keys()) == {"client_id", "code", "grant_type", "redirect_uri", "state"}
     assert info["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
 
     # create the IdToken
@@ -570,20 +549,22 @@ def test_conversation():
 
     _item = _cstate.get(STATE)
 
-    assert set(_item.keys()) == {'__expires_at',
-                                 '__verified_id_token',
-                                 'access_token',
-                                 'client_id',
-                                 'code',
-                                 'expires_in',
-                                 'id_token',
-                                 'iss',
-                                 'nonce',
-                                 'redirect_uri',
-                                 'response_type',
-                                 'scope',
-                                 'state',
-                                 'token_type'}
+    assert set(_item.keys()) == {
+        "__expires_at",
+        "__verified_id_token",
+        "access_token",
+        "client_id",
+        "code",
+        "expires_in",
+        "id_token",
+        "iss",
+        "nonce",
+        "redirect_uri",
+        "response_type",
+        "scope",
+        "state",
+        "token_type",
+    }
 
     assert _item["token_type"] == "Bearer"
     assert _item["access_token"] == "Z0FBQUFBQmFkdFF"

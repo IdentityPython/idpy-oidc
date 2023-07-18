@@ -111,9 +111,7 @@ class TestClient(object):
         client_1.get_context().load(_state_dump)
 
         req_args = {}
-        msg = client_1.get_service("refresh_token").construct(
-            request_args=req_args, state=_state
-        )
+        msg = client_1.get_service("refresh_token").construct(request_args=req_args, state=_state)
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",

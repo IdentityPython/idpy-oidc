@@ -48,7 +48,7 @@ class PairWiseID(object):
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
             elif not os.path.isfile(filename) and os.path.exists(
-                    filename
+                filename
             ):  # Not a file, Something else
                 raise ConfigurationError("Salt filename points to something that is not a file")
             else:
@@ -83,12 +83,12 @@ class SessionManager(GrantManager):
     init_args = ["handler"]
 
     def __init__(
-            self,
-            handler: TokenHandler,
-            conf: Optional[dict] = None,
-            sub_func: Optional[dict] = None,
-            remember_token: Optional[Callable] = None,
-            remove_inactive_token: Optional[bool] = False,
+        self,
+        handler: TokenHandler,
+        conf: Optional[dict] = None,
+        sub_func: Optional[dict] = None,
+        remember_token: Optional[Callable] = None,
+        remove_inactive_token: Optional[bool] = False,
     ):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
 
@@ -102,12 +102,10 @@ class SessionManager(GrantManager):
         if len(self.node_type) == 0:
             raise ValueError("SessionManager node_type must at least contain one value")
 
-        self.node_info_class = session_params.get("node_info_class",
-                                                  {
-                                                      "user": UserSessionInfo,
-                                                      "client": ClientSessionInfo,
-                                                      "grant": Grant
-                                                  })
+        self.node_info_class = session_params.get(
+            "node_info_class",
+            {"user": UserSessionInfo, "client": ClientSessionInfo, "grant": Grant},
+        )
 
         self.token_handler = handler
         self.remember_token = remember_token
@@ -161,14 +159,14 @@ class SessionManager(GrantManager):
         return _path
 
     def create_grant(
-            self,
-            authn_event: AuthnEvent,
-            auth_req: AuthorizationRequest,
-            user_id: Optional[str] = "",
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+        self,
+        authn_event: AuthnEvent,
+        auth_req: AuthorizationRequest,
+        user_id: Optional[str] = "",
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -211,15 +209,15 @@ class SessionManager(GrantManager):
         )
 
     def create_exchange_grant(
-            self,
-            exchange_request: TokenExchangeRequest,
-            original_grant: Grant,
-            original_session_id: str,
-            user_id: str,
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+        self,
+        exchange_request: TokenExchangeRequest,
+        original_grant: Grant,
+        original_session_id: str,
+        user_id: str,
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -239,18 +237,18 @@ class SessionManager(GrantManager):
             path=self.make_path(user_id=user_id, client_id=client_id),
             sub=original_grant.sub,
             token_usage_rules=token_usage_rules,
-            scope=scopes
+            scope=scopes,
         )
 
     def create_session(
-            self,
-            authn_event: AuthnEvent,
-            auth_req: AuthorizationRequest,
-            user_id: Optional[str] = "",
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+        self,
+        authn_event: AuthnEvent,
+        auth_req: AuthorizationRequest,
+        user_id: Optional[str] = "",
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -277,15 +275,15 @@ class SessionManager(GrantManager):
         )
 
     def create_exchange_session(
-            self,
-            exchange_request: TokenExchangeRequest,
-            original_grant: Grant,
-            original_session_id: str,
-            user_id: str,
-            client_id: Optional[str] = "",
-            sub_type: Optional[str] = "public",
-            token_usage_rules: Optional[dict] = None,
-            scopes: Optional[list] = None,
+        self,
+        exchange_request: TokenExchangeRequest,
+        original_grant: Grant,
+        original_session_id: str,
+        user_id: str,
+        client_id: Optional[str] = "",
+        sub_type: Optional[str] = "public",
+        token_usage_rules: Optional[dict] = None,
+        scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -319,7 +317,7 @@ class SessionManager(GrantManager):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _id, csi = self.get_node_info(session_id, node_type='client')
+        _id, csi = self.get_node_info(session_id, node_type="client")
 
         if isinstance(csi, ClientSessionInfo):
             return csi
@@ -333,7 +331,7 @@ class SessionManager(GrantManager):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _id, usi = self.get_node_info(session_id, node_type='user')
+        _id, usi = self.get_node_info(session_id, node_type="user")
 
         if isinstance(usi, UserSessionInfo):
             return usi
@@ -347,7 +345,7 @@ class SessionManager(GrantManager):
         :param session_id: Session identifier
         :return: ClientSessionInfo instance
         """
-        _id, grant = self.get_node_info(session_id, node_type='grant')
+        _id, grant = self.get_node_info(session_id, node_type="grant")
 
         if isinstance(grant, Grant):
             return grant
@@ -373,10 +371,10 @@ class SessionManager(GrantManager):
             grant.revoke_token(value=token.value)
 
     def get_authentication_events(
-            self,
-            session_id: Optional[str] = "",
-            user_id: Optional[str] = "",
-            client_id: Optional[str] = "",
+        self,
+        session_id: Optional[str] = "",
+        user_id: Optional[str] = "",
+        client_id: Optional[str] = "",
     ) -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
@@ -387,7 +385,7 @@ class SessionManager(GrantManager):
         :return: None if no authentication event could be found or an AuthnEvent instance.
         """
         if session_id:
-            cid, c_info = self.get_node_info(session_id, node_type='client')
+            cid, c_info = self.get_node_info(session_id, node_type="client")
         elif user_id and client_id:
             c_info = self.get([user_id, client_id])
         else:
@@ -450,13 +448,13 @@ class SessionManager(GrantManager):
     #     return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
 
     def get_session_info(
-            self,
-            session_id: str,
-            user_session_info: bool = False,
-            client_session_info: bool = False,
-            grant: bool = False,
-            authentication_event: bool = False,
-            authorization_request: bool = False,
+        self,
+        session_id: str,
+        user_session_info: bool = False,
+        client_session_info: bool = False,
+        grant: bool = False,
+        authentication_event: bool = False,
+        authorization_request: bool = False,
     ) -> dict:
         """
         Returns information connected to a session.
@@ -481,14 +479,14 @@ class SessionManager(GrantManager):
         return res
 
     def get_session_info_by_token(
-            self,
-            token_value: str,
-            user_session_info: Optional[bool] = False,
-            client_session_info: Optional[bool] = False,
-            grant: Optional[bool] = False,
-            authentication_event: Optional[bool] = False,
-            authorization_request: Optional[bool] = False,
-            handler_key: Optional[str] = "",
+        self,
+        token_value: str,
+        user_session_info: Optional[bool] = False,
+        client_session_info: Optional[bool] = False,
+        grant: Optional[bool] = False,
+        authentication_event: Optional[bool] = False,
+        authorization_request: Optional[bool] = False,
+        handler_key: Optional[str] = "",
     ) -> dict:
 
         if handler_key:

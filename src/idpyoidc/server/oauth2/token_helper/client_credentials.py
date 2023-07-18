@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class ClientCredentials(TokenEndpointHelper):
-
     def __init__(self, endpoint, config=None):
         TokenEndpointHelper.__init__(self, endpoint, config)
 
@@ -23,32 +22,33 @@ class ClientCredentials(TokenEndpointHelper):
 
         # verify the client and the user
 
-        client_id = req['client_id']
+        client_id = req["client_id"]
         _authenticated = req.get("authenticated", False)
         if not _authenticated:
-            if _context.cdb[client_id] != req['client_secret']:
+            if _context.cdb[client_id] != req["client_secret"]:
                 logger.warning("Client authentication failed")
                 return self.error_cls(error="invalid_request", error_description="Wrong client")
 
-        _grant_types_supported = _context.cdb[client_id].get('grant_types_supported')
-        if _grant_types_supported and 'client_credentials' not in _grant_types_supported:
-            return self.error_cls(error="invalid_request",
-                                  error_description="Unsupported grant type")
+        _grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        if _grant_types_supported and "client_credentials" not in _grant_types_supported:
+            return self.error_cls(
+                error="invalid_request", error_description="Unsupported grant type"
+            )
 
         # Is there a previous session ?
         try:
-            _session_info = _mngr.get(['client_credentials', client_id])
+            _session_info = _mngr.get(["client_credentials", client_id])
             _grant = _session_info["grant"]
         except KeyError:
-            logger.debug('No previous session')
-            branch_id = _mngr.add_grant(['client_credentials', client_id])
+            logger.debug("No previous session")
+            branch_id = _mngr.add_grant(["client_credentials", client_id])
             _session_info = _mngr.get_session_info(branch_id)
 
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get('allowed_scopes', [])
+        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
@@ -71,10 +71,7 @@ class ClientCredentials(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-            self,
-            request: Union[Message, dict],
-            client_id: Optional[str] = "",
-            **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         request = CCAccessTokenRequest(**request.to_dict())
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))

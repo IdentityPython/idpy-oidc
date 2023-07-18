@@ -132,9 +132,9 @@ class TestEndpoint(object):
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
             "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.get_attribute('keyjar').add_symmetric(
+        server.get_attribute("keyjar").add_symmetric(
             "client_1", "hemligtochintekort", ["sig", "enc"]
         )
         server.endpoint = do_endpoints(conf, server.upstream_get)

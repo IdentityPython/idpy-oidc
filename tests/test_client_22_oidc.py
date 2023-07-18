@@ -50,7 +50,7 @@ class TestClient(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "client_id": "client_1",
             "client_secret": "abcdefghijklmnop",
-            'client_authn_methods': ['bearer_header']
+            "client_authn_methods": ["bearer_header"],
         }
         self.client = RP(config=conf)
 
@@ -62,7 +62,7 @@ class TestClient(object):
             "nonce": "nonce",
         }
 
-        self.client.get_context().cstate.set("ABCDE", {'iss': "issuer"})
+        self.client.get_context().cstate.set("ABCDE", {"iss": "issuer"})
 
         msg = self.client.get_service("authorization").construct(request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
@@ -73,7 +73,7 @@ class TestClient(object):
         auth_request = AuthorizationRequest(redirect_uri="https://example.com/cli/authz_cb")
 
         _state = _context.cstate.create_key()
-        _context.cstate.set(_state, {'iss': "issuer"})
+        _context.cstate.set(_state, {"iss": "issuer"})
         auth_request["state"] = _state
 
         _context.cstate.update(_state, auth_request)
@@ -84,9 +84,7 @@ class TestClient(object):
 
         # Bind access code to state
         req_args = {}
-        msg = self.client.get_service("accesstoken").construct(
-            request_args=req_args, state=_state
-        )
+        msg = self.client.get_service("accesstoken").construct(request_args=req_args, state=_state)
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -99,7 +97,7 @@ class TestClient(object):
 
     def test_construct_refresh_token_request(self):
         _context = self.client.get_context()
-        _context.cstate.set("ABCDE", {'iss':"issuer"})
+        _context.cstate.set("ABCDE", {"iss": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
@@ -128,7 +126,7 @@ class TestClient(object):
     def test_do_userinfo_request_init(self):
         _context = self.client.get_context()
         _state = _context.cstate.create_key()
-        _context.cstate.set(_state, {'iss': "issuer"})
+        _context.cstate.set(_state, {"iss": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"

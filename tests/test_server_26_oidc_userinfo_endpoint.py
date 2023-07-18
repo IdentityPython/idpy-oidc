@@ -21,30 +21,22 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
-from idpyoidc.server.oidc.userinfo import validate_userinfo_policy
 from idpyoidc.time_util import utc_time_sans_frac
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
-
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
-RESPONSE_TYPES_SUPPORTED = [
-    ["code"],
-    ["token"],
-    ["id_token"],
-    ["code", "token"],
-    ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
-    ["none"],
-]
+# RESPONSE_TYPES_SUPPORTED = [
+#     ["code"],
+#     ["id_token"],
+#     ["code", "id_token"],
+# ]
 
-CAPABILITIES = {
-}
+CAPABILITIES = {}
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
@@ -81,7 +73,7 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            'claims_supported': [
+            "claims_supported": [
                 "address",
                 "birthdate",
                 "email",
@@ -102,7 +94,8 @@ class TestEndpoint(object):
                 "sub",
                 "updated_at",
                 "website",
-                "zoneinfo"],
+                "zoneinfo",
+            ],
             "grant_types_supported": [
                 "authorization_code",
                 "implicit",
@@ -214,8 +207,16 @@ class TestEndpoint(object):
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
             "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access", "research_and_scholarship"]
+            "response_types_supported": ["code", "code id_token", "id_token"],
+            "allowed_scopes": [
+                "openid",
+                "profile",
+                "email",
+                "address",
+                "phone",
+                "offline_access",
+                "research_and_scholarship",
+            ],
         }
         self.endpoint = self.server.get_endpoint("userinfo")
         self.session_manager = self.context.session_manager
@@ -256,31 +257,29 @@ class TestEndpoint(object):
 
     def test_init(self):
         assert self.endpoint
-        assert set(
-            self.endpoint.upstream_get("context").provider_info["claims_supported"]
-        ) == {
-                   "address",
-                   "birthdate",
-                   "email",
-                   "email_verified",
-                   "eduperson_scoped_affiliation",
-                   "family_name",
-                   "gender",
-                   "given_name",
-                   "locale",
-                   "middle_name",
-                   "name",
-                   "nickname",
-                   "phone_number",
-                   "phone_number_verified",
-                   "picture",
-                   "preferred_username",
-                   "profile",
-                   "sub",
-                   "updated_at",
-                   "website",
-                   "zoneinfo",
-               }
+        assert set(self.endpoint.upstream_get("context").provider_info["claims_supported"]) == {
+            "address",
+            "birthdate",
+            "email",
+            "email_verified",
+            "eduperson_scoped_affiliation",
+            "family_name",
+            "gender",
+            "given_name",
+            "locale",
+            "middle_name",
+            "name",
+            "nickname",
+            "phone_number",
+            "phone_number_verified",
+            "picture",
+            "preferred_username",
+            "profile",
+            "sub",
+            "updated_at",
+            "website",
+            "zoneinfo",
+        }
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
@@ -468,7 +467,7 @@ class TestEndpoint(object):
             "email",
             "family_name",
             "name",
-            "sub"
+            "sub",
         }
 
     def test_allowed_scopes_per_client(self):
@@ -634,11 +633,15 @@ class TestEndpoint(object):
         ec = self.endpoint.upstream_get("context")
         ec.userinfo = None
 
-        session_id = self._create_session(AUTH_REQ)
+        _auth_req = AUTH_REQ.copy()
+        _auth_req["scope"] = ["openid", "email"]
+
+        session_id = self._create_session(_auth_req)
         grant = self.session_manager[session_id]
 
+        code = self._mint_code(grant, session_id)
         with pytest.raises(ImproperlyConfigured):
-            code = self._mint_code(grant, session_id)
+            self._mint_token("access_token", grant, session_id, code)
 
     def test_userinfo_policy(self):
         _auth_req = AUTH_REQ.copy()
@@ -675,10 +678,7 @@ class TestEndpoint(object):
             return {"custom": "policy"}
 
         self.context.cdb["client_1"]["userinfo"] = {
-            "policy": {
-                "function": _custom_validate_userinfo_policy,
-                "kwargs": {}
-            }
+            "policy": {"function": _custom_validate_userinfo_policy, "kwargs": {}}
         }
 
         _req = self.endpoint.parse_request({}, http_info=http_info)
@@ -687,4 +687,3 @@ class TestEndpoint(object):
         res = self.endpoint.do_response(request=_req, **args)
         _response = json.loads(res["response"])
         assert "custom" in _response
-

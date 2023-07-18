@@ -104,11 +104,11 @@ def parse_duration(duration):
             try:
                 mod = duration[index:].index(code)
                 try:
-                    dic[typ] = int(duration[index: index + mod])
+                    dic[typ] = int(duration[index : index + mod])
                 except ValueError:
                     if code == "S":
                         try:
-                            dic[typ] = float(duration[index: index + mod])
+                            dic[typ] = float(duration[index : index + mod])
                         except ValueError:
                             raise TimeUtilError("Not a float")
                     else:
@@ -185,7 +185,7 @@ def time_in_a_while(days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0
 
 
 def time_a_while_ago(
-        days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
+    days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
 ):
     """
     Will return a time specification for a time sometime in the past.
@@ -205,14 +205,14 @@ def time_a_while_ago(
 
 
 def in_a_while(
-        days=0,
-        seconds=0,
-        microseconds=0,
-        milliseconds=0,
-        minutes=0,
-        hours=0,
-        weeks=0,
-        time_format=TIME_FORMAT,
+    days=0,
+    seconds=0,
+    microseconds=0,
+    milliseconds=0,
+    minutes=0,
+    hours=0,
+    weeks=0,
+    time_format=TIME_FORMAT,
 ):
     """
     :param days:
@@ -234,14 +234,14 @@ def in_a_while(
 
 
 def a_while_ago(
-        days=0,
-        seconds=0,
-        microseconds=0,
-        milliseconds=0,
-        minutes=0,
-        hours=0,
-        weeks=0,
-        time_format=TIME_FORMAT,
+    days=0,
+    seconds=0,
+    microseconds=0,
+    milliseconds=0,
+    minutes=0,
+    hours=0,
+    weeks=0,
+    time_format=TIME_FORMAT,
 ):
     """
 
@@ -361,7 +361,7 @@ def time_sans_frac():
 
 
 def epoch_in_a_while(
-        days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
+    days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
 ):
     """
     Return the number of seconds since epoch a while from now.

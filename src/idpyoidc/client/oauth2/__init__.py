@@ -1,5 +1,5 @@
-from json import JSONDecodeError
 import logging
+from json import JSONDecodeError
 from typing import Callable
 from typing import Optional
 from typing import Union
@@ -12,8 +12,8 @@ from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
 from idpyoidc.client.service import REQUEST_INFO
-from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
+from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.util import do_add_ons
 from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.configure import Configuration
@@ -26,8 +26,6 @@ __author__ = "Roland Hedberg"
 
 logger = logging.getLogger(__name__)
 
-Version = "2.0"
-
 
 class ExpiredToken(Exception):
     pass
@@ -37,7 +35,8 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
-    client_type = 'oauth2'
+    client_type = "oauth2"
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -48,7 +47,7 @@ class Client(Entity):
             context: Optional[OidcContext] = None,
             upstream_get: Optional[Callable] = None,
             key_conf: Optional[dict] = None,
-            entity_id: Optional[str] = '',
+            entity_id: Optional[str] = "",
             verify_ssl: Optional[bool] = True,
             jwks_uri: Optional[str] = "",
             client_type: Optional[str] = "",
@@ -69,15 +68,21 @@ class Client(Entity):
         :return: Client instance
         """
 
-        if not client_type:
+        if client_type:
+            self.client_type = client_type
+        elif config and 'client_type' in config:
+            client_type = self.client_type = config["client_type"]
+        else:
             client_type = self.client_type
 
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
             if httpc_params:
-                httpc_params['verify'] = False
+                httpc_params["verify"] = False
             else:
-                httpc_params = {'verify': False}
+                httpc_params = {"verify": False}
+
+        jwks_uri = jwks_uri or config.get('jwks_uri', '')
 
         Entity.__init__(
             self,
@@ -91,7 +96,7 @@ class Client(Entity):
             context=context,
             upstream_get=upstream_get,
             key_conf=key_conf,
-            entity_id=entity_id
+            entity_id=entity_id,
         )
 
         self.httpc = httpc or request
@@ -163,7 +168,7 @@ class Client(Entity):
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
-                kwargs["keyjar"] = self.get_attribute('keyjar')
+                kwargs["keyjar"] = self.get_attribute("keyjar")
             if not response_body_type:
                 response_body_type = service.response_body_type
 
@@ -217,7 +222,7 @@ class Client(Entity):
         if "error" in response:
             pass
         else:
-            service.update_service_context(response, key=kwargs.get('state'), **kwargs)
+            service.update_service_context(response, key=kwargs.get("state"), **kwargs)
         return response
 
     def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):
@@ -311,17 +316,20 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     :param behaviour_args:
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    try:
-        client.get_service("provider_info")
-    except KeyError:
-        raise ConfigurationError("Can not do dynamic provider info discovery")
-    else:
-        _context = client.get_context()
-        try:
-            _context.set("issuer", _context.config["srv_discovery_url"])
-        except KeyError:
-            pass
 
-        response = client.do_request("provider_info", behaviour_args=behaviour_args)
-        if is_error_message(response):
-            raise OidcServiceError(response["error"])
+    if client.client_type == 'oidc' and client.get_service("provider_info"):
+        service = 'provider_info'
+    elif client.client_type == 'oauth2' and client.get_service('server_metadata'):
+        service = 'server_metadata'
+    else:
+        raise ConfigurationError("Can not do dynamic provider info discovery")
+
+    _context = client.get_context()
+    try:
+        _context.set("issuer", _context.config["srv_discovery_url"])
+    except KeyError:
+        pass
+
+    response = client.do_request(service, behaviour_args=behaviour_args)
+    if is_error_message(response):
+        raise OidcServiceError(response["error"])

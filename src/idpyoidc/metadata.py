@@ -29,18 +29,11 @@ def metadata_load(item: dict, **kwargs):
 
 
 class Metadata(ImpExp):
-    parameter = {
-        "prefer": None,
-        "use": None,
-        "callback_path": None,
-        "_local": None
-    }
+    parameter = {"prefer": None, "use": None, "callback_path": None, "_local": None}
 
     _supports = {}
 
-    def __init__(self,
-                 prefer: Optional[dict] = None,
-                 callback_path: Optional[dict] = None):
+    def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
 
         ImpExp.__init__(self)
         if isinstance(prefer, dict):
@@ -73,11 +66,11 @@ class Metadata(ImpExp):
 
     def _callback_uris(self, base_url, hex):
         _uri = []
-        for type in self.get_usage("response_types", self._supports['response_types']):
+        for type in self.get_usage("response_types", self._supports["response_types"]):
             if "code" in type:
-                _uri.append('code')
+                _uri.append("code")
             elif type in ["id_token", "id_token token"]:
-                _uri.append('implicit')
+                _uri.append("implicit")
 
         if "form_post" in self.supports:
             _uri.append("form_post")
@@ -87,36 +80,33 @@ class Metadata(ImpExp):
             callback_uri[key] = get_uri(base_url, self.callback_path[key], hex)
         return callback_uri
 
-    def construct_redirect_uris(self,
-                                base_url: str,
-                                hex: str,
-                                callbacks: Optional[dict] = None):
+    def construct_redirect_uris(self, base_url: str, hex: str, callbacks: Optional[dict] = None):
         if not callbacks:
             callbacks = self._callback_uris(base_url, hex)
 
         if callbacks:
-            self.set_preference('callbacks', callbacks)
+            self.set_preference("callbacks", callbacks)
             self.set_preference("redirect_uris", [v for k, v in callbacks.items()])
 
         self.callback = callbacks
 
-    def verify_rules(self):
+    def verify_rules(self, supports):
         return True
 
     def locals(self, info):
         pass
 
     def _keyjar(self, keyjar=None, conf=None, entity_id=""):
-        _uri_path = ''
+        _uri_path = ""
         if keyjar is None:
             if "keys" in conf:
                 keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
                 _keyjar = init_key_jar(**keys_args)
-                _uri_path = conf['keys'].get('uri_path')
+                _uri_path = conf["keys"].get("uri_path")
             elif "key_conf" in conf and conf["key_conf"]:
                 keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
                 _keyjar = init_key_jar(**keys_args)
-                _uri_path = conf['key_conf'].get('uri_path')
+                _uri_path = conf["key_conf"].get("uri_path")
             else:
                 _keyjar = KeyJar()
                 if "jwks" in conf:
@@ -133,9 +123,9 @@ class Metadata(ImpExp):
             return _keyjar, _uri_path
         else:
             if "keys" in conf:
-                _uri_path = conf['keys'].get('uri_path')
+                _uri_path = conf["keys"].get("uri_path")
             elif "key_conf" in conf and conf["key_conf"]:
-                _uri_path = conf['key_conf'].get('uri_path')
+                _uri_path = conf["key_conf"].get("uri_path")
             return keyjar, _uri_path
 
     def get_base_url(self, configuration: dict):
@@ -150,8 +140,9 @@ class Metadata(ImpExp):
     def get_jwks(self, keyjar):
         return None
 
-    def handle_keys(self, configuration: dict, keyjar: Optional[KeyJar] = None,
-                    base_url: Optional[str] = ''):
+    def handle_keys(
+        self, configuration: dict, keyjar: Optional[KeyJar] = None, base_url: Optional[str] = ""
+    ):
         _jwks = _jwks_uri = None
         _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
@@ -159,8 +150,8 @@ class Metadata(ImpExp):
         self.add_extra_keys(keyjar, _id)
 
         # now that keys are in the Key Jar, now for how to publish it
-        if 'jwks_uri' in configuration:  # simple
-            _jwks_uri = configuration.get('jwks_uri')
+        if "jwks_uri" in configuration:  # simple
+            _jwks_uri = configuration.get("jwks_uri")
         elif uri_path:
             if not base_url:
                 base_url = self.get_base_url(configuration)
@@ -168,10 +159,11 @@ class Metadata(ImpExp):
         else:  # jwks or nothing
             _jwks = self.get_jwks(keyjar)
 
-        return {'keyjar': keyjar, 'jwks': _jwks, 'jwks_uri': _jwks_uri}
+        return {"keyjar": keyjar, "jwks": _jwks, "jwks_uri": _jwks_uri}
 
-    def load_conf(self, configuration, supports, keyjar: Optional[KeyJar] = None,
-                  base_url: Optional[str] = ''):
+    def load_conf(
+        self, configuration, supports, keyjar: Optional[KeyJar] = None, base_url: Optional[str] = ""
+    ):
         for attr, val in configuration.items():
             if attr == "preference":
                 for k, v in val.items():
@@ -183,12 +175,12 @@ class Metadata(ImpExp):
         self.locals(configuration)
 
         for key, val in self.handle_keys(configuration, keyjar=keyjar, base_url=base_url).items():
-            if key == 'keyjar':
+            if key == "keyjar":
                 keyjar = val
             elif val:
                 self.set_preference(key, val)
 
-        self.verify_rules()
+        self.verify_rules(supports)
         return keyjar
 
     def get(self, key, default=None):
@@ -219,7 +211,7 @@ class Metadata(ImpExp):
         return self.prefer
 
 
-SIGNING_ALGORITHM_SORT_ORDER = ['RS', 'ES', 'PS', 'HS']
+SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS"]
 
 
 def cmp(a, b):
@@ -227,9 +219,9 @@ def cmp(a, b):
 
 
 def alg_cmp(a, b):
-    if a == 'none':
+    if a == "none":
         return 1
-    elif b == 'none':
+    elif b == "none":
         return -1
 
     _pos1 = SIGNING_ALGORITHM_SORT_ORDER.index(a[0:2])
@@ -244,16 +236,16 @@ def alg_cmp(a, b):
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != 'none']
+    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != "none"]
     return sorted(_algs, key=cmp_to_key(alg_cmp))
 
 
 def get_encryption_algs():
-    return SUPPORTED['alg']
+    return SUPPORTED["alg"]
 
 
 def get_encryption_encs():
-    return SUPPORTED['enc']
+    return SUPPORTED["enc"]
 
 
 def array_or_singleton(claim_spec, values):

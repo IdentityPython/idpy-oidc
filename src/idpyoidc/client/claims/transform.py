@@ -21,6 +21,7 @@ REGISTER2PREFERRED = {
     "subject_type": "subject_types_supported",
     "token_endpoint_auth_method": "token_endpoint_auth_methods_supported",
     "response_types": "response_types_supported",
+    "response_modes": "response_modes_supported",
     "grant_types": "grant_types_supported",
     # In OAuth2 but not in OIDC
     "scope": "scopes_supported",
@@ -36,24 +37,25 @@ REGISTER2PREFERRED = {
 PREFERRED2REGISTER = dict([(v, k) for k, v in REGISTER2PREFERRED.items()])
 
 REQUEST2REGISTER = {
-    'client_id': "client_id",
+    "client_id": "client_id",
     "client_secret": "client_secret",
     #    'acr_values': "default_acr_values" ,
     #    'max_age': "default_max_age",
-    'redirect_uri': "redirect_uris",
-    'response_type': "response_types",
-    'request_uri': "request_uris",
-    'grant_type': "grant_types",
-    "scope": 'scopes_supported',
-    'post_logout_redirect_uri': "post_logout_redirect_uris"
+    "redirect_uri": "redirect_uris",
+    "response_type": "response_types",
+    "request_uri": "request_uris",
+    "grant_type": "grant_types",
+    "scope": "scopes_supported",
+    "post_logout_redirect_uri": "post_logout_redirect_uris",
 }
 
 
-def supported_to_preferred(supported: dict,
-                           preference: dict,
-                           base_url: str,
-                           info: Optional[dict] = None,
-                           ):
+def supported_to_preferred(
+    supported: dict,
+    preference: dict,
+    base_url: str,
+    info: Optional[dict] = None,
+):
     if info:  # The provider info
         for key, val in supported.items():
             if key in preference:
@@ -61,7 +63,7 @@ def supported_to_preferred(supported: dict,
                 _info_val = info.get(key)
                 if _info_val:
                     # Only use provider setting if less or equal to what I support
-                    if key.endswith('supported'):  # list
+                    if key.endswith("supported"):  # list
                         preference[key] = [x for x in _pref_val if x in _info_val]
                     else:
                         pass
@@ -72,7 +74,7 @@ def supported_to_preferred(supported: dict,
                 # there is a default
                 _info_val = info.get(key)
                 if _info_val:  # The OP has an opinion
-                    if key.endswith('supported'):  # list
+                    if key.endswith("supported"):  # list
                         preference[key] = [x for x in val if x in _info_val]
                     else:
                         pass
@@ -80,11 +82,11 @@ def supported_to_preferred(supported: dict,
                     preference[key] = val
 
         # special case -> must have a request_uris value
-        if 'require_request_uri_registration' in info:
+        if "require_request_uri_registration" in info:
             # only makes sense if I want to use request_uri
-            if preference.get('request_parameter') == 'request_uri':
-                if 'request_uri' not in preference:
-                    preference['request_uris'] = [f'{base_url}/requests']
+            if preference.get("request_parameter") == "request_uri":
+                if "request_uri" not in preference:
+                    preference["request_uris"] = [f"{base_url}/requests"]
             else:  # just ignore
                 logger.info('Asked for "request_uri" which it did not plan to use')
     else:
@@ -121,6 +123,7 @@ def _is_subset(a, b):
     else:
         return a == b
 
+
 def _intersection(a, b):
     res = None
     if isinstance(a, list):
@@ -138,8 +141,10 @@ def _intersection(a, b):
             res = []
     return res
 
-def preferred_to_registered(prefers: dict, supported: dict,
-                            registration_response: Optional[dict] = None):
+
+def preferred_to_registered(
+    prefers: dict, supported: dict, registration_response: Optional[dict] = None
+):
     """
     The claims with values that are returned from the OP is what goes unless (!!)
     the values returned are not within the supported values.
@@ -159,13 +164,14 @@ def preferred_to_registered(prefers: dict, supported: dict,
                     registered[key] = val
                 else:
                     logger.warning(
-                        f'OP tells me to do something I do not support: {key} = {val} not within '
-                        f'{_supports}')
+                        f"OP tells me to do something I do not support: {key} = {val} not within "
+                        f"{_supports}"
+                    )
                     _val = _intersection(val, _supports)
                     if _val:
                         registered[key] = _val
                     else:
-                        raise ValueError(f'Not able to support the OPs choice: {key}={val}')
+                        raise ValueError(f"Not able to support the OPs choice: {key}={val}")
             else:
                 registered[key] = val  # Should I just accept with the OP says ??
 

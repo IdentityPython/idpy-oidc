@@ -34,8 +34,8 @@ class TestRegistrationRead(object):
             "read_registration": {
                 "class": "idpyoidc.client.oidc.read_registration.RegistrationRead"
             },
-            'authorization': {'class': 'idpyoidc.client.oidc.authorization.Authorization'},
-            'accesstoken': {'class': 'idpyoidc.client.oidc.access_token.AccessToken'}
+            "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
+            "accesstoken": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
         }
 
         self.entity = Entity(config=client_config, services=services)

@@ -72,7 +72,7 @@ class TestUserInfo(object):
             },
         }
 
-        _jwt = JWT(key_jar=self.service.upstream_get("attribute",'keyjar'))
+        _jwt = JWT(key_jar=self.service.upstream_get("attribute", "keyjar"))
         _jws = _jwt.pack(payload=_distributed_respone)
 
         resp = {

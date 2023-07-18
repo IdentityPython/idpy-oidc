@@ -23,8 +23,7 @@ class CheckSession(Service):
         self.pre_construct = [self.oidc_pre_construct]
 
     def oidc_pre_construct(self, request_args=None, **kwargs):
-        _args = self.upstream_get("context").cstate.get_set(kwargs["state"],
-                                                            claim=["id_token"])
+        _args = self.upstream_get("context").cstate.get_set(kwargs["state"], claim=["id_token"])
         if request_args:
             request_args.update(_args)
         else:

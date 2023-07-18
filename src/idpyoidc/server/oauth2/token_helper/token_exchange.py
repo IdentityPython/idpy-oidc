@@ -57,14 +57,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         try:
             request.verify(
-                keyjar=self.endpoint.upstream_get('attribute', 'keyjar'),
-                opponent_id=client_id
+                keyjar=self.endpoint.upstream_get("attribute", "keyjar"), opponent_id=client_id
             )
         except (
-                MissingRequiredAttribute,
-                ValueError,
-                MissingRequiredValue,
-                JWKESTException,
+            MissingRequiredAttribute,
+            ValueError,
+            MissingRequiredValue,
+            JWKESTException,
         ) as err:
             return self.endpoint.error_cls(error="invalid_request", error_description="%s" % err)
 
@@ -133,8 +132,8 @@ class TokenExchangeHelper(TokenEndpointHelper):
             )
 
         if (
-                "requested_token_type" in request
-                and request["requested_token_type"] not in config["requested_token_types_supported"]
+            "requested_token_type" in request
+            and request["requested_token_type"] not in config["requested_token_types_supported"]
         ):
             return TokenErrorResponse(
                 error="invalid_request",
@@ -282,16 +281,15 @@ class TokenExchangeHelper(TokenEndpointHelper):
         if "policy" not in config:
             raise ImproperlyConfigured("Missing 'policy' from Token Exchange configuration")
         if "" not in config["policy"]:
-            raise ImproperlyConfigured(
-                "Default Token Exchange policy configuration is not defined"
-            )
+            raise ImproperlyConfigured("Default Token Exchange policy configuration is not defined")
         if "function" not in config["policy"][""]:
             raise ImproperlyConfigured(
                 "Missing 'function' from default Token Exchange policy configuration"
             )
 
-        _default_requested_token_type = config.get("default_requested_token_type",
-                                                   DEFAULT_REQUESTED_TOKEN_TYPE)
+        _default_requested_token_type = config.get(
+            "default_requested_token_type", DEFAULT_REQUESTED_TOKEN_TYPE
+        )
         if _default_requested_token_type not in config["requested_token_types_supported"]:
             raise ImproperlyConfigured(
                 f"Unsupported default requested_token_type {_default_requested_token_type}"
@@ -300,11 +298,9 @@ class TokenExchangeHelper(TokenEndpointHelper):
     def get_handler_key(self, request, endpoint_context):
         client_info = endpoint_context.cdb.get(request["client_id"], {})
 
-        default_requested_token_type = (
-                client_info.get("token_exchange", {}).get("default_requested_token_type", None)
-                or
-                self.config.get("default_requested_token_type", DEFAULT_REQUESTED_TOKEN_TYPE)
-        )
+        default_requested_token_type = client_info.get("token_exchange", {}).get(
+            "default_requested_token_type", None
+        ) or self.config.get("default_requested_token_type", DEFAULT_REQUESTED_TOKEN_TYPE)
 
         requested_token_type = request.get("requested_token_type", default_requested_token_type)
         return TOKEN_TYPES_MAPPING[requested_token_type]

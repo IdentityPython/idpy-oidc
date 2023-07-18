@@ -22,7 +22,6 @@ from .token_helper.token_exchange import TokenExchangeHelper
 logger = logging.getLogger(__name__)
 
 
-
 class Token(Endpoint):
     request_cls = Message
     response_cls = AccessTokenResponse
@@ -44,21 +43,20 @@ class Token(Endpoint):
         "password": ResourceOwnerPasswordCredentials,
     }
 
-    _supports = {
-        "grant_types_supported": list(helper_by_grant_type.keys())
-    }
+    _supports = {"grant_types_supported": list(helper_by_grant_type.keys())}
 
     def __init__(self, upstream_get, new_refresh_token=False, **kwargs):
         Endpoint.__init__(self, upstream_get, **kwargs)
         self.post_parse_request.append(self._post_parse_request)
         self.allow_refresh = False
         self.new_refresh_token = new_refresh_token
-        self.grant_type_helper = self.configure_types(kwargs.get("grant_types_helpers"),
-                                                      self.helper_by_grant_type)
+        self.grant_type_helper = self.configure_types(
+            kwargs.get("grant_types_helpers"), self.helper_by_grant_type
+        )
         # self.grant_types_supported = kwargs.get("grant_types_supported",
         #                                         list(self.grant_type_helper.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
-        self.resource_indicators_config = kwargs.get('resource_indicators', None)
+        self.resource_indicators_config = kwargs.get("resource_indicators", None)
 
     def configure_types(self, helpers, default_helpers):
         if helpers is None:
@@ -93,18 +91,18 @@ class Token(Endpoint):
 
         return _helper
 
-    def _get_helper(self,
-                    request: Union[Message, dict],
-                    client_id: Optional[str] = "") -> Optional[Union[Message, TokenEndpointHelper]]:
-        grant_type = request.get('grant_type')
+    def _get_helper(
+        self, request: Union[Message, dict], client_id: Optional[str] = ""
+    ) -> Optional[Union[Message, TokenEndpointHelper]]:
+        grant_type = request.get("grant_type")
         if grant_type:
-            _client_id = client_id or request.get('client_id')
+            _client_id = client_id or request.get("client_id")
             if client_id:
-                client = self.upstream_get('context').cdb[client_id]
-                _grant_types_supported = client.get("grant_types_supported",
-                                                    self.upstream_get('context').claims.get_claim(
-                                                        "grant_types_supported", [])
-                                                    )
+                client = self.upstream_get("context").cdb[client_id]
+                _grant_types_supported = client.get(
+                    "grant_types_supported",
+                    self.upstream_get("context").claims.get_claim("grant_types_supported", []),
+                )
                 if grant_type not in _grant_types_supported:
                     return self.error_cls(
                         error="invalid_request",
@@ -119,7 +117,7 @@ class Token(Endpoint):
             )
 
     def _post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         _resp = self._get_helper(request, client_id)
         if isinstance(_resp, TokenEndpointHelper):
@@ -191,4 +189,4 @@ class Token(Endpoint):
         return resp
 
     def supports(self):
-        return {'grant_types_supported': list(self.grant_type_helper.keys())}
+        return {"grant_types_supported": list(self.grant_type_helper.keys())}

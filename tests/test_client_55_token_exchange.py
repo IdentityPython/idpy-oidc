@@ -52,21 +52,16 @@ class TestUserInfo(object):
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config,
-                        services={
-                            "discovery": {
-                                "class":
-                                    "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
-                            "authorization": {
-                                "class": "idpyoidc.client.oauth2.authorization.Authorization"},
-                            "access_token": {
-                                "class": "idpyoidc.client.oauth2.access_token.AccessToken"},
-                            "token_exchange": {
-                                "class":
-                                    "idpyoidc.client.oauth2.token_exchange.TokenExchange"
-                            },
-                        }
-                        )
+        entity = Entity(
+            keyjar=make_keyjar(),
+            config=client_config,
+            services={
+                "discovery": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
+                "authorization": {"class": "idpyoidc.client.oauth2.authorization.Authorization"},
+                "access_token": {"class": "idpyoidc.client.oauth2.access_token.AccessToken"},
+                "token_exchange": {"class": "idpyoidc.client.oauth2.token_exchange.TokenExchange"},
+            },
+        )
         entity.get_context().issuer = "https://example.com"
         self.service = entity.get_service("token_exchange")
         _cstate = self.service.upstream_get("context").cstate
@@ -79,8 +74,9 @@ class TestUserInfo(object):
 
         ver_idt = IdToken().from_jwt(idt, make_keyjar())
 
-        token_response = AccessTokenResponse(access_token="access_token", id_token=idt,
-                                             __verified_id_token=ver_idt)
+        token_response = AccessTokenResponse(
+            access_token="access_token", id_token=idt, __verified_id_token=ver_idt
+        )
         _cstate.update("abcde", token_response)
 
     def test_construct(self):

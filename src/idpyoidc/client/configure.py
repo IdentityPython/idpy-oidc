@@ -25,16 +25,15 @@ URIS = [
 
 
 class RPHConfiguration(Base):
-
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "127.0.0.1",
-            port: Optional[int] = 80,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "127.0.0.1",
+        port: Optional[int] = 80,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
 
         Base.__init__(
@@ -71,7 +70,7 @@ class RPHConfiguration(Base):
         self.clients = lower_or_upper(conf, "clients")
         if self.clients:
             for id, client in self.clients.items():
-                for param in ["services", "usage", "add_ons", 'claims']:
+                for param in ["services", "usage", "add_ons", "claims"]:
                     if param not in client:
                         if param in self.default:
                             client[param] = self.default[param]
@@ -88,17 +87,17 @@ class RPHConfiguration(Base):
 
 
 class Configuration(Base):
-    """ Configuration for a single RP """
+    """Configuration for a single RP"""
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: str = "",
-            entity_conf: Optional[List[dict]] = None,
-            file_attributes: Optional[List[str]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: str = "",
+        entity_conf: Optional[List[dict]] = None,
+        file_attributes: Optional[List[str]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        dir_attributes: Optional[List[str]] = None,
     ):
         Base.__init__(
             self,
