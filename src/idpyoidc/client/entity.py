@@ -215,4 +215,18 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         return _keyjar
 
     def get_callback_uris(self):
-        return self.context.claims.callback_uri
+        return self.context.claims.get("callback_uris")
+
+    def match_callback_uri(self, callback_uri):
+        for typ, val in self.context.claims.get_usage("callback_uris").items():
+            if typ == "redirect_uris": # special case
+                for resp_type, uris in val.items():
+                    if callback_uri in uris:
+                        return True
+            else:
+                if isinstance(val, list):
+                    if callback_uri in val:
+                        return True
+                elif callback_uri == val:
+                    return True
+        return False
