@@ -453,9 +453,9 @@ class StandAloneClient(Client):
         :param authorization_response: The Authorization response
         :param state: The state key (the state parameter in the
             authorization request)
-        :return: A dictionary with 2 keys: **access_token** with the access
-            token as value and **id_token** with a verified ID Token if one
-            was returned otherwise None.
+        :return: A dictionary with 3 keys: **access_token**, **id_token**
+            and **refresh_token**. If one of the tokens was not returned it will have a
+            None value in the dictionary.
         """
 
         logger.debug(20 * "*" + " get_access_and_id_token " + 20 * "*")
@@ -478,6 +478,7 @@ class StandAloneClient(Client):
             _resp_type = set(_req_attr["response_type"].split(" "))
 
         access_token = None
+        refresh_token = None
         id_token = None
         if _resp_type in [{"id_token"}, {"id_token", "token"}, {"code", "id_token", "token"}]:
             id_token = authorization_response["__verified_id_token"]
@@ -499,6 +500,7 @@ class StandAloneClient(Client):
                     access_token = token_resp["access_token"]
                     # May or may not get an ID Token
                     id_token = token_resp.get("__verified_id_token")
+                    refresh_token = token_resp.get("refresh_token")
 
         elif _resp_type in [{"code"}, {"code", "id_token"}]:
             # get the access token
@@ -509,8 +511,9 @@ class StandAloneClient(Client):
             access_token = token_resp["access_token"]
             # May or may not get an ID Token
             id_token = token_resp.get("__verified_id_token")
+            refresh_token = token_resp.get("refresh_token")
 
-        return {"access_token": access_token, "id_token": id_token}
+        return {"access_token": access_token, "id_token": id_token, 'refresh_token': refresh_token}
 
     # noinspection PyUnusedLocal
     def finalize(self, response, behaviour_args: Optional[dict] = None):
