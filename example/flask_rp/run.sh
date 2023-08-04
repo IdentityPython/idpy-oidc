@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-./wsgi.py config.json
+python ./wsgi.py config.json
