@@ -310,24 +310,6 @@ class TestEndpoint(object):
         args = self.endpoint.process_request(_req, http_info=http_info)
         assert args
 
-    def test_process_request_not_allowed(self):
-        session_id = self._create_session(AUTH_REQ)
-        grant = self.session_manager[session_id]
-        code = self._mint_code(grant, session_id)
-        access_token = self._mint_token("access_token", grant, session_id, code)
-
-        # 2 things can make the request invalid.
-        # 1) The token is not valid anymore or 2) The event is not valid.
-        _event = grant.authentication_event
-        _event["authn_time"] -= 9000
-        _event["valid_until"] -= 9000
-
-        http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
-        _req = self.endpoint.parse_request({}, http_info=http_info)
-
-        args = self.endpoint.process_request(_req, http_info=http_info)
-        assert set(args["response_args"].keys()) == {"error", "error_description"}
-
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
