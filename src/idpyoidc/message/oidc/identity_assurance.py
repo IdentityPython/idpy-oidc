@@ -5,20 +5,21 @@ import json
 from cryptojwt.utils import importer
 
 from idpyoidc.message import Message
-from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
-from idpyoidc.message import OPTIONAL_MESSAGE
-from idpyoidc.message import SINGLE_OPTIONAL_STRING
-from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import msg_deser
 from idpyoidc.message import msg_list_ser
 from idpyoidc.message import msg_ser
+from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
+from idpyoidc.message import OPTIONAL_MESSAGE
+from idpyoidc.message import SINGLE_OPTIONAL_INT
+from idpyoidc.message import SINGLE_OPTIONAL_STRING
+from idpyoidc.message import SINGLE_REQUIRED_STRING
 from idpyoidc.message.oauth2 import error_chars
 from idpyoidc.message.oidc import AddressClaim
-from idpyoidc.message.oidc import ClaimsRequest
-from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import claims_request_deser
+from idpyoidc.message.oidc import ClaimsRequest
 from idpyoidc.message.oidc import deserialize_from_one_of
 from idpyoidc.message.oidc import msg_ser_json
+from idpyoidc.message.oidc import OpenIDSchema
+from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
 
 
 class PlaceOfBirth(Message):
@@ -149,6 +150,8 @@ REQURIED_DATE = (str, True, date_ser, date_deser, False)
 OPTIONAL_DATE = (str, False, date_ser, date_deser, False)
 
 
+# ------------------------------------------------------------------------------
+
 class IdentityAssuranceClaims(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
     c_param.update(
@@ -166,15 +169,31 @@ class IdentityAssuranceClaims(OpenIDSchema):
     )
 
 
+def identity_assurance_claims_deser(val, sformat="json"):
+    return deserialize_from_one_of(val, IdentityAssuranceClaims, sformat)
+
+
+OPTIONAL_IDA_CLAIMS = (
+    IdentityAssuranceClaims, False, msg_ser, identity_assurance_claims_deser, False)
+REQUIRED_IDA_CLAIMS = (
+    IdentityAssuranceClaims, True, msg_ser, identity_assurance_claims_deser, False)
+
+
+# ------------------------------------------------------------------------------
+
 class Address(AddressClaim):
     c_param = AddressClaim.c_param.copy()
     c_param.update({"country_code": SINGLE_OPTIONAL_STRING})
 
 
-OPTIONAL_IDA_CLAIMS = (IdentityAssuranceClaims, False, msg_ser, msg_deser, False)
-REQUIRED_IDA_CLAIMS = (IdentityAssuranceClaims, True, msg_ser, msg_deser, False)
+def address_deser(val, sformat="urlencoded"):
+    return deserialize_from_one_of(val, Address, sformat)
 
 
+OPTIONAL_ADDRESS = (Address, False, msg_ser, address_deser, False)
+
+
+# ------------------------------------------------------------------------------
 class Verifier(Message):
     c_param = {"organization": SINGLE_REQUIRED_STRING, "txn": SINGLE_REQUIRED_STRING}
 
@@ -192,11 +211,14 @@ def verifier_deser(val, sformat="urlencoded"):
 REQUIRED_VERIFIER = (Verifier, True, msg_ser, verifier_deser, False)
 
 
+# ------------------------------------------------------------------------------
 class Issuer(Message):
     c_param = {
         "name": SINGLE_REQUIRED_STRING,
-        "country": SINGLE_REQUIRED_STRING
+        "country_code": SINGLE_REQUIRED_STRING,
+        "jurisdiction": SINGLE_OPTIONAL_STRING
     }
+    c_param.update(AddressClaim.c_param)
 
 
 def issuer_deser(val, sformat="urlencoded"):
@@ -210,15 +232,19 @@ def issuer_deser(val, sformat="urlencoded"):
 
 
 REQUIRED_ISSUER = (Issuer, True, msg_ser, issuer_deser, False)
+OPTIONAL_ISSUER = (Issuer, False, msg_ser, issuer_deser, False)
 
 
+# ------------------------------------------------------------------------------
 class Document(Message):
     c_param = {
         "type": SINGLE_REQUIRED_STRING,
-        "number": SINGLE_REQUIRED_STRING,
-        "issuer": REQUIRED_ISSUER,
+        "document_number": SINGLE_REQUIRED_STRING,
+        "personal_number": SINGLE_OPTIONAL_STRING,
+        "serial_number": SINGLE_OPTIONAL_STRING,
         "date_of_issuance": REQURIED_TIME_STAMP,
         "date_of_expiry": REQURIED_TIME_STAMP,
+        "issuer": REQUIRED_ISSUER,
     }
 
 
@@ -229,38 +255,103 @@ def document_deser(val, sformat="urlencoded"):
 OPTIONAL_DOCUMENT = (Document, False, msg_ser, document_deser, False)
 
 
+# ------------------------------------------------------------------------------
+
+def json_list_deserializer(insts, sformat):
+    if sformat == 'dict':
+        return insts
+    elif sformat == 'json':
+        return json.loads(insts)
+
+
+MULTIPLE_OPTIONAL_JSON = ([dict], False, msg_ser, json_list_deserializer, False)
+
+
+class EmbeddedAttachments(Message):
+    c_param = {
+        "desc": SINGLE_OPTIONAL_STRING,
+        "content_type": SINGLE_REQUIRED_STRING,
+        "content": SINGLE_REQUIRED_STRING,
+        "txn": SINGLE_OPTIONAL_STRING
+    }
+
+
+class Digest(Message):
+    c_param = {
+        "alg": SINGLE_REQUIRED_STRING,
+        "value": SINGLE_REQUIRED_STRING
+    }
+
+
+def digest_deser(val, sformat="json"):
+    return deserialize_from_one_of(val, Digest, sformat)
+
+
+OPTIONAL_DIGEST = (Digest, False, msg_ser, digest_deser, False)
+
+
+class ExternalAttachments(Message):
+    c_param = {
+        "desc": SINGLE_OPTIONAL_STRING,
+        "url": SINGLE_REQUIRED_STRING,
+        "access_token": SINGLE_OPTIONAL_STRING,
+        "expires_in": SINGLE_OPTIONAL_INT,
+        "digest": OPTIONAL_DIGEST,
+        "txn": SINGLE_OPTIONAL_STRING
+    }
+
+
 class Evidence(Message):
-    c_param = {"type": SINGLE_OPTIONAL_STRING}
+    c_param = {
+        "type": SINGLE_OPTIONAL_STRING,
+        "attachments": MULTIPLE_OPTIONAL_JSON
+    }
 
     def verify(self, **kwargs):
+        if "attachments" in self:
+            _items = []
+            for attch in self['attachments']:
+                if "url" in attch:
+                    _items.append(ExternalAttachments(**attch))
+                else:
+                    _items.append(EmbeddedAttachments(**attch))
+            self["attchments"] = _items
+
         _type = self.get("type")
         if _type:
-            if _type == "id_document":
-                _doc = IdDocument(**self.to_dict())
-                _doc.verify(**kwargs)
+            if _type in ["document", "document"]:
+                _item = Document(**self.to_dict())
             elif _type == "utility_bill":
-                _bill = UtilityBill(**self.to_dict())
-                _bill.verify(**kwargs)
-            elif _type == "qes":
-                _qes = QES(**self.to_dict())
-                _qes.verify(**kwargs)
+                _item = UtilityBill(**self.to_dict())
+            elif _type == "electronic_record":
+                _item = ElectronicRecord(**self.to_dict())
+            elif _type == "vouch":
+                _item = Vouch(**self.to_dict())
+            elif _type == "electronic_signature":
+                _item = ElectronicSignature(**self.to_dict())
             else:
                 raise ValueError("Unknown type")
+            _item.verify(**kwargs)
         else:  # let the guessing begin
-            if all(x in self.keys() for x in IdDocument.c_param.keys()):
-                _doc = IdDocument(**self.to_dict())
-                _doc.verify(**kwargs)
-                self["type"] = "id_document"
+            if all(x in self.keys() for x in Document.c_param.keys()):
+                _item = Document(**self.to_dict())
+                _item["type"] = "document"
             elif all(x in self.keys() for x in UtilityBill.c_param.keys()):
-                _bill = UtilityBill(**self.to_dict())
-                _bill.verify(**kwargs)
-                self["type"] = "utility_bill"
-            elif all(x in self.keys() for x in QES.c_param.keys()):
-                _qes = QES(**self.to_dict())
-                _qes.verify(**kwargs)
-                self["type"] = "qes"
+                _item = UtilityBill(**self.to_dict())
+                _item["type"] = "utility_bill"
+            elif all(x in self.keys() for x in ElectronicRecord.c_param.keys()):
+                _item = ElectronicRecord(**self.to_dict())
+                _item["type"] = "electronic_record"
+            elif all(x in self.keys() for x in Vouch.c_param.keys()):
+                _item = ElectronicRecord(**self.to_dict())
+                _item["type"] = "vouch"
+            elif all(x in self.keys() for x in ElectronicSignature.c_param.keys()):
+                _item = ElectronicRecord(**self.to_dict())
+                _item["type"] = "electronic_signature"
             else:
                 raise ValueError("Unknown object")
+
+            _item.verify(**kwargs)
 
 
 def evidence_deser(val, sformat="urlencoded"):
@@ -278,37 +369,60 @@ def evidence_list_deser(val, sformat="urlencoded", lev=0):
 OPTIONAL_EVIDENCE_LIST = ([Evidence], False, msg_list_ser, evidence_list_deser, True)
 
 
-class IdDocument(Evidence):
+# ------------------------------------------------------------------------------
+class CheckDetails(Message):
+    c_param = {
+        "check_method": SINGLE_REQUIRED_STRING,
+        "organization": SINGLE_OPTIONAL_STRING,
+        "txn": SINGLE_OPTIONAL_STRING,
+        "time": SINGLE_OPTIONAL_INT
+    }
+
+
+def check_details_deser(val, sformat="urlencoded"):
+    return deserialize_from_one_of(val, CheckDetails, sformat)
+
+
+OPTIONAL_CHECK_DETAILS_LIST = ([CheckDetails], False, msg_list_ser, check_details_deser, True)
+
+
+# ------------------------------------------------------------------------------
+
+class Document(Evidence):
     c_param = Evidence.c_param.copy()
     c_param.update(
         {
+            "check_details": OPTIONAL_CHECK_DETAILS_LIST,
             "method": SINGLE_REQUIRED_STRING,
             "verifier": REQUIRED_VERIFIER,
             "time": OPTIONAL_TIME_STAMP,
-            "document": OPTIONAL_DOCUMENT,
+            "document_details": OPTIONAL_DOCUMENT,
         }
     )
 
 
-def id_document_deser(val, sformat="urlencoded"):
+def document_deser(val, sformat="urlencoded"):
     if isinstance(val, Message):
         return val
     elif sformat in ["dict", "json"]:
         if not isinstance(val, str):
             val = json.dumps(val)
             sformat = "json"
-    return IdDocument().deserialize(val, sformat)
+    return Document().deserialize(val, sformat)
 
 
-REQUIRED_ID_DOCUMENT = (IdDocument, True, msg_ser, id_document_deser, False)
-OPTIONAL_ID_DOCUMENT = (IdDocument, False, msg_ser, id_document_deser, False)
+REQUIRED_ID_DOCUMENT = (Document, True, msg_ser, document_deser, False)
+OPTIONAL_ID_DOCUMENT = (Document, False, msg_ser, document_deser, False)
 
+
+# ------------------------------------------------------------------------------
 
 class Provider(AddressClaim):
     c_param = AddressClaim.c_param.copy()
     c_param.update(
         {
             "name": SINGLE_OPTIONAL_STRING,
+            "country_code": SINGLE_OPTIONAL_STRING
         }
     )
 
@@ -326,55 +440,130 @@ def provider_deser(val, sformat="urlencoded"):
 REQUIRED_PROVIDER = (Provider, True, msg_ser, provider_deser, False)
 
 
+# ------------------------------------------------------------------------------
+
 class UtilityBill(Evidence):
     c_param = Evidence.c_param.copy()
-    c_param.update({"provider": REQUIRED_PROVIDER, "date": OPTIONAL_TIME_STAMP})
+    c_param.update({
+        "provider": REQUIRED_PROVIDER,
+        "date": OPTIONAL_TIME_STAMP,
+        "method": SINGLE_OPTIONAL_STRING,
+        "time": SINGLE_OPTIONAL_INT
+    })
 
 
-def utility_bill_deser(val, sformat="urlencoded"):
-    if isinstance(val, Message):
-        return val
-    elif sformat in ["dict", "json"]:
-        if not isinstance(val, str):
-            val = json.dumps(val)
-            sformat = "json"
-    return UtilityBill().deserialize(val, sformat)
+# ------------------------------------------------------------------------------
+
+class Record(Message):
+    c_param = {
+        "type": SINGLE_REQUIRED_STRING,
+        "personal_number": SINGLE_OPTIONAL_STRING,
+        "created_at": OPTIONAL_DATE,
+        "date_of_expiry": OPTIONAL_DATE,
+        "source": OPTIONAL_ISSUER
+    }
 
 
-REQUIRED_UTILITY_BILL = (UtilityBill, True, msg_ser, utility_bill_deser, False)
-OPTIONAL_UTILITY_BILL = (UtilityBill, False, msg_ser, utility_bill_deser, False)
+def record_deser(val, sformat="json"):
+    return deserialize_from_one_of(val, Record, sformat)
 
 
-class QES(Evidence):
+OPTIONAL_RECORD = (Record, False, msg_list_ser, record_deser, True)
+
+
+# ------------------------------------------------------------------------------
+
+class ElectronicRecord(Evidence):
     c_param = Evidence.c_param.copy()
     c_param.update(
         {
-            "issuer": SINGLE_REQUIRED_STRING,
-            "serial_number": SINGLE_REQUIRED_STRING,
-            "created_at": REQURIED_TIME_STAMP,
+            "check_details": OPTIONAL_CHECK_DETAILS_LIST,
+            "time": SINGLE_OPTIONAL_INT,
+            "record": OPTIONAL_RECORD
         }
     )
 
 
-def qes_deser(val, sformat="urlencoded"):
+# ------------------------------------------------------------------------------
+
+class ElectronicSignature(Evidence):
+    c_param = Evidence.c_param.copy()
+    c_param.update(
+        {
+            "signature_type": SINGLE_REQUIRED_STRING,
+            "issuer": SINGLE_REQUIRED_STRING,
+            "serial_number": SINGLE_REQUIRED_STRING,
+            "created_at": OPTIONAL_DATE
+        }
+    )
+
+
+# ------------------------------------------------------------------------------
+
+class Voucher(Message):
+    c_param = {
+        "name": SINGLE_OPTIONAL_STRING,
+        "birthdate": SINGLE_OPTIONAL_STRING,
+        "country_code": SINGLE_OPTIONAL_STRING,
+        "occupation": SINGLE_OPTIONAL_STRING,
+        "organization": SINGLE_OPTIONAL_STRING
+    }
+
+
+def voucher_deser(val, sformat="json"):
+    return deserialize_from_one_of(val, Voucher, sformat)
+
+
+OPTIONAL_VOUCHER = (Voucher, False, msg_ser, voucher_deser, False)
+
+
+# ------------------------------------------------------------------------------
+
+class Attestation(Message):
+    c_param = {
+        "type": SINGLE_REQUIRED_STRING,
+        "reference_number": SINGLE_OPTIONAL_STRING,
+        "date_of_issuance": OPTIONAL_DATE,
+        "date_of_expiry": OPTIONAL_DATE,
+        "voucher": OPTIONAL_VOUCHER
+    }
+
+
+def attestation_deser(val, sformat="json"):
+    return deserialize_from_one_of(val, Attestation, sformat)
+
+
+OPTIONAL_ATTESTATION = (Attestation, False, msg_ser, attestation_deser, False)
+
+
+# ------------------------------------------------------------------------------
+
+class Vouch(Evidence):
+    c_param = Evidence.c_param.copy()
+    c_param.update(
+        {
+            "check_details": OPTIONAL_CHECK_DETAILS_LIST,
+            "time": SINGLE_OPTIONAL_INT,
+            "attestation": OPTIONAL_ATTESTATION
+        }
+    )
+
+
+def vouch_deser(val, sformat="urlencoded"):
     if isinstance(val, Message):
         return val
     elif sformat in ["dict", "json"]:
         if not isinstance(val, str):
             val = json.dumps(val)
             sformat = "json"
-    return QES().deserialize(val, sformat)
+    return Vouch().deserialize(val, sformat)
 
 
-REQUIRED_QES = (QES, True, msg_ser, qes_deser, False)
-OPTIONAL_QES = (QES, False, msg_ser, qes_deser, False)
+REQUIRED_VOUCH = (Vouch, True, msg_ser, vouch_deser, False)
+OPTIONAL_VOUCH = (Vouch, False, msg_ser, vouch_deser, False)
 
 
-def address_deser(val, sformat="urlencoded"):
-    return deserialize_from_one_of(val, Address, sformat)
-
-
-OPTIONAL_ADDRESS = (Address, False, msg_ser, address_deser, False)
+# ------------------------------------------------------------------------------
 
 
 class EvidenceMetadata(Message):
@@ -444,15 +633,26 @@ class VerificationElement(Message):
         "assurance_process": OPTIONAL_ASSURANCE_PROFILE
     }
 
+    def verify(self, **kwargs):
+        if "evidence" in self and self["evidence"]:
+            for evid in self["evidence"]:
+                evid.verify(**kwargs)
+        if "assurance_process" in self and self["assurance_process"]:
+            self["assurance_process"].verify(**kwargs)
+
 
 def verification_element_deser(val, sformat="urlencoded"):
     if isinstance(val, Message):
         return val
     elif sformat in ["dict", "json"]:
+        if isinstance(val, dict):
+            return VerificationElement(**val)
+
         if not isinstance(val, str):
             val = json.dumps(val)
             sformat = "json"
-    return VerificationElement().deserialize(val, sformat)
+
+        return VerificationElement().deserialize(val, sformat)
 
 
 REQUIRED_VERIFICATION_ELEMENT = (
@@ -463,6 +663,25 @@ REQUIRED_VERIFICATION_ELEMENT = (
     False,
 )
 
+OPTIONAL_VERIFICATION_ELEMENT = (VerificationElement, False, msg_ser, verification_element_deser,
+                                 False)
+
+
+class VerifiedClaims(Message):
+    c_param = {
+        "verification": OPTIONAL_VERIFICATION_ELEMENT,
+        "claims": OPTIONAL_MULTIPLE_Claims
+    }
+
+    def verify(self, **kwargs):
+        super(VerifiedClaims, self).verify(**kwargs)
+        if "verification" in self:
+            self['verification'].verify()
+        if "claims" in self and self['claims']:
+            self['claims'].verify()
+
+
+# ============================================================================================
 
 SINGLE_OPTIONAL_CLAIMSREQ = (ClaimsRequest, False, msg_ser_json, claims_request_deser, False)
 
@@ -506,36 +725,6 @@ def _verify_claims_request_value(value, value_type=str):
     return True
 
 
-def verify_claims_request(instance, base_cls_instance):
-    for key, spec in base_cls_instance.c_param.items():
-        try:
-            _val = instance[key]
-        except KeyError:
-            continue
-
-        _value_type = spec[0]
-
-        if _value_type in (str, int, bool):
-            if not _verify_claims_request_value(_val, _value_type):
-                raise ValueError("{}: '{}'".format(key, _val))
-        elif type(_value_type) == abc.ABCMeta:
-            if _val is None:
-                continue
-            verify_claims_request(_val, _value_type())
-        elif isinstance(_value_type, list):
-            if _val is None:
-                continue
-            _item_val_type = _value_type[0]
-            for _v in _val:
-                if _item_val_type in (str, int, bool):
-                    if not _verify_claims_request_value(_v, _item_val_type):
-                        raise ValueError("{}: '{}'".format(key, _v))
-                elif type(_item_val_type) == abc.ABCMeta:
-                    if _v is None:
-                        continue
-                    verify_claims_request(_v, _item_val_type())
-
-
 class VerificationElementRequest(Message):
     c_param = {
         "trust_framework": SINGLE_REQUIRED_STRING,
@@ -546,7 +735,6 @@ class VerificationElementRequest(Message):
 
     def verify(self, **kwargs):
         super(VerificationElementRequest, self).verify(**kwargs)
-        verify_claims_request(self, VerificationElement())
 
 
 def verification_element_request_deser(val, sformat="urlencoded"):
@@ -562,18 +750,8 @@ OPTIONAL_VERIFICATION_ELEMENT_REQUEST = (
 )
 
 
-class VerifiedClaims(Message):
-    c_param = {
-        "verification": OPTIONAL_MESSAGE,
-        "claims": OPTIONAL_IDA_CLAIMS
-    }
-
-    def verify(self, **kwargs):
-        super(VerifiedClaims, self).verify(**kwargs)
-        verify_claims_request(self, VerifiedClaims())
-
-
 class IDAClaimsRequest(ClaimsRequest):
+
     def verify(self, **kwargs):
         super(IDAClaimsRequest, self).verify(**kwargs)
         _vc = self.get("verified_claims")
@@ -586,6 +764,7 @@ class IDAClaimsRequest(ClaimsRequest):
 
 
 class ClaimsConstructor:
+
     def __init__(self, base_class=Message):
         if isinstance(base_class, str):
             self.base_class = importer(base_class)()
