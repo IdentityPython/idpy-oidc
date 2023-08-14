@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
 
+from idpyoidc import metadata
+
 from idpyoidc import claims
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
@@ -207,8 +209,8 @@ def add_support(
                 args["request_dir"] = request_dir
 
         if request_object_encryption_enc and request_object_encryption_alg:
-            if request_object_encryption_enc in claims.get_encryption_encs():
-                if request_object_encryption_alg in claims.get_encryption_algs():
+            if request_object_encryption_enc in metadata.get_encryption_encs():
+                if request_object_encryption_alg in metadata.get_encryption_algs():
                     args["request_object_encryption_enc"] = request_object_encryption_enc
                     args["request_object_encryption_alg"] = request_object_encryption_alg
                 else:

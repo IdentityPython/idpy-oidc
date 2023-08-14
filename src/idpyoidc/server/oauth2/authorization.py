@@ -13,6 +13,7 @@ from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
+from idpyoidc import metadata
 
 from idpyoidc import claims
 from idpyoidc.exception import ImproperlyConfigured
@@ -347,9 +348,9 @@ class Authorization(Endpoint):
         "request_uri_parameter_supported": True,
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+        "request_object_signing_alg_values_supported": metadata.get_signing_algs,
+        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs,
         # "grant_types_supported": ["authorization_code", "implicit"],
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],

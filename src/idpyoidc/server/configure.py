@@ -204,7 +204,6 @@ OP_DEFAULT_CONFIG.update({
 })
 
 
-
 class EntityConfiguration(Base):
     default_config = AS_DEFAULT_CONFIG
     uris = ["issuer", "base_url"]
@@ -609,4 +608,32 @@ DEFAULT_EXTENDED_CONF = {
             },
         },
     },
+}
+
+DEFAULT_OIDC_ENDPOINTS = {
+    "provider_info": {
+        "path": ".well-known/openid-configuration",
+        "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
+        "kwargs": {},
+    },
+    "register": {
+        "path": "registration",
+        "class": "idpyoidc.server.oidc.registration.Registration",
+        "kwargs": {},
+    },
+    "authorization": {
+        "path": "authorization",
+        "class": "idpyoidc.server.oidc.authorization.Authorization",
+        "kwargs": {},
+    },
+    "token": {
+        "path": "token",
+        "class": "idpyoidc.server.oidc.token.Token",
+        "kwargs": {},
+    },
+    "userinfo": {
+        "path": "user",
+        "class": "idpyoidc.server.oidc.userinfo.UserInfo",
+        "kwargs": {},
+    }
 }

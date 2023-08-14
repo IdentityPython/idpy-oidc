@@ -6,7 +6,7 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
-from idpyoidc.claims import get_signing_algs
+from idpyoidc.metadata import get_signing_algs
 
 
 class AccessTokenResponse(Message):

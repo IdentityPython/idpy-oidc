@@ -9,7 +9,7 @@ from cryptojwt import JWS
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
-from idpyoidc.claims import get_signing_algs
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT

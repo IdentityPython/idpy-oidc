@@ -5,7 +5,7 @@ from common import BASEDIR
 from common import KEYDEFS
 from common import full_path
 from flow import Flow
-from idpyoidc.claims import get_signing_algs
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration

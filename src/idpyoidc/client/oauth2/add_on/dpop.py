@@ -10,7 +10,7 @@ from cryptojwt.jws.jws import factory
 from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_bundle import key_by_alg
 
-from idpyoidc.claims import get_signing_algs
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT

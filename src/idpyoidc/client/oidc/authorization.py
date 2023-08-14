@@ -3,6 +3,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from idpyoidc import metadata
+
 from idpyoidc import claims
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
@@ -32,9 +34,9 @@ class Authorization(authorization.Authorization):
     error_msg = oidc.ResponseMessage
 
     _supports = {
-        "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+        "request_object_signing_alg_values_supported": metadata.get_signing_algs,
+        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs,
         "response_types_supported": ["code", "id_token", "code id_token"],
         "request_parameter_supported": None,
         "request_uri_parameter_supported": None,

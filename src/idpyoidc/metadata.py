@@ -211,7 +211,7 @@ class Metadata(ImpExp):
         return self.prefer
 
 
-SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS"]
+SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS", "Ed"]
 
 
 def cmp(a, b):
