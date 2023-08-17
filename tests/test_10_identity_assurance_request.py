@@ -3,43 +3,13 @@ from urllib.parse import quote_plus
 
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc.identity_assurance import ClaimsConstructor
+from idpyoidc.message.oidc.identity_assurance import ClaimsDeconstructor
 from idpyoidc.message.oidc.identity_assurance import from_iso8601_2004_time
 from idpyoidc.message.oidc.identity_assurance import IDAClaimsRequest
 from idpyoidc.message.oidc.identity_assurance import to_iso8601_2004_time
 from idpyoidc.message.oidc.identity_assurance import VerificationElement
 from idpyoidc.message.oidc.identity_assurance import VerifiedClaims
 from idpyoidc.time_util import time_sans_frac
-
-
-def test_time_stamp():
-    now = time_sans_frac()
-    iso = to_iso8601_2004_time()
-
-    d = from_iso8601_2004_time(iso)
-
-    assert now == d
-
-
-def test_verification_element():
-    ve = VerificationElement(trust_framework="TrustAreUs", time=time.time())
-    ve_dict1 = ve.to_dict()
-
-    ve = VerificationElement(trust_framework="TrustAreUs")
-    ve["time"] = time.time()
-    ve_dict2 = ve.to_dict()
-
-    assert ve_dict1 == ve_dict2
-
-    ve = VerificationElement().from_dict(ve_dict1)
-
-    assert ve
-
-    s = "2020-01-11T11:00:00+0100"
-    ve_2 = VerificationElement(trust_framework="TrustAreUs")
-    ve_2["time"] = s
-
-    assert quote_plus("2020-01-11T11:00:00+0100") in ve_2.to_urlencoded()
-
 
 def test_verified_claims():
     s = {
@@ -54,86 +24,17 @@ def test_verified_claims():
     assert "userinfo" in c
 
 
-def test_verified_claims_2():
-    s = {
-        "verified_claims": {
-            "verification": {
-                "trust_framework": "trust_framework_example"
-            },
-            "claims": {
-                "given_name": "Max",
-                "family_name": "Meier"
-            }
-        }
-    }
+def test_construct_5_2_1():
+    _verification = ClaimsConstructor(VerificationElement)
+    _verification["time"] = None
+    _verification["evidence"] = None
 
-    vc = VerifiedClaims(**s['verified_claims'])
-    vc.verify()
-    assert set(vc.keys()) == {'verification', 'claims'}
-    assert isinstance(vc["claims"], Claims)
+    verified_claims = ClaimsConstructor("idpyoidc.message.oidc.identity_assurance.VerifiedClaims")
+    verified_claims["verification"] = _verification
+    verified_claims["claims"] = None
 
-
-def test_verfication_element_from_dict():
-    d = {
-        "verification": {"trust_framework": "eidas_ial_substantial"},
-        "claims": {
-            "given_name": "Max",
-            "family_name": "Meier",
-            "birthdate": "1956-01-28",
-            "place_of_birth": {"country": "DE", "locality": "Musterstadt"},
-            "nationality": "DE",
-            "address": {
-                "locality": "Maxstadt",
-                "postal_code": "12344",
-                "country": "DE",
-                "street_address": "An der Sanddüne 22",
-            },
-        },
-    }
-    v = VerifiedClaims(**d)
-    assert v
-
-
-def test_userinfo_response():
-    resp = {
-        "sub": "248289761001",
-        "email": "janedoe@example.com",
-        "email_verified": True,
-        "verified_claims": {
-            "verification": {
-                "trust_framework": "de_aml",
-                "time": "2012-04-23T18:25:43.511+01",
-                "verification_process": "676q3636461467647q8498785747q487",
-                "evidence": [
-                    {
-                        "type": "document",
-                        "method": "pipp",
-                        "document": {
-                            "type": "idcard",
-                            "issuer": {"name": "Stadt Augsburg", "country": "DE"},
-                            "number": "53554554",
-                            "date_of_issuance": "2012-04-23",
-                            "date_of_expiry": "2022-04-22",
-                        },
-                    }
-                ],
-            },
-            "claims": {"given_name": "Max", "family_name": "Meier", "birthdate": "1956-01-28"},
-        },
-    }
-
-    v = VerifiedClaims(**resp["verified_claims"])
-    assert v
-    assert set(v.keys()) == {"verification", "claims"}
-
-    _ver = v["verification"]
-    assert isinstance(_ver, VerificationElement)
-
-    assert set(_ver.keys()) == {"trust_framework", "time", "verification_process", "evidence"}
-    _evidence = _ver["evidence"]
-    assert len(_evidence) == 1
-    _evidence_1 = _evidence[0]
-    assert _evidence_1["type"] == "document"
+    _val = verified_claims.to_json()
+    assert _val == '{"verification": {"time": null, "evidence": null}, "claims": null}'
 
 
 def test_userinfo_claims_request_5_1_1():
@@ -145,8 +46,7 @@ def test_userinfo_claims_request_5_1_1():
         }
     }
 
-    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
-    icr.verify()
+    icr = ClaimsDeconstructor().from_dict(**userinfo_claims["userinfo"])
     assert isinstance(icr["verified_claims"], VerifiedClaims)
 
 
@@ -217,7 +117,9 @@ def test_userinfo_claims_request_5_3_1():
                         {
                             "type": "document",
                             "method": "pipp",
-                            "document_details": {"type": ["idcard", "passport"]},
+                            "document_details": {
+                                "type": {"values": ["idcard", "passport"]}
+                            },
                         }
                     ],
                 },

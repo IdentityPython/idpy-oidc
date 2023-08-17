@@ -5,21 +5,24 @@ import json
 from cryptojwt.utils import importer
 
 from idpyoidc.message import Message
-from idpyoidc.message import msg_list_ser
-from idpyoidc.message import msg_ser
+from idpyoidc.message import OPTIONAL_ANY_LIST
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import OPTIONAL_MESSAGE
+from idpyoidc.message import SINGLE_OPTIONAL_ANY
 from idpyoidc.message import SINGLE_OPTIONAL_INT
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import msg_list_ser
+from idpyoidc.message import msg_ser
 from idpyoidc.message.oauth2 import error_chars
 from idpyoidc.message.oidc import AddressClaim
-from idpyoidc.message.oidc import claims_request_deser
 from idpyoidc.message.oidc import ClaimsRequest
+from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
+from idpyoidc.message.oidc import OpenIDSchema
+from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
+from idpyoidc.message.oidc import claims_request_deser
 from idpyoidc.message.oidc import deserialize_from_one_of
 from idpyoidc.message.oidc import msg_ser_json
-from idpyoidc.message.oidc import OpenIDSchema
-from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
 
 
 class PlaceOfBirth(Message):
@@ -697,32 +700,45 @@ def _correct_value_type(val, value_type):
     return True
 
 
-def _verify_claims_request_value(value, value_type=str):
-    if value is None:
+class ClaimsSpec(Message):
+    c_param = {
+        "essential": SINGLE_OPTIONAL_BOOLEAN,
+        "value": SINGLE_OPTIONAL_ANY,
+        "values": OPTIONAL_ANY_LIST,
+        "purpose": SINGLE_OPTIONAL_STRING,
+        "max_age": SINGLE_OPTIONAL_INT
+    }
+
+    def _verify_claims_request_value(self, value, value_type=str):
+        if value is None:
+            return True
+        elif isinstance(value, dict):
+            # know about keys: essential, value and values, purpose
+            if not value.get("essential") in (None, True, False):
+                return False
+
+            _v = value.get("value")
+            if _v:
+                if not _correct_value_type(_v, value_type):
+                    return False
+
+            _vs = value.get("values", [])
+            for _v in _vs:
+                if not _correct_value_type(_v, value_type):
+                    return False
+
+            _p = value.get("purpose")
+            if _p:
+                if len(_p) < 3 or len(_p) > 300:
+                    return False
+                if not all(x in error_chars for x in _p):
+                    return False
+            _p = value.get("max_age")
+            if _p:
+                if not isinstance(_p, int):
+                    return False
+
         return True
-    elif isinstance(value, dict):
-        # know about keys: essential, value and values, purpose
-        if not value.get("essential") in (None, True, False):
-            return False
-
-        _v = value.get("value")
-        if _v:
-            if not _correct_value_type(_v, value_type):
-                return False
-
-        _vs = value.get("values", [])
-        for _v in _vs:
-            if not _correct_value_type(_v, value_type):
-                return False
-
-        _p = value.get("purpose")
-        if _p:
-            if len(_p) < 3 or len(_p) > 300:
-                return False
-            if not all(x in error_chars for x in _p):
-                return False
-
-    return True
 
 
 class VerificationElementRequest(Message):
@@ -749,6 +765,7 @@ OPTIONAL_VERIFICATION_ELEMENT_REQUEST = (
     True,
 )
 
+class VerifiedClaims()
 
 class IDAClaimsRequest(ClaimsRequest):
 
@@ -807,3 +824,58 @@ class ClaimsConstructor:
 
     def to_json(self):
         return json.dumps(self.to_dict())
+
+
+class ClaimsDeconstructor():
+    def __init__(self, base_class=Message, **kwargs):
+        if isinstance(base_class, str):
+            self.base_class = importer(base_class)()
+        elif isinstance(base_class, Message):
+            self.base_class = base_class
+        elif type(base_class) == abc.ABCMeta:
+            self.base_class = base_class()
+
+        self.info = {}
+        if kwargs:
+            self.from_dict(**kwargs)
+
+    def _is_simple_type(self, typ):
+        if isinstance(typ, str) or isinstance(typ, int):
+            return True
+        else:
+            return False
+
+    def _list_of_simple_type(self, typ):
+        return self._is_simple_type(typ[0])
+
+    def from_dict(self, **kwargs):
+        for key, spec in self.base_class.items():
+            val = kwargs.get(key)
+            if val:
+                _value_type = self.base_class.value_type(key)
+                if self._is_simple_type(_value_type):
+                    if isinstance(val, dict):  # should be a claims request then
+                        val = ClaimsSpec(**val)
+                elif self._list_of_simple_type(_value_type):
+                    pass
+                elif isinstance(_value_type, Message):
+                    _val = ClaimsDeconstructor(_value_type, **val)
+                else:
+                    raise ValueError(f'Other value_type: {_value_type}')
+
+            self.info[key] = val
+
+        for key, val in kwargs.items():
+            if key not in self.base_class:
+                if val is None:
+                    pass
+                elif isinstance(val, dict):
+                    _val = ClaimsSpec(**val)
+                    try:
+                        _val.verify()
+                    except Exception:
+                        pass
+                    else:
+                        val = _val
+
+                self.info[key] = val
