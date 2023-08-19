@@ -3,6 +3,7 @@ from urllib.parse import quote_plus
 
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc.identity_assurance import ClaimsConstructor
+from idpyoidc.message.oidc.identity_assurance import ClaimsDeconstructor
 from idpyoidc.message.oidc.identity_assurance import from_iso8601_2004_time
 from idpyoidc.message.oidc.identity_assurance import IDAClaimsRequest
 from idpyoidc.message.oidc.identity_assurance import to_iso8601_2004_time
@@ -11,34 +12,138 @@ from idpyoidc.message.oidc.identity_assurance import VerifiedClaims
 from idpyoidc.time_util import time_sans_frac
 
 
-def test_time_stamp():
-    now = time_sans_frac()
-    iso = to_iso8601_2004_time()
+def test_verified_claims():
+    s = {
+        "userinfo": {
+            "verified_claims": {
+                "claims": {"given_name": None, "family_name": None, "birthdate": None}
+            }
+        }
+    }
 
-    d = from_iso8601_2004_time(iso)
+    c = Claims(**s)
+    assert "userinfo" in c
 
-    assert now == d
+
+def test_construct_5_2_1():
+    _verification = ClaimsConstructor(VerificationElement)
+    _verification["time"] = None
+    _verification["evidence"] = None
+
+    verified_claims = ClaimsConstructor("idpyoidc.message.oidc.identity_assurance.VerifiedClaims")
+    verified_claims["verification"] = _verification
+    verified_claims["claims"] = None
+
+    _val = verified_claims.to_json()
+    assert _val == '{"verification": {"time": null, "evidence": null}, "claims": null}'
 
 
-def test_verification_element():
-    ve = VerificationElement(trust_framework="TrustAreUs", time=time.time())
-    ve_dict1 = ve.to_dict()
+def test_userinfo_claims_request_5_1_1():
+    userinfo_claims = {
+        "userinfo": {
+            "verified_claims": {
+                "claims": {"given_name": None, "family_name": None, "birthdate": None}
+            }
+        }
+    }
 
-    ve = VerificationElement(trust_framework="TrustAreUs")
-    ve["time"] = time.time()
-    ve_dict2 = ve.to_dict()
+    _cd = ClaimsDeconstructor()
+    _cd.from_dict(**userinfo_claims["userinfo"])
+    assert isinstance(_cd["verified_claims"], VerifiedClaims)
 
-    assert ve_dict1 == ve_dict2
 
-    ve = VerificationElement().from_dict(ve_dict1)
+def test_userinfo_claims_request_5_1_2():
+    userinfo_claims = {
+        "userinfo": {
+            "verified_claims": {
+                "claims": {
+                    "given_name": {"essential": True},
+                    "family_name": {"essential": True},
+                    "birthdate": None,
+                }
+            }
+        }
+    }
 
-    assert ve
+    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
+    icr.verify()
+    assert isinstance(icr["verified_claims"], VerifiedClaims)
 
-    s = "2020-01-11T11:00:00+0100"
-    ve_2 = VerificationElement(trust_framework="TrustAreUs")
-    ve_2["time"] = s
 
-    assert quote_plus("2020-01-11T11:00:00+0100") in ve_2.to_urlencoded()
+def test_userinfo_claims_request_5_1_3():
+    userinfo_claims = {
+        "userinfo": {
+            "verified_claims": {
+                "claims": {
+                    "given_name": {
+                        "essential": True,
+                        "purpose": "To make communication look more personal",
+                    },
+                    "family_name": {"essential": True},
+                    "birthdate": {"purpose": "To send you best wishes on your birthday"},
+                }
+            }
+        }
+    }
+
+    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
+    icr.verify()
+    assert isinstance(icr["verified_claims"], VerifiedClaims)
+
+
+def test_userinfo_claims_request_5_1_4():
+    userinfo_claims = {"userinfo": {"verified_claims": {"claims": None}}}
+
+    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
+    icr.verify()
+    assert isinstance(icr["verified_claims"], VerifiedClaims)
+
+
+def test_userinfo_claims_request_5_2_1():
+    verified_claims = {
+        "verified_claims": {"verification": {"time": None, "evidence": None}, "claims": None}
+    }
+
+    icr = IDAClaimsRequest(**verified_claims)
+    icr.verify()
+    assert icr
+
+
+def test_userinfo_claims_request_5_3_1():
+    userinfo_claims = {
+        "userinfo": {
+            "verified_claims": {
+                "verification": {
+                    "trust_framework": "de_aml",
+                    "evidence": [
+                        {
+                            "type": "document",
+                            "method": "pipp",
+                            "document_details": {
+                                "type": {"values": ["idcard", "passport"]}
+                            },
+                        }
+                    ],
+                },
+            }
+        }
+    }
+
+    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
+    icr.verify()
+    assert icr
+
+
+def test_userinfo_claims_request_5_3_2():
+    userinfo_claims = {
+        "userinfo": {
+            "verified_claims": {"verification": {"date": {"max_age": 63113852}}}
+        }
+    }
+
+    icr = IDAClaimsRequest(**userinfo_claims["userinfo"])
+    icr.verify()
+    assert icr
 
 
 def test_example_6_1():
@@ -196,6 +301,19 @@ def test_example_6_4_2():
     vc = VerifiedClaims(**userinfo_response["verified_claims"])
     vc.verify()
     assert vc["verification"]["trust_framework"] == "de_aml"
+
+
+def test_construct_5_2_1():
+    _verification = ClaimsConstructor(VerificationElement)
+    _verification["time"] = None
+    _verification["evidence"] = None
+
+    verified_claims = ClaimsConstructor("idpyoidc.message.oidc.identity_assurance.VerifiedClaims")
+    verified_claims["verification"] = _verification
+    verified_claims["claims"] = None
+
+    _val = verified_claims.to_json()
+    assert _val == '{"verification": {"time": null, "evidence": null}, "claims": null}'
 
 
 def test_embedded_attachments():

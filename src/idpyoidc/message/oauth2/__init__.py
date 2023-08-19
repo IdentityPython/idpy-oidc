@@ -362,18 +362,17 @@ class ASConfigurationResponse(Message):
 
 
 def deserialize_from_one_of(val, msgtype, sformat):
-    if sformat in ["dict", "json"]:
-        flist = ["json", "urlencoded"]
+    if sformat == "dict":
+        return msgtype(**val)
+
+    if sformat == "json":
         if not isinstance(val, str):
             val = json.dumps(val)
-    else:
-        flist = ["urlencoded", "json"]
+        return msgtype().deserialize(val, "json")
 
-    for _format in flist:
-        try:
-            return msgtype().deserialize(val, _format)
-        except FormatError:
-            pass
+    if sformat == "urlencoded":
+        return msgtype().deserialize(val, "urlencoded")
+
     raise FormatError("Unexpected format")
 
 

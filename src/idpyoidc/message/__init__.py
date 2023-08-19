@@ -365,7 +365,11 @@ class Message(MutableMapping):
                     try:
                         _val = []
                         for v in val:
-                            _val.append(vtype(**{str(x): y for x, y in v.items()}))
+                            if isinstance(v, vtype):
+                                _val.append(v)
+                                continue
+                            else:
+                                _val.append(vtype(**{str(x): y for x, y in v.items()}))
                         val = _val
                     except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))

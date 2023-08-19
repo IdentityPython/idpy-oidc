@@ -1154,7 +1154,8 @@ class Claims(Message):
 class ClaimsRequest(Message):
     c_param = {
         "userinfo": OPTIONAL_MULTIPLE_Claims,
-        "id_token": OPTIONAL_MULTIPLE_Claims}
+        "id_token": OPTIONAL_MULTIPLE_Claims
+    }
 
 
 def factory(msgtype, **kwargs):
