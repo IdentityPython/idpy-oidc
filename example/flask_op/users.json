@@ -38,5 +38,13 @@
     "family_name": "Crust",
     "email": "uc@example.com",
     "email_verified": true
+  },
+  "user1": {
+    "sub": "user111111",
+    "name": "User1 name",
+    "given_name": "user",
+    "family_name": "user",
+    "email": "uc@example.com",
+    "email_verified": true
   }
 }

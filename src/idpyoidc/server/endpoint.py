@@ -102,7 +102,7 @@ class Endpoint(Node):
         self.post_parse_request = []
         self.kwargs = kwargs
         self.full_path = ""
-
+        # print(1111111, kwargs)
         Node.__init__(self, upstream_get=upstream_get)
 
         for param in [
@@ -153,7 +153,8 @@ class Endpoint(Node):
             if verify_args is None:
                 request.verify(keyjar=keyjar, opponent_id=client_id)
             else:
-                request.verify(keyjar=keyjar, opponent_id=client_id, **verify_args)
+                request.verify(
+                    keyjar=keyjar, opponent_id=client_id, **verify_args)
         except (MissingRequiredAttribute, ValueError, MissingRequiredValue, ParameterError) as err:
             _error = "invalid_request"
             if isinstance(err, ValueError) and self.request_cls == RegistrationRequest:
@@ -238,7 +239,6 @@ class Endpoint(Node):
             _client_id = auth_info["client_id"]
         else:
             _client_id = req.get("client_id")
-
         # verify that the request message is correct, may have to do it twice
         err_response = self.verify_request(
             request=req, keyjar=_keyjar, client_id=_client_id, verify_args=verify_args
@@ -247,11 +247,8 @@ class Endpoint(Node):
             return err_response
 
         LOGGER.info("Parsed and verified request: %s" % sanitize(req))
-
         # Do any endpoint specific parsing
-        return self.do_post_parse_request(
-            request=req, client_id=_client_id, http_info=http_info, auth_info=auth_info, **kwargs
-        )
+        return self.do_post_parse_request(request=req, client_id=_client_id, http_info=http_info, auth_info=auth_info, **kwargs        )
 
     def client_authentication(self, request: Message, http_info: Optional[dict] = None, **kwargs):
         """
@@ -267,9 +264,11 @@ class Endpoint(Node):
 
         get_client_id_from_token = kwargs.get("get_client_id_from_token")
         if not get_client_id_from_token:
-            kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
+            kwargs["get_client_id_from_token"] = getattr(
+                self, "get_client_id_from_token", None)
 
-        authn_info = verify_client(request=request, http_info=http_info, **kwargs)
+        authn_info = verify_client(
+            request=request, http_info=http_info, **kwargs)
 
         LOGGER.debug("authn_info: %s", authn_info)
         if authn_info == {} and self.client_authn_method and len(self.client_authn_method):
@@ -287,6 +286,8 @@ class Endpoint(Node):
             if isinstance(request, self.error_cls):
                 break
             request = meth(request, client_id, context=_context, **kwargs)
+            # 여기 수정함
+            if request.get('authenticated', False): break
         return request
 
     def do_pre_construct(
@@ -294,7 +295,8 @@ class Endpoint(Node):
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.pre_construct:
-            response_args = meth(response_args, request, context=_context, **kwargs)
+            response_args = meth(response_args, request,
+                                 context=_context, **kwargs)
 
         return response_args
 
@@ -306,7 +308,8 @@ class Endpoint(Node):
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.post_construct:
-            response_args = meth(response_args, request, context=_context, **kwargs)
+            response_args = meth(response_args, request,
+                                 context=_context, **kwargs)
 
         return response_args
 
@@ -317,7 +320,6 @@ class Endpoint(Node):
         **kwargs
     ) -> Union[Message, dict]:
         """
-
         :param http_info: Information on the HTTP request
         :param request: The request, can be in a number of formats
         :return: Arguments for the do_response method
@@ -429,18 +431,21 @@ class Endpoint(Node):
                         else:
                             fragment_enc = False
 
+                    fragment_enc=False #이것 때문에 주소와 파라미터 사이에 #이 생겨서..에러 생김
                     if fragment_enc:
                         resp = _response.request(kwargs["return_uri"], True)
                     else:
                         resp = _response.request(kwargs["return_uri"])
                 else:
                     raise ValueError(
-                        "Don't know where that is: '{}".format(self.response_placement)
+                        "Don't know where that is: '{}".format(
+                            self.response_placement)
                     )
 
         if content_type:
             try:
-                http_headers = set_content_type(kwargs["http_headers"], content_type)
+                http_headers = set_content_type(
+                    kwargs["http_headers"], content_type)
             except KeyError:
                 http_headers = [("Content-type", content_type)]
         else:

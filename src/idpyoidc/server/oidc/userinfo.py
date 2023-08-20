@@ -1,16 +1,17 @@
 import json
 import logging
-from datetime import datetime
+# from datetime import datetime
 from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
-from cryptojwt.jwt import utc_time_sans_frac
+# from cryptojwt.jwt import utc_time_sans_frac
 
 from idpyoidc import claims
 from idpyoidc.util import importer
+from idpyoidc.util import check_token
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -20,7 +21,6 @@ from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
 
 logger = logging.getLogger(__name__)
-
 
 class UserInfo(Endpoint):
     request_cls = Message
@@ -115,64 +115,87 @@ class UserInfo(Endpoint):
         return {"response": resp, "http_headers": http_headers}
 
     def process_request(self, request=None, **kwargs):
-        _mngr = self.upstream_get("context").session_manager
-        try:
-            _session_info = _mngr.get_session_info_by_token(
-                request["access_token"], grant=True, handler_key="access_token"
-            )
-        except (KeyError, ValueError):
-            return self.error_cls(error="invalid_token", error_description="Invalid Token")
+        request_token = request["access_token"]
+        _context = self.upstream_get("context")
 
-        _grant = _session_info["grant"]
-        token = _grant.get_token(request["access_token"])
-        # should be an access token
-        if token and token.token_class != "access_token":
-            return self.error_cls(error="invalid_token", error_description="Wrong type of token")
+        # # 여기를 수정함(db없이도 되고, 세션에 있는지 확인하는 기능을 없앰) id_token으로 해야 정상임...
+        r = check_token(request_token, _context)
 
-        # And it should be valid
-        if token.is_active() is False:
-            return self.error_cls(error="invalid_token", error_description="Invalid Token")
-
-        allowed = True
-        _auth_event = _grant.authentication_event
-        # if the authentication is still active or offline_access is granted.
-        if not _auth_event["valid_until"] >= utc_time_sans_frac():
-            logger.debug(
-                "authentication not valid: {} > {}".format(
-                    datetime.fromtimestamp(_auth_event["valid_until"]),
-                    datetime.fromtimestamp(utc_time_sans_frac()),
-                )
-            )
-            allowed = False
-
-            # This has to be made more fine grained.
-            # if "offline_access" in session["authn_req"]["scope"]:
-            #     pass
-
-        if allowed:
-            _cntxt = self.upstream_get("context")
-            _claims_restriction = _cntxt.claims_interface.get_claims(
-                _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
-            )
-            info = _cntxt.claims_interface.get_user_claims(
-                _session_info["user_id"], claims_restriction=_claims_restriction
-            )
-            info["sub"] = _grant.sub
-            if _grant.add_acr_value("userinfo"):
-                info["acr"] = _grant.authentication_event["authn_info"]
-
-            if "userinfo" in _cntxt.cdb[request["client_id"]]:
-                self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
-
-            if "policy" in self.config:
-                info = self._enforce_policy(request, info, token, self.config)
+        if r['active']:
+            _token = r['payload']
+            uid = _token.get("uid", False)
+            if uid:
+                info = _context.userinfo.db.get(uid)
+                res={}
+                for k in info.keys():
+                    if k in ["sub", "name", "email_verified", "groups", "given_name", "family_name"]:
+                        res[k]=info[k]
+            else:
+                res = r['is_registerd'].copy()
+                del res['client_secret']
+            return {"response_args": res, "client_id": r["client_id"]}
         else:
-            info = {
-                "error": "invalid_request",
-                "error_description": "Access not granted",
-            }
+            return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
-        return {"response_args": info, "client_id": _session_info["client_id"]}
+
+        # _mngr = self.upstream_get("context").session_manager
+        # try:
+        #     _session_info = _mngr.get_session_info_by_token(
+        #         request["access_token"], grant=True, handler_key="access_token"
+        #     )
+        # except (KeyError, ValueError):
+        #     return self.error_cls(error="invalid_token", error_description="Invalid Token")
+
+        # _grant = _session_info["grant"]
+        # token = _grant.get_token(request["access_token"])
+        # # should be an access token
+        # if token and token.token_class != "access_token":
+        #     return self.error_cls(error="invalid_token", error_description="Wrong type of token")
+
+        # # And it should be valid
+        # if token.is_active() is False:
+        #     return self.error_cls(error="invalid_token", error_description="Invalid Token")
+
+        # allowed = True
+        # _auth_event = _grant.authentication_event
+        # # if the authentication is still active or offline_access is granted.
+        # if not _auth_event["valid_until"] >= utc_time_sans_frac():
+        #     logger.debug(
+        #         "authentication not valid: {} > {}".format(
+        #             datetime.fromtimestamp(_auth_event["valid_until"]),
+        #             datetime.fromtimestamp(utc_time_sans_frac()),
+        #         )
+        #     )
+        #     allowed = False
+
+        #     # This has to be made more fine grained.
+        #     # if "offline_access" in session["authn_req"]["scope"]:
+        #     #     pass
+
+        # if allowed:
+        #     _cntxt = self.upstream_get("context")
+        #     _claims_restriction = _cntxt.claims_interface.get_claims(
+        #         _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
+        #     )
+        #     info = _cntxt.claims_interface.get_user_claims(
+        #         _session_info["user_id"], claims_restriction=_claims_restriction
+        #     )
+        #     info["sub"] = _grant.sub
+        #     if _grant.add_acr_value("userinfo"):
+        #         info["acr"] = _grant.authentication_event["authn_info"]
+
+        #     if "userinfo" in _cntxt.cdb[request["client_id"]]:
+        #         self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
+
+        #     if "policy" in self.config:
+        #         info = self._enforce_policy(request, info, token, self.config)
+        # else:
+        #     info = {
+        #         "error": "invalid_request",
+        #         "error_description": "Access not granted",
+        #     }
+
+        # return {"response_args": info, "client_id": _session_info["client_id"]}
 
     def parse_request(self, request, http_info=None, **kwargs):
         """

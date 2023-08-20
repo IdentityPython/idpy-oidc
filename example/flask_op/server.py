@@ -63,12 +63,10 @@ def main(config_file, args):
     app.logger = config.logger
 
     web_conf = config.web_conf
-
     context = create_context(dir_path, web_conf)
 
     if args.display:
-        print(json.dumps(app.endpoint_context.provider_info, indent=4, sort_keys=True))
-        exit(0)
+        print(json.dumps(config.op.endpoint['provider_info'], indent=4, sort_keys=True))
 
     kwargs = {}
     if context:

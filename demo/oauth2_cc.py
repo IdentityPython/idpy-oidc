@@ -36,7 +36,6 @@ SERVER_CONFIG = {
             "class": "idpyoidc.server.token.jwt_token.JWTToken",
             "kwargs": {
                 "lifetime": 3600,
-                "aud": ["https://example.org/appl"],
             }
         }
     },

@@ -1,28 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
+<html>
 
-<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Please login</title>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="robots" content="noindex, nofollow">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sign in to GSMA Open Gateway</title>
+  <!-- jquery -->
+  <script src="static/jquery-3.5.1.min.js"></script>
+  <!-- daisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@2.52.0/dist/full.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body>
-<h1>{{ page_header }}</h1>
-
-<form action="{{ action }}" method="post">
-    <input type="hidden" name="token" value="{{ token }}">
-
-    <p>
-        <label for="username">{{ user_label }}</label>
-        <input type="text" id="username" name="username" autofocus
-               required>
-    </p>
-
-    <p>
-        <label for="password">{{ passwd_label }}</label>
-        <input type="password" id="password" name="password" required>
-    </p>
-
+  <div id="home" class="hero min-h-screen"
+    style="background-image: url('https://cdn.pixabay.com/photo/2016/11/29/09/16/architecture-1868667_1280.jpg');">
+    <div class="hero-overlay bg-opacity-60"></div>
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h1 class="text-5xl font-bold">{{ page_header }}</h1>
+        <p class="py-6">Sign in to your account</p>
     <p>
         <img src="{{ logo_uri }}" alt="{{ logo_label }}">
     </p>
@@ -33,7 +33,79 @@
         <a href="{{ policy_uri }}">{{ policy_label }}</a>
     </p>
 
-    <input type="submit" value="{{ submit_btn }}">
+        <form class="form-control" id="login-form" action="{{ action }}" method="post">
+        <input type="hidden" name="token" value="{{ token }}">
+          <div class="form-control">
+            <label class="input-group">
+              <span class="w-1/5">{{ user_label }}</span>
+              <input type="text" class="input input-bordered w-4/5" id="username" name="username" autofocus  required>
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="input-group">
+              <span class="w-1/5">{{ passwd_label }}</span>
+              <input type="password" class="input input-bordered w-4/5" id="password" name="password" required>
+            </label>
+          </div>
+          <div class="flex">
+            <div class="flex w-1/3">
+              <div class="form-control">
+                <label class="label cursor-pointer">
+                  <span class="label-text">Remember me</span>
+                  <input type="checkbox" checked="checked" id="remember" class="checkbox checkbox-primary" />
+                </label>
+              </div>
+            </div>
+            <div class="flex w-1/3">
+            </div>
+            <div class="flex w-1/3">
+              <a href="" class="label-text">
+                Forgot Password?
+              </a>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="submit" value="submit">{{ submit_btn }}</button>
+        </form>
+        <div>
+          <span class="label-text">New user? </span><a href="" class="label-text">Register</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </form>
 </body>
+<script>
+  window.addEventListener("load", function () {
+    const usernameCookie = getCookie("username");
+    if (usernameCookie) {
+      document.getElementById("username").value = decodeURIComponent(usernameCookie);
+      document.getElementById("remember").checked = true;
+    }
+  });
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+
+  document.getElementById("remember").addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const remember = document.getElementById("remember").checked;
+    const expirationDate = new Date();
+
+    // Perform login validation here (e.g., send data to a server)
+
+    if (remember) {
+      // Set a cookie to remember the user
+      expirationDate.setMonth(expirationDate.getMonth() + 1); // Cookie expires in 1 month
+    };
+    
+    document.cookie = `username=${encodeURIComponent(username)};expires=${expirationDate.toUTCString()};path=/`;
+  });
+
+</script>
+
 </html>

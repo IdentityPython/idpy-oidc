@@ -10,7 +10,8 @@ from idpyoidc.server import Server
 from oidc_client_conf import CLIENT_CONFIG
 from oidc_client_conf import CLIENT_ID
 from oidc_server_conf import SERVER_CONF
-
+import logging
+logger = logging.getLogger(__name__)
 
 def full_path(local_file):
     return os.path.join(BASEDIR, local_file)

@@ -29,6 +29,7 @@ from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,7 +116,6 @@ class Session(Endpoint):
         :param sid: The session ID
         :return: Tuple with logout URI and signed logout token
         """
-
         _context = self.upstream_get("context")
 
         try:
@@ -265,29 +265,30 @@ class Session(Endpoint):
         """
         _context = self.upstream_get("context")
         _mngr = _context.session_manager
-
+   
         if "post_logout_redirect_uri" in request:
             if "id_token_hint" not in request:
                 raise InvalidRequest("If post_logout_redirect_uri then id_token_hint is a MUST")
+            
         _cookies = http_info.get("cookie")
         _session_info = None
 
         if _cookies:
             logger.debug("parse_cookie@session")
-            _cookie_name = _context.cookie_handler.name["session"]
-            try:
-                _cookie_infos = _context.cookie_handler.parse_cookie(
-                    cookies=_cookies, name=_cookie_name
-                )
-            except VerificationError:
-                raise InvalidRequest("Cookie error")
-
+            _cookie_infos = [i for i in _cookies if i['name'] == "sid"]
+            # _cookie_name = _context.cookie_handler.name["session"]
+            # try:
+            #     _cookie_infos = _context.cookie_handler.parse_cookie(
+            #         cookies=_cookies, name=_cookie_name
+            #     )
+            # except VerificationError:
+            #     raise InvalidRequest("Cookie error")
             if _cookie_infos:
                 # value is a JSON document
-                _cookie_info = json.loads(_cookie_infos[0]["value"])
+                _cookie_info = _cookie_infos[0]["value"]
                 logger.debug("process_request: cookie_info={}".format(_cookie_info))
                 try:
-                    _session_info = _mngr.get_session_info(_cookie_info["sid"], grant=True)
+                    _session_info = _mngr.get_session_info(_cookie_info, grant=True)
                 except KeyError:
                     raise ValueError("Can't find any corresponding session")
 
@@ -362,7 +363,6 @@ class Session(Endpoint):
         :param kwargs:
         :return:
         """
-
         if not request:
             request = {}
 
@@ -374,7 +374,8 @@ class Session(Endpoint):
             return auth_info
         else:
             request["client_id"] = auth_info["client_id"]
-            request["access_token"] = auth_info["token"]
+            request["access_token"] = auth_info.get("token", http_info.get(
+                "access_token", request.get("access_token")))
 
         if isinstance(request, dict):
             _context = self.upstream_get("context")

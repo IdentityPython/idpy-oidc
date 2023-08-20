@@ -1,5 +1,7 @@
 import importlib
+import base64
 import json
+import time
 import logging
 import os
 import secrets
@@ -15,6 +17,33 @@ import yaml
 from cryptojwt.utils import importer
 
 logger = logging.getLogger(__name__)
+
+
+def b2t(i):
+    # 무조건 base64로 디코딩해서 보여줌
+    return json.loads(base64.urlsafe_b64decode(i+'='*(4-len(i) % 4)).decode('utf-8'))
+
+def check_token(token, context=None):
+    '''
+    base64 token decoding and validate
+    '''
+    if isinstance(token, str):
+        _token = token.split(" ")[-1].split(".")
+        try:
+            payload = b2t(_token[1])
+            client_id = payload['client_id'] or payload['aud'][0]
+            
+            if context is None: # 토큰의 client_id만 찾는 경우(introspection용)
+                return client_id 
+
+            is_registerd = context.cdb.get(client_id, False)
+            is_active = int(payload['exp']) > time.time()
+            active = True if is_active and is_registerd else False
+            return {'client_id': client_id, 'payload': payload, 'active': active, 'is_registerd': is_registerd}
+        except:
+            # TBD : 키를 찾아서 해독해봄..
+            pass
+    return {'active': False}
 
 
 def rndstr(size=16):

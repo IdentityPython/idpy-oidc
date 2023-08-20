@@ -244,7 +244,7 @@ class Flow(object):
     def resource_owner_password_credentials_request(self, msg):
         return {}
 
-    def __call__(self, request_responses: list[list], **kwargs):
+    def __call__(self, request_responses, **kwargs):
         msg = kwargs
         for request, response in request_responses:
             func = getattr(self, f"{request}_request")

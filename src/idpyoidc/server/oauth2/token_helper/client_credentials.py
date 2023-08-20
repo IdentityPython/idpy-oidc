@@ -6,6 +6,7 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import sanitize
+from idpyoidc.message.oidc import verify_id_token
 from . import TokenEndpointHelper
 
 logger = logging.getLogger(__name__)
@@ -38,8 +39,8 @@ class ClientCredentials(TokenEndpointHelper):
         # Is there a previous session ?
         try:
             _session_info = _mngr.get(["client_credentials", client_id])
-            _grant = _session_info["grant"]
-        except KeyError:
+            _grant = _session_info.get("grant", False)
+        except:
             logger.debug("No previous session")
             branch_id = _mngr.add_grant(["client_credentials", client_id])
             _session_info = _mngr.get_session_info(branch_id)
@@ -49,6 +50,7 @@ class ClientCredentials(TokenEndpointHelper):
         token_type = "Bearer"
 
         _allowed = _context.cdb[client_id].get("allowed_scopes", [])
+
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
@@ -67,6 +69,19 @@ class ClientCredentials(TokenEndpointHelper):
 
         if access_token.expires_at:
             _resp["expires_in"] = access_token.expires_at - utc_time_sans_frac()
+
+        try:
+            refresh_token = self._mint_token(
+                token_class="refresh_token",
+                grant=grant,
+                session_id=_session_info["branch_id"],
+                client_id=_session_info["client_id"],
+                based_on=_based_on,
+                scope=_allowed
+            )
+            _response["refresh_token"] = refresh_token.value
+        except:
+            logger.warning("refresh_token minting failed")
 
         return _resp
 

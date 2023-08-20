@@ -3,7 +3,6 @@
     "version": 1,
     "root": {
       "handlers": [
-        "default",
         "console"
       ],
       "level": "DEBUG"
@@ -31,15 +30,22 @@
       }
     }
   },
-  "port": 5000,
+  "port": 8080,
   "domain": "127.0.0.1",
   "server_name": "{domain}:{port}",
   "base_url": "https://{domain}:{port}",
   "op": {
     "server_info": {
+      "client_db": {
+        "class": "idpyoidc.storage.abfile.AbstractFileSystem",
+        "kwargs": {
+          "fdir": "afs",
+          "value_conv": "idpyoidc.util.JSON"
+        }
+      },
       "add_on": {
         "pkce": {
-          "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
+          "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
           "kwargs": {
             "essential": false,
             "code_challenge_method": "S256 S384 S512"
@@ -59,7 +65,14 @@
                 ],
                 "max_usage": 1
               },
-              "access_token": {},
+              "access_token": {
+                "supports_minting": [
+                  "access_token",
+                  "refresh_token",
+                  "id_token"
+                ],
+              "expires_in": 14400
+              },
               "refresh_token": {
                 "supports_minting": [
                   "access_token",
@@ -84,10 +97,10 @@
                 "filename": "passwd.json"
               }
             },
-            "page_header": "Testing log in",
-            "submit_btn": "Get me in!",
-            "user_label": "Nickname",
-            "passwd_label": "Secret sauce"
+            "page_header": "GSMA Open Gateway Login",
+            "submit_btn": "Sign In",
+            "user_label": "ID/email",
+            "passwd_label": "Password"
           }
         }
       },
@@ -97,6 +110,8 @@
           "pairwise"
         ],
         "grant_types_supported": [
+          "client_credentials",
+          "password",
           "authorization_code",
           "implicit",
           "urn:ietf:params:oauth:grant-type:jwt-bearer",
@@ -121,6 +136,7 @@
         "class": "idpyoidc.server.session.claims.ClaimsInterface",
         "kwargs": {}
       },
+      "client_authn": "idpyoidc.server.client_authn.verify_client",
       "cookie_handler": {
         "class": "idpyoidc.server.cookie_handler.CookieHandler",
         "kwargs": {
@@ -225,15 +241,31 @@
         },
         "token": {
           "path": "token",
-          "class": "idpyoidc.server.oidc.token.Token",
+          "class": "idpyoidc.server.oauth2.token.Token",
           "kwargs": {
             "client_authn_method": [
               "client_secret_post",
               "client_secret_basic",
               "client_secret_jwt",
               "private_key_jwt"
+            ],
+            "response_types_supported": [
+              "token",
+              "id_token",
+              "id_token token"
+            ],
+            "scopes_supported": [
+              "openid",
+              "profile",
+              "offline_access",
+              "email"
             ]
           }
+        },
+        "token_revocation": {
+          "path": "revocation",
+          "class": "idpyoidc.server.oauth2.token_revocation.TokenRevocation",
+          "kwargs": {}
         },
         "userinfo": {
           "path": "userinfo",
@@ -315,12 +347,11 @@
               "phone_number_verified"
             ],
             "add_claims_by_scope": true,
-            "aud": [
-              "https://example.org/appl"
-            ]
+            "aud": [ "account"]
           }
         },
         "refresh": {
+          "class": "idpyoidc.server.token.jwt_token.JWTToken",
           "kwargs": {
             "lifetime": 86400
           }
@@ -352,7 +383,7 @@
     "server_key": "certs/client.key",
     "ca_bundle": null,
     "verify_user": false,
-    "port": 5000,
+    "port": 8080,
     "domain": "127.0.0.1",
     "debug": true
   }

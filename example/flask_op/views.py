@@ -4,7 +4,7 @@ import sys
 import traceback
 from typing import Union
 from urllib.parse import urlparse
-
+import requests
 from cryptojwt import as_unicode
 from flask import Blueprint
 from flask import Response
@@ -67,14 +67,14 @@ def index():
 def do_response(endpoint, req_args, error='', **args) -> Response:
     info = endpoint.do_response(request=req_args, error=error, **args)
     _log = current_app.logger
-    _log.debug('do_response: {}'.format(info))
+    _log.debug('[views.py] do_response: {}'.format(info))
 
     try:
         _response_placement = info['response_placement']
     except KeyError:
         _response_placement = endpoint.response_placement
 
-    _log.debug('response_placement: {}'.format(_response_placement))
+    _log.debug('[views.py] response_placement: {}'.format(_response_placement))
 
     if error:
         if _response_placement == 'body':
@@ -120,8 +120,7 @@ def verify(authn_method):
     authz_request = AuthorizationRequest().from_urlencoded(auth_args['query'])
 
     endpoint = current_app.server.get_endpoint('authorization')
-    _session_id = endpoint.create_session(authz_request, username, auth_args['authn_class_ref'],
-                                          auth_args['iat'], authn_method)
+    _session_id = endpoint.create_session(authz_request, username, auth_args['authn_class_ref'], auth_args['iat'], authn_method)
 
     args = endpoint.authz_part2(request=authz_request, session_id=_session_id)
 
@@ -157,7 +156,6 @@ def well_known(service):
         _endpoint = current_app.server.get_endpoint('discovery')
     else:
         return make_response('Not supported', 400)
-
     return service_endpoint(_endpoint)
 
 
@@ -179,9 +177,7 @@ def registration_api():
 
 @oidc_op_views.route('/authorization')
 def authorization():
-    return service_endpoint(
-        current_app.server.get_endpoint('authorization'))
-
+    return service_endpoint(current_app.server.get_endpoint('authorization'))
 
 @oidc_op_views.route('/token', methods=['GET', 'POST'])
 def token():
@@ -199,7 +195,7 @@ def userinfo():
         current_app.server.get_endpoint('userinfo'))
 
 
-@oidc_op_views.route('/session', methods=['GET'])
+@oidc_op_views.route('/session', methods=['GET', "POST"])
 def session_endpoint():
     return service_endpoint(
         current_app.server.get_endpoint('session'))
@@ -268,7 +264,6 @@ def service_endpoint(endpoint):
         _log.error(message)
         err_msg = ResponseMessage(error='invalid_request', error_description=str(err))
         return make_response(err_msg.to_json(), 400)
-
     _log.info('Response args: {}'.format(args))
 
     if 'redirect_location' in args:
@@ -312,10 +307,14 @@ def check_session_iframe():
 
 @oidc_op_views.route('/verify_logout', methods=['GET', 'POST'])
 def verify_logout():
-    part = urlparse(current_app.server.get_context().issuer)
-    page = render_template('logout.html', op=part.hostname,
-                           do_logout='rp_logout', sjwt=request.args['sjwt'])
-    return page
+    # part = urlparse(current_app.server.get_context().issuer)
+    # page = render_template('logout.html', op=part.hostname,
+    #                        do_logout='rp_logout', sjwt=request.args['sjwt'])
+    # return page
+    base_url = current_app.server.get_context().issuer
+    res=requests.post(base_url+'/rp_logout',
+                  data={'sjwt': request.args['sjwt']}, verify=False)
+    return {'status_code': res.status_code}
 
 
 @oidc_op_views.route('/rp_logout', methods=['GET', 'POST'])

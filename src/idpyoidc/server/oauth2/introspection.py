@@ -1,15 +1,16 @@
 """Implements RFC7662"""
+import base64, json, time
 import logging
 from typing import Optional
 
 from idpyoidc.message import oauth2
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.token.exception import UnknownToken
-from idpyoidc.server.token.exception import WrongTokenClass
-from idpyoidc.server.exception import ToOld
+# from idpyoidc.server.token.exception import UnknownToken
+# from idpyoidc.server.token.exception import WrongTokenClass
+# from idpyoidc.server.exception import ToOld
+from idpyoidc.util import check_token
 
 LOGGER = logging.getLogger(__name__)
-
 
 class Introspection(Endpoint):
     """Implements RFC 7662"""
@@ -98,24 +99,25 @@ class Introspection(Endpoint):
             return _introspect_request
 
         request_token = _introspect_request["token"]
-        _resp = self.response_cls(active=False)
         _context = self.upstream_get("context")
-
+       
+        _resp = self.response_cls(active=False)
+        
+        # 여기를 수정함(db없이도 되고, 세션에 있는지 확인하는 기능을 없앰)
         try:
-            _session_info = _context.session_manager.get_session_info_by_token(
-                request_token, grant=True
-            )
-        except (UnknownToken, WrongTokenClass, ToOld):
+            _session_info = _context.session_manager.get_session_info_by_token(request_token, grant=False)
+        except:
             return {"response_args": _resp}
 
         grant = _session_info["grant"]
         _token = grant.get_token(request_token)
 
-        aud = _token.resources
-        if not aud:
-            aud = grant.resources
+        aud = [check_token(request_token)]
 
-        client_id = request["client_id"]
+        # aud = _token.resources
+        # if not aud:
+        #     aud = grant.resources
+
         try:
             _cinfo = _context.cdb[client_id]
             enforce_aud_restriction = _cinfo.get(
@@ -123,6 +125,7 @@ class Introspection(Endpoint):
             )
         except:
             enforce_aud_restriction = self.enforce_aud_restriction
+
         if enforce_aud_restriction:
             if request["client_id"] not in aud:
                 return {"response_args": _resp}
@@ -140,7 +143,6 @@ class Introspection(Endpoint):
 
         _resp.update(_info)
         _resp.weed()
-
         _claims_restriction = _context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"
         )

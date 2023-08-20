@@ -96,7 +96,7 @@ class Token(Endpoint):
     ) -> Optional[Union[Message, TokenEndpointHelper]]:
         grant_type = request.get("grant_type")
         if grant_type:
-            _client_id = client_id or request.get("client_id")
+            client_id = client_id or request.get("client_id")
             if client_id:
                 client = self.upstream_get("context").cdb[client_id]
                 _grant_types_supported = client.get(

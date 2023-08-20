@@ -94,19 +94,22 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         logger.debug("All checks OK")
 
-        if resource_indicators_config is not None:
-            scope = req["scope"]
-        else:
-            scope = grant.scope
+        # scope를 전체로 넣어준다.
+        _allowed = _context.cdb[client_id]['allowed_scopes']
 
-        if "offline_access" in scope and "refresh_token" in _supports_minting:
+        # if resource_indicators_config is not None:
+        #     scope = req["scope"]
+        # else:
+        #     scope = grant.scope
+
+        if "offline_access" in _allowed and "refresh_token" in _supports_minting:
             issue_refresh = True
         else:
             issue_refresh = kwargs.get("issue_refresh", False)
 
         _response = {
             "token_type": token_type,
-            "scope": scope,
+            "scope": _allowed,
         }
 
         if "access_token" in _supports_minting:
@@ -124,6 +127,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
+                    scope=_allowed, #scope 반영
                     token_args=token_args,
                 )
             except MintingNotAllowed as err:
@@ -141,11 +145,14 @@ class AccessTokenHelper(TokenEndpointHelper):
                     session_id=_session_info["branch_id"],
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
+                    scope=_allowed
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
             else:
                 _response["refresh_token"] = refresh_token.value
+                _response["refresh_expires_in"] = 0
+                _response["not-before-policy"] = _response["expires_in"]
 
         # since the grant content has changed. Make sure it's stored
         _mngr[_session_info["branch_id"]] = grant

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="robots" content="noindex, nofollow">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sign in to Keycloak</title>
+  <!-- jquery -->
+  <script src="static/jquery-3.5.1.min.js"></script>
+  <!-- daisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@2.52.0/dist/full.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+  <div id="home" class="hero min-h-screen"
+    style="background-image: url('https://cdn.pixabay.com/photo/2016/11/29/09/16/architecture-1868667_1280.jpg');">
+    <div class="hero-overlay bg-opacity-60"></div>
+    <div class="hero-content text-center">
+      <div class="max-w-md">
+        <h1 class="text-5xl font-bold">GSMA Open Gateway Login</h1>
+        <p class="py-6">Sign in to your account</p>
+
+
+        <form class="form-control" id="login-form">
+          <div class="form-control">
+            <label class="input-group">
+              <span class="w-1/5">Username or email</span>
+              <input type="text" class="input input-bordered w-4/5" id="username" />
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="input-group">
+              <span class="w-1/5">Password</span>
+              <input type="password" class="input input-bordered w-4/5" id="password" autocomplete="off" />
+            </label>
+          </div>
+          <div class="flex">
+            <div class="flex w-1/3">
+              <div class="form-control">
+                <label class="label cursor-pointer">
+                  <span class="label-text">Remember me</span>
+                  <input type="checkbox" checked="checked" id="remember" class="checkbox checkbox-primary" />
+                </label>
+              </div>
+            </div>
+            <div class="flex w-1/3">
+            </div>
+            <div class="flex w-1/3">
+              <a href="" class="label-text">
+                Forgot Password?
+              </a>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="submit" valuer="submit">Sign In</button>
+        </form>
+        <div>
+          <span class="label-text">New user? </span><a href="" class="label-text">Register</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  window.addEventListener("load", function () {
+    const usernameCookie = getCookie("username");
+    if (usernameCookie) {
+      document.getElementById("username").value = decodeURIComponent(usernameCookie);
+      document.getElementById("remember").checked = true;
+    }
+  });
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+
+  document.getElementById("login-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const remember = document.getElementById("remember").checked;
+    const currentUrl = window.location.href;
+    // Perform login validation here (e.g., send data to a server)
+
+    if (remember) {
+      // Set a cookie to remember the user
+      const expirationDate = new Date();
+      expirationDate.setMonth(expirationDate.getMonth() + 1); // Cookie expires in 1 month
+      document.cookie = `username=${encodeURIComponent(username)};expires=${expirationDate.toUTCString()};path=/`;
+    }
+
+    // Perform actual login or redirect here
+    var token = btoa(username + ":" + password);
+
+    $.ajax({
+      url: currentUrl,
+      type: 'GET',
+      // data: JSON.stringify({ key: 'value' }),
+      // dataType: 'json',
+      headers: {
+        'Authorization': 'Basic '+token,
+      },
+      success: function (response) {
+        // 요청이 성공한 경우 처리할 코드
+        console.log(response);
+      },
+      error: function (error) {
+        // 요청이 실패한 경우 처리할 코드
+        console.error(error);
+      }
+    });
+  });
+
+
+</script>
+
+</html>

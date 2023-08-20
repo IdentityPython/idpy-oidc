@@ -35,7 +35,6 @@ def build_endpoints(conf, upstream_get, issuer):
     endpoint = {}
     for name, spec in conf.items():
         kwargs = spec.get("kwargs", {})
-
         # class can be a string (class path) or a class reference
         if isinstance(spec["class"], str):
             _instance = importer(spec["class"])(upstream_get=upstream_get, **kwargs)

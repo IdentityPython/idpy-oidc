@@ -1,5 +1,5 @@
-import base64
 import logging
+import base64
 from typing import Callable
 from typing import Dict
 from typing import Optional
@@ -21,10 +21,12 @@ from idpyoidc.server.exception import BearerTokenAuthenticationError
 from idpyoidc.server.exception import ClientAuthenticationError
 from idpyoidc.server.exception import InvalidClient
 from idpyoidc.server.exception import InvalidToken
-from idpyoidc.server.exception import ToOld
+# from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnknownClient
+
 from idpyoidc.util import importer
 from idpyoidc.util import sanitize
+from idpyoidc.util import check_token
 
 logger = logging.getLogger(__name__)
 
@@ -225,15 +227,23 @@ class BearerHeader(ClientSecretBasic):
         get_client_id_from_token: Optional[Callable] = None,
         **kwargs,
     ):
-        token = authorization_token.split(" ", 1)[1]
         _context = self.upstream_get("context")
-        try:
-            client_id = get_client_id_from_token(_context, token, request)
-        except ToOld:
-            raise BearerTokenAuthenticationError("Expired token")
-        except KeyError:
-            raise BearerTokenAuthenticationError("Unknown token")
-        return {"token": token, "client_id": client_id}
+        token = authorization_token.split(" ")[-1]
+
+        #여기를 수정함(db없이도 되고, 세션에 있는지 확인하는 기능을 없앰)
+        r=check_token(token, _context)
+        if r['active']:
+            return {"token": token, "client_id": r['client_id']}
+        else: 
+            raise BearerTokenAuthenticationError("Invalid token")
+
+        # try:
+        #     client_id = get_client_id_from_token(_context, token, request)
+        # except ToOld:
+        #     raise BearerTokenAuthenticationError("Expired token")
+        # except KeyError:
+        #     raise BearerTokenAuthenticationError("Unknown token")
+        # return {"token": token, "client_id": client_id}
 
 
 class BearerBody(ClientSecretPost):
@@ -262,10 +272,17 @@ class BearerBody(ClientSecretPost):
 
         res = {"token": _token}
         _context = self.upstream_get("context")
-        _client_id = get_client_id_from_token(_context, _token, request)
-        if _client_id:
-            res["client_id"] = _client_id
-        return res
+
+        # 여기를 수정함(db없이도 되고, 세션에 있는지 확인하는 기능을 없앰)
+        r = check_token(token, _context)
+        if r['active']:
+            return {"token": token, "client_id": r['client_id']}
+        else:
+            raise ClientAuthenticationError("Invalid token")
+        # _client_id = get_client_id_from_token(_context, _token, request)
+        # if _client_id:
+        #     res["client_id"] = _client_id
+        # return res
 
 
 class JWSAuthnMethod(ClientAuthnMethod):
@@ -284,54 +301,20 @@ class JWSAuthnMethod(ClientAuthnMethod):
         key_type: Optional[str] = None,
         **kwargs,
     ):
+
         _context = self.upstream_get("context")
-        _keyjar = self.upstream_get("attribute", "keyjar")
-        _jwt = JWT(_keyjar, msg_cls=JsonWebToken)
-        try:
-            ca_jwt = _jwt.unpack(request["client_assertion"])
-        except (Invalid, MissingKey, BadSignature) as err:
-            logger.info("%s" % sanitize(err))
+        token = request["client_assertion"]
+        # 여기를 수정함(db없이도 되고, 세션에 있는지 확인하는 기능을 없앰)
+        r = check_token(token, _context)
+        if not r['active']:
             raise ClientAuthenticationError("Could not verify client_assertion.")
 
-        _sign_alg = ca_jwt.jws_header.get("alg")
-        if _sign_alg and _sign_alg.startswith("HS"):
-            if key_type == "private_key":
-                raise AttributeError("Wrong key type")
-            keys = _keyjar.get("sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid"))
-            _secret = _context.cdb[ca_jwt["iss"]].get("client_secret")
-            if _secret and keys[0].key != as_bytes(_secret):
-                raise AttributeError("Oct key used for signing not client_secret")
-        else:
-            if key_type == "client_secret":
-                raise AttributeError("Wrong key type")
+        _payload =r['payload']
+        logger.debug(f"authntoken: {_payload}")
 
-        authtoken = sanitize(ca_jwt.to_dict())
-        logger.debug("authntoken: {}".format(authtoken))
-
-        if endpoint is None or not endpoint:
-            if _context.issuer in ca_jwt["aud"]:
-                pass
-            else:
-                raise InvalidToken("Not for me!")
-        else:
-            if set(ca_jwt["aud"]).intersection(endpoint.allowed_target_uris()):
-                pass
-            else:
-                raise InvalidToken("Not for me!")
-
-        # If there is a jti use it to make sure one-time usage is true
-        _jti = ca_jwt.get("jti")
-        if _jti:
-            _key = "{}:{}".format(ca_jwt["iss"], _jti)
-            if _key in _context.jti_db:
-                raise InvalidToken("Have seen this token once before")
-            else:
-                _context.jti_db[_key] = utc_time_sans_frac()
-
-        request[verified_claim_name("client_assertion")] = ca_jwt
-        client_id = kwargs.get("client_id") or ca_jwt["iss"]
-
-        return {"client_id": client_id, "jwt": ca_jwt}
+        request[verified_claim_name("client_assertion")] = _payload
+        client_id = r['client_id'] or kwargs.get("client_id")
+        return {"client_id": client_id, "jwt": _payload}
 
 
 class ClientSecretJWT(JWSAuthnMethod):
@@ -364,7 +347,6 @@ class PrivateKeyJWT(JWSAuthnMethod):
     """
 
     tag = "private_key_jwt"
-
     def _verify(
         self,
         request: Optional[Union[dict, Message]] = None,
@@ -462,7 +444,6 @@ def verify_client(
     :return: dictionary containing client id, client authentication method and
         possibly access token.
     """
-
     if http_info and "headers" in http_info:
         authorization_token = http_info["headers"].get("authorization")
         if not authorization_token:
@@ -480,6 +461,7 @@ def verify_client(
 
     _method = None
     for _method in (methods[meth] for meth in allowed_methods):
+        logger.debug("[client_authn] Verifying Auth using {} ".format(_method.tag))
         if not _method.is_usable(request=request, authorization_token=authorization_token):
             continue
         try:
@@ -545,7 +527,6 @@ def verify_client(
             _context.cdb[client_id]["auth_method"][_request_type] = auth_info["method"]
         else:
             _context.cdb[client_id]["auth_method"] = {_request_type: auth_info["method"]}
-
     return auth_info
 
 

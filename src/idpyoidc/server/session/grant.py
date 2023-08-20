@@ -203,7 +203,32 @@ class Grant(Item):
         :type item: SessionToken
         :return: dictionary containing information to place in a token value
         """
+
         payload = {}
+
+        # 여기 token 항목 추가 수정: client_id(base64), aud/azp, iis, sub, uid
+        # self.upstream_get("context").userinfo.db 이게 사용자 DB
+        # self.upstream_get("context").cdb 이게 client DB
+        # self.upstream_get("context").provider_info 이게 서버설정
+
+        user_id, client_id, _ = context.session_manager.decrypt_branch_id(session_id)
+
+        payload["aud"] = client_id
+
+        if claims_release_point == 'id_token':
+            payload["azp"] = client_id
+        else:
+            payload["client_id"] = client_id
+
+        if user_id not in ["client_credentials", "password", "authorization_code", "implicit",
+                           "urn:ietf:params:oauth:grant-type:jwt-bearer", "refresh_token"]:
+            payload['uid'] = user_id
+            try: payload['sub'] = context.userinfo.db.get(user_id)['sub']
+            except: pass
+
+        payload["iss"] = context.provider_info.get('issuer')
+        payload["jti"] = uuid1().hex
+
         for _in, _out in [("scope", "scope"), ("resources", "aud")]:
             _val = getattr(item, _in)
             if _val:
@@ -212,9 +237,7 @@ class Grant(Item):
                 _val = getattr(self, _in)
                 if _val:
                     payload[_out] = _val
-
-        payload["jti"] = uuid1().hex
-
+        
         if scope is None:
             scope = self.scope
         payload["scope"] = scope
@@ -240,7 +263,7 @@ class Grant(Item):
                 claims_release_point=claims_release_point,
                 secondary_identifier=secondary_identifier,
             )
-
+        
         if _claims_restriction and context.session_manager.node_type[0] == "user":
             user_id, _, _ = context.session_manager.decrypt_branch_id(session_id)
             user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction)

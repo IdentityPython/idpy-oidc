@@ -254,7 +254,7 @@ class EntityConfiguration(Base):
         )
 
         self.key_conf = conf.get("key_conf", conf.get("keys"))
-
+    
         for key in self.parameter.keys():
             _val = conf.get(key)
             if not _val:
@@ -293,7 +293,7 @@ class OPConfiguration(EntityConfiguration):
     parameter = EntityConfiguration.parameter.copy()
     parameter.update(
         {
-            "id_token": None,
+            "id_token": True,
             "login_hint2acrs": {},
             "login_hint_lookup": None,
             "oidc_clients": {},
@@ -415,9 +415,11 @@ DEFAULT_EXTENDED_CONF = {
         "subject_types_supported": ["public", "pairwise"],
         "grant_types_supported": [
             "authorization_code",
-            # "implicit",
+            "implicit",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
             "refresh_token",
+            "client_credentials",
+            "password",
         ],
     },
     "scopes_handler": {"class": "idpyoidc.server.scopes.Scopes"},
@@ -486,13 +488,13 @@ DEFAULT_EXTENDED_CONF = {
                 "request_uri_parameter_supported": True,
                 "response_types_supported": [
                     "code",
-                    # "token",
+                    "token",
                     "id_token",
-                    # "code token",
+                    "code token",
                     "code id_token",
-                    # "id_token token",
-                    # "code id_token token",
-                    # "none"
+                    "id_token token",
+                    "code id_token token",
+                    "none"
                 ],
                 "response_modes_supported": ["query", "fragment", "form_post"],
             },
