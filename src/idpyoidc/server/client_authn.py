@@ -123,7 +123,7 @@ class NoneAuthn(ClientAuthnMethod):
         endpoint=None,  # Optional[Endpoint]
         **kwargs,
     ):
-        return {"client_id": request.get("client_id")}
+        return {"client_id": request.get("client_id"), "token": authorization_token}
 
 
 class PublicAuthn(ClientAuthnMethod):
