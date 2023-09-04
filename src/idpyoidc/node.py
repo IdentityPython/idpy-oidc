@@ -165,8 +165,14 @@ class Unit(ImpExp):
             else:
                 return None
         else:
-            if val is None and self.upstream_get:
-                return self.upstream_get("attribute", attr)
+            if val is None:
+                cntx = getattr(self, 'context')
+                if cntx:
+                    val = getattr(cntx, attr)
+                    if val:
+                        return val
+                if self.upstream_get:
+                    return self.upstream_get("attribute", attr)
             else:
                 return val
 

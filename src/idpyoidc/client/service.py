@@ -591,8 +591,10 @@ class Service(ImpExp):
         LOGGER.debug("response format: %s", sformat)
 
         resp = None
+        _jws = _jwe = None
         if sformat == "jose":  # can be jwe, jws or json
             # the checks for JWS and JWE will be replaced with functions from cryptojwt
+            _jws = info
             try:
                 if jws_factory(info):
                     info = self._do_jwt(info)
@@ -608,12 +610,14 @@ class Service(ImpExp):
         elif sformat == "jwe":
             _keyjar = self.upstream_get("attribute", "keyjar")
             _client_id = self.upstream_get("attribute", "client_id")
+            _jwe = info
             resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":
             info = self.get_urlinfo(info)
         elif sformat in ["jwt", "jws"]:
+            _jws = info
             info = self._do_jwt(info)
             sformat = "dict"
         elif sformat == "json":
@@ -648,11 +652,17 @@ class Service(ImpExp):
                 LOGGER.error("Got exception while verifying response: %s", err)
                 raise
 
+            if _jws:
+                resp._jws = _jws
+            elif _jwe:
+                resp._jwe = _jwe
+
             resp = self.post_parse_response(resp, state=state)
 
         if not resp:
             LOGGER.error("Missing or faulty response")
             raise ResponseError("Missing or faulty response")
+
 
         return resp
 
