@@ -141,6 +141,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                 keyjar=self.keyjar,
                 upstream_get=self.unit_get,
                 client_type=client_type,
+                entity_id=self.entity_id
             )
 
         self.setup_client_authn_methods(config)

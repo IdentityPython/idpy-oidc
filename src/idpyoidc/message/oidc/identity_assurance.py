@@ -5,6 +5,8 @@ import json
 from cryptojwt.utils import importer
 
 from idpyoidc.message import Message
+from idpyoidc.message import msg_list_ser
+from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_ANY_LIST
 from idpyoidc.message import OPTIONAL_LIST_OF_MESSAGES
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
@@ -13,17 +15,15 @@ from idpyoidc.message import SINGLE_OPTIONAL_ANY
 from idpyoidc.message import SINGLE_OPTIONAL_INT
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import msg_list_ser
-from idpyoidc.message import msg_ser
 from idpyoidc.message.oauth2 import error_chars
 from idpyoidc.message.oidc import AddressClaim
-from idpyoidc.message.oidc import ClaimsRequest
-from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
-from idpyoidc.message.oidc import OpenIDSchema
-from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
 from idpyoidc.message.oidc import claims_request_deser
+from idpyoidc.message.oidc import ClaimsRequest
 from idpyoidc.message.oidc import deserialize_from_one_of
 from idpyoidc.message.oidc import msg_ser_json
+from idpyoidc.message.oidc import OpenIDSchema
+from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
+from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
 
 
 class PlaceOfBirth(Message):
@@ -346,6 +346,7 @@ class CheckDetails(Message):
 def check_details_deser(val, sformat="urlencoded"):
     return deserialize_from_one_of(val, CheckDetails, sformat)
 
+
 def check_details_list_deser(val, sformat="json"):
     return [check_details_deser(v, sformat) for v in val]
 
@@ -365,12 +366,14 @@ class DocumentDetails(Message):
         "issuer": REQUIRED_ISSUER,
     }
 
+
 def document_details_deser(val, sformat="urlencoded"):
     return deserialize_from_one_of(val, Document, sformat)
 
 
 REQUIRED_DOCUMENT_DETAILS = (DocumentDetails, True, msg_ser, document_details_deser, False)
 OPTIONAL_DOCUMENT_DETAILS = (DocumentDetails, False, msg_ser, document_details_deser, False)
+
 
 # ------------------------------------------------------------------------------
 
@@ -672,6 +675,24 @@ class VerifiedClaims(Message):
             self['claims'].verify()
 
 
+def verified_claims_deser(val, sformat="json"):
+    if isinstance(val, Message):
+        val = VerifiedClaims()
+        val.from_dict(val.to_dict())
+        return val
+    elif sformat in ["dict", "json"]:
+        if isinstance(val, dict):
+            return VerificationElement(**val)
+
+        if not isinstance(val, str):
+            val = json.dumps(val)
+            sformat = "json"
+
+        return VerifiedClaims().deserialize(val, sformat)
+
+
+REQUIRED_VERIFIED_CLAIMS = (VerifiedClaims, False, msg_ser, verified_claims_deser, False)
+
 # ============================================================================================
 
 SINGLE_OPTIONAL_CLAIMSREQ = (ClaimsRequest, False, msg_ser_json, claims_request_deser, False)
@@ -753,6 +774,7 @@ OPTIONAL_VERIFICATION_ELEMENT_REQUEST = (
     True,
 )
 
+
 class IDAClaimsRequest(ClaimsRequest):
 
     def verify(self, **kwargs):
@@ -813,6 +835,7 @@ class ClaimsConstructor:
 
 
 class ClaimsDeconstructor():
+
     def __init__(self, base_class=Message, **kwargs):
         if isinstance(base_class, str):
             self.base_class = importer(base_class)()

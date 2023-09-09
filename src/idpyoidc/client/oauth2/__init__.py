@@ -68,6 +68,9 @@ class Client(Entity):
         :return: Client instance
         """
 
+        if config is None:
+            config = {}
+
         if client_type:
             self.client_type = client_type
         elif config and 'client_type' in config:

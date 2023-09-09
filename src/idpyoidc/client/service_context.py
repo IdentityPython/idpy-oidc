@@ -135,7 +135,10 @@ class ServiceContext(ImpExp):
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 
-        self.entity_id = config.conf.get("client_id", "")
+        if "client_id" in kwargs:
+            self.entity_id = kwargs["entity_id"]
+        else:
+            self.entity_id = config.conf.get("client_id", "")
         self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
