@@ -502,9 +502,11 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             _args = {}
 
+        _client_id = kwargs.get("client_id", _entity.client_id)
+
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
-        return assertion_jwt(_entity.client_id, signing_key, audience, algorithm, **_args)
+        return assertion_jwt(_client_id, signing_key, audience, algorithm, **_args)
 
     def modify_request(self, request, service, **kwargs):
         """
