@@ -24,6 +24,7 @@ class Token(token.Token):
     endpoint_name = "token_endpoint"
     name = "token"
     default_capabilities = None
+    endpoint_type = "oidc"
 
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,

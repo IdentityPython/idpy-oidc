@@ -124,6 +124,7 @@ class Registration(Endpoint):
     response_format = "json"
     endpoint_name = "registration_endpoint"
     name = "registration"
+    endpoint_type = "oidc"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

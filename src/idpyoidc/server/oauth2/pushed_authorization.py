@@ -17,6 +17,7 @@ class PushedAuthorization(Authorization):
     response_placement = "body"
     response_format = "json"
     name = "pushed_authorization"
+    endpoint_type = "oauth2"
 
     def __init__(self, upstream_get, **kwargs):
         Authorization.__init__(self, upstream_get, **kwargs)

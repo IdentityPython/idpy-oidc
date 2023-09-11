@@ -35,6 +35,7 @@ class BackChannelAuthentication(Endpoint):
     response_placement = "url"
     endpoint_name = "backchannel_authentication_endpoint"
     name = "backchannel_authentication"
+    endpoint_type = "oidc"
 
     _supports = {
         "backchannel_token_delivery_modes_supported": ["poll", "ping", "push"],

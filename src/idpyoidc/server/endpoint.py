@@ -84,6 +84,7 @@ class Endpoint(Node):
     error_cls = ResponseMessage
     endpoint_name = ""
     endpoint_path = ""
+    endpoint_type = ""
     name = ""
     request_format = "urlencoded"
     request_placement = "query"
