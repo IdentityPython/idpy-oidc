@@ -8,8 +8,8 @@ from typing import Union
 from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
-from idpyoidc import metadata
 
+from idpyoidc import metadata
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -30,6 +30,8 @@ class UserInfo(Endpoint):
     response_placement = "body"
     endpoint_name = "userinfo_endpoint"
     name = "userinfo"
+    endpoint_type = "oidc"
+
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
         "encrypt_userinfo_supported": True,

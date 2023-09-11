@@ -76,6 +76,7 @@ class Authorization(authorization.Authorization):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
+    endpoint_type = "oidc"
 
     _supports = {
         **authorization.Authorization._supports,

@@ -12,6 +12,7 @@ class ServerMetadata(Endpoint):
     request_format = ""
     response_format = "json"
     name = "server_metadata"
+    endpoint_type = "oauth2"
 
     def __init__(self, upstream_get, **kwargs):
         Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)

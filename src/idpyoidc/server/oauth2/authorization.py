@@ -98,6 +98,7 @@ def verify_uri(
     request: Union[dict, Message],
     uri_type: str,
     client_id: Optional[str] = None,
+    endpoint_type: Optional[str] = 'oidc'
 ):
     """
     A redirect URI
@@ -139,7 +140,8 @@ def verify_uri(
         redirect_uris = client_info.get(f"{uri_type}")
 
     if redirect_uris is None:
-        raise RedirectURIError(f"No registered {uri_type} for {_cid}")
+        if endpoint_type == "oidc":
+            raise RedirectURIError(f"No registered {uri_type} for {_cid}")
     else:
         match = False
         for _item in redirect_uris:
@@ -195,7 +197,10 @@ def join_query(base, query):
         return base
 
 
-def get_uri(context, request, uri_type):
+def get_uri(context,
+            request: Union[Message, dict],
+            uri_type: str,
+            endpoint_type: Optional[str] = "oidc"):
     """verify that the redirect URI is reasonable.
 
     :param context: An EndpointContext instance
@@ -206,7 +211,7 @@ def get_uri(context, request, uri_type):
     uri = ""
 
     if uri_type in request:
-        verify_uri(context, request, uri_type)
+        verify_uri(context, request, uri_type,endpoint_type=endpoint_type)
         uri = request[uri_type]
     else:
         uris = f"{uri_type}s"
@@ -341,6 +346,7 @@ class Authorization(Endpoint):
     response_placement = "url"
     endpoint_name = "authorization_endpoint"
     name = "authorization"
+    endpoint_type = "oauth2"
 
     _supports = {
         "claims_parameter_supported": True,
@@ -509,7 +515,7 @@ class Authorization(Endpoint):
 
         # Get a verified redirect URI
         try:
-            redirect_uri = get_uri(context, request, "redirect_uri")
+            redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type)
         except (RedirectURIError, ParameterError) as err:
             return self.authentication_error_response(
                 request,
@@ -977,7 +983,7 @@ class Authorization(Endpoint):
         logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
 
         try:
-            redirect_uri = get_uri(_context, request, "redirect_uri")
+            redirect_uri = get_uri(_context, request, "redirect_uri", self.endpoint_type)
         except (RedirectURIError, ParameterError) as err:
             return self.error_response(
                 response_info, request, "invalid_request", "{}".format(err.args)

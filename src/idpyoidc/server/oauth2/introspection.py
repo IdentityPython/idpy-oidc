@@ -19,6 +19,7 @@ class Introspection(Endpoint):
     request_format = "urlencoded"
     response_format = "json"
     endpoint_name = "introspection_endpoint"
+    endpoint_type = "oauth2"
     name = "introspection"
     _supports = {
         "client_authn_method": [

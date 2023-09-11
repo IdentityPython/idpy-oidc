@@ -27,6 +27,7 @@ class Token(token.Token):
     endpoint_name = "token_endpoint"
     name = "token"
     default_capabilities = None
+    endpoint_type = "oidc"
 
     _supports = {
         "token_endpoint_auth_methods_supported": [

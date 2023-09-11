@@ -22,7 +22,9 @@ class TokenRevocation(Endpoint):
     response_format = "text"
     response_body_type = "text"
     endpoint_name = "revocation_endpoint"
+    endpoint_type = "oauth2"
     name = "token_revocation"
+
     default_capabilities = {
         "client_authn_method": [
             "client_secret_basic",

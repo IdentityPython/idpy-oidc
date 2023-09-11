@@ -34,6 +34,7 @@ class Token(Endpoint):
     name = "token"
     default_capabilities = {"token_endpoint_auth_signing_alg_values_supported": None}
     token_exchange_helper = TokenExchangeHelper
+    endpoint_type = "oauth2"
 
     helper_by_grant_type = {
         "authorization_code": AccessTokenHelper,

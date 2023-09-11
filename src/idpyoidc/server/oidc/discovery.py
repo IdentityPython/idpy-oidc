@@ -12,6 +12,7 @@ class Discovery(Endpoint):
     request_format = "urlencoded"
     response_format = "json"
     name = "discovery"
+    endpoint_type = "oidc"
 
     def do_response(self, response_args=None, request=None, **kwargs):
         """

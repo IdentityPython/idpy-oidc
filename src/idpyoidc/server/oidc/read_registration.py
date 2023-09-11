@@ -13,6 +13,7 @@ class RegistrationRead(Endpoint):
     request_placement = "url"
     response_format = "json"
     name = "registration_read"
+    endpoint_type = "oidc"
 
     def get_client_id_from_token(self, context, token, request=None):
         if "client_id" in request:

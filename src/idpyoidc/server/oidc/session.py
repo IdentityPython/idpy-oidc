@@ -80,6 +80,7 @@ class Session(Endpoint):
     response_placement = "url"
     endpoint_name = "end_session_endpoint"
     name = "session"
+    endpoint_type = "oidc"
 
     _supports = {
         "frontchannel_logout_supported": True,
