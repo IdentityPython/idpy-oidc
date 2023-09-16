@@ -80,10 +80,10 @@ def make_keyjar(
                 keyjar = KeyJar()
                 keyjar.add_symmetric(client_id, _key)
                 keyjar.add_symmetric("", _key)
-        else:
-            keyjar = build_keyjar(DEFAULT_KEY_DEFS)
-            if issuer_id:
-                keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
+        # else:
+        #     keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+        #     if issuer_id:
+        #         keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
 
     return keyjar
 
