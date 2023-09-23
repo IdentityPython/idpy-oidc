@@ -147,7 +147,7 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     # The signature of the JWS is verified, now for checking the
     # content
 
-    if _dpop["htu"] != _http_info["url"]:
+    if _dpop["htu"] != _http_info["url"].split('?')[0]:
         raise ValueError("htu in DPoP does not match the HTTP URI")
 
     if _dpop["htm"] != _http_info["method"]:
@@ -209,8 +209,8 @@ def add_support(endpoint: dict, **kwargs):
 class DPoPClientAuth(BearerHeader):
     tag = "dpop_client_auth"
 
-    def is_usable(self, request=None, authorization_info=None, http_headers=None):
-        if authorization_info is not None and authorization_info.startswith("DPoP "):
+    def is_usable(self, request=None, authorization_token=None, http_headers=None):
+        if authorization_token is not None and authorization_token.startswith("DPoP "):
             return True
         return False
 
@@ -226,9 +226,4 @@ class DPoPClientAuth(BearerHeader):
         info = BearerHeader._verify(
             self, request, authorization_token, endpoint, get_client_id_from_token, **kwargs
         )
-        _context = self.upstream_get("context")
-        return {"client_id": ""}
-        # if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
-        #     return {"client_id": client_info["id"]}
-        # else:
-        #     raise ClientAuthenticationError()
+        return info

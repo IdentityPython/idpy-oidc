@@ -147,7 +147,7 @@ class UserInfo(Endpoint):
             )
             allowed = False
 
-            # This has to be made more fine grained.
+            # This has to be made more finegrained.
             # if "offline_access" in session["authn_req"]["scope"]:
             #     pass
 
