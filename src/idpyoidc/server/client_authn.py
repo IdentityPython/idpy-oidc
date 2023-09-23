@@ -227,12 +227,14 @@ class BearerHeader(ClientSecretBasic):
     ):
         token = authorization_token.split(" ", 1)[1]
         _context = self.upstream_get("context")
-        try:
-            client_id = get_client_id_from_token(_context, token, request)
-        except ToOld:
-            raise BearerTokenAuthenticationError("Expired token")
-        except KeyError:
-            raise BearerTokenAuthenticationError("Unknown token")
+        client_id = ""
+        if get_client_id_from_token:
+            try:
+                client_id = get_client_id_from_token(_context, token, request)
+            except ToOld:
+                raise BearerTokenAuthenticationError("Expired token")
+            except KeyError:
+                raise BearerTokenAuthenticationError("Unknown token")
         return {"token": token, "client_id": client_id}
 
 

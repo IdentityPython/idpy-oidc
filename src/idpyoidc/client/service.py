@@ -384,8 +384,9 @@ class Service(ImpExp):
         )
 
         _authz = _headers.get("Authorization")
-        if _authz and _authz.startswith("Bearer"):
-            kwargs["token"] = _authz.split(" ")[1]
+        if _authz:
+            if _authz.startswith("Bearer") or _authz.startswith("DPoP"):
+                kwargs["token"] = _authz.split(" ")[1]
 
         for meth in self.construct_extra_headers:
             _headers = meth(

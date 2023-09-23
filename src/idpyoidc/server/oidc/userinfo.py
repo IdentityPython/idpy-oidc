@@ -135,16 +135,33 @@ class UserInfo(Endpoint):
         if token.is_active() is False:
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
-        _cntxt = self.upstream_get("context")
-        _claims_restriction = _cntxt.claims_interface.get_claims(
-            _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
-        )
-        info = _cntxt.claims_interface.get_user_claims(
-            _session_info["user_id"], claims_restriction=_claims_restriction
-        )
-        info["sub"] = _grant.sub
-        if _grant.add_acr_value("userinfo"):
-            info["acr"] = _grant.authentication_event["authn_info"]
+        allowed = True
+        _auth_event = _grant.authentication_event
+        # if the authentication is still active or offline_access is granted.
+        if not _auth_event["valid_until"] >= utc_time_sans_frac():
+            logger.debug(
+                "authentication not valid: {} > {}".format(
+                    datetime.fromtimestamp(_auth_event["valid_until"]),
+                    datetime.fromtimestamp(utc_time_sans_frac()),
+                )
+            )
+            allowed = False
+
+            # This has to be made more fine grained.
+            # if "offline_access" in session["authn_req"]["scope"]:
+            #     pass
+
+        if allowed:
+            _cntxt = self.upstream_get("context")
+            _claims_restriction = _cntxt.claims_interface.get_claims(
+                _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
+            )
+            info = _cntxt.claims_interface.get_user_claims(
+                _session_info["user_id"], claims_restriction=_claims_restriction
+            )
+            info["sub"] = _grant.sub
+            if _grant.add_acr_value("userinfo"):
+                info["acr"] = _grant.authentication_event["authn_info"]
 
         if "userinfo" in _cntxt.cdb[request["client_id"]]:
             self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
