@@ -268,7 +268,9 @@ def authn_args_gather(
 
 
 def check_unknown_scopes_policy(request_info, client_id, context):
-    if not context.get_preference("deny_unknown_scopes"):
+    cinfo = context.cdb.get(client_id, {})
+    deny_unknown_scopes = cinfo.get("deny_unknown_scopes", context.get_preference("deny_unknown_scopes"))
+    if not deny_unknown_scopes:
         return
 
     scope = request_info["scope"]
