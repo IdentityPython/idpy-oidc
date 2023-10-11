@@ -339,6 +339,11 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     request["scope"] = scopes
     return request
 
+def optional_validate_resource_indicators_policy(request, context, **kwargs):
+    if "resource" not in request:
+        return request
+
+    return validate_resource_indicators_policy(request, context, **kwargs)
 
 class Authorization(Endpoint):
     request_cls = oauth2.AuthorizationRequest
