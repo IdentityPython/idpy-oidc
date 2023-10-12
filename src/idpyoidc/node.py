@@ -3,10 +3,8 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
-from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 
-from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import instantiate
@@ -51,7 +49,7 @@ def make_keyjar(
         key_conf: Optional[dict] = None,
         issuer_id: Optional[str] = "",
         client_id: Optional[str] = "",
-    ):
+):
     if keyjar is False:
         return None
 
