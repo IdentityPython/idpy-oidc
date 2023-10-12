@@ -132,7 +132,7 @@ class Claims(ImpExp):
         return None
 
     def get_jwks(self, keyjar):
-        return None
+        return keyjar.export_jwks()
 
     def handle_keys(self, configuration: dict, keyjar: Optional[KeyJar] = None):
         _jwks = _jwks_uri = None
