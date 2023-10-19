@@ -1,7 +1,6 @@
 import logging
 
-from idpyoidc import claims
-
+from idpyoidc import metadata
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import TokenErrorResponse
@@ -40,7 +39,8 @@ class Token(token.Token):
             "client_secret_jwt",
             "private_key_jwt",
         ],
-        "token_endpoint_auth_signing_alg_values_supported": claims.get_signing_algs,
+        "token_endpoint_auth_signing_alg_values_supported": metadata.get_signing_algs(),
+        "grant_types_supported": list(helper_by_grant_type.keys())
     }
 
     token_exchange_helper = TokenExchangeHelper

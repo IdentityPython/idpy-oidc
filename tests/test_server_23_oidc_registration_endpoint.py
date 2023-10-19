@@ -77,7 +77,7 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
-            "capabilities": {
+            "preference": {
                 "subject_types_supported": ["public", "pairwise", "ephemeral"],
                 "grant_types_supported": [
                     "authorization_code",
