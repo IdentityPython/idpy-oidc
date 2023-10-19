@@ -588,6 +588,38 @@ class TestEndpoint(object):
         assert excp
         assert isinstance(excp, UnAuthorizedClientScope)
 
+    def test_setup_auth_invalid_scope_2(self):
+        request = AuthorizationRequest(
+            client_id="client_id",
+            redirect_uri="https://rp.example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid THAT-BLOODY_SCOPE",
+        )
+        cinfo = {
+            "client_id": "client_id",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "RS256",
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
+            "deny_unknown_scopes": True
+        }
+
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = cinfo
+
+        kaka = _context.cookie_handler.make_cookie_content("value", "sso")
+
+        # force to 400 Http Error message if the release scope policy is heavy!
+        _context.set_preference("deny_unknown_scopes", False)
+        excp = None
+        try:
+            res = self.endpoint.process_request(request, http_info={"headers": {"cookie": [kaka]}})
+        except UnAuthorizedClientScope as e:
+            excp = e
+        assert excp
+        assert isinstance(excp, UnAuthorizedClientScope)
+
     def test_setup_auth_user(self):
         request = AuthorizationRequest(
             client_id="client_id",
