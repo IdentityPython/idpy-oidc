@@ -26,6 +26,12 @@ class Token(token.Token):
     name = "token"
     default_capabilities = None
 
+    helper_by_grant_type = {
+        "authorization_code": AccessTokenHelper,
+        "refresh_token": RefreshTokenHelper,
+        "urn:ietf:params:oauth:grant-type:token-exchange": TokenExchangeHelper,
+    }
+
     _supports = {
         "token_endpoint_auth_methods_supported": [
             "client_secret_post",
@@ -33,7 +39,8 @@ class Token(token.Token):
             "client_secret_jwt",
             "private_key_jwt",
         ],
-        "token_endpoint_auth_signing_alg_values_supported": claims.get_signing_algs,
+        "token_endpoint_auth_signing_alg_values_supported": claims.get_signing_algs(),
+        "grant_types_supported": list(helper_by_grant_type.keys())
     }
 
     helper_by_grant_type = {

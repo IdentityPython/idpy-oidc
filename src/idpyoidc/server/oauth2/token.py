@@ -189,4 +189,4 @@ class Token(Endpoint):
         return resp
 
     def supports(self):
-        return {"grant_types_supported": list(self.grant_type_helper.keys())}
+        return self._supports
