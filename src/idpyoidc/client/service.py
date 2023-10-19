@@ -8,9 +8,11 @@ from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
 
+from cryptojwt.exception import IssuerNotFound
 from cryptojwt.jwe.jwe import factory as jwe_factory
 from cryptojwt.jws.jws import factory as jws_factory
 from cryptojwt.jwt import JWT
+from idpyoidc.exception import MissingSigningKey
 
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
@@ -650,6 +652,16 @@ class Service(ImpExp):
             try:
                 # verify the message. If something is wrong an exception is thrown
                 resp.verify(**vargs)
+            except MissingSigningKey as err:
+                LOGGER.error(f"Could not find an appropriate key: {err}")
+                _keyjar = self.upstream_get("attribute", "keyjar")
+                try:
+                    LOGGER.debug(f"[{self.upstream_get('entity').client_id}] Available keys for"
+                                 f" {vargs['iss']}:"
+                                 f" {_keyjar.key_summary(vargs['iss'])}")
+                except IssuerNotFound:
+                    LOGGER.debug(f"Issuer not found in keyjar: {vargs['iss']}")
+                raise
             except Exception as err:
                 LOGGER.error("Got exception while verifying response: %s", err)
                 raise

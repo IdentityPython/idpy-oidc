@@ -208,13 +208,8 @@
             "request_uri_parameter_supported": true,
             "response_types_supported": [
               "code",
-              "token",
               "id_token",
-              "code token",
-              "code id_token",
-              "id_token token",
-              "code id_token token",
-              "none"
+              "code id_token"
             ],
             "response_modes_supported": [
               "query",

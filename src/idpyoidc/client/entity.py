@@ -216,4 +216,4 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         return _keyjar
 
     def get_callback_uris(self):
-        return self.context.claims.callback_uri
+        return self.context.claims.get_preference("callback_uris")

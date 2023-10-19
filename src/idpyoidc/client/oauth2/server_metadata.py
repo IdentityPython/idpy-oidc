@@ -121,17 +121,29 @@ class ServerMetadata(Service):
         try:
             _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar is None:
+                LOGGER.debug("No existing KeyJar")
                 _keyjar = KeyJar()
         except KeyError:
             _keyjar = KeyJar()
 
+        _hp = self.upstream_get('entity').httpc_params
+        if "verify" in _hp and "verify" not in _keyjar.httpc_params:
+            _keyjar.httpc_params["verify"] = _hp["verify"]
+
         # Load the keys. Note that this only means that the key specification
         # is loaded not necessarily that any keys are fetched.
         if "jwks_uri" in resp:
+            LOGGER.debug(f"'jwks_uri' in provider info: {resp['jwks_uri']}")
             _keyjar.load_keys(_pcr_issuer, jwks_uri=resp["jwks_uri"])
         elif "jwks" in resp:
+            LOGGER.debug("'jwks' in provider info")
             _keyjar.load_keys(_pcr_issuer, jwks=resp["jwks"])
+        else:
+            LOGGER.debug("Neither jws or jwks_uri in provider info")
 
+        LOGGER.debug(f"loaded keys for: {_pcr_issuer}")
+        LOGGER.debug(f"keys = {_keyjar.key_summary(_pcr_issuer)}")
+        LOGGER.debug(f"{_keyjar}")
         # Combine what I prefer/supports with what the Provider supports
         if isinstance(resp, Message):
             _info = resp.to_dict()
