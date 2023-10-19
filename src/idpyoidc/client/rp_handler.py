@@ -186,6 +186,7 @@ class RPHandler(object):
         if self.jwks_uri:
             _cnf["jwks_uri"] = self.jwks_uri
 
+        logger.debug(f"config: {_cnf}")
         try:
             client = self.client_cls(
                 services=_services,

@@ -39,7 +39,7 @@
     "server_info": {
       "add_on": {
         "pkce": {
-          "function": "idpyoidc.server.oidc.add_on.pkce.add_pkce_support",
+          "function": "idpyoidc.server.oauth2.add_on.pkce.add_support",
           "kwargs": {
             "essential": false,
             "code_challenge_method": "S256 S384 S512"
@@ -208,13 +208,8 @@
             "request_uri_parameter_supported": true,
             "response_types_supported": [
               "code",
-              "token",
               "id_token",
-              "code token",
-              "code id_token",
-              "id_token token",
-              "code id_token token",
-              "none"
+              "code id_token"
             ],
             "response_modes_supported": [
               "query",

@@ -168,6 +168,8 @@ class Client(Entity):
 
         if 300 <= resp.status_code < 400:
             return {"http_response": resp}
+        elif resp.status_code >= 400:
+            logger.error(f"HTTP error: {resp}")
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
@@ -333,6 +335,7 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     except KeyError:
         pass
 
+    logger.debug(f"{service}")
     response = client.do_request(service, behaviour_args=behaviour_args)
     if is_error_message(response):
         raise OidcServiceError(response["error"])
