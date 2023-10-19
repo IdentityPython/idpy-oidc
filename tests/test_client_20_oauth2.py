@@ -2,9 +2,9 @@ import os
 import sys
 import time
 
+import pytest
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
-import pytest
 
 from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.exception import OidcServiceError

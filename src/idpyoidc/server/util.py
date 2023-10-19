@@ -2,6 +2,7 @@ import json
 import logging
 
 from idpyoidc.util import importer
+
 from .exception import OidcEndpointError
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,11 @@
-from copy import copy
-from copy import deepcopy
 import io
 import json
 import os
+from copy import copy
+from copy import deepcopy
 
-from cryptojwt.key_jar import build_keyjar
 import yaml
+from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration

@@ -7,8 +7,8 @@ from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
-from idpyoidc.time_util import time_sans_frac
 from idpyoidc.metadata import get_signing_algs
+from idpyoidc.time_util import time_sans_frac
 
 LOGGER = logging.getLogger(__name__)
 

@@ -10,6 +10,7 @@ from cryptojwt.utils import as_unicode
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.util import importer
+
 from . import DefaultToken
 from . import Token
 from . import UnknownToken

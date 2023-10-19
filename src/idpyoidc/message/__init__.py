@@ -1016,8 +1016,10 @@ def any_ser(val, sformat="urlencoded"):
     else:
         raise ValueError("Can't serialize this type of data")
 
+
 def ser_any_list(val, sformat):
     return [any_ser(v, sformat) for v in val]
+
 
 def any_deser(val, sformat="urlencoded"):
     if isinstance(val, dict):
@@ -1026,6 +1028,7 @@ def any_deser(val, sformat="urlencoded"):
         return [msg_deser(v, sformat) for v in val]
     else:
         raise ValueError("Can't deserialize this type of data")
+
 
 def deser_any_list(val, sformat):
     return [any_deser(v, sformat) for v in val]

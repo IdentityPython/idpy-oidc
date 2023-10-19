@@ -14,7 +14,6 @@ BASE_URL = "https://example.com"
 
 
 class TestRPHandler(object):
-
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL)
@@ -37,17 +36,18 @@ class TestRPHandler(object):
         _context = client.get_context()
 
         assert set(_context.claims.prefer.keys()) == {
-            'application_type',
-            'callback_uris',
-            'id_token_encryption_alg_values_supported',
-            'id_token_encryption_enc_values_supported',
-            'jwks_uri',
-            'redirect_uris',
-            'request_object_encryption_alg_values_supported',
-            'request_object_encryption_enc_values_supported',
-            'scopes_supported',
-            'userinfo_encryption_alg_values_supported',
-            'userinfo_encryption_enc_values_supported'}
+            "application_type",
+            "callback_uris",
+            "id_token_encryption_alg_values_supported",
+            "id_token_encryption_enc_values_supported",
+            "jwks_uri",
+            "redirect_uris",
+            "request_object_encryption_alg_values_supported",
+            "request_object_encryption_enc_values_supported",
+            "scopes_supported",
+            "userinfo_encryption_alg_values_supported",
+            "userinfo_encryption_enc_values_supported",
+        }
 
         _keyjar = client.get_attribute("keyjar")
         assert list(_keyjar.owners()) == ["", BASE_URL]

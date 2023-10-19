@@ -34,8 +34,7 @@ class AccessToken(access_token.AccessToken):
         access_token.AccessToken.__init__(self, upstream_get, conf=conf)
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()

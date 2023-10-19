@@ -13,9 +13,9 @@ from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
-from idpyoidc import metadata
 
 from idpyoidc import claims
+from idpyoidc import metadata
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -40,10 +40,9 @@ from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import split_uri
-from idpyoidc.util import importer
-
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +269,9 @@ def authn_args_gather(
 
 def check_unknown_scopes_policy(request_info, client_id, context):
     cinfo = context.cdb.get(client_id, {})
-    deny_unknown_scopes = cinfo.get("deny_unknown_scopes", context.get_preference("deny_unknown_scopes"))
+    deny_unknown_scopes = cinfo.get(
+        "deny_unknown_scopes", context.get_preference("deny_unknown_scopes")
+    )
     if not deny_unknown_scopes:
         return
 

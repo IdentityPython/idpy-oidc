@@ -213,7 +213,7 @@ class Authorization(authorization.Authorization):
         return _webname
 
     def construct_request_parameter(
-            self, req, request_param, audience=None, expires_in=0, **kwargs
+        self, req, request_param, audience=None, expires_in=0, **kwargs
     ):
         """Construct a request parameter"""
         alg = self.get_request_object_signing_alg(**kwargs)
@@ -319,8 +319,7 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -377,15 +376,15 @@ class Authorization(authorization.Authorization):
         elif typ == "form_post":
             if typ in context.get_preference("response_modes_supported"):
                 return "form_post"
-        return ''
+        return ""
 
     def construct_uris(
-            self,
-            base_url: str,
-            hex: bytes,
-            context: ServiceContext,
-            targets: Optional[List[str]] = None,
-            response_types: Optional[List[str]] = None,
+        self,
+        base_url: str,
+        hex: bytes,
+        context: ServiceContext,
+        targets: Optional[List[str]] = None,
+        response_types: Optional[List[str]] = None,
     ):
         _callback_uris = context.get_preference("callback_uris", {})
 

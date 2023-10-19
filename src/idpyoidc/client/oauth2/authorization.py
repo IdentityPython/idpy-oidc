@@ -102,14 +102,14 @@ class Authorization(Service):
         elif flow_type == "fragment":
             if implicit_response_types(response_types):
                 return "fragment"
-        elif flow_type == 'form_post':
-            rm = context.get_preference('response_modes_supported')
-            if rm and 'form_post' in rm:
+        elif flow_type == "form_post":
+            rm = context.get_preference("response_modes_supported")
+            if rm and "form_post" in rm:
                 if context.config.conf.get("separate_form_post_cb", True):
                     return "form_post"
                 else:
                     return "query"
-        return ''
+        return ""
 
     def _do_redirect_uris(self, base_url, hex, context, callback_uris, response_types):
         _redirect_uris = context.get_preference("redirect_uris", [])

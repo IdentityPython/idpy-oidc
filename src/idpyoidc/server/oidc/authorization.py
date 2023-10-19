@@ -3,7 +3,6 @@ from typing import Callable
 from urllib.parse import urlsplit
 
 from idpyoidc import metadata
-
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import verified_claim_name

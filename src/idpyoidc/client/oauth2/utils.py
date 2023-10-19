@@ -28,7 +28,7 @@ def pick_redirect_uri(
     context,
     request_args: Optional[Union[Message, dict]] = None,
     response_type: Optional[str] = "",
-    response_mode: Optional[str] = ""
+    response_mode: Optional[str] = "",
 ):
     if request_args is None:
         request_args = {}

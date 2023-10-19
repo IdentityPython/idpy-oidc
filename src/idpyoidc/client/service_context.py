@@ -21,11 +21,12 @@ from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
 from idpyoidc.util import rndstr
+
+from ..impexp import ImpExp
 from .claims.transform import preferred_to_registered
 from .claims.transform import supported_to_preferred
 from .configure import get_configuration
 from .current import Current
-from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
 
@@ -174,9 +175,9 @@ class ServiceContext(ImpExp):
 
         self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar)
 
-        _jwks_uri = self.provider_info.get('jwks_uri')
+        _jwks_uri = self.provider_info.get("jwks_uri")
         if _jwks_uri:
-            self.keyjar.load_keys(self.provider_info.get('issuer'), jwks_uri=_jwks_uri)
+            self.keyjar.load_keys(self.provider_info.get("issuer"), jwks_uri=_jwks_uri)
 
         _response_types = self.get_preference(
             "response_types_supported", self.supports().get("response_types_supported", [])

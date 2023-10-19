@@ -95,7 +95,7 @@ class Claims(client_claims.Claims):
 
     def verify_rules(self, supports):
         if self.get_preference("request_parameter_supported") and self.get_preference(
-                "request_uri_parameter_supported"
+            "request_uri_parameter_supported"
         ):
             raise ValueError(
                 "You have to chose one of 'request_parameter_supported' and "
@@ -103,7 +103,7 @@ class Claims(client_claims.Claims):
             )
 
         if self.get_preference("request_parameter_supported") or self.get_preference(
-                "request_uri_parameter_supported"
+            "request_uri_parameter_supported"
         ):
             if not self.get_preference("request_object_signing_alg_values_supported"):
                 self.set_preference(

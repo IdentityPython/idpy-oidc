@@ -1,7 +1,6 @@
 import os
 
 from idpyoidc.client.oauth2 import Client
-
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client

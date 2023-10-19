@@ -10,10 +10,10 @@ from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
-from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
@@ -216,7 +216,6 @@ def iss_id(iss):
 
 
 class TestRPHandler(object):
-
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(
@@ -305,9 +304,8 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-                client.get_context().get_preference("callback_uris").get(
-                    "post_logout_redirect_uris")
-                is None
+            client.get_context().get_preference("callback_uris").get("post_logout_redirect_uris")
+            is None
         )
 
     def test_do_client_setup(self):
@@ -690,7 +688,6 @@ def test_get_provider_specific_service():
 
 
 class TestRPHandlerTier2(object):
-
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL, CLIENT_CONFIG, keyjar=CLI_KEY)
@@ -812,7 +809,6 @@ class TestRPHandlerTier2(object):
 
 
 class MockResponse:
-
     def __init__(self, status_code, text, headers=None):
         self.status_code = status_code
         self.text = text
@@ -820,7 +816,6 @@ class MockResponse:
 
 
 class MockOP(object):
-
     def __init__(self, issuer, keyjar=None):
         self.keyjar = keyjar
         self.issuer = issuer
@@ -909,7 +904,6 @@ def test_rphandler_request():
 
 
 class TestRPHandlerWithMockOP(object):
-
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.issuer = "https://github.com/login/oauth/authorize"
@@ -974,8 +968,14 @@ class TestRPHandlerWithMockOP(object):
             # assume code flow
             resp = self.rph.finalize(_session["iss"], auth_response.to_dict())
 
-        assert set(resp.keys()) == {'token', 'session_state', 'userinfo', 'state', 'issuer',
-                                    'id_token'}
+        assert set(resp.keys()) == {
+            "token",
+            "session_state",
+            "userinfo",
+            "state",
+            "issuer",
+            "id_token",
+        }
 
     def test_dynamic_setup(self):
         user_id = "acct:foobar@example.com"

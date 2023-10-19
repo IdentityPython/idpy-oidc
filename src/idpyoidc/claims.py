@@ -155,7 +155,7 @@ class Claims(ImpExp):
         return {"keyjar": keyjar, "jwks": _jwks, "jwks_uri": _jwks_uri}
 
     def load_conf(
-            self, configuration: dict, supports: dict, keyjar: Optional[KeyJar] = None
+        self, configuration: dict, supports: dict, keyjar: Optional[KeyJar] = None
     ) -> KeyJar:
         for attr, val in configuration.items():
             if attr in ["preference", "capabilities"]:
@@ -212,4 +212,3 @@ class Claims(ImpExp):
             return default
         else:
             return _val
-

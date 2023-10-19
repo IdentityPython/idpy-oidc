@@ -4,8 +4,8 @@ import traceback
 from typing import List
 from typing import Optional
 
-from cryptojwt import as_unicode
 from cryptojwt import KeyJar
+from cryptojwt import as_unicode
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
 
@@ -27,28 +27,28 @@ from idpyoidc.message.oidc.session import BackChannelLogoutRequest
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
-from .oauth2 import Client
+
 from ..message import Message
 from ..message.oauth2 import ResponseMessage
+from .oauth2 import Client
 
 logger = logging.getLogger(__name__)
 
 
 class RPHandler(object):
-
     def __init__(
-            self,
-            base_url: Optional[str] = "",
-            client_configs=None,
-            services=None,
-            keyjar=None,
-            hash_seed="",
-            verify_ssl=True,
-            state_db=None,
-            httpc=None,
-            httpc_params=None,
-            config=None,
-            **kwargs,
+        self,
+        base_url: Optional[str] = "",
+        client_configs=None,
+        services=None,
+        keyjar=None,
+        hash_seed="",
+        verify_ssl=True,
+        state_db=None,
+        httpc=None,
+        httpc_params=None,
+        config=None,
+        **kwargs,
     ):
         self.base_url = base_url
         _jwks_path = kwargs.get("jwks_path")
@@ -219,10 +219,10 @@ class RPHandler(object):
         return client
 
     def do_provider_info(
-            self,
-            client: Optional[Client] = None,
-            state: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
+        self,
+        client: Optional[Client] = None,
+        state: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Either get the provider info from configuration or through dynamic
@@ -243,12 +243,12 @@ class RPHandler(object):
         return client.do_provider_info(behaviour_args=behaviour_args)
 
     def do_client_registration(
-            self,
-            client=None,
-            iss_id: Optional[str] = "",
-            state: Optional[str] = "",
-            request_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        client=None,
+        iss_id: Optional[str] = "",
+        state: Optional[str] = "",
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ):
         """
         Prepare for and do client registration if configured to do so
@@ -270,8 +270,9 @@ class RPHandler(object):
         _iss = _context.get("issuer")
         self.hash2issuer[iss_id] = _iss
 
-        return client.do_client_registration(request_args=request_args,
-                                             behaviour_args=behaviour_args)
+        return client.do_client_registration(
+            request_args=request_args, behaviour_args=behaviour_args
+        )
 
     def do_webfinger(self, user: str) -> Client:
         """
@@ -289,10 +290,10 @@ class RPHandler(object):
         return temporary_client
 
     def client_setup(
-            self,
-            iss_id: Optional[str] = "",
-            user: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
+        self,
+        iss_id: Optional[str] = "",
+        user: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
     ) -> StandAloneClient:
         """
         First if no issuer ID is given then the identifier for the user is
@@ -348,11 +349,11 @@ class RPHandler(object):
             return context.claims.get_usage("response_types")[0]
 
     def init_authorization(
-            self,
-            client: Optional[Client] = None,
-            state: Optional[str] = "",
-            req_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        client: Optional[Client] = None,
+        state: Optional[str] = "",
+        req_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Constructs the URL that will redirect the user to the authorization
@@ -502,7 +503,7 @@ class RPHandler(object):
         return StandAloneClient.userinfo_in_id_token(id_token, user_info_claims)
 
     def finalize_auth(
-            self, client, issuer: str, response: dict, behaviour_args: Optional[dict] = None
+        self, client, issuer: str, response: dict, behaviour_args: Optional[dict] = None
     ):
         """
         Given the response returned to the redirect_uri, parse and verify it.
@@ -521,11 +522,11 @@ class RPHandler(object):
         return client.finalize_auth(response, behaviour_args=behaviour_args)
 
     def get_access_and_id_token(
-            self,
-            authorization_response=None,
-            state: Optional[str] = "",
-            client: Optional[object] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        authorization_response=None,
+        state: Optional[str] = "",
+        client: Optional[object] = None,
+        behaviour_args: Optional[dict] = None,
     ):
         """
         There are a number of services where access tokens and ID tokens can
@@ -544,8 +545,11 @@ class RPHandler(object):
         if client is None:
             client = self.get_client_from_session_key(state)
 
-        return client.get_access_and_id_token(authorization_response=authorization_response,
-                                              state=state, behaviour_args=behaviour_args)
+        return client.get_access_and_id_token(
+            authorization_response=authorization_response,
+            state=state,
+            behaviour_args=behaviour_args,
+        )
 
     # noinspection PyUnusedLocal
     def finalize(self, issuer, response, behaviour_args: Optional[dict] = None):
@@ -594,10 +598,10 @@ class RPHandler(object):
         return client.get_valid_access_token(state)
 
     def logout(
-            self,
-            state: str,
-            client: Optional[Client] = None,
-            post_logout_redirect_uri: Optional[str] = "",
+        self,
+        state: str,
+        client: Optional[Client] = None,
+        post_logout_redirect_uri: Optional[str] = "",
     ) -> dict:
         """
         Does an RP initiated logout from an OP. After logout the user will be
@@ -615,10 +619,8 @@ class RPHandler(object):
 
         return client.logout(state, post_logout_redirect_uri=post_logout_redirect_uri)
 
-
     def close(
-            self, state: str, issuer: Optional[str] = "",
-            post_logout_redirect_uri: Optional[str] = ""
+        self, state: str, issuer: Optional[str] = "", post_logout_redirect_uri: Optional[str] = ""
     ) -> dict:
 
         if issuer:
@@ -626,11 +628,8 @@ class RPHandler(object):
         else:
             client = self.get_client_from_session_key(state)
 
-        return client.logout(
-            state=state, post_logout_redirect_uri=post_logout_redirect_uri
-        )
+        return client.logout(state=state, post_logout_redirect_uri=post_logout_redirect_uri)
 
     def clear_session(self, state):
         client = self.get_client_from_session_key(state)
         client.get_context().cstate.remove_state(state)
-

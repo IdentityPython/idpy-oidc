@@ -175,7 +175,6 @@ def get_state_from_url(url):
 
 
 class TestRPHandler(object):
-
     def test_pick_config(self):
         rph_1 = RPHandler(
             BASE_URL, client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"]
@@ -421,9 +420,7 @@ class TestRPHandler(object):
             }
 
             atresp = (
-                client.get_service("accesstoken")
-                .upstream_get("service_context")
-                .cstate.get(_state)
+                client.get_service("accesstoken").upstream_get("service_context").cstate.get(_state)
             )
             assert set(atresp.keys()) == {
                 "__expires_at",

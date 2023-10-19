@@ -4,9 +4,6 @@ import json
 
 from cryptojwt.utils import importer
 
-from idpyoidc.message import Message
-from idpyoidc.message import msg_list_ser
-from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_ANY_LIST
 from idpyoidc.message import OPTIONAL_LIST_OF_MESSAGES
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
@@ -15,15 +12,18 @@ from idpyoidc.message import SINGLE_OPTIONAL_ANY
 from idpyoidc.message import SINGLE_OPTIONAL_INT
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
+from idpyoidc.message import msg_list_ser
+from idpyoidc.message import msg_ser
 from idpyoidc.message.oauth2 import error_chars
+from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
 from idpyoidc.message.oidc import AddressClaim
-from idpyoidc.message.oidc import claims_request_deser
 from idpyoidc.message.oidc import ClaimsRequest
-from idpyoidc.message.oidc import deserialize_from_one_of
-from idpyoidc.message.oidc import msg_ser_json
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import OPTIONAL_MULTIPLE_Claims
-from idpyoidc.message.oidc import SINGLE_OPTIONAL_BOOLEAN
+from idpyoidc.message.oidc import claims_request_deser
+from idpyoidc.message.oidc import deserialize_from_one_of
+from idpyoidc.message.oidc import msg_ser_json
 
 
 class PlaceOfBirth(Message):
@@ -156,6 +156,7 @@ OPTIONAL_DATE = (str, False, date_ser, date_deser, False)
 
 # ------------------------------------------------------------------------------
 
+
 class IdentityAssuranceClaims(OpenIDSchema):
     c_param = OpenIDSchema.c_param.copy()
     c_param.update(
@@ -168,7 +169,7 @@ class IdentityAssuranceClaims(OpenIDSchema):
             "salutation": SINGLE_OPTIONAL_STRING,
             "title": SINGLE_OPTIONAL_STRING,
             "msisdn": SINGLE_OPTIONAL_STRING,
-            "also_known_as": SINGLE_OPTIONAL_STRING
+            "also_known_as": SINGLE_OPTIONAL_STRING,
         }
     )
 
@@ -178,12 +179,23 @@ def identity_assurance_claims_deser(val, sformat="json"):
 
 
 OPTIONAL_IDA_CLAIMS = (
-    IdentityAssuranceClaims, False, msg_ser, identity_assurance_claims_deser, False)
+    IdentityAssuranceClaims,
+    False,
+    msg_ser,
+    identity_assurance_claims_deser,
+    False,
+)
 REQUIRED_IDA_CLAIMS = (
-    IdentityAssuranceClaims, True, msg_ser, identity_assurance_claims_deser, False)
+    IdentityAssuranceClaims,
+    True,
+    msg_ser,
+    identity_assurance_claims_deser,
+    False,
+)
 
 
 # ------------------------------------------------------------------------------
+
 
 class Address(AddressClaim):
     c_param = AddressClaim.c_param.copy()
@@ -199,10 +211,7 @@ OPTIONAL_ADDRESS = (Address, False, msg_ser, address_deser, False)
 
 # ------------------------------------------------------------------------------
 class Verifier(Message):
-    c_param = {
-        "organization": SINGLE_REQUIRED_STRING,
-        "txn": SINGLE_REQUIRED_STRING
-    }
+    c_param = {"organization": SINGLE_REQUIRED_STRING, "txn": SINGLE_REQUIRED_STRING}
 
 
 def verifier_deser(val, sformat="json"):
@@ -224,7 +233,7 @@ class Issuer(Message):
     c_param = {
         "name": SINGLE_REQUIRED_STRING,
         "country_code": SINGLE_REQUIRED_STRING,
-        "jurisdiction": SINGLE_OPTIONAL_STRING
+        "jurisdiction": SINGLE_OPTIONAL_STRING,
     }
     c_param.update(AddressClaim.c_param)
 
@@ -244,9 +253,9 @@ OPTIONAL_ISSUER = (Issuer, False, msg_ser, issuer_deser, False)
 
 
 def json_list_deserializer(insts, sformat):
-    if sformat == 'dict':
+    if sformat == "dict":
         return insts
-    elif sformat == 'json':
+    elif sformat == "json":
         return json.loads(insts)
 
 
@@ -258,15 +267,12 @@ class EmbeddedAttachments(Message):
         "desc": SINGLE_OPTIONAL_STRING,
         "content_type": SINGLE_REQUIRED_STRING,
         "content": SINGLE_REQUIRED_STRING,
-        "txn": SINGLE_OPTIONAL_STRING
+        "txn": SINGLE_OPTIONAL_STRING,
     }
 
 
 class Digest(Message):
-    c_param = {
-        "alg": SINGLE_REQUIRED_STRING,
-        "value": SINGLE_REQUIRED_STRING
-    }
+    c_param = {"alg": SINGLE_REQUIRED_STRING, "value": SINGLE_REQUIRED_STRING}
 
 
 def digest_deser(val, sformat="json"):
@@ -283,23 +289,21 @@ class ExternalAttachments(Message):
         "access_token": SINGLE_OPTIONAL_STRING,
         "expires_in": SINGLE_OPTIONAL_INT,
         "digest": OPTIONAL_DIGEST,
-        "txn": SINGLE_OPTIONAL_STRING
+        "txn": SINGLE_OPTIONAL_STRING,
     }
 
 
 # -----------------------------------------------------------------
 
+
 class Evidence(Message):
-    c_param = {
-        "type": SINGLE_REQUIRED_STRING,
-        "attachments": OPTIONAL_LIST_OF_MESSAGES
-    }
+    c_param = {"type": SINGLE_REQUIRED_STRING, "attachments": OPTIONAL_LIST_OF_MESSAGES}
 
     def verify(self, **kwargs):
         super(Evidence, self).verify(**kwargs)
         if "attachments" in self:
             _items = []
-            for attch in self['attachments']:
+            for attch in self["attachments"]:
                 if "url" in attch:
                     _items.append(ExternalAttachments(**attch))
                 else:
@@ -339,7 +343,7 @@ class CheckDetails(Message):
         "check_method": SINGLE_REQUIRED_STRING,
         "organization": SINGLE_OPTIONAL_STRING,
         "txn": SINGLE_OPTIONAL_STRING,
-        "time": OPTIONAL_TIME_STAMP
+        "time": OPTIONAL_TIME_STAMP,
     }
 
 
@@ -377,15 +381,18 @@ OPTIONAL_DOCUMENT_DETAILS = (DocumentDetails, False, msg_ser, document_details_d
 
 # ------------------------------------------------------------------------------
 
+
 class Document(Message):
     c_param = Evidence.c_param.copy()
-    c_param.update({
-        "check_details": OPTIONAL_CHECK_DETAILS_LIST,
-        "method": SINGLE_OPTIONAL_STRING,
-        "verifier": OPTIONAL_VERIFIERS,
-        "time": OPTIONAL_TIME_STAMP,
-        "document_details": OPTIONAL_DOCUMENT_DETAILS
-    })
+    c_param.update(
+        {
+            "check_details": OPTIONAL_CHECK_DETAILS_LIST,
+            "method": SINGLE_OPTIONAL_STRING,
+            "verifier": OPTIONAL_VERIFIERS,
+            "time": OPTIONAL_TIME_STAMP,
+            "document_details": OPTIONAL_DOCUMENT_DETAILS,
+        }
+    )
 
 
 # ------------------------------------------------------------------------------
@@ -401,14 +408,10 @@ OPTIONAL_DOCUMENT = (Document, False, msg_ser, document_deser, False)
 
 # ------------------------------------------------------------------------------
 
+
 class Provider(AddressClaim):
     c_param = AddressClaim.c_param.copy()
-    c_param.update(
-        {
-            "name": SINGLE_OPTIONAL_STRING,
-            "country_code": SINGLE_OPTIONAL_STRING
-        }
-    )
+    c_param.update({"name": SINGLE_OPTIONAL_STRING, "country_code": SINGLE_OPTIONAL_STRING})
 
 
 def provider_deser(val, sformat="urlencoded"):
@@ -426,17 +429,21 @@ REQUIRED_PROVIDER = (Provider, True, msg_ser, provider_deser, False)
 
 # ------------------------------------------------------------------------------
 
+
 class UtilityBill(Message):
     c_param = Evidence.c_param.copy()
-    c_param.update({
-        "provider": REQUIRED_PROVIDER,
-        "date": OPTIONAL_TIME_STAMP,
-        "method": SINGLE_OPTIONAL_STRING,
-        "time": SINGLE_OPTIONAL_INT
-    })
+    c_param.update(
+        {
+            "provider": REQUIRED_PROVIDER,
+            "date": OPTIONAL_TIME_STAMP,
+            "method": SINGLE_OPTIONAL_STRING,
+            "time": SINGLE_OPTIONAL_INT,
+        }
+    )
 
 
 # ------------------------------------------------------------------------------
+
 
 class Record(Message):
     c_param = {
@@ -444,7 +451,7 @@ class Record(Message):
         "personal_number": SINGLE_OPTIONAL_STRING,
         "created_at": OPTIONAL_DATE,
         "date_of_expiry": OPTIONAL_DATE,
-        "source": OPTIONAL_ISSUER
+        "source": OPTIONAL_ISSUER,
     }
 
 
@@ -457,18 +464,20 @@ OPTIONAL_RECORD = (Record, False, msg_list_ser, record_deser, True)
 
 # ------------------------------------------------------------------------------
 
+
 class ElectronicRecord(Message):
     c_param = Evidence.c_param.copy()
     c_param.update(
         {
             "check_details": OPTIONAL_CHECK_DETAILS_LIST,
             "time": SINGLE_OPTIONAL_INT,
-            "record": OPTIONAL_RECORD
+            "record": OPTIONAL_RECORD,
         }
     )
 
 
 # ------------------------------------------------------------------------------
+
 
 class ElectronicSignature(Message):
     c_param = Evidence.c_param.copy()
@@ -477,12 +486,13 @@ class ElectronicSignature(Message):
             "signature_type": SINGLE_REQUIRED_STRING,
             "issuer": SINGLE_REQUIRED_STRING,
             "serial_number": SINGLE_REQUIRED_STRING,
-            "created_at": OPTIONAL_DATE
+            "created_at": OPTIONAL_DATE,
         }
     )
 
 
 # ------------------------------------------------------------------------------
+
 
 class Voucher(Message):
     c_param = {
@@ -490,7 +500,7 @@ class Voucher(Message):
         "birthdate": SINGLE_OPTIONAL_STRING,
         "country_code": SINGLE_OPTIONAL_STRING,
         "occupation": SINGLE_OPTIONAL_STRING,
-        "organization": SINGLE_OPTIONAL_STRING
+        "organization": SINGLE_OPTIONAL_STRING,
     }
 
 
@@ -507,11 +517,12 @@ EVIDENCE_TYPES = {
     "utility_bill": UtilityBill,
     "electronic_record": ElectronicRecord,
     "voucher": Voucher,
-    "electronic_signature": ElectronicSignature
+    "electronic_signature": ElectronicSignature,
 }
 
 
 # ------------------------------------------------------------------------------
+
 
 class Attestation(Message):
     c_param = {
@@ -519,7 +530,7 @@ class Attestation(Message):
         "reference_number": SINGLE_OPTIONAL_STRING,
         "date_of_issuance": OPTIONAL_DATE,
         "date_of_expiry": OPTIONAL_DATE,
-        "voucher": OPTIONAL_VOUCHER
+        "voucher": OPTIONAL_VOUCHER,
     }
 
 
@@ -532,13 +543,14 @@ OPTIONAL_ATTESTATION = (Attestation, False, msg_ser, attestation_deser, False)
 
 # ------------------------------------------------------------------------------
 
+
 class Vouch(Message):
     c_param = Evidence.c_param.copy()
     c_param.update(
         {
             "check_details": OPTIONAL_CHECK_DETAILS_LIST,
             "time": SINGLE_OPTIONAL_INT,
-            "attestation": OPTIONAL_ATTESTATION
+            "attestation": OPTIONAL_ATTESTATION,
         }
     )
 
@@ -561,9 +573,7 @@ OPTIONAL_VOUCH = (Vouch, False, msg_ser, vouch_deser, False)
 
 
 class EvidenceMetadata(Message):
-    c_param = {
-        "evidence_classification": SINGLE_OPTIONAL_STRING
-    }
+    c_param = {"evidence_classification": SINGLE_OPTIONAL_STRING}
 
 
 def evidence_metadata_deser(val, sformat="urlencoded"):
@@ -574,10 +584,7 @@ OPTIONAL_EVIDENCE_METADATA = (EvidenceMetadata, False, msg_ser, evidence_metadat
 
 
 class EvidenceRef(Message):
-    c_param = {
-        "txn": SINGLE_REQUIRED_STRING,
-        "evidence_metadata": OPTIONAL_EVIDENCE_METADATA
-    }
+    c_param = {"txn": SINGLE_REQUIRED_STRING, "evidence_metadata": OPTIONAL_EVIDENCE_METADATA}
 
 
 def evidence_ref_deser(val, sformat="urlencoded"):
@@ -591,7 +598,7 @@ class AssuranceDetails(Message):
     c_param = {
         "assurance_type": SINGLE_OPTIONAL_STRING,
         "assurance_classification": SINGLE_OPTIONAL_STRING,
-        "evidence_ref": OPTIONAL_EVIDENCE_REFS
+        "evidence_ref": OPTIONAL_EVIDENCE_REFS,
     }
 
 
@@ -606,7 +613,7 @@ class AssuranceProcess(Message):
     c_param = {
         "policy": SINGLE_OPTIONAL_STRING,
         "procedure": SINGLE_OPTIONAL_STRING,
-        "assurance_details": OPTIONAL_ASSURANCE_DETAILS
+        "assurance_details": OPTIONAL_ASSURANCE_DETAILS,
     }
 
 
@@ -624,7 +631,7 @@ class VerificationElement(Message):
         "verification_process": SINGLE_OPTIONAL_STRING,
         "evidence": OPTIONAL_EVIDENCE_LIST,
         "assurance_level": SINGLE_OPTIONAL_STRING,
-        "assurance_process": OPTIONAL_ASSURANCE_PROFILE
+        "assurance_process": OPTIONAL_ASSURANCE_PROFILE,
     }
 
     def verify(self, **kwargs):
@@ -657,22 +664,24 @@ REQUIRED_VERIFICATION_ELEMENT = (
     False,
 )
 
-OPTIONAL_VERIFICATION_ELEMENT = (VerificationElement, False, msg_ser, verification_element_deser,
-                                 False)
+OPTIONAL_VERIFICATION_ELEMENT = (
+    VerificationElement,
+    False,
+    msg_ser,
+    verification_element_deser,
+    False,
+)
 
 
 class VerifiedClaims(Message):
-    c_param = {
-        "verification": OPTIONAL_VERIFICATION_ELEMENT,
-        "claims": OPTIONAL_MULTIPLE_Claims
-    }
+    c_param = {"verification": OPTIONAL_VERIFICATION_ELEMENT, "claims": OPTIONAL_MULTIPLE_Claims}
 
     def verify(self, **kwargs):
         super(VerifiedClaims, self).verify(**kwargs)
         if "verification" in self:
-            self['verification'].verify()
-        if "claims" in self and self['claims']:
-            self['claims'].verify()
+            self["verification"].verify()
+        if "claims" in self and self["claims"]:
+            self["claims"].verify()
 
 
 def verified_claims_deser(val, sformat="json"):
@@ -715,7 +724,7 @@ class ClaimsSpec(Message):
         "value": SINGLE_OPTIONAL_ANY,
         "values": OPTIONAL_ANY_LIST,
         "purpose": SINGLE_OPTIONAL_STRING,
-        "max_age": SINGLE_OPTIONAL_INT
+        "max_age": SINGLE_OPTIONAL_INT,
     }
 
     def _verify_claims_request_value(self, value, value_type=str):
@@ -776,7 +785,6 @@ OPTIONAL_VERIFICATION_ELEMENT_REQUEST = (
 
 
 class IDAClaimsRequest(ClaimsRequest):
-
     def verify(self, **kwargs):
         super(IDAClaimsRequest, self).verify(**kwargs)
         _vc = self.get("verified_claims")
@@ -789,7 +797,6 @@ class IDAClaimsRequest(ClaimsRequest):
 
 
 class ClaimsConstructor:
-
     def __init__(self, base_class=Message):
         if isinstance(base_class, str):
             self.base_class = importer(base_class)()
@@ -834,8 +841,7 @@ class ClaimsConstructor:
         return json.dumps(self.to_dict())
 
 
-class ClaimsDeconstructor():
-
+class ClaimsDeconstructor:
     def __init__(self, base_class=Message, **kwargs):
         if isinstance(base_class, str):
             self.base_class = importer(base_class)()
@@ -870,7 +876,7 @@ class ClaimsDeconstructor():
                 elif isinstance(_value_type, Message):
                     _val = ClaimsDeconstructor(_value_type, **val)
                 else:
-                    raise ValueError(f'Other value_type: {_value_type}')
+                    raise ValueError(f"Other value_type: {_value_type}")
 
             self.info[key] = val
 

@@ -19,8 +19,8 @@ from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Claims
@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 
 
 class StandAloneClient(Client):
-
     def get_session_information(self, key):
         """
         This is the second of the methods users of this class should know about.
@@ -48,8 +47,8 @@ class StandAloneClient(Client):
         return self.get_context().cstate.get(key)
 
     def do_provider_info(
-            self,
-            behaviour_args: Optional[dict] = None,
+        self,
+        behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Either get the provider info from configuration or through dynamic
@@ -65,8 +64,8 @@ class StandAloneClient(Client):
         if _pi is None or _pi == {}:
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
             _pi = _context.provider_info
-        elif len(_pi) == 1 and 'issuer' in _pi:
-            _context.issuer = _pi['issuer']
+        elif len(_pi) == 1 and "issuer" in _pi:
+            _context.issuer = _pi["issuer"]
             dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
             _pi = _context.provider_info
         else:
@@ -101,14 +100,14 @@ class StandAloneClient(Client):
         _context.map_supported_to_preferred(info=_pi)
 
         try:
-            return _context.provider_info['issuer']
+            return _context.provider_info["issuer"]
         except:
             return _context.issuer
 
     def do_client_registration(
-            self,
-            request_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ):
         """
         Prepare for and do client registration if configured to do so
@@ -148,21 +147,22 @@ class StandAloneClient(Client):
 
     def _get_response_mode(self, context, response_type, request_args):
         if request_args:
-            _requested = request_args.get('response_mode')
+            _requested = request_args.get("response_mode")
         else:
             _requested = None
-        _supported = context.claims.get_usage('response_modes')
+        _supported = context.claims.get_usage("response_modes")
         if _requested:
             if _supported and _requested not in _supported:
                 raise ValueError(
-                    "You can not use a response_mode you have not stated should be supported")
+                    "You can not use a response_mode you have not stated should be supported"
+                )
 
             if DEFAULT_RESPONSE_MODE[response_type] == _requested:
                 return None
             else:
                 return _requested
         elif _supported:
-            _type = response_type.split(' ')
+            _type = response_type.split(" ")
             _type.sort()
             response_type = " ".join(_type)
             # Is it the default response mode
@@ -174,9 +174,9 @@ class StandAloneClient(Client):
             return None
 
     def init_authorization(
-            self,
-            req_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
+        self,
+        req_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Constructs the URL that will redirect the user to the authorization
@@ -196,12 +196,15 @@ class StandAloneClient(Client):
         _response_mode = self._get_response_mode(_context, _response_type, req_args)
         try:
             _redirect_uri = pick_redirect_uri(
-                _context, request_args=req_args, response_type=_response_type,
-                response_mode=_response_mode
+                _context,
+                request_args=req_args,
+                response_type=_response_type,
+                response_mode=_response_mode,
             )
         except KeyError:
             raise Unsupported(
-                'Could not pick a redirect_uri based on the given response_type and response_mode')
+                "Could not pick a redirect_uri based on the given response_type and response_mode"
+            )
         except [MissingRequiredAttribute, ValueError]:
             raise
 
@@ -211,12 +214,12 @@ class StandAloneClient(Client):
         }
 
         if _response_mode:
-            request_args['response_mode'] = _response_mode
+            request_args["response_mode"] = _response_mode
 
-        _nonce = ''
-        if self.client_type == 'oidc':
+        _nonce = ""
+        if self.client_type == "oidc":
             _nonce = rndstr(24)
-            request_args['nonce'] = _nonce
+            request_args["nonce"] = _nonce
 
         _scope = _context.claims.get_usage("scope")
         if _scope:
@@ -387,9 +390,7 @@ class StandAloneClient(Client):
         res.update(id_token.extra())
         return res
 
-    def finalize_auth(
-            self, response: dict, behaviour_args: Optional[dict] = None
-    ):
+    def finalize_auth(self, response: dict, behaviour_args: Optional[dict] = None):
         """
         Given the response returned to the redirect_uri, parse and verify it.
 
@@ -426,7 +427,7 @@ class StandAloneClient(Client):
             raise KeyError("Unknown state value")
 
         try:
-            issuer = _context.provider_info['issuer']
+            issuer = _context.provider_info["issuer"]
         except KeyError:
             issuer = _context.issuer
 
@@ -439,10 +440,10 @@ class StandAloneClient(Client):
         return authorization_response
 
     def get_access_and_id_token(
-            self,
-            authorization_response: Optional[Message] = None,
-            state: Optional[str] = "",
-            behaviour_args: Optional[dict] = None,
+        self,
+        authorization_response: Optional[Message] = None,
+        state: Optional[str] = "",
+        behaviour_args: Optional[dict] = None,
     ):
         """
         There are a number of services where access tokens and ID tokens can
@@ -591,7 +592,7 @@ class StandAloneClient(Client):
             "token": token["access_token"],
             "id_token": _id_token,
             "session_state": authorization_response.get("session_state", ""),
-            "issuer": _context.issuer
+            "issuer": _context.issuer,
         }
 
     def has_active_authentication(self, state):
@@ -645,9 +646,9 @@ class StandAloneClient(Client):
                 raise OidcServiceError("No valid access token")
 
     def logout(
-            self,
-            state: str,
-            post_logout_redirect_uri: Optional[str] = "",
+        self,
+        state: str,
+        post_logout_redirect_uri: Optional[str] = "",
     ) -> dict:
         """
         Does an RP initiated logout from an OP. After logout the user will be
@@ -677,15 +678,11 @@ class StandAloneClient(Client):
         logger.debug(f"EndSession Request: {_info['request'].to_dict()}")
         return _info
 
-    def close(
-            self, state: str, post_logout_redirect_uri: Optional[str] = ""
-    ) -> dict:
+    def close(self, state: str, post_logout_redirect_uri: Optional[str] = "") -> dict:
 
         logger.debug(20 * "*" + " close " + 20 * "*")
 
-        return self.logout(
-            state=state, post_logout_redirect_uri=post_logout_redirect_uri
-        )
+        return self.logout(state=state, post_logout_redirect_uri=post_logout_redirect_uri)
 
     def clear_session(self, state):
         self.get_context().cstate.remove_state(state)

@@ -13,10 +13,10 @@ from idpyoidc.util import instantiate
 
 
 def create_keyjar(
-        keyjar: Optional[KeyJar] = None,
-        conf: Optional[Union[dict, Configuration]] = None,
-        key_conf: Optional[dict] = None,
-        id: Optional[str] = "",
+    keyjar: Optional[KeyJar] = None,
+    conf: Optional[Union[dict, Configuration]] = None,
+    key_conf: Optional[dict] = None,
+    id: Optional[str] = "",
 ):
     if keyjar is None:
         if key_conf:
@@ -46,12 +46,12 @@ def create_keyjar(
 
 
 def make_keyjar(
-        keyjar: Optional[Union[KeyJar, bool]] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        key_conf: Optional[dict] = None,
-        issuer_id: Optional[str] = "",
-        client_id: Optional[str] = "",
-    ):
+    keyjar: Optional[Union[KeyJar, bool]] = None,
+    config: Optional[Union[Configuration, dict]] = None,
+    key_conf: Optional[dict] = None,
+    issuer_id: Optional[str] = "",
+    client_id: Optional[str] = "",
+):
     if keyjar is False:
         return None
 
@@ -125,15 +125,15 @@ class Unit(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-            self,
-            upstream_get: Callable = None,
-            keyjar: Optional[Union[KeyJar, bool]] = None,
-            httpc: Optional[object] = None,
-            httpc_params: Optional[dict] = None,
-            config: Optional[Union[Configuration, dict]] = None,
-            key_conf: Optional[dict] = None,
-            issuer_id: Optional[str] = "",
-            client_id: Optional[str] = "",
+        self,
+        upstream_get: Callable = None,
+        keyjar: Optional[Union[KeyJar, bool]] = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        key_conf: Optional[dict] = None,
+        issuer_id: Optional[str] = "",
+        client_id: Optional[str] = "",
     ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
@@ -161,7 +161,7 @@ class Unit(ImpExp):
         if val:
             return val
 
-        cntx = getattr(self, 'context', None)
+        cntx = getattr(self, "context", None)
         if cntx:
             val = getattr(cntx, attr, None)
             if val:
@@ -194,16 +194,16 @@ class ClientUnit(Unit):
     name = ""
 
     def __init__(
-            self,
-            upstream_get: Callable = None,
-            httpc: Optional[object] = None,
-            httpc_params: Optional[dict] = None,
-            keyjar: Optional[KeyJar] = None,
-            context: Optional[ImpExp] = None,
-            config: Optional[Union[Configuration, dict]] = None,
-            # jwks_uri: Optional[str] = "",
-            entity_id: Optional[str] = "",
-            key_conf: Optional[dict] = None,
+        self,
+        upstream_get: Callable = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        keyjar: Optional[KeyJar] = None,
+        context: Optional[ImpExp] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        # jwks_uri: Optional[str] = "",
+        entity_id: Optional[str] = "",
+        key_conf: Optional[dict] = None,
     ):
         if config is None:
             config = {}
@@ -235,16 +235,16 @@ class ClientUnit(Unit):
 # Neither client nor Server
 class Collection(Unit):
     def __init__(
-            self,
-            upstream_get: Callable = None,
-            keyjar: Optional[KeyJar] = None,
-            httpc: Optional[object] = None,
-            httpc_params: Optional[dict] = None,
-            config: Optional[Union[Configuration, dict]] = None,
-            entity_id: Optional[str] = "",
-            key_conf: Optional[dict] = None,
-            functions: Optional[dict] = None,
-            claims: Optional[dict] = None,
+        self,
+        upstream_get: Callable = None,
+        keyjar: Optional[KeyJar] = None,
+        httpc: Optional[object] = None,
+        httpc_params: Optional[dict] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        entity_id: Optional[str] = "",
+        key_conf: Optional[dict] = None,
+        functions: Optional[dict] = None,
+        claims: Optional[dict] = None,
     ):
         if config is None:
             config = {}

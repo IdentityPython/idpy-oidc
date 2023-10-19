@@ -1,7 +1,7 @@
 from typing import Callable
 
-from cryptojwt.utils import importer
 import pytest
+from cryptojwt.utils import importer
 
 from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
 from idpyoidc.client.claims.transform import create_registration_request
@@ -98,60 +98,60 @@ class TestTransform:
         assert set(ProviderConfigurationResponse.c_param.keys()).difference(
             set(self.supported)
         ) == {
-                   "authorization_endpoint",
-                   "check_session_iframe",
-                   "claim_types_supported",
-                   "claims_locales_supported",
-                   "claims_parameter_supported",
-                   "claims_supported",
-                   "display_values_supported",
-                   "end_session_endpoint",
-                   "error",
-                   "error_description",
-                   "error_uri",
-                   "grant_types_supported",
-                   "issuer",
-                   "op_policy_uri",
-                   "op_tos_uri",
-                   "registration_endpoint",
-                   "require_request_uri_registration",
-                   "service_documentation",
-                   "token_endpoint",
-                   "ui_locales_supported",
-                   "userinfo_endpoint",
-                   "code_challenge_methods_supported",
-               }
+            "authorization_endpoint",
+            "check_session_iframe",
+            "claim_types_supported",
+            "claims_locales_supported",
+            "claims_parameter_supported",
+            "claims_supported",
+            "display_values_supported",
+            "end_session_endpoint",
+            "error",
+            "error_description",
+            "error_uri",
+            "grant_types_supported",
+            "issuer",
+            "op_policy_uri",
+            "op_tos_uri",
+            "registration_endpoint",
+            "require_request_uri_registration",
+            "service_documentation",
+            "token_endpoint",
+            "ui_locales_supported",
+            "userinfo_endpoint",
+            "code_challenge_methods_supported",
+        }
 
         # parameters that are not mapped against what the OP's provider info says
         assert set(self.supported).difference(
             set(ProviderConfigurationResponse.c_param.keys())
         ) == {
-                   "application_type",
-                   "backchannel_logout_uri",
-                   "callback_uris",
-                   "client_id",
-                   "client_name",
-                   "client_secret",
-                   "client_uri",
-                   "contacts",
-                   "default_max_age",
-                   "encrypt_id_token_supported",
-                   "encrypt_request_object_supported",
-                   "encrypt_userinfo_supported",
-                   "frontchannel_logout_uri",
-                   "initiate_login_uri",
-                   "jwks",
-                   "logo_uri",
-                   "policy_uri",
-                   "post_logout_redirect_uris",
-                   "redirect_uris",
-                   "request_parameter",
-                   "request_uris",
-                   "requests_dir",
-                   "require_auth_time",
-                   "sector_identifier_uri",
-                   "tos_uri",
-               }
+            "application_type",
+            "backchannel_logout_uri",
+            "callback_uris",
+            "client_id",
+            "client_name",
+            "client_secret",
+            "client_uri",
+            "contacts",
+            "default_max_age",
+            "encrypt_id_token_supported",
+            "encrypt_request_object_supported",
+            "encrypt_userinfo_supported",
+            "frontchannel_logout_uri",
+            "initiate_login_uri",
+            "jwks",
+            "logo_uri",
+            "policy_uri",
+            "post_logout_redirect_uris",
+            "redirect_uris",
+            "request_parameter",
+            "request_uris",
+            "requests_dir",
+            "require_auth_time",
+            "sector_identifier_uri",
+            "tos_uri",
+        }
 
         claims = OIDC_Claims()
         # No input from the IDP so info is absent
@@ -193,7 +193,7 @@ class TestTransform:
         assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
             "post_logout_redirect_uri",
             "grant_types",
-            "response_modes"  # Extra item
+            "response_modes",  # Extra item
         }
 
         # Which ones are list -> singletons

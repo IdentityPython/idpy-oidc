@@ -2,9 +2,9 @@ import json
 import os
 import shutil
 
+import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import init_key_jar
-import pytest
 
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest

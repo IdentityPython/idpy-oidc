@@ -1,9 +1,8 @@
 import logging
 from typing import Optional
 
-from idpyoidc import metadata
-
 from idpyoidc import claims
+from idpyoidc import metadata
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
 from idpyoidc.message.oidc import make_openid_request

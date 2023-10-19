@@ -40,7 +40,7 @@ class Token(token.Token):
             "private_key_jwt",
         ],
         "token_endpoint_auth_signing_alg_values_supported": metadata.get_signing_algs(),
-        "grant_types_supported": list(helper_by_grant_type.keys())
+        "grant_types_supported": list(helper_by_grant_type.keys()),
     }
 
     token_exchange_helper = TokenExchangeHelper

@@ -6,9 +6,9 @@ from typing import Optional
 from cryptojwt.utils import b64e
 
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
+from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import RefreshAccessTokenRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
-from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.endpoint import Endpoint
 
@@ -94,7 +94,12 @@ def post_token_parse(request, client_id, context, **kwargs):
     """
     if isinstance(
         request,
-        (AuthorizationErrorResponse, RefreshAccessTokenRequest, TokenExchangeRequest, CCAccessTokenRequest),
+        (
+            AuthorizationErrorResponse,
+            RefreshAccessTokenRequest,
+            TokenExchangeRequest,
+            CCAccessTokenRequest,
+        ),
     ):
         return request
 

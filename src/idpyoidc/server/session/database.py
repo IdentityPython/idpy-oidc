@@ -15,6 +15,7 @@ from idpyoidc.server.constant import DIVIDER
 from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.util import rndstr
+
 from .grant import Grant
 from .info import NodeInfo
 
