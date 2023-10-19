@@ -889,7 +889,7 @@ class ClaimsDeconstructor:
                     try:
                         _val.verify()
                     except Exception:
-                        pass
+                        raise
                     else:
                         val = _val
 
