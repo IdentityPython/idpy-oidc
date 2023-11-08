@@ -76,8 +76,12 @@ def pick_redirect_uri(
         if redirect_uris:
             redirect_uri = redirect_uris[0]
         else:
-            logger.error("No redirect_uri")
-            raise MissingRequiredAttribute("redirect_uri")
+            redirect_uris = context.get_preference("redirect_uris", [])
+            if redirect_uris:
+                redirect_uri = redirect_uris[0]
+            else:
+                logger.error("No redirect_uri")
+                raise MissingRequiredAttribute("redirect_uri")
 
     return redirect_uri
 
