@@ -229,14 +229,13 @@ class Endpoint(Node):
         # Verify that the client is allowed to do this
         auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
 
-        if "client_id" in auth_info:
-            req["client_id"] = auth_info["client_id"]
+        _client_id = auth_info.get("client_id", "")
+        if _client_id:
+            req["client_id"] = _client_id
 
             _auth_method = auth_info.get("method")
             if _auth_method and _auth_method not in ["public", "none"]:
                 req["authenticated"] = True
-
-            _client_id = auth_info["client_id"]
         else:
             _client_id = req.get("client_id")
 

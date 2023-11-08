@@ -675,6 +675,8 @@ def single_authn_setup(name, spec):
     else:
         if spec is None:
             cls = get_client_authn_class(name)
+            if cls is None:
+                cls = importer(name)
         elif isinstance(spec, str):
             cls = importer(spec)
         else:

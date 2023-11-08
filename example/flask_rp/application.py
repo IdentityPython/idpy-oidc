@@ -16,7 +16,7 @@ def init_oidc_rp_handler(app):
     if _rp_conf.key_conf:
         _kj = init_key_jar(**_rp_conf.key_conf)
         _path = _rp_conf.key_conf['public_path']
-        # removes ./ and / from the begin of the string
+        # removes ./ and / from the begining of the string
         _path = re.sub('^(.)/', '', _path)
     else:
         _kj = KeyJar()
