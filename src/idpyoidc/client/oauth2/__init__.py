@@ -160,6 +160,10 @@ class Client(Entity):
         :param kwargs:
         :return:
         """
+        _data = kwargs.get("data")
+        if _data and not body:
+            body = _data
+
         try:
             resp = self.httpc(method, url, data=body, headers=headers, **self.httpc_params)
         except Exception as err:
@@ -215,14 +219,10 @@ class Client(Entity):
 
         logger.debug(REQUEST_INFO.format(url, method, body, headers))
 
-        try:
-            response = service.get_response_ext(
-                url, method, body, response_body_type, headers, **kwargs
-            )
-        except AttributeError:
-            response = self.get_response(
-                service, url, method, body, response_body_type, headers, **kwargs
-            )
+        _get_response_func = getattr(self, "get_response_ext", getattr(self, "get_response"))
+        response = _get_response_func(
+            service, url, method, body, response_body_type, headers, **kwargs
+        )
 
         if "error" in response:
             pass
