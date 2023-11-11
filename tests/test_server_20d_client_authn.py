@@ -358,7 +358,7 @@ class TestJWSAuthnMethod:
     def test_jws_authn_method_aud_not_me(self):
         client_keyjar = KeyJar()
         client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
+        # The only own key the client has at this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
