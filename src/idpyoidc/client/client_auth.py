@@ -298,14 +298,15 @@ def find_token_info(request: Union[Message, dict], token_type: str, service, **k
             request.c_param[token_type] = SINGLE_OPTIONAL_STRING
             return {token_type: _token, "token_type": "Bearer"}
 
+    _state = kwargs.get("state", kwargs.get("key"))
+    _token_info = service.upstream_get("context").cstate.get_set(_state, claim=[token_type,
+                                                                                "token_type"])
+
     _token = kwargs.get("access_token", None)
     if _token:
-        return {token_type: _token, "token_type": "Bearer"}
+        return {token_type: _token, "token_type": _token_info["token_type"]}
     else:
-        # Get the latest acquired token.
-        _state = kwargs.get("state", kwargs.get("key"))
-        return service.upstream_get("context").cstate.get_set(_state, claim=[token_type,
-                                                                             "token_type"])
+        return _token_info
 
 
 class BearerHeader(ClientAuthnMethod):
@@ -336,7 +337,7 @@ class BearerHeader(ClientAuthnMethod):
             raise KeyError("No bearer token available")
 
         # The authorization value starts with the token_type
-        #if _token_info["token_type"].to_lower() != "bearer":
+        # if _token_info["token_type"].to_lower() != "bearer":
         _bearer = f"{_token_info['token_type']} {_token_info[_token_type]}"
 
         # Add 'Authorization' to the headers

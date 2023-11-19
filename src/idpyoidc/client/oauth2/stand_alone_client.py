@@ -436,6 +436,7 @@ class StandAloneClient(Client):
             # got it from the wrong bloke
             raise ValueError("Impersonator {}".format(issuer))
 
+        _context.cstate.update(authorization_response["state"], authorization_response)
         _srv.update_service_context(authorization_response, key=authorization_response["state"])
         return authorization_response
 

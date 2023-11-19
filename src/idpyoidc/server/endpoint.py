@@ -228,6 +228,7 @@ class Endpoint(Node):
 
         # Verify that the client is allowed to do this
         auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
+        LOGGER.debug(f"parse_request:auth_info:{auth_info}")
 
         _client_id = auth_info.get("client_id", "")
         if _client_id:
@@ -238,6 +239,8 @@ class Endpoint(Node):
                 req["authenticated"] = True
         else:
             _client_id = req.get("client_id")
+
+        LOGGER.debug(f"parse_request:auth_info:{auth_info}")
 
         # verify that the request message is correct, may have to do it twice
         err_response = self.verify_request(
