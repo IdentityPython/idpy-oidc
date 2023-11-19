@@ -225,6 +225,7 @@ class BearerHeader(ClientSecretBasic):
         get_client_id_from_token: Optional[Callable] = None,
         **kwargs,
     ):
+        logger.debug(f"Client Auth method: {self.tag}")
         token = authorization_token.split(" ", 1)[1]
         _context = self.upstream_get("context")
         client_id = ""
@@ -235,7 +236,10 @@ class BearerHeader(ClientSecretBasic):
                 raise BearerTokenAuthenticationError("Expired token")
             except KeyError:
                 raise BearerTokenAuthenticationError("Unknown token")
-        return {"token": token, "client_id": client_id}
+            except Exception as err:
+                logger.debug(f"Exception in {self.tag}")
+
+        return {"token": token, "client_id": client_id, "method": self.tag}
 
 
 class BearerBody(ClientSecretPost):
@@ -502,6 +506,8 @@ def verify_client(
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
             continue
 
+        logger.debug(f"Verify returned: {auth_info}")
+
         if auth_info.get("method") == "none" and auth_info.get("client_id") is None:
             break
 
@@ -541,6 +547,8 @@ def verify_client(
             auth_info = {}
             continue
         break
+
+    logger.debug(f"Authn methods applied")
 
     # store what authn method was used
     if "method" in auth_info and client_id:
