@@ -52,7 +52,7 @@ class TestRPHandler(object):
         _keyjar = client.get_attribute("keyjar")
         assert list(_keyjar.owners()) == ["", BASE_URL]
         keys = _keyjar.get_issuer_keys("")
-        assert len(keys) == 4
+        assert len(keys) == 2
 
         assert _context.base_url == BASE_URL
 
