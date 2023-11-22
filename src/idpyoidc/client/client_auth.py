@@ -29,6 +29,7 @@ LOGGER = logging.getLogger(__name__)
 
 __author__ = "roland hedberg"
 
+DEFAULT_ACCESS_TOKEN_TYPE = "Bearer"
 
 class AuthnFailure(Exception):
     """Unspecified Authentication failure"""
@@ -296,11 +297,14 @@ def find_token_info(request: Union[Message, dict], token_type: str, service, **k
             del request[token_type]
             # Required under certain circumstances :-) not under other
             request.c_param[token_type] = SINGLE_OPTIONAL_STRING
-            return {token_type: _token, "token_type": "Bearer"}
+            return {token_type: _token, "token_type": DEFAULT_ACCESS_TOKEN_TYPE}
 
     _state = kwargs.get("state", kwargs.get("key"))
-    _token_info = service.upstream_get("context").cstate.get_set(_state, claim=[token_type,
-                                                                                "token_type"])
+    if _state:
+        _token_info = service.upstream_get("context").cstate.get_set(
+            _state, claim=[token_type, "token_type"])
+    else:
+        _token_info = {"token_type": DEFAULT_ACCESS_TOKEN_TYPE}
 
     _token = kwargs.get("access_token", None)
     if _token:
