@@ -9,6 +9,7 @@ from typing import Optional
 
 from idpyoidc.client.defaults import OAUTH2_SERVER_METADATA_URL
 from idpyoidc.configure import Base
+from idpyoidc.server.client_authn import CLIENT_AUTHN_METHOD
 from idpyoidc.server.client_configure import verify_oidc_client_information
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 
@@ -608,6 +609,8 @@ DEFAULT_EXTENDED_CONF = {
             },
         },
     },
+    "base_url": "https://{domain}:{port}",
+    "client_authn_methods": CLIENT_AUTHN_METHOD
 }
 
 DEFAULT_OIDC_ENDPOINTS = {
