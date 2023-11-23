@@ -7,19 +7,20 @@ from urllib.parse import urlparse
 
 import pytest
 import yaml
-from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import init_key_jar
 from cryptojwt import KeyJar
+from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
-from idpyoidc.message.oauth2 import AuthorizationErrorResponse, TokenErrorResponse
-from idpyoidc.message.oidc import AccessTokenRequest
+from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
+from idpyoidc.message.oauth2 import TokenErrorResponse
+from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.authz import AuthzHandling
@@ -33,14 +34,14 @@ from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.exception import UnknownClient
 from idpyoidc.server.oauth2.authorization import FORM_POST
 from idpyoidc.server.oauth2.authorization import Authorization
-from idpyoidc.server.oauth2.token import Token
 from idpyoidc.server.oauth2.authorization import get_uri
 from idpyoidc.server.oauth2.authorization import inputs
 from idpyoidc.server.oauth2.authorization import join_query
-from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.server.oauth2.authorization import (
     validate_resource_indicators_policy as validate_authorization_resource_indicators_policy,
 )
+from idpyoidc.server.oauth2.authorization import verify_uri
+from idpyoidc.server.oauth2.token import Token
 from idpyoidc.server.oauth2.token_helper import (
     validate_resource_indicators_policy as validate_token_resource_indicators_policy,
 )

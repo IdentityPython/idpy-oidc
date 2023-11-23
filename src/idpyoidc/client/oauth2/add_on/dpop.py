@@ -3,20 +3,18 @@ import uuid
 from hashlib import sha256
 from typing import Optional
 
-from cryptography.hazmat.primitives import hashes
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
-from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_bundle import key_by_alg
 
-from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
 from idpyoidc.message import Message
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.time_util import utc_time_sans_frac
 
 logger = logging.getLogger(__name__)

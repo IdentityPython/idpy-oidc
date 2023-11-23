@@ -602,7 +602,7 @@ class TestEndpoint(object):
             "redirect_uris": [("https://rp.example.com/cb", {})],
             "id_token_signed_response_alg": "RS256",
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
-            "deny_unknown_scopes": True
+            "deny_unknown_scopes": True,
         }
 
         _context = self.endpoint.upstream_get("context")

@@ -5,15 +5,14 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt.key_jar import KeyJar
-from requests import request
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
 from idpyoidc.client.service import REQUEST_INFO
-from idpyoidc.client.service import Service
 from idpyoidc.client.service import SUCCESSFUL
+from idpyoidc.client.service import Service
 from idpyoidc.client.util import do_add_ons
 from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.configure import Configuration
@@ -21,6 +20,7 @@ from idpyoidc.context import OidcContext
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import is_error_message
+from requests import request
 
 __author__ = "Roland Hedberg"
 
@@ -38,20 +38,20 @@ class Client(Entity):
     client_type = "oauth2"
 
     def __init__(
-            self,
-            keyjar: Optional[KeyJar] = None,
-            config: Optional[Union[dict, Configuration]] = None,
-            services: Optional[dict] = None,
-            httpc: Optional[Callable] = None,
-            httpc_params: Optional[dict] = None,
-            context: Optional[OidcContext] = None,
-            upstream_get: Optional[Callable] = None,
-            key_conf: Optional[dict] = None,
-            entity_id: Optional[str] = "",
-            verify_ssl: Optional[bool] = True,
-            jwks_uri: Optional[str] = "",
-            client_type: Optional[str] = "",
-            **kwargs
+        self,
+        keyjar: Optional[KeyJar] = None,
+        config: Optional[Union[dict, Configuration]] = None,
+        services: Optional[dict] = None,
+        httpc: Optional[Callable] = None,
+        httpc_params: Optional[dict] = None,
+        context: Optional[OidcContext] = None,
+        upstream_get: Optional[Callable] = None,
+        key_conf: Optional[dict] = None,
+        entity_id: Optional[str] = "",
+        verify_ssl: Optional[bool] = True,
+        jwks_uri: Optional[str] = "",
+        client_type: Optional[str] = "",
+        **kwargs
     ):
         """
 
@@ -68,9 +68,12 @@ class Client(Entity):
         :return: Client instance
         """
 
+        if config is None:
+            config = {}
+
         if client_type:
             self.client_type = client_type
-        elif config and 'client_type' in config:
+        elif config and "client_type" in config:
             client_type = self.client_type = config["client_type"]
         else:
             client_type = self.client_type
@@ -82,7 +85,7 @@ class Client(Entity):
             else:
                 httpc_params = {"verify": False}
 
-        jwks_uri = jwks_uri or config.get('jwks_uri', '')
+        jwks_uri = jwks_uri or config.get("jwks_uri", "")
 
         Entity.__init__(
             self,
@@ -110,12 +113,12 @@ class Client(Entity):
             do_add_ons(_add_ons, self._service)
 
     def do_request(
-            self,
-            request_type: str,
-            response_body_type: Optional[str] = "",
-            request_args: Optional[dict] = None,
-            behaviour_args: Optional[dict] = None,
-            **kwargs
+        self,
+        request_type: str,
+        response_body_type: Optional[str] = "",
+        request_args: Optional[dict] = None,
+        behaviour_args: Optional[dict] = None,
+        **kwargs
     ):
         _srv = self._service[request_type]
 
@@ -138,14 +141,14 @@ class Client(Entity):
         self.get_context().set("client_id", client_id)
 
     def get_response(
-            self,
-            service: Service,
-            url: str,
-            method: Optional[str] = "GET",
-            body: Optional[dict] = None,
-            response_body_type: Optional[str] = "",
-            headers: Optional[dict] = None,
-            **kwargs
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
     ):
         """
 
@@ -181,14 +184,14 @@ class Client(Entity):
         return self.parse_request_response(service, resp, response_body_type, **kwargs)
 
     def service_request(
-            self,
-            service: Service,
-            url: str,
-            method: Optional[str] = "GET",
-            body: Optional[dict] = None,
-            response_body_type: Optional[str] = "",
-            headers: Optional[dict] = None,
-            **kwargs
+        self,
+        service: Service,
+        url: str,
+        method: Optional[str] = "GET",
+        body: Optional[dict] = None,
+        response_body_type: Optional[str] = "",
+        headers: Optional[dict] = None,
+        **kwargs
     ) -> Message:
         """
         The method that sends the request and handles the response returned.
@@ -317,10 +320,10 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
 
-    if client.client_type == 'oidc' and client.get_service("provider_info"):
-        service = 'provider_info'
-    elif client.client_type == 'oauth2' and client.get_service('server_metadata'):
-        service = 'server_metadata'
+    if client.client_type == "oidc" and client.get_service("provider_info"):
+        service = "provider_info"
+    elif client.client_type == "oauth2" and client.get_service("server_metadata"):
+        service = "server_metadata"
     else:
         raise ConfigurationError("Can not do dynamic provider info discovery")
 

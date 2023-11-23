@@ -5,7 +5,7 @@ from functools import cmp_to_key
 from cryptojwt import jwe
 from cryptojwt.jws.jws import SIGNER_ALGS
 
-ALG_SORT_ORDER = {"RS": 0, "ES": 1, "HS": 2, "PS": 3, "no": 4}
+ALG_SORT_ORDER = {"RS": 0, "ES": 1, "HS": 2, "PS": 3, "Ed": 4, "no": 5}
 WEAK_ALGS = ["RSA1_5", "none"]
 
 logger = logging.getLogger(__name__)

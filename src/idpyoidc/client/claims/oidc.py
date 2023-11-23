@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Optional
 
-from idpyoidc import claims
+from idpyoidc import metadata
 from idpyoidc.client import claims as client_claims
 from idpyoidc.client.claims.transform import create_registration_request
 from idpyoidc.message.oidc import RegistrationRequest
@@ -75,9 +75,9 @@ class Claims(client_claims.Claims):
         "encrypt_id_token_supported": None,
         # "grant_types_supported": ["authorization_code", "refresh_token"],
         "logo_uri": None,
-        "id_token_signing_alg_values_supported": claims.get_signing_algs,
-        "id_token_encryption_alg_values_supported": claims.get_encryption_algs,
-        "id_token_encryption_enc_values_supported": claims.get_encryption_encs,
+        "id_token_signing_alg_values_supported": metadata.get_signing_algs,
+        "id_token_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "id_token_encryption_enc_values_supported": metadata.get_encryption_encs,
         "initiate_login_uri": None,
         "jwks": None,
         "jwks_uri": None,

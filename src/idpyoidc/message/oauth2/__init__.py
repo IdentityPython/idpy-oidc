@@ -9,8 +9,6 @@ from idpyoidc.exception import FormatError
 from idpyoidc.exception import MissingAttribute
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import VerificationError
-from idpyoidc.message import Message
-from idpyoidc.message import msg_ser
 from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
@@ -21,6 +19,8 @@ from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_BOOLEAN
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
+from idpyoidc.message import msg_ser
 
 logger = logging.getLogger(__name__)
 
@@ -362,18 +362,17 @@ class ASConfigurationResponse(Message):
 
 
 def deserialize_from_one_of(val, msgtype, sformat):
-    if sformat in ["dict", "json"]:
-        flist = ["json", "urlencoded"]
+    if sformat == "dict":
+        return msgtype(**val)
+
+    if sformat == "json":
         if not isinstance(val, str):
             val = json.dumps(val)
-    else:
-        flist = ["urlencoded", "json"]
+        return msgtype().deserialize(val, "json")
 
-    for _format in flist:
-        try:
-            return msgtype().deserialize(val, _format)
-        except FormatError:
-            pass
+    if sformat == "urlencoded":
+        return msgtype().deserialize(val, "urlencoded")
+
     raise FormatError("Unexpected format")
 
 

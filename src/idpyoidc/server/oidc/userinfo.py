@@ -9,15 +9,15 @@ from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
 
-from idpyoidc import claims
-from idpyoidc.util import importer
+from idpyoidc import metadata
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
-from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
+from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,9 @@ class UserInfo(Endpoint):
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
         "encrypt_userinfo_supported": True,
-        "userinfo_signing_alg_values_supported": claims.get_signing_algs,
-        "userinfo_encryption_alg_values_supported": claims.get_encryption_algs,
-        "userinfo_encryption_enc_values_supported": claims.get_encryption_encs,
+        "userinfo_signing_alg_values_supported": metadata.get_signing_algs,
+        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs,
     }
 
     def __init__(

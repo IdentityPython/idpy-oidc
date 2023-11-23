@@ -12,14 +12,15 @@ from cryptojwt.utils import importer
 
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
+from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-from .util import sanitize
+
 from ..message import VREQUIRED
 from ..util import instantiate
+from .util import sanitize
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 

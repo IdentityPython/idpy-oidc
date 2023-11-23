@@ -1,7 +1,7 @@
 import os
 
-from cryptojwt.key_jar import init_key_jar
 import pytest
+from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.message import Message

@@ -4,17 +4,17 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt import as_unicode
 from cryptojwt import JWS
+from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
-from idpyoidc.claims import get_signing_algs
-from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.server.client_authn import BearerHeader
 
 logger = logging.getLogger(__name__)

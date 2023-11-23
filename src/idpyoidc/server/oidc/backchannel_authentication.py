@@ -1,8 +1,8 @@
 import logging
+import uuid
 from typing import Callable
 from typing import Optional
 from typing import Union
-import uuid
 
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys

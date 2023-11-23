@@ -15,6 +15,7 @@ from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
 from idpyoidc import claims
+from idpyoidc import metadata
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -39,10 +40,9 @@ from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import split_uri
-from idpyoidc.util import importer
-
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +269,9 @@ def authn_args_gather(
 
 def check_unknown_scopes_policy(request_info, client_id, context):
     cinfo = context.cdb.get(client_id, {})
-    deny_unknown_scopes = cinfo.get("deny_unknown_scopes", context.get_preference("deny_unknown_scopes"))
+    deny_unknown_scopes = cinfo.get(
+        "deny_unknown_scopes", context.get_preference("deny_unknown_scopes")
+    )
     if not deny_unknown_scopes:
         return
 
@@ -349,9 +351,9 @@ class Authorization(Endpoint):
         "request_uri_parameter_supported": True,
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+        "request_object_signing_alg_values_supported": metadata.get_signing_algs,
+        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs,
+        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs,
         # "grant_types_supported": ["authorization_code", "implicit"],
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],

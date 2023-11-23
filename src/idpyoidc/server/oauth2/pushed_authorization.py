@@ -1,6 +1,6 @@
+import uuid
 from typing import Optional
 from typing import Union
-import uuid
 
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2

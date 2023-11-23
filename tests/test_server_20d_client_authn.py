@@ -1,13 +1,13 @@
 import base64
 from unittest.mock import MagicMock
 
+import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
-import pytest
 
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.server import Server

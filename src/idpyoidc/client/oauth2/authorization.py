@@ -32,11 +32,6 @@ class Authorization(Service):
     _supports = {
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment"],
-        # Below not OAuth2 functionality
-        # "request_object_signing_alg_values_supported": claims.get_signing_algs,
-        # "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-        # "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
-        # "encrypt_request_object_supported": False,
     }
 
     _callback_path = {
@@ -107,14 +102,14 @@ class Authorization(Service):
         elif flow_type == "fragment":
             if implicit_response_types(response_types):
                 return "fragment"
-        elif flow_type == 'form_post':
-            rm = context.get_preference('response_modes_supported')
-            if rm and 'form_post' in rm:
+        elif flow_type == "form_post":
+            rm = context.get_preference("response_modes_supported")
+            if rm and "form_post" in rm:
                 if context.config.conf.get("separate_form_post_cb", True):
                     return "form_post"
                 else:
                     return "query"
-        return ''
+        return ""
 
     def _do_redirect_uris(self, base_url, hex, context, callback_uris, response_types):
         _redirect_uris = context.get_preference("redirect_uris", [])

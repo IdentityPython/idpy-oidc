@@ -9,11 +9,12 @@ from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import TokenErrorResponse
 from idpyoidc.util import sanitize
-from . import TokenEndpointHelper
-from . import validate_resource_indicators_policy
+
 from ...session import MintingNotAllowed
 from ...session.token import AuthorizationCode
 from ...token import UnknownToken
+from . import TokenEndpointHelper
+from . import validate_resource_indicators_policy
 
 logger = logging.getLogger(__name__)
 

@@ -186,7 +186,7 @@ class TestWorkEnvironment:
             "logo_uri",
             "redirect_uris",
             "request_object_signing_alg",
-            "response_modes", # non-standard
+            "response_modes",  # non-standard
             "response_types",
             "subject_type",
             "token_endpoint_auth_method",

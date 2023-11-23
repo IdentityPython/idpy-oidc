@@ -8,10 +8,10 @@ from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message import Message
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
@@ -64,15 +64,14 @@ def full_path(local_file):
 
 
 class TestEndpoint(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            'userinfo': {
+            "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
-            }
+            },
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         context = server.context
@@ -801,15 +800,14 @@ def test_jwttoken_2():
 
 
 class TestClientCredentialsFlow(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            'userinfo': {
+            "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
-            }
+            },
         }
 
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -847,12 +845,11 @@ class TestClientCredentialsFlow(object):
 
 
 class TestResourceOwnerPasswordCredentialsFlow(object):
-
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            'userinfo': {
+            "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
             },
@@ -867,7 +864,8 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
                         }
                     },
                 }
-            }}
+            },
+        }
 
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         context = server.context

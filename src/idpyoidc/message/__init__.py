@@ -2,6 +2,8 @@ import copy
 import json
 import logging
 from collections.abc import MutableMapping
+from typing import Any
+from typing import Optional
 from urllib.parse import parse_qs
 from urllib.parse import urlencode
 
@@ -363,7 +365,11 @@ class Message(MutableMapping):
                     try:
                         _val = []
                         for v in val:
-                            _val.append(vtype(**{str(x): y for x, y in v.items()}))
+                            if isinstance(v, vtype):
+                                _val.append(v)
+                                continue
+                            else:
+                                _val.append(vtype(**{str(x): y for x, y in v.items()}))
                         val = _val
                     except Exception as exc:
                         raise DecodeError(ERRTXT % (key, exc))
@@ -816,7 +822,7 @@ class Message(MutableMapping):
         """
         return [p for p, s in self.c_param.items() if s[1] is True]
 
-    def value_type(self, parameter):
+    def value_type(self, parameter: object) -> Optional[Any]:
         """
         Return the type of value that a parameter can have.
 
@@ -988,7 +994,6 @@ REQUIRED_LIST_OF_SP_SEP_STRINGS = (
     False,
 )
 SINGLE_OPTIONAL_JSON = (dict, False, json_serializer, json_deserializer, False)
-
 SINGLE_REQUIRED_JSON = (dict, True, json_serializer, json_deserializer, False)
 
 REQUIRED = [SINGLE_REQUIRED_STRING, REQUIRED_LIST_OF_STRINGS, REQUIRED_LIST_OF_SP_SEP_STRINGS]
@@ -1012,6 +1017,10 @@ def any_ser(val, sformat="urlencoded"):
         raise ValueError("Can't serialize this type of data")
 
 
+def ser_any_list(val, sformat):
+    return [any_ser(v, sformat) for v in val]
+
+
 def any_deser(val, sformat="urlencoded"):
     if isinstance(val, dict):
         return Message(**val)
@@ -1021,6 +1030,12 @@ def any_deser(val, sformat="urlencoded"):
         raise ValueError("Can't deserialize this type of data")
 
 
-SINGLE_OPTIONAL_ANY = (any, False, any_ser, any_deser, False)
+def deser_any_list(val, sformat):
+    return [any_deser(v, sformat) for v in val]
+
+
+SINGLE_OPTIONAL_ANY = (Any, False, any_ser, any_deser, False)
+OPTIONAL_ANY_LIST = ([Any], False, ser_any_list, deser_any_list, False)
+
 REQUIRED_LIST_OF_DICTS = ([dict], True, list_serializer, list_deserializer, False)
 OPTIONAL_LIST_OF_DICTS = ([dict], False, list_serializer, list_deserializer, False)

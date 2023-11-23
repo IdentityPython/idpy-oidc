@@ -1,10 +1,7 @@
-from functools import cmp_to_key
 from typing import Callable
 from typing import Optional
 
 from cryptojwt import KeyJar
-from cryptojwt.jwe import SUPPORTED
-from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
@@ -215,42 +212,3 @@ class Claims(ImpExp):
             return default
         else:
             return _val
-
-
-SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS"]
-
-
-def cmp(a, b):
-    return (a > b) - (a < b)
-
-
-def alg_cmp(a, b):
-    if a == "none":
-        return 1
-    elif b == "none":
-        return -1
-
-    _pos1 = SIGNING_ALGORITHM_SORT_ORDER.index(a[0:2])
-    _pos2 = SIGNING_ALGORITHM_SORT_ORDER.index(b[0:2])
-    if _pos1 == _pos2:
-        return (a > b) - (a < b)
-    elif _pos1 > _pos2:
-        return 1
-    else:
-        return -1
-
-
-def get_signing_algs():
-    # Assumes Cryptojwt
-    _list = list(SIGNER_ALGS.keys())
-    # know how to do none but should not
-    _list.remove("none")
-    return sorted(_list, key=cmp_to_key(alg_cmp))
-
-
-def get_encryption_algs():
-    return SUPPORTED["alg"]
-
-
-def get_encryption_encs():
-    return SUPPORTED["enc"]

@@ -3,7 +3,6 @@ from typing import Callable
 import pytest
 from cryptojwt.utils import importer
 
-from idpyoidc.claims import Claims
 from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
 from idpyoidc.client.claims.transform import create_registration_request
 from idpyoidc.client.claims.transform import preferred_to_registered
@@ -194,7 +193,7 @@ class TestTransform:
         assert set(RegistrationRequest.c_param.keys()).difference(set(reg_claim)) == {
             "post_logout_redirect_uri",
             "grant_types",
-            "response_modes" # Extra item
+            "response_modes",  # Extra item
         }
 
         # Which ones are list -> singletons
@@ -367,7 +366,7 @@ class TestTransform2:
             "redirect_uris",
             "request_object_signing_alg",
             "response_types",
-            "response_modes", # non-standard
+            "response_modes",  # non-standard
             "subject_type",
             "token_endpoint_auth_method",
             "token_endpoint_auth_signing_alg",
@@ -416,7 +415,7 @@ class TestTransform2:
             "request_object_signing_alg",
             "request_uris",
             "response_types",
-            "response_modes", # non-standard
+            "response_modes",  # non-standard
             "scope",
             "sector_identifier_uri",
             "subject_type",

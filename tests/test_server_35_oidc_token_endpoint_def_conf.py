@@ -48,16 +48,15 @@ def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
 
 
-class TestEndpoint():
-
+class TestEndpoint:
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
             "issuer": "https://example.com/",
-            'userinfo': {
+            "userinfo": {
                 "class": "idpyoidc.server.user_info.UserInfo",
                 "kwargs": {"db_file": full_path("users.json")},
-            }
+            },
         }
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
 
@@ -200,8 +199,7 @@ class TestEndpoint():
         _jwt = JWT(CLIENT_KEYJAR, iss=AUTH_REQ["client_id"], sign_alg="RS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack({"aud": [self.token_endpoint.full_path]})
-        _token_request.update({"client_assertion": _assertion,
-                               "client_assertion_type": JWT_BEARER})
+        _token_request.update({"client_assertion": _assertion, "client_assertion_type": JWT_BEARER})
         _token_request["code"] = code.value
 
         _req = self.token_endpoint.parse_request(_token_request)

@@ -3,8 +3,8 @@ import json
 import os
 
 import pytest
-from cryptojwt import as_unicode
 from cryptojwt import JWT
+from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 

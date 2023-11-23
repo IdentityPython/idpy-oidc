@@ -19,6 +19,10 @@ from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.util import importer
+
+from ..constant import JOSE_ENCODED
+from ..constant import JSON_ENCODED
+from ..constant import URL_ENCODED
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
 from .client_auth import single_authn_setup
@@ -26,9 +30,6 @@ from .configure import Configuration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
-from ..constant import JOSE_ENCODED
-from ..constant import JSON_ENCODED
-from ..constant import URL_ENCODED
 
 __author__ = "Roland Hedberg"
 
@@ -591,8 +592,10 @@ class Service(ImpExp):
         LOGGER.debug("response format: %s", sformat)
 
         resp = None
+        _jws = _jwe = None
         if sformat == "jose":  # can be jwe, jws or json
             # the checks for JWS and JWE will be replaced with functions from cryptojwt
+            _jws = info
             try:
                 if jws_factory(info):
                     info = self._do_jwt(info)
@@ -601,19 +604,21 @@ class Service(ImpExp):
                     if jwe_factory(info):
                         info = self._do_jwt(info)
                 except:
-                    LOGGER.debug('jwe detected')
+                    LOGGER.debug("jwe detected")
             if info and isinstance(info, str):
                 info = json.loads(info)
             sformat = "dict"
         elif sformat == "jwe":
             _keyjar = self.upstream_get("attribute", "keyjar")
             _client_id = self.upstream_get("attribute", "client_id")
+            _jwe = info
             resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":
             info = self.get_urlinfo(info)
         elif sformat in ["jwt", "jws"]:
+            _jws = info
             info = self._do_jwt(info)
             sformat = "dict"
         elif sformat == "json":
@@ -647,6 +652,11 @@ class Service(ImpExp):
             except Exception as err:
                 LOGGER.error("Got exception while verifying response: %s", err)
                 raise
+
+            if _jws:
+                resp._jws = _jws
+            elif _jwe:
+                resp._jwe = _jwe
 
             resp = self.post_parse_response(resp, state=state)
 

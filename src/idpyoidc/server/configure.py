@@ -37,13 +37,10 @@ _DEFAULT_CONFIG = {
             },
         },
     },
-    "claims_interface": {
-        "class": "idpyoidc.server.session.claims.ClaimsInterface",
-        "kwargs": {}
-    },
+    "claims_interface": {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}},
     "httpc_params": {"verify": False, "timeout": 4},
     "issuer": "https://{domain}:{port}",
-    "template_dir": "templates"
+    "template_dir": "templates",
 }
 
 AS_DEFAULT_CONFIG = copy.deepcopy(_DEFAULT_CONFIG)
@@ -56,7 +53,7 @@ _C = {
                     "authorization_code": {
                         "supports_minting": ["access_token", "refresh_token"],
                         "max_usage": 1,
-                        "expires_in": 120  # 2 minutes
+                        "expires_in": 120,  # 2 minutes
                     },
                     "access_token": {"expires_in": 3600},  # An hour
                     "refresh_token": {
@@ -66,13 +63,11 @@ _C = {
                 },
                 "expires_in": 2592000,  # a month, 30 days
             }
-        }
+        },
     },
     "claims_interface": {
         "class": "idpyoidc.server.session.claims.ClaimsInterface",
-        "kwargs": {
-            "claims_release_points": ["introspection", "access_token"]
-        }
+        "kwargs": {"claims_release_points": ["introspection", "access_token"]},
     },
     "endpoint": {
         "provider_info": {
@@ -102,107 +97,108 @@ _C = {
                     "client_secret_jwt",
                     "private_key_jwt",
                 ]
-            }
-        }
-    }
+            },
+        },
+    },
 }
 
 AS_DEFAULT_CONFIG.update(_C)
 
 OP_DEFAULT_CONFIG = copy.deepcopy(_DEFAULT_CONFIG)
-OP_DEFAULT_CONFIG.update({
-    "preference": {
-        "subject_types_supported": ["public", "pairwise"],
-    },
-    "authz": {
-        "class": "idpyoidc.server.authz.AuthzHandling",
-        "kwargs": {
-            "grant_config": {
-                "usage_rules": {
-                    "authorization_code": {
-                        "supports_minting": [
-                            "access_token",
-                            "refresh_token",
-                            "id_token",
-                        ],
-                        "max_usage": 1,
-                        'expires_in': 120  # 2 minutes
+OP_DEFAULT_CONFIG.update(
+    {
+        "preference": {
+            "subject_types_supported": ["public", "pairwise"],
+        },
+        "authz": {
+            "class": "idpyoidc.server.authz.AuthzHandling",
+            "kwargs": {
+                "grant_config": {
+                    "usage_rules": {
+                        "authorization_code": {
+                            "supports_minting": [
+                                "access_token",
+                                "refresh_token",
+                                "id_token",
+                            ],
+                            "max_usage": 1,
+                            "expires_in": 120,  # 2 minutes
+                        },
+                        "access_token": {"expires_in": 3600},  # An hour
+                        "refresh_token": {
+                            "supports_minting": ["access_token", "refresh_token", "id_token"],
+                            "expires_in": 86400,  # One day
+                        },
                     },
-                    "access_token": {'expires_in': 3600},  # An hour
-                    "refresh_token": {
-                        "supports_minting": ["access_token", "refresh_token", "id_token"],
-                        "expires_in": 86400,  # One day
-                    },
+                    "expires_in": 2592000,  # a month, 30 days
+                }
+            },
+        },
+        "claims_interface": {
+            "class": "idpyoidc.server.session.claims.ClaimsInterface",
+            "kwargs": {},
+        },
+        "endpoint": {
+            "provider_info": {
+                "path": ".well-known/openid-configuration",
+                "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
+                "kwargs": {"client_authn_method": None},
+            },
+            "authorization": {
+                "path": "authorization",
+                "class": "idpyoidc.server.oidc.authorization.Authorization",
+                "kwargs": {
+                    "client_authn_method": None,
+                    "claims_parameter_supported": True,
+                    "request_parameter_supported": True,
+                    "request_uri_parameter_supported": True,
+                    "response_types_supported": [
+                        "code",
+                        # "token",
+                        "id_token",
+                        # "code token",
+                        "code id_token",
+                        # "id_token token",
+                        # "code id_token token",
+                        # "none"
+                    ],
+                    "response_modes_supported": ["query", "fragment", "form_post"],
                 },
-                "expires_in": 2592000,  # a month, 30 days
-            }
-        },
-    },
-    "claims_interface": {
-        "class": "idpyoidc.server.session.claims.ClaimsInterface",
-        "kwargs": {}
-    },
-    "endpoint": {
-        "provider_info": {
-            "path": ".well-known/openid-configuration",
-            "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
-            "kwargs": {"client_authn_method": None},
-        },
-        "authorization": {
-            "path": "authorization",
-            "class": "idpyoidc.server.oidc.authorization.Authorization",
-            "kwargs": {
-                "client_authn_method": None,
-                "claims_parameter_supported": True,
-                "request_parameter_supported": True,
-                "request_uri_parameter_supported": True,
-                "response_types_supported": [
-                    "code",
-                    # "token",
-                    "id_token",
-                    # "code token",
-                    "code id_token",
-                    # "id_token token",
-                    # "code id_token token",
-                    # "none"
-                ],
-                "response_modes_supported": ["query", "fragment", "form_post"],
+            },
+            "token": {
+                "path": "token",
+                "class": "idpyoidc.server.oidc.token.Token",
+                "kwargs": {
+                    "client_authn_method": [
+                        "client_secret_post",
+                        "client_secret_basic",
+                        "client_secret_jwt",
+                        "private_key_jwt",
+                    ]
+                },
+            },
+            "userinfo": {
+                "path": "userinfo",
+                "class": "idpyoidc.server.oidc.userinfo.UserInfo",
+                "kwargs": {"claim_types_supported": ["normal", "aggregated", "distributed"]},
             },
         },
-        "token": {
-            "path": "token",
-            "class": "idpyoidc.server.oidc.token.Token",
-            "kwargs": {
-                "client_authn_method": [
-                    "client_secret_post",
-                    "client_secret_basic",
-                    "client_secret_jwt",
-                    "private_key_jwt",
-                ]
+        "token_handler_args": {
+            "jwks_file": "private/token_jwks.json",
+            "code": {"kwargs": {"lifetime": 600}},
+            "token": {
+                "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 3600},
             },
+            "refresh": {
+                "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                "kwargs": {"lifetime": 86400},
+            },
+            "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
         },
-        "userinfo": {
-            "path": "userinfo",
-            "class": "idpyoidc.server.oidc.userinfo.UserInfo",
-            "kwargs": {"claim_types_supported": ["normal", "aggregated", "distributed"]},
-        },
-    },
-    "token_handler_args": {
-        "jwks_file": "private/token_jwks.json",
-        "code": {"kwargs": {"lifetime": 600}},
-        "token": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 3600},
-        },
-        "refresh": {
-            "class": "idpyoidc.server.token.jwt_token.JWTToken",
-            "kwargs": {"lifetime": 86400},
-        },
-        "id_token": {"class": "idpyoidc.server.token.id_token.IDToken", "kwargs": {}},
-    },
-    "scopes_to_claims": SCOPE2CLAIMS,
-})
-
+        "scopes_to_claims": SCOPE2CLAIMS,
+    }
+)
 
 
 class EntityConfiguration(Base):
@@ -231,15 +227,15 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
-            upstream_get: Optional[Callable] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
+        upstream_get: Optional[Callable] = None,
     ):
 
         conf = copy.deepcopy(conf)
@@ -303,14 +299,14 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         super().__init__(
             conf=conf,
@@ -327,14 +323,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-            self,
-            conf: Dict,
-            base_path: Optional[str] = "",
-            entity_conf: Optional[List[dict]] = None,
-            domain: Optional[str] = "",
-            port: Optional[int] = 0,
-            file_attributes: Optional[List[str]] = None,
-            dir_attributes: Optional[List[str]] = None,
+        self,
+        conf: Dict,
+        base_path: Optional[str] = "",
+        entity_conf: Optional[List[dict]] = None,
+        domain: Optional[str] = "",
+        port: Optional[int] = 0,
+        file_attributes: Optional[List[str]] = None,
+        dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,
@@ -608,5 +604,33 @@ DEFAULT_EXTENDED_CONF = {
                 "kwargs": {"salt": "mysalt"},
             },
         },
+    },
+}
+
+DEFAULT_OIDC_ENDPOINTS = {
+    "provider_info": {
+        "path": ".well-known/openid-configuration",
+        "class": "idpyoidc.server.oidc.provider_config.ProviderConfiguration",
+        "kwargs": {},
+    },
+    "register": {
+        "path": "registration",
+        "class": "idpyoidc.server.oidc.registration.Registration",
+        "kwargs": {},
+    },
+    "authorization": {
+        "path": "authorization",
+        "class": "idpyoidc.server.oidc.authorization.Authorization",
+        "kwargs": {},
+    },
+    "token": {
+        "path": "token",
+        "class": "idpyoidc.server.oidc.token.Token",
+        "kwargs": {},
+    },
+    "userinfo": {
+        "path": "user",
+        "class": "idpyoidc.server.oidc.userinfo.UserInfo",
+        "kwargs": {},
     },
 }

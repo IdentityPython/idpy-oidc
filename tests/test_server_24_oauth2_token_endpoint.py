@@ -9,10 +9,10 @@ from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message import Message
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import JWTAccessToken
 from idpyoidc.message.oauth2 import ROPCAccessTokenRequest

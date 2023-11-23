@@ -2,7 +2,7 @@ import logging
 from typing import Callable
 from urllib.parse import urlsplit
 
-from idpyoidc import claims
+from idpyoidc import metadata
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import verified_claim_name
@@ -81,9 +81,9 @@ class Authorization(authorization.Authorization):
         **{
             "claims_parameter_supported": True,
             "encrypt_request_object_supported": False,
-            "request_object_signing_alg_values_supported": claims.get_signing_algs,
-            "request_object_encryption_alg_values_supported": claims.get_encryption_algs,
-            "request_object_encryption_enc_values_supported": claims.get_encryption_encs,
+            "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
+            "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
+            "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
             "request_parameter_supported": True,
             "request_uri_parameter_supported": True,
             "require_request_uri_registration": False,

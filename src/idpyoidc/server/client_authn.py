@@ -471,8 +471,12 @@ def verify_client(
         authorization_token = None
 
     auth_info = {}
+
+    # 'methods' refer to all client authentication methods that can be used by a server.
+    # 'allowed_methods' are the ones that can be used by a specific endpoint.
     _context = endpoint.upstream_get("context")
     methods = _context.client_authn_methods
+
     client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
     if not allowed_methods:

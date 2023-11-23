@@ -4,21 +4,21 @@ import os
 import pytest
 from cryptojwt.exception import MissingKey
 from cryptojwt.jwk.rsa import new_rsa_key
-from cryptojwt.jws.jws import factory
 from cryptojwt.jws.jws import JWS
+from cryptojwt.jws.jws import factory
 from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 
-from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import AuthnFailure
-from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import BearerBody
 from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.client_auth import ClientSecretBasic
 from idpyoidc.client.client_auth import ClientSecretJWT
 from idpyoidc.client.client_auth import ClientSecretPost
 from idpyoidc.client.client_auth import PrivateKeyJWT
+from idpyoidc.client.client_auth import assertion_jwt
+from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
 from idpyoidc.defaults import JWT_BEARER
@@ -71,7 +71,7 @@ def test_quote():
 
 class TestClientSecretBasic(object):
     def test_construct(self, entity):
-        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(
@@ -236,7 +236,7 @@ class TestBearerBody(object):
 
 class TestClientSecretPost(object):
     def test_construct(self, entity):
-        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(redirect_uri="http://example.com", state="ABCDE")
@@ -254,7 +254,7 @@ class TestClientSecretPost(object):
         assert http_args is None
 
     def test_modify_1(self, entity):
-        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")
@@ -265,7 +265,7 @@ class TestClientSecretPost(object):
         assert "client_secret" in request
 
     def test_modify_2(self, entity):
-        entity.context.cstate.update("ABCDE", {'code': 'abcdefghijklmnopqrst'})
+        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")

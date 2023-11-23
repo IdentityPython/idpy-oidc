@@ -165,11 +165,11 @@ class Endpoint(Node):
         except IssuerNotFound as err:
             if lap:
                 return self.error_cls(error=err)
+            # Find a client ID I believe will work
             client_id = self.find_client_keys(err.args[0])
             if not client_id:
                 return self.error_cls(error=err)
             else:
-                # Fund a client ID I believe will work
                 self.verify_request(
                     request=request,
                     keyjar=keyjar,

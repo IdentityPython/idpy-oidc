@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 from typing import Union
 
-from idpyoidc.claims import get_signing_algs
 from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oauth2 import access_token
@@ -10,6 +9,7 @@ from idpyoidc.client.oidc import IDT2REG
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
+from idpyoidc.metadata import get_signing_algs
 from idpyoidc.time_util import time_sans_frac
 
 __author__ = "Roland Hedberg"
