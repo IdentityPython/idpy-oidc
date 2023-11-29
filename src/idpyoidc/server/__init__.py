@@ -48,6 +48,7 @@ class Server(Unit):
     ):
         self.entity_id = entity_id or conf.get("entity_id")
         self.issuer = conf.get("issuer", self.entity_id)
+        self.persistence = None
 
         if upstream_get is None:
             if key_conf is None:
