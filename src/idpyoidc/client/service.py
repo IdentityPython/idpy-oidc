@@ -662,13 +662,8 @@ class Service(ImpExp):
                 resp.verify(**vargs)
             except MissingSigningKey as err:
                 LOGGER.error(f"Could not find an appropriate key: {err}")
-                _keyjar = self.upstream_get("attribute", "keyjar")
-                try:
-                    LOGGER.debug(f"[{self.upstream_get('entity').client_id}] Available keys for"
-                                 f" {vargs['iss']}:"
-                                 f" {_keyjar.key_summary(vargs['iss'])}")
-                except IssuerNotFound:
-                    LOGGER.debug(f"Issuer not found in keyjar: {vargs['iss']}")
+                if vargs["iss"] not in vargs["keyjar"].owners():
+                    LOGGER.debug(f"Issuer {vargs['iss']} not found in keyjar")
                 raise
             except Exception as err:
                 LOGGER.error("Got exception while verifying response: %s", err)
