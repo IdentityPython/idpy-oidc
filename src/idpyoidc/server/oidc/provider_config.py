@@ -12,6 +12,7 @@ class ProviderConfiguration(Endpoint):
     request_format = ""
     response_format = "json"
     name = "provider_config"
+    endpoint_type = "oidc"
 
     def __init__(self, upstream_get, **kwargs):
         Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)

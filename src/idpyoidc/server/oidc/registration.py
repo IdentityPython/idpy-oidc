@@ -4,6 +4,7 @@ import json
 import logging
 import secrets
 from typing import List
+from typing import Optional
 from urllib.parse import urlencode
 from urllib.parse import urlparse
 
@@ -124,6 +125,7 @@ class Registration(Endpoint):
     response_format = "json"
     endpoint_name = "registration_endpoint"
     name = "registration"
+    endpoint_type = "oidc"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -282,12 +284,7 @@ class Registration(Endpoint):
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
         _keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
-
-        n_keys = 0
-        for kb in _keyjar.get(client_id, []):
-            n_keys += len(kb.keys())
-        msg = "found {} keys for client_id={}"
-        logger.debug(msg.format(n_keys, client_id))
+        logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
 
         return _cinfo
 
@@ -402,7 +399,10 @@ class Registration(Endpoint):
 
         return client_secret
 
-    def client_registration_setup(self, request, new_id=True, set_secret=True):
+    def client_registration_setup(self, request,
+                                  new_id: Optional[bool] = True,
+                                  set_secret: Optional[bool] = True,
+                                  reserved_client_id: Optional[list] = None):
         try:
             request.verify()
         except (MessageException, ValueError) as err:
@@ -432,7 +432,9 @@ class Registration(Endpoint):
             else:
                 cid_generator = importer("idpyoidc.server.oidc.registration.random_client_id")
                 cid_gen_kwargs = {}
-            client_id = cid_generator(reserved=_context.cdb.keys(), **cid_gen_kwargs)
+            if not reserved_client_id:
+                reserved_client_id = _context.cdb.keys()
+            client_id = cid_generator(reserved=reserved_client_id, **cid_gen_kwargs)
             if "client_id" in request:
                 del request["client_id"]
         else:
@@ -487,7 +489,9 @@ class Registration(Endpoint):
 
     def process_request(self, request=None, new_id=True, set_secret=True, **kwargs):
         try:
-            reg_resp = self.client_registration_setup(request, new_id, set_secret)
+            reserved_client_id = kwargs.get("reserved")
+            reg_resp = self.client_registration_setup(request, new_id, set_secret,
+                                                      reserved_client_id)
         except Exception as err:
             logger.error("client_registration_setup: %s", request)
             return ResponseMessage(

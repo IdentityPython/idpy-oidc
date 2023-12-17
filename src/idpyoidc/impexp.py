@@ -1,18 +1,35 @@
+import base64
 from typing import Any
 from typing import List
 from typing import Optional
 
-from cryptojwt import as_unicode
-from cryptojwt.utils import as_bytes
 from cryptojwt.utils import importer
 from cryptojwt.utils import qualified_name
 
+# from idpyoidc.item import DLDict
 from idpyoidc.message import Message
 from idpyoidc.storage import DictType
 
 
 def fully_qualified_name(cls):
     return cls.__module__ + "." + cls.__class__.__name__
+
+
+def type2cls(v):
+    if isinstance(v, str):
+        return ""
+    elif isinstance(v, int):
+        return 0
+    elif isinstance(v, bool):
+        return bool
+    elif isinstance(v, bytes):
+        return b""
+    elif isinstance(v, dict):
+        return {}
+    elif isinstance(v, list):
+        return []
+    else:
+        return None
 
 
 class ImpExp:
@@ -24,11 +41,14 @@ class ImpExp:
         pass
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
-        if cls in [None, 0, "", [], {}, bool, b""]:
-            if cls == b"":
-                val = as_unicode(item)
-            else:
-                val = item
+        if cls in [None, 0, "", bool]:
+            val = item
+        elif cls == b"":
+            val = f"BYTES:{base64.b64encode(item).decode('utf-8')}"
+        elif cls == {} and isinstance(item, dict):
+            val = {k: self.dump_attr(type2cls(v), v, exclude_attributes) for k, v in item.items()}
+        elif cls == [] and isinstance(item, list):
+            val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
         elif cls == "DICT_TYPE":
             if isinstance(item, dict):
                 val = item
@@ -78,11 +98,11 @@ class ImpExp:
         pass
 
     def load_attr(
-        self,
-        cls: Any,
-        item: dict,
-        init_args: Optional[dict] = None,
-        load_args: Optional[dict] = None,
+            self,
+            cls: Any,
+            item: Any,
+            init_args: Optional[dict] = None,
+            load_args: Optional[dict] = None,
     ) -> Any:
         if load_args:
             _kwargs = {"load_args": load_args}
@@ -92,11 +112,17 @@ class ImpExp:
         if init_args:
             _kwargs["init_args"] = init_args
 
-        if cls in [None, 0, "", [], {}, bool, b""]:
-            if cls == b"":
-                val = as_bytes(item)
+        if cls in [None, 0, "", bool]:
+            if cls == "" and item.startswith("BYTES:"):
+                val = base64.b64decode(item[len("BYTES:"):].encode("utf-8"))
             else:
                 val = item
+        elif cls == b"":
+            val = base64.b64decode(item[len("BYTES:"):].encode("utf-8"))
+        elif cls == {}:
+            val = {k: self.load_attr(type2cls(v), v, init_args, load_args) for k, v in item.items()}
+        elif cls == []:
+            val = [self.load_attr(type2cls(v), v, init_args, load_args) for v in item]
         elif cls == "DICT_TYPE":
             if list(item.keys()) == ["DICT_TYPE"]:
                 _spec = item["DICT_TYPE"]
@@ -127,7 +153,10 @@ class ImpExp:
             else:
                 _args = {}
 
-            val = cls(**_args).load(item, **_kwargs)
+            if item:
+                val = cls(**_args).load(item, **_kwargs)
+            else:
+                val = cls(**_args)
 
         return val
 

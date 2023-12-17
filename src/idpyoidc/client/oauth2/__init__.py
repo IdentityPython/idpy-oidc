@@ -160,6 +160,10 @@ class Client(Entity):
         :param kwargs:
         :return:
         """
+        _data = kwargs.get("data")
+        if _data and not body:
+            body = _data
+
         try:
             resp = self.httpc(method, url, data=body, headers=headers, **self.httpc_params)
         except Exception as err:
@@ -168,6 +172,8 @@ class Client(Entity):
 
         if 300 <= resp.status_code < 400:
             return {"http_response": resp}
+        elif resp.status_code >= 400:
+            logger.error(f"HTTP error: {resp}")
 
         if resp.status_code < 300:
             if "keyjar" not in kwargs:
@@ -213,14 +219,10 @@ class Client(Entity):
 
         logger.debug(REQUEST_INFO.format(url, method, body, headers))
 
-        try:
-            response = service.get_response_ext(
-                url, method, body, response_body_type, headers, **kwargs
-            )
-        except AttributeError:
-            response = self.get_response(
-                service, url, method, body, response_body_type, headers, **kwargs
-            )
+        _get_response_func = getattr(self, "get_response_ext", getattr(self, "get_response"))
+        response = _get_response_func(
+            service, url, method, body, response_body_type, headers, **kwargs
+        )
 
         if "error" in response:
             pass
@@ -333,6 +335,7 @@ def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dic
     except KeyError:
         pass
 
+    logger.debug(f"{service}")
     response = client.do_request(service, behaviour_args=behaviour_args)
     if is_error_message(response):
         raise OidcServiceError(response["error"])

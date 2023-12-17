@@ -12,15 +12,15 @@ from cryptojwt.utils import importer
 
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest
+from idpyoidc.message.oauth2 import SINGLE_OPTIONAL_STRING
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-
+from .util import sanitize
 from ..message import VREQUIRED
 from ..util import instantiate
-from .util import sanitize
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
@@ -29,6 +29,7 @@ LOGGER = logging.getLogger(__name__)
 
 __author__ = "roland hedberg"
 
+DEFAULT_ACCESS_TOKEN_TYPE = "Bearer"
 
 class AuthnFailure(Exception):
     """Unspecified Authentication failure"""
@@ -137,8 +138,8 @@ class ClientSecretBasic(ClientAuthnMethod):
         :param service: A :py:class:`idpyoidc.client.service.Service` instance
         """
         if (
-            isinstance(request, AccessTokenRequest)
-            and request["grant_type"] == "authorization_code"
+                isinstance(request, AccessTokenRequest)
+                and request["grant_type"] == "authorization_code"
         ):
             if "client_id" not in request:
                 try:
@@ -228,7 +229,7 @@ class ClientSecretPost(ClientSecretBasic):
                 if not request["client_secret"]:
                     raise AuthnFailure("Missing client secret")
 
-        # Set the client_id in the the request
+        # Set the client_id in the request
         request["client_id"] = _context.get_client_id()
 
     def construct(self, request, service=None, http_args=None, **kwargs):
@@ -276,8 +277,40 @@ def find_token(request, token_type, service, **kwargs):
     except KeyError:
         # Get the latest acquired token.
         _state = kwargs.get("state", kwargs.get("key"))
-        _arg = service.upstream_get("context").cstate.get_set(_state, claim=[token_type])
+        _arg = service.upstream_get("context").cstate.get_set(_state, claim=[token_type,
+                                                                             "token_type"])
         return _arg.get("access_token")
+
+
+def find_token_info(request: Union[Message, dict], token_type: str, service, **kwargs) -> dict:
+    """
+    Token acquired by a previous run service.
+
+    :param token_type:
+    :param kwargs:
+    :return:
+    """
+
+    if request is not None:
+        _token = request.get(token_type, None)
+        if _token:
+            del request[token_type]
+            # Required under certain circumstances :-) not under other
+            request.c_param[token_type] = SINGLE_OPTIONAL_STRING
+            return {token_type: _token, "token_type": DEFAULT_ACCESS_TOKEN_TYPE}
+
+    _state = kwargs.get("state", kwargs.get("key"))
+    if _state:
+        _token_info = service.upstream_get("context").cstate.get_set(
+            _state, claim=[token_type, "token_type"])
+    else:
+        _token_info = {"token_type": DEFAULT_ACCESS_TOKEN_TYPE}
+
+    _token = kwargs.get("access_token", None)
+    if _token:
+        return {token_type: _token, "token_type": _token_info["token_type"]}
+    else:
+        return _token_info
 
 
 class BearerHeader(ClientAuthnMethod):
@@ -296,18 +329,20 @@ class BearerHeader(ClientAuthnMethod):
         """
 
         if service.service_name == "refresh_token":
-            _acc_token = find_token(request, "refresh_token", service, **kwargs)
+            _token_type = "refresh_token"
         elif service.service_name == "token_exchange":
-            _acc_token = find_token(request, "subject_token", service, **kwargs)
+            _token_type = "subject_token"
         else:
-            _acc_token = find_token(request, "access_token", service, **kwargs)
+            _token_type = "access_token"
 
-        if not _acc_token:
+        _token_info = find_token_info(request, _token_type, service, **kwargs)
+
+        if not _token_info:
             raise KeyError("No bearer token available")
 
-        # The authorization value starts with 'Bearer' when bearer tokens
-        # are used
-        _bearer = "Bearer {}".format(_acc_token)
+        # The authorization value starts with the token_type
+        # if _token_info["token_type"].to_lower() != "bearer":
+        _bearer = f"{_token_info['token_type']} {_token_info[_token_type]}"
 
         # Add 'Authorization' to the headers
         if http_args is None:
@@ -502,9 +537,11 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             _args = {}
 
+        _client_id = kwargs.get("client_id", _entity.client_id)
+
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
-        return assertion_jwt(_entity.client_id, signing_key, audience, algorithm, **_args)
+        return assertion_jwt(_client_id, signing_key, audience, algorithm, **_args)
 
     def modify_request(self, request, service, **kwargs):
         """
@@ -643,6 +680,8 @@ def single_authn_setup(name, spec):
     else:
         if spec is None:
             cls = get_client_authn_class(name)
+            if cls is None:
+                cls = importer(name)
         elif isinstance(spec, str):
             cls = importer(spec)
         else:

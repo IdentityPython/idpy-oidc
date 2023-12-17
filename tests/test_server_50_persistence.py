@@ -66,6 +66,22 @@ TOKEN_REQ = AccessTokenRequest(
     client_secret="hemligt",
 )
 
+AUTH_REQ_2 = AuthorizationRequest(
+    client_id="client_2",
+    redirect_uri="https://two.example.com/cb",
+    scope=["openid"],
+    state="STATE",
+    response_type="code",
+)
+
+TOKEN_REQ_2 = AccessTokenRequest(
+    client_id="client_2",
+    redirect_uri="https://two.example.com/cb",
+    state="STATE",
+    grant_type="authorization_code",
+    client_secret="hemligt",
+)
+
 TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
@@ -221,21 +237,39 @@ class TestEndpoint(object):
         )
         # The top most part (Server class instance) is not
 
-        server1.context.cdb["client_1"] = {
-            "client_secret": "hemligt",
-            "redirect_uris": [("https://example.com/cb", None)],
-            "client_salt": "salted",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
-            "allowed_scopes": [
-                "openid",
-                "profile",
-                "email",
-                "address",
-                "phone",
-                "offline_access",
-                "research_and_scholarship",
-            ],
+        server1.context.cdb = {
+            "client_1": {
+                "client_secret": "hemligt",
+                "redirect_uris": [("https://example.com/cb", None)],
+                "client_salt": "salted",
+                "token_endpoint_auth_method": "client_secret_post",
+                "response_types": ["code", "token", "code id_token", "id_token"],
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                    "research_and_scholarship",
+                ],
+            },
+            "client_2": {
+                "client_secret": "hemligt_ord",
+                "redirect_uris": [("https://two.example.com/cb", None)],
+                "client_salt": "salted peanuts",
+                "token_endpoint_auth_method": "client_secret_post",
+                "response_types": ["code", "code id_token", "id_token"],
+                "allowed_scopes": [
+                    "openid",
+                    "profile",
+                    "email",
+                    "address",
+                    "phone",
+                    "offline_access",
+                    "research_and_scholarship",
+                ]
+            }
         }
 
         # make server2 endpoint context a copy of server 1 endpoint context
@@ -315,8 +349,9 @@ class TestEndpoint(object):
             "openid"
         }
         assert (
-            self.endpoint[1].upstream_get("context").provider_info["claims_parameter_supported"]
-            == self.endpoint[2].upstream_get("context").provider_info["claims_parameter_supported"]
+                self.endpoint[1].upstream_get("context").provider_info["claims_parameter_supported"]
+                == self.endpoint[2].upstream_get("context").provider_info[
+                    "claims_parameter_supported"]
         )
 
     def test_parse(self):
@@ -474,7 +509,7 @@ class TestEndpoint(object):
         sman = self.session_manager[1]
         session_dump = sman.dump()
 
-        # there after an exception a database could be inconsistent
+        # after an exception a database could be inconsistent
         # it would be better to always flush database when a new http request come
         # and load session from previously loaded sessions
         sman.flush()
@@ -499,7 +534,66 @@ class TestEndpoint(object):
         # some mess before doing that
         sman.crypt_config = {"password": "ingoalla", "salt": "fantozzi"}
 
-        # ok, end of the games, session have been loaded and all the things be finally there!
+        # ok, end of the game, session have been loaded and all the things should finally be there!
         sman.load(session_dump)
         for i in "db", "crypt_config":
             assert session_dump[i] == sman.dump()[i]
+
+    def _get_client_session_info(self, client_id, db):
+        res = {}
+        for key, info in db.items():
+            val = self.session_manager[1].unpack_branch_key(key)
+            if len(val) > 1 and val[1] == client_id:
+                res[key] = info
+                if val[0] not in res:
+                    res[val[0]] = db[val[0]]
+
+        return res
+
+    def test_multiple_sessions(self):
+        session_id = self._create_session(AUTH_REQ, index=1)
+        grant = self.endpoint[1].upstream_get("context").authz(session_id, AUTH_REQ)
+        code = self._mint_code(grant, session_id, index=1)
+        access_token_1 = self._mint_access_token(grant, session_id, code, 1)
+
+        session_id = self._create_session(AUTH_REQ_2, index=1)
+        grant = self.endpoint[1].upstream_get("context").authz(session_id, AUTH_REQ_2)
+        code = self._mint_code(grant, session_id, index=1)
+        access_token_2 = self._mint_access_token(grant, session_id, code, 1)
+
+        _session_state = self.session_manager[1].dump()
+        _orig_db = _session_state["db"]
+        _client_1_db = self._get_client_session_info('client_1', _orig_db)
+        _session_state["db"] = _client_1_db
+
+        self.session_manager[2].load(
+            _session_state, init_args={"upstream_get": self.endpoint[2].upstream_get}
+        )
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token_1.value)}}
+        _req = self.endpoint[2].parse_request({}, http_info=http_info)
+        args = self.endpoint[2].process_request(_req)
+        assert args["client_id"] == "client_1"
+
+        # this should not work
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token_2.value)}}
+        _req = self.endpoint[2].parse_request({}, http_info=http_info)
+
+        assert _req["error"] == "invalid_token"
+
+        _token_info = self.session_manager[1].token_handler.info(access_token_2.value)
+        sid = _token_info.get("sid")
+        _path = self.session_manager[1].decrypt_branch_id(sid)
+
+        _client_db = self._get_client_session_info(_path[1], _orig_db)
+        _session_state["db"] = _client_db
+
+        self.session_manager[2].load(
+            _session_state, init_args={"upstream_get": self.endpoint[2].upstream_get}
+        )
+
+        http_info = {"headers": {"authorization": "Bearer {}".format(access_token_2.value)}}
+        _req = self.endpoint[2].parse_request({}, http_info=http_info)
+        args = self.endpoint[2].process_request(_req)
+        assert args["client_id"] == "client_2"

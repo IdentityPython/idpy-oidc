@@ -67,7 +67,7 @@ def rp():
         except Exception as err:
             return make_response('Something went wrong:{}'.format(err), 400)
         else:
-            response = redirect(result['url'], 303)
+            response = redirect(result, 303)
             return response
     else:
         _providers = current_app.rp_config.clients.keys()
@@ -106,7 +106,7 @@ def finalize(op_identifier, request_args):
     session['state'] = request_args.get('state')
 
     if session['state']:
-        iss = _context.state.get_iss(session['state'])
+        iss = _context.cstate.get_set(session['state'], claim=["iss"])['iss']
     else:
         return make_response('Unknown state', 400)
 
@@ -158,14 +158,9 @@ def get_op_identifier_by_cb_uri(url: str):
     uri = splitquery(url)[0]
     for k, v in current_app.rph.issuer2rp.items():
         for endpoint in v.get_callback_uris():
-            _endps = v.get_metadata_value(endpoint)
-            if _endps is None:
-                continue
-            elif isinstance(_endps,str):
-                if _endps == uri:
+            for val in v.context.claims.get_preference(endpoint):
+                if val == uri:
                     return k
-            elif uri in _endps:
-                return k
     return None
 
 @oidc_rp_views.route('/authz_cb/<op_identifier>')

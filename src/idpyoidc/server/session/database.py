@@ -18,6 +18,7 @@ from idpyoidc.util import rndstr
 
 from .grant import Grant
 from .info import NodeInfo
+from ...util import instantiate
 
 logger = logging.getLogger(__name__)
 
@@ -184,5 +185,6 @@ class Database(ImpExp):
         self.db = DLDict()
 
     def local_load_adjustments(self, **kwargs):
-        _crypt = init_encrypter(self.crypt_config)
-        self.crypt = _crypt["encrypter"]
+        self.crypt = instantiate(self.crypt_config["class"], **self.crypt_config["kwargs"])
+        # _crypt = init_encrypter(self.crypt_config)
+        # self.crypt = _crypt["encrypter"]

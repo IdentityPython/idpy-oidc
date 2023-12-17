@@ -225,15 +225,21 @@ class BearerHeader(ClientSecretBasic):
         get_client_id_from_token: Optional[Callable] = None,
         **kwargs,
     ):
+        logger.debug(f"Client Auth method: {self.tag}")
         token = authorization_token.split(" ", 1)[1]
         _context = self.upstream_get("context")
-        try:
-            client_id = get_client_id_from_token(_context, token, request)
-        except ToOld:
-            raise BearerTokenAuthenticationError("Expired token")
-        except KeyError:
-            raise BearerTokenAuthenticationError("Unknown token")
-        return {"token": token, "client_id": client_id}
+        client_id = ""
+        if get_client_id_from_token:
+            try:
+                client_id = get_client_id_from_token(_context, token, request)
+            except ToOld:
+                raise BearerTokenAuthenticationError("Expired token")
+            except KeyError:
+                raise BearerTokenAuthenticationError("Unknown token")
+            except Exception as err:
+                logger.debug(f"Exception in {self.tag}")
+
+        return {"token": token, "client_id": client_id, "method": self.tag}
 
 
 class BearerBody(ClientSecretPost):
@@ -435,10 +441,11 @@ CLIENT_AUTHN_METHOD = dict(
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
 
 
-def valid_client_info(cinfo):
-    eta = cinfo.get("client_secret_expires_at", 0)
-    if eta != 0 and eta < utc_time_sans_frac():
-        return False
+def valid_client_secret(cinfo):
+    if "client_secret" in cinfo:
+        eta = cinfo.get("client_secret_expires_at", 0)
+        if eta != 0 and eta < utc_time_sans_frac():
+            return False
     return True
 
 
@@ -472,8 +479,6 @@ def verify_client(
 
     auth_info = {}
 
-    # 'methods' refer to all client authentication methods that can be used by a server.
-    # 'allowed_methods' are the ones that can be used by a specific endpoint.
     _context = endpoint.upstream_get("context")
     methods = _context.client_authn_methods
 
@@ -501,6 +506,8 @@ def verify_client(
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
             continue
 
+        logger.debug(f"Verify returned: {auth_info}")
+
         if auth_info.get("method") == "none" and auth_info.get("client_id") is None:
             break
 
@@ -524,8 +531,8 @@ def verify_client(
         if not _cinfo:
             raise UnknownClient("Unknown Client ID")
 
-        if not valid_client_info(_cinfo):
-            logger.warning("Client registration has timed out or " "client secret is expired.")
+        if not valid_client_secret(_cinfo):
+            logger.warning("Client secret has expired.")
             raise InvalidClient("Not valid client")
 
         # Validate that the used method is allowed for this client/endpoint
@@ -540,6 +547,8 @@ def verify_client(
             auth_info = {}
             continue
         break
+
+    logger.debug(f"Authn methods applied")
 
     # store what authn method was used
     if "method" in auth_info and client_id:

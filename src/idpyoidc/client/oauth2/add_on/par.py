@@ -6,6 +6,7 @@ from cryptojwt.utils import importer
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
+from idpyoidc.server.util import execute
 from idpyoidc.util import instantiate
 from requests import request
 
@@ -21,24 +22,41 @@ def push_authorization(request_args, service, **kwargs):
 
     _context = service.upstream_get("context")
     method_args = _context.add_on["pushed_authorization"]
+    logger.debug(f"PAR method args: {method_args}")
+    logger.debug(f"PAR kwargs: {kwargs}")
+
     if method_args["apply"] is False:
         return request_args
 
     _http_method = method_args["http_client"]
+    _httpc_params = service.upstream_get("unit").httpc_params
 
     # Add client authentication if needed
     _headers = {}
     authn_method = method_args["authn_method"]
     if authn_method:
-        if authn_method not in _context.client_authn_methods:
-            _context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
+        if isinstance(authn_method, str):
+            if authn_method not in _context.client_authn_methods:
+                _context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
+        else:
+            _name = ""
+            for _name, spec in authn_method.items():
+                if _name not in _context.client_authn_methods:
+                    _context.client_authn_methods[_name] = execute(spec)
+            authn_method = _name
 
         _args = {}
         if _context.issuer:
             _args["iss"] = _context.issuer
+        if _name == "client_attestation":
+            _wia = kwargs.get("client_attestation")
+            if _wia:
+                _args["client_attestation"] = _wia
+
         _headers = service.get_headers(
             request_args, http_method=_http_method, authn_method=authn_method, **_args
         )
+        _headers["Content-Type"] = "application/x-www-form-urlencoded"
 
     # construct the message body
     if method_args["body_format"] == "urlencoded":
@@ -56,12 +74,13 @@ def push_authorization(request_args, service, **kwargs):
 
         _body = _msg.to_urlencoded()
 
-    # Send it to the Pushed Authorization Request Endpoint
+    # Send it to the Pushed Authorization Request Endpoint using POST
     resp = _http_method(
-        method="GET",
+        method="POST",
         url=_context.provider_info["pushed_authorization_request_endpoint"],
         data=_body,
         headers=_headers,
+        **_httpc_params
     )
 
     if resp.status_code == 200:

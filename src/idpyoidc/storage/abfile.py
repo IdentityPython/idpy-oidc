@@ -24,11 +24,11 @@ class AbstractFileSystem(DictType):
     """
 
     def __init__(
-        self,
-        fdir: Optional[str] = "",
-        key_conv: Optional[str] = "",
-        value_conv: Optional[str] = "",
-        **kwargs
+            self,
+            fdir: Optional[str] = "",
+            key_conv: Optional[str] = "",
+            value_conv: Optional[str] = "",
+            **kwargs
     ):
         """
         items = FileSystem(
@@ -86,11 +86,12 @@ class AbstractFileSystem(DictType):
         item = self.key_conv.serialize(item)
 
         if self.is_changed(item):
-            logger.info("File content change in {}".format(item))
+            logger.info(f"File content change in {item}")
             fname = os.path.join(self.fdir, item)
             self.storage[item] = self._read_info(fname)
 
-        logger.debug('Read from "%s"', item)
+        _msg = f'Read from "{item}"'
+        logger.debug(_msg)
         # storage values are already value converted
         return self.storage[item]
 
@@ -114,21 +115,27 @@ class AbstractFileSystem(DictType):
             _key = key
 
         fname = os.path.join(self.fdir, _key)
-        lock = FileLock("{}.lock".format(fname))
+        lock = FileLock(f"{fname}.lock")
         with lock:
             with open(fname, "w") as fp:
                 fp.write(self.value_conv.serialize(value))
 
         self.storage[_key] = value
-        logger.debug('Wrote to "%s"', key)
+        _msg = f'Wrote to "{key}"'
+        logger.debug(_msg)
         self.fmtime[_key] = self.get_mtime(fname)
 
     def __delitem__(self, key):
         fname = os.path.join(self.fdir, key)
-        if os.path.isfile(fname):
-            lock = FileLock("{}.lock".format(fname))
-            with lock:
+        if fname.endswith(".lock"):
+            if os.path.isfile(fname):
                 os.unlink(fname)
+        else:
+            if os.path.isfile(fname):
+                lock = FileLock(f"{fname}.lock")
+                with lock:
+                    os.unlink(fname)
+                    os.unlink(f"{fname}.lock")
 
         try:
             del self.storage[key]
@@ -190,15 +197,17 @@ class AbstractFileSystem(DictType):
     def _read_info(self, fname):
         if os.path.isfile(fname):
             try:
-                lock = FileLock("{}.lock".format(fname))
+                lock = FileLock(f"{fname}.lock")
                 with lock:
                     info = open(fname, "r").read().strip()
+                lock.release()
                 return self.value_conv.deserialize(info)
             except Exception as err:
                 logger.error(err)
                 raise
         else:
-            logger.error("No such file: {}".format(fname))
+            _msg = f"No such file: '{fname}'"
+            logger.error(_msg)
         return None
 
     def synch(self):
@@ -225,7 +234,8 @@ class AbstractFileSystem(DictType):
                 try:
                     self.storage[f] = self._read_info(fname)
                 except Exception as err:
-                    logger.warning("Bad content in {} ({})".format(fname, err))
+                    _msg = f"Bad content in {fname} ({err})"
+                    logger.warning(_msg)
                 else:
                     self.fmtime[f] = mtime
 
@@ -287,7 +297,7 @@ class AbstractFileSystem(DictType):
         return n
 
     def __str__(self):
-        return "{config:" + str(self.config) + ", info:" + str(self.storage) + "}"
+        return f"info:{self.storage}"
 
     def dump(self):
         return {k: v for k, v in self.items()}

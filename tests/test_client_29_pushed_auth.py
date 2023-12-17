@@ -57,7 +57,7 @@ class TestPushedAuth:
         with responses.RequestsMock() as rsps:
             _resp = {"request_uri": "urn:example:bwc4JK-ESC0w8acc191e-Y1LTC2", "expires_in": 3600}
             rsps.add(
-                "GET",
+                "POST",
                 auth_service.upstream_get("context").provider_info[
                     "pushed_authorization_request_endpoint"
                 ],

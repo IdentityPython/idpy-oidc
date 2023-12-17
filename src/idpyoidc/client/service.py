@@ -8,9 +8,11 @@ from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
 
+from cryptojwt.exception import IssuerNotFound
 from cryptojwt.jwe.jwe import factory as jwe_factory
 from cryptojwt.jws.jws import factory as jws_factory
 from cryptojwt.jwt import JWT
+from idpyoidc.exception import MissingSigningKey
 
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.impexp import ImpExp
@@ -384,8 +386,9 @@ class Service(ImpExp):
         )
 
         _authz = _headers.get("Authorization")
-        if _authz and _authz.startswith("Bearer"):
-            kwargs["token"] = _authz.split(" ")[1]
+        if _authz:
+            if _authz.startswith("Bearer") or _authz.startswith("DPoP"):
+                kwargs["token"] = _authz.split(" ")[1]
 
         for meth in self.construct_extra_headers:
             _headers = meth(
@@ -493,7 +496,7 @@ class Service(ImpExp):
 
     def post_parse_response(self, response, **kwargs):
         """
-        This method does post processing of the service response.
+        This method does post-processing of the service response.
         Each service have their own version of this method.
 
         :param response: The service response
@@ -539,6 +542,9 @@ class Service(ImpExp):
     def _do_response(self, info, sformat, **kwargs):
         _context = self.upstream_get("context")
 
+        if isinstance(info,  list): # Don't have support for sformat=list
+            return info
+
         try:
             resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
         except Exception as err:
@@ -566,7 +572,7 @@ class Service(ImpExp):
         state: Optional[str] = "",
         behaviour_args: Optional[dict] = None,
         **kwargs,
-    ):
+    ) :
         """
         This the start of a pipeline that will:
 
@@ -628,7 +634,9 @@ class Service(ImpExp):
         LOGGER.debug("response_cls: %s", self.response_cls.__name__)
 
         if resp is None:
-            if not info:
+            if self.response_cls == list and info == []:
+                return info
+            elif not info:
                 LOGGER.error("Missing or faulty response")
                 raise ResponseError("Missing or faulty response")
 
@@ -636,19 +644,27 @@ class Service(ImpExp):
                 resp = info
             else:
                 resp = self._do_response(info, sformat, **kwargs)
-                LOGGER.debug('Initial response parsing => "%s"', resp.to_dict())
+                if isinstance(resp, Message):
+                    LOGGER.debug(f'Initial response parsing => "{resp.to_dict()}"')
+                else:
+                    LOGGER.debug(f'Initial response parsing => "{resp}"')
 
         # is this an error message
         if sformat == "text":
             pass
         elif is_error_message(resp):
             LOGGER.debug("Error response: %s", resp)
-        else:
+        elif isinstance(resp, Message):
             vargs = self.gather_verify_arguments(response=resp, behaviour_args=behaviour_args)
             LOGGER.debug("Verify response with %s", vargs)
             try:
                 # verify the message. If something is wrong an exception is thrown
                 resp.verify(**vargs)
+            except MissingSigningKey as err:
+                LOGGER.error(f"Could not find an appropriate key: {err}")
+                if vargs["iss"] not in vargs["keyjar"].owners():
+                    LOGGER.debug(f"Issuer {vargs['iss']} not found in keyjar")
+                raise
             except Exception as err:
                 LOGGER.error("Got exception while verifying response: %s", err)
                 raise

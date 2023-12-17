@@ -3,10 +3,8 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
-from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 
-from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.util import instantiate
@@ -46,11 +44,11 @@ def create_keyjar(
 
 
 def make_keyjar(
-    keyjar: Optional[Union[KeyJar, bool]] = None,
-    config: Optional[Union[Configuration, dict]] = None,
-    key_conf: Optional[dict] = None,
-    issuer_id: Optional[str] = "",
-    client_id: Optional[str] = "",
+        keyjar: Optional[Union[KeyJar, bool]] = None,
+        config: Optional[Union[Configuration, dict]] = None,
+        key_conf: Optional[dict] = None,
+        issuer_id: Optional[str] = "",
+        client_id: Optional[str] = "",
 ):
     if keyjar is False:
         return None
@@ -80,10 +78,10 @@ def make_keyjar(
                 keyjar = KeyJar()
                 keyjar.add_symmetric(client_id, _key)
                 keyjar.add_symmetric("", _key)
-        else:
-            keyjar = build_keyjar(DEFAULT_KEY_DEFS)
-            if issuer_id:
-                keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
+        # else:
+        #     keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+        #     if issuer_id:
+        #         keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
 
     return keyjar
 
