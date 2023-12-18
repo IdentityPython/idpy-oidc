@@ -292,10 +292,7 @@ def check_unknown_scopes_policy(request_info, client_id, context):
 
 def validate_resource_indicators_policy(request, context, **kwargs):
     if "resource" not in request:
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description="Missing resource parameter",
-        )
+        return request
 
     resource_servers_per_client = kwargs["resource_servers_per_client"]
     client_id = request["client_id"]

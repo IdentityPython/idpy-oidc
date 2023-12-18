@@ -38,7 +38,7 @@ If you want to add or replace functionality the official documentation should be
 If you are just going to build a standard OP you only have to understand how to write your configuration file.
 In `example/` folder you'll find some complete examples based on flask and django.
 
-Please read the [Official Documentation](https://idpyoidc.readthedocs.io/) for getting usage examples and further informations.
+Please read the [Official Documentation](https://idpy-oidc.readthedocs.io/) for getting usage examples and further informations.
 
 ## Contribute
 
