@@ -136,16 +136,16 @@ class ServiceContext(ImpExp):
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 
-        if "client_id" in kwargs:
-            self.entity_id = kwargs["entity_id"]
-        else:
-            self.entity_id = config.conf.get("client_id", "")
+        self.entity_id = kwargs.get("entity_id", kwargs.get("client_id", ""))
+        if not self.entity_id:
+            self.entity_id = config.conf.get("entity_id", config.conf.get("client_id"))
+
         self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
         self.allow = config.conf.get("allow", {})
-        self.base_url = base_url or config.conf.get("base_url", "")
+        self.base_url = base_url or config.conf.get("base_url", self.entity_id)
         self.provider_info = config.conf.get("provider_info", {})
 
         # Below so my IDE won't complain
