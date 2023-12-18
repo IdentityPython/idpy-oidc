@@ -1,6 +1,5 @@
 from typing import Optional
 
-from idpyoidc import claims
 from idpyoidc import metadata
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
@@ -73,7 +72,7 @@ class Claims(server_claims.Claims):
 
     def verify_rules(self, supports):
         if self.get_preference("request_parameter_supported") and self.get_preference(
-            "request_uri_parameter_supported"
+                "request_uri_parameter_supported"
         ):
             raise ValueError(
                 "You have to chose one of 'request_parameter_supported' and "

@@ -35,9 +35,9 @@ class UserInfo(Endpoint):
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
         "encrypt_userinfo_supported": True,
-        "userinfo_signing_alg_values_supported": metadata.get_signing_algs,
-        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs,
-        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs,
+        "userinfo_signing_alg_values_supported": metadata.get_signing_algs(),
+        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs(),
+        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs(),
     }
 
     def __init__(

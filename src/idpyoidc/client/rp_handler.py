@@ -8,6 +8,7 @@ from cryptojwt import KeyJar
 from cryptojwt import as_unicode
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
+from cryptojwt.utils import importer
 
 from idpyoidc import verified_claim_name
 from idpyoidc.client.defaults import DEFAULT_CLIENT_CONFIGS
@@ -60,6 +61,14 @@ class RPHandler(object):
                 self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
             if not client_configs:
                 self.client_configs = config.clients
+
+            if "client_class" in config:
+                if isinstance(config["client_class"], str):
+                    self.client_cls = importer(config["client_class"])
+                else: # assume it's a class
+                    self.client_cls = config["client_class"]
+            else:
+                self.client_cls = StandAloneClient
         else:
             if hash_seed:
                 self.hash_seed = as_bytes(hash_seed)
@@ -79,6 +88,8 @@ class RPHandler(object):
             else:
                 self.client_configs = client_configs
 
+            self.client_cls = StandAloneClient
+
         if _jwks_path:
             self.jwks_uri = add_path(base_url, _jwks_path)
         else:
@@ -95,7 +106,6 @@ class RPHandler(object):
 
         self.extra = kwargs
 
-        self.client_cls = StandAloneClient
         if services is None:
             self.services = DEFAULT_OIDC_SERVICES
         else:
