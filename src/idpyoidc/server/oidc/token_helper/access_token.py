@@ -78,6 +78,11 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _authn_req = grant.authorization_request
 
+        # Check if refresh_token is at the client's grant_types_supported 
+        # but not in global configuration then we should grant it
+        if "refresh_token" in grant_types_supported and "refresh_token" not in _supports_minting:
+            _supports_minting.append("refresh_token")
+
         # If redirect_uri was in the initial authorization request
         # verify that the one given here is the correct one.
         if "redirect_uri" in _authn_req:
