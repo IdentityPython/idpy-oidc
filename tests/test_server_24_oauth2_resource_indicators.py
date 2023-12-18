@@ -522,8 +522,11 @@ class TestEndpoint(object):
         )
 
         msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
-        assert "error" in msg
-        assert msg["error_description"] == "Missing resource parameter"
+
+        assert "error" not in msg
+        assert isinstance(msg, AuthorizationRequest)
+        for key, _ in request.items():
+            assert msg[key] == request[key]
 
     def test_authorization_code_req_no_resource_indicators_disabled(
         self, create_endpoint_ri_disabled
