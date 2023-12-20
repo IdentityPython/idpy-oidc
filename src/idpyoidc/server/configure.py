@@ -637,3 +637,26 @@ DEFAULT_OIDC_ENDPOINTS = {
         "kwargs": {},
     },
 }
+
+DEFAULT_OAUTH2_ENDPOINTS = {
+    "server_metadata": {
+        "path": ".well-known/oauth-authorization-server",
+        "class": "idpyoidc.server.oauth2.server_metadata.ServerMetadata",
+        "kwargs": {},
+    },
+    "register": {
+        "path": "registration",
+        "class": "idpyoidc.server.oauth2.registration.Registration",
+        "kwargs": {},
+    },
+    "authorization": {
+        "path": "authorization",
+        "class": "idpyoidc.server.oauth2.authorization.Authorization",
+        "kwargs": {},
+    },
+    "token": {
+        "path": "token",
+        "class": "idpyoidc.server.oauth2.token.Token",
+        "kwargs": {},
+    }
+}
