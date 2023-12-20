@@ -30,8 +30,8 @@ class Authorization(Service):
     response_body_type = "urlencoded"
 
     _supports = {
-        "response_types_supported": ["code"],
-        "response_modes_supported": ["query", "fragment"],
+        "response_types": ["code"],
+        "response_modes": ["query", "fragment"],
     }
 
     _callback_path = {
