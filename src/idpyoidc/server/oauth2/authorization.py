@@ -387,7 +387,7 @@ class Authorization(Endpoint):
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
-        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types_supported", [])]
+        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
         if not _registered:
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]

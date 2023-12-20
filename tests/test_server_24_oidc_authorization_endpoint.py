@@ -113,40 +113,26 @@ oidc_clients:
     "client_secret": 'hemligtkodord'
     "redirect_uris":
         - ['https://example.com/cb', '']
-    "client_salt": "salted"
-    'token_endpoint_auth_method': 'client_secret_post'
-    response_types_supported:
+    client_salt: salted
+    token_endpoint_auth_method: client_secret_post
+    response_types:
         - 'code'
         - 'code id_token'
         - 'id_token'
-    allowed_scopes:
-        - 'openid'
-        - 'profile'
-        - 'email'
-        - 'address'
-        - 'phone'
-        - 'offline_access'
   client2:
     client_secret: "spraket_sr.se"
     redirect_uris:
       - ['https://app1.example.net/foo', '']
       - ['https://app2.example.net/bar', '']
-    response_types_supported:
+    response_types:
       - code
   client3:
     client_secret: '2222222222222222222222222222222222222222'
     redirect_uris:
       - ['https://127.0.0.1:8090/authz_cb/bobcat', '']
     post_logout_redirect_uri: ['https://openidconnect.net/', '']
-    response_types_supported:
+    response_types:
       - code
-    allowed_scopes:
-        - 'openid'
-        - 'profile'
-        - 'email'
-        - 'address'
-        - 'phone'
-        - 'offline_access'
 """
 
 
@@ -880,7 +866,7 @@ class TestEndpoint(object):
 
         assert self.endpoint.verify_response_type(request, client_info) is False
 
-        client_info["response_types_supported"] = [
+        client_info["response_types"] = [
             "code",
             "code id_token",
             "id_token",
