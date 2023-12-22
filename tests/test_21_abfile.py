@@ -137,3 +137,13 @@ class TestAFS(object):
 
         abf.clear()
         assert set(abf.keys()) == set()
+
+    def test_read_multiple_times(self):
+        abf = AbstractFileSystem(fdir=full_path("afs"), value_conv="idpyoidc.util.JSON")
+        abf["client_1"] = CLIENT_1
+        val = abf.get("client_1")
+        assert val == CLIENT_1
+        val = abf.get("client_1")
+        assert val == CLIENT_1
+        val = abf.get("client_1")
+        assert val == CLIENT_1

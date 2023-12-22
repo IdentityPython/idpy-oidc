@@ -21,6 +21,7 @@ from idpyoidc.server.scopes import Scopes
 from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
+from idpyoidc.server.user_authn.authn_context import AuthnBroker
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.util import importer
@@ -443,7 +444,7 @@ class EndpointContext(OidcContext):
                 _conf, self.upstream_get, self.template_handler
             )
         else:
-            self.authn_broker = {}
+            self.authn_broker = AuthnBroker()
 
         self.endpoint_to_authn_method = {}
         for method in self.authn_broker:

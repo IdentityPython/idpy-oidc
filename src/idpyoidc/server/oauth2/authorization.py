@@ -392,8 +392,16 @@ class Authorization(Endpoint):
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
 
+        if isinstance(request["response_type"], list):
+            _asked_for = set(request["response_type"])
+        else:
+            _asked_for = set(request["response_type"].split(" "))
+
         # Is the asked for response_type among those that are permitted
-        return set(request["response_type"]) in _registered
+        if _asked_for in _registered:
+            return True
+        else:
+            logger.debug(f"Asked for response_type: {_asked_for} not among registered: {_registered}")
 
     def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         usage_rules = grant.usage_rules.get(token_class, {})
@@ -663,6 +671,8 @@ class Authorization(Endpoint):
 
         res = self.pick_authn_method(request, redirect_uri, acr, **kwargs)
 
+        logger.debug(f"pick_authn_method response: {res}")
+
         authn = res["method"]
         authn_class_ref = res["acr"]
 
@@ -867,7 +877,12 @@ class Authorization(Endpoint):
                 list(set(scope + resource_scopes)), _sinfo["client_id"]
             )
 
-            rtype = set(request["response_type"][:])
+            if isinstance(request["response_type"], str):
+                rtype = set(request["response_type"].split(" "))
+            else:
+                rtype = set(request["response_type"][:])
+            logger.debug(f"Response type: {rtype}")
+
             handled_response_type = []
 
             fragment_enc = True
@@ -955,6 +970,7 @@ class Authorization(Endpoint):
                 return {"response_args": resp, "fragment_enc": fragment_enc}
 
         aresp = self.extra_response_args(aresp)
+        logger.debug(f"Authn response: {aresp}")
 
         return {"response_args": aresp, "fragment_enc": fragment_enc}
 
