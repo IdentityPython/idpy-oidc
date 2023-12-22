@@ -226,6 +226,7 @@ class Endpoint(Node):
         else:
             req = self.request_cls()
 
+        LOGGER.debug(f"Parsed request: {req}")
         # Verify that the client is allowed to do this
         auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
         LOGGER.debug(f"parse_request:auth_info:{auth_info}")

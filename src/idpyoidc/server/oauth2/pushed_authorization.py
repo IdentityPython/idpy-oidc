@@ -4,7 +4,6 @@ from typing import Union
 
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
-from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.oauth2.authorization import Authorization
 
 
@@ -34,9 +33,9 @@ class PushedAuthorization(Authorization):
         # create URN
 
         if isinstance(request, str):
-            _request = AuthorizationRequest().from_urlencoded(request)
+            _request = self.request_cls().from_urlencoded(request)
         else:
-            _request = AuthorizationRequest(**request)
+            _request = self.request_cls(**request)
 
         _request.verify(keyjar=self.upstream_get("attribute", "keyjar"))
 

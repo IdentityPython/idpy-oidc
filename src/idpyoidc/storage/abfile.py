@@ -89,6 +89,9 @@ class AbstractFileSystem(DictType):
             logger.info(f"File content change in {item}")
             fname = os.path.join(self.fdir, item)
             self.storage[item] = self._read_info(fname)
+        elif not self.storage[item]:
+            fname = os.path.join(self.fdir, item)
+            self.storage[item] = self._read_info(fname)
 
         _msg = f'Read from "{item}"'
         logger.debug(_msg)
