@@ -45,7 +45,7 @@ LOC = {
 class UserAuthnMethod(object):
     # override in subclass specifying suitable url endpoint to POST user input
     url_endpoint = "/verify"
-    FAILED_AUTHN = (None, True)
+    FAILED_AUTHN = (None, 0)
 
     def __init__(self, upstream_get=None, **kwargs):
         self.query_param = "upm_answer"
@@ -314,7 +314,7 @@ class NoAuthn(UserAuthnMethod):
 
     # Just for testing allows anyone it without authentication
 
-    def __init__(self, user, upstream_get=None):
+    def __init__(self, user, upstream_get=None, **kwarg):
         UserAuthnMethod.__init__(self, upstream_get=upstream_get)
         self.user = user
         self.fail = None

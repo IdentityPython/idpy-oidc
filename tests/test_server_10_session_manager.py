@@ -714,3 +714,19 @@ class TestSessionManager:
         idt = grant.last_issued_token_of_type("id_token")
 
         assert idt.session_id == id_token_3.session_id
+
+    def test_dump_load(self):
+        session_id = self.session_manager.create_session(
+            authn_event=self.authn_event,
+            auth_req=AUTH_REQ,
+            user_id="diana",
+            client_id="client_1",
+            scopes=["openid", "phoe"],
+        )
+
+        _session_state = self.session_manager.dump()
+        _keys = set(self.session_manager.db.keys())
+        self.session_manager.db = {}
+
+        self.session_manager.load(_session_state)
+        assert set(self.session_manager.db.keys()) == _keys

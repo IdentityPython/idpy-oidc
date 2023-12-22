@@ -65,6 +65,8 @@ class ImpExp:
             val = qualified_name(item)
         elif isinstance(cls, list):
             val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
+        elif isinstance(item, dict):
+            val = {k: self.dump_attr(type2cls(v), v, exclude_attributes) for k, v in item.items()}
         else:
             val = item.dump(exclude_attributes=exclude_attributes)
 
