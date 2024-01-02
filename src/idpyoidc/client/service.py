@@ -88,6 +88,7 @@ class Service(ImpExp):
         self.client_authn_methods = {}
 
         if conf:
+            LOGGER.debug(f"Service config: {conf}")
             self.conf = conf
             for param in [
                 "msg_type",
