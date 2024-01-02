@@ -3,6 +3,9 @@ import json
 
 __author__ = "rolandh"
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def dict_subset(a, b):
     for attr, values in a.items():
@@ -35,6 +38,7 @@ class UserInfo(object):
             self.db = db
         elif db_file:
             self.db = json.loads(open(db_file).read())
+            logger.debug(f"Loaded user info file: {db_file}")
         else:
             self.db = {}
 

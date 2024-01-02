@@ -110,7 +110,9 @@ class UserInfo(Service):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self,
+            response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
