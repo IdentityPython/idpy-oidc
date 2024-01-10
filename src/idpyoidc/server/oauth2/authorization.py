@@ -387,10 +387,11 @@ class Authorization(Endpoint):
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
-        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
+        _supported = cinfo.get("response_types", cinfo.get("response_types_supported", []))
+        _registered = [set(rt.split(" ")) for rt in _supported]
         if not _registered:
             # If no response_type is registered by the client then we'll use code.
-            _registered = [{"code"}]
+            _registered = {"code"}
 
         if isinstance(request["response_type"], list):
             _asked_for = set(request["response_type"])
@@ -402,6 +403,7 @@ class Authorization(Endpoint):
             return True
         else:
             logger.debug(f"Asked for response_type: {_asked_for} not among registered: {_registered}")
+            return False
 
     def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         usage_rules = grant.usage_rules.get(token_class, {})

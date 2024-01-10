@@ -39,12 +39,12 @@ def test_op_configure_oidc_clients_simple():
     assert set(server.context.cdb.keys()) == {'client1', 'client2', 'client3'}
 
 def test_op_configuration_cdb():
-    _str = open(full_path(full_path("op_config.json"))).read()
+    _str = open(full_path("op_config.json")).read()
     _conf = json.loads(_str)
     _conf["client_db"] = {
         "class": "idpyoidc.storage.abfile.AbstractFileSystem",
         "kwargs": {
-            "fdir": "client_db",
+            "fdir": full_path("client_db"),
             "key_conv": "idpyoidc.util.Base64",
             "value_conv": "idpyoidc.util.JSON"
         }
