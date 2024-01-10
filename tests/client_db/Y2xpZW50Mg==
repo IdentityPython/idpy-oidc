@@ -1,0 +1,11 @@
+{
+  "client_id": "client2",
+  "client_secret": "spraket",
+  "redirect_uris": [
+    "https://app1.example.net/foo",
+    "https://app2.example.net/bar"
+  ],
+  "response_types": [
+    "code"
+  ]
+}

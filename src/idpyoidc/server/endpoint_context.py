@@ -139,6 +139,8 @@ class EndpointContext(OidcContext):
         else:
             logger.debug("No special client db, will use memory based dictionary")
             self.cdb = {}
+            _static_clients = conf.get("oidc_clients", {})
+            self.cdb.update(_static_clients)
 
         # For my Dev claims
         self.jti_db = {}

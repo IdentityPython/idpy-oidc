@@ -1,0 +1,10 @@
+{
+  "client_id": "client1",
+  "client_secret": "Namnam",
+  "redirect_uris": [
+    "https://openidconnect.net/callback"
+  ],
+  "response_types": [
+    "code"
+  ]
+}
