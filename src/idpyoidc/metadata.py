@@ -1,5 +1,5 @@
-import logging
 from functools import cmp_to_key
+import logging
 from typing import Callable
 from typing import Optional
 
@@ -128,7 +128,7 @@ class Metadata(ImpExp):
                 _uri_path = conf["key_conf"].get("uri_path")
             return keyjar, _uri_path
 
-    def get_base_url(self, configuration: dict):
+    def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         raise NotImplementedError()
 
     def get_id(self, configuration: dict):
@@ -140,9 +140,11 @@ class Metadata(ImpExp):
     def get_jwks(self, keyjar):
         return None
 
-    def handle_keys(
-        self, configuration: dict, keyjar: Optional[KeyJar] = None, base_url: Optional[str] = ""
-    ):
+    def handle_keys(self,
+                    configuration: dict,
+                    keyjar: Optional[KeyJar] = None,
+                    base_url: Optional[str] = "",
+                    entity_id: Optional[str] = ""):
         _jwks = _jwks_uri = None
         _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
@@ -154,7 +156,7 @@ class Metadata(ImpExp):
             _jwks_uri = configuration.get("jwks_uri")
         elif uri_path:
             if not base_url:
-                base_url = self.get_base_url(configuration)
+                base_url = self.get_base_url(configuration, entity_id=entity_id)
             _jwks_uri = add_path(base_url, uri_path)
         else:  # jwks or nothing
             _jwks = self.get_jwks(keyjar)
@@ -162,7 +164,8 @@ class Metadata(ImpExp):
         return {"keyjar": keyjar, "jwks": _jwks, "jwks_uri": _jwks_uri}
 
     def load_conf(
-        self, configuration, supports, keyjar: Optional[KeyJar] = None, base_url: Optional[str] = ""
+            self, configuration, supports, keyjar: Optional[KeyJar] = None,
+            base_url: Optional[str] = ""
     ):
         for attr, val in configuration.items():
             if attr == "preference":
