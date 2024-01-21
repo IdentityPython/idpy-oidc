@@ -111,8 +111,8 @@ class Service(ImpExp):
             if _client_authn_methods:
                 self.client_authn_methods = client_auth_setup(method_to_item(_client_authn_methods))
 
-            if self.default_authn_method:
-                if self.default_authn_method not in self.client_authn_methods:
+            if not self.client_authn_methods:
+                if self.default_authn_method:
                     self.client_authn_methods[self.default_authn_method] = single_authn_setup(
                         self.default_authn_method, None
                     )

@@ -214,7 +214,7 @@ class TestFlow(object):
         _req, _resp = self.do_query("server_metadata", "server_metadata", {}, "")
 
         # ***** Authorization Request **********
-        _nonce = (rndstr(24),)
+        _nonce = rndstr(24)
         _context = self.client.get_service_context()
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))

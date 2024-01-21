@@ -402,6 +402,7 @@ class Authorization(Endpoint):
             return True
         else:
             logger.debug(f"Asked for response_type: {_asked_for} not among registered: {_registered}")
+            return False
 
     def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         usage_rules = grant.usage_rules.get(token_class, {})

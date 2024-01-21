@@ -1,9 +1,11 @@
+import json
 import uuid
 from typing import Optional
 from typing import Union
 
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
+from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.oauth2.authorization import Authorization
 
 
@@ -42,8 +44,17 @@ class PushedAuthorization(Authorization):
         _urn = "urn:uuid:{}".format(uuid.uuid4())
         # Store the parsed and verified request
         self.upstream_get("context").par_db[_urn] = _request
+        _response = {"request_uri": _urn, "expires_in": self.ttl}
+        #
+        _msg = AuthorizationRequest()
+        for param in _msg.required_parameters():
+            _response[param] = _request.get(param)
+
+        _redirect_uri = _request.get("redirect_uri")
+        if _redirect_uri:
+            _response["redirect_uri"] = _redirect_uri
 
         return {
-            "http_response": {"request_uri": _urn, "expires_in": self.ttl},
+            "http_response": json.dumps(_response),
             "return_uri": _request["redirect_uri"],
         }

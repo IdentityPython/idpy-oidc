@@ -116,10 +116,17 @@ class Base(dict):
                 add_base_path(conf, base_path, self._dir_attributes, "dir")
 
         # entity info
-        self.domain = domain or conf.get("domain", "127.0.0.1")
-        self.port = port or conf.get("port", 80)
+        if domain != "":
+            self.domain = domain
+        else:
+            self.domain = conf.get("domain", "127.0.0.1")
+        if port != 0:
+            self.port = port
+        else:
+            self.port =  conf.get("port", 80)
 
-        self.conf = set_domain_and_port(conf, self.domain, self.port)
+        if self.domain:
+            self.conf = set_domain_and_port(conf, self.domain, self.port)
 
     def __getattr__(self, item, default=None):
         if item in self:

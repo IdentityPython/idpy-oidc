@@ -4,7 +4,6 @@ from typing import Union
 
 from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.service import Service
-from idpyoidc.exception import MissingParameter
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 
@@ -13,22 +12,14 @@ logger = logging.getLogger(__name__)
 
 def get_state_parameter(request_args, kwargs):
     """Find a state value from a set of possible places."""
-    try:
-        _state = kwargs["state"]
-    except KeyError:
-        try:
-            _state = request_args["state"]
-        except KeyError:
-            raise MissingParameter("state")
-
-    return _state
+    return kwargs.get("state", request_args.get("state", None))
 
 
 def pick_redirect_uri(
-    context,
-    request_args: Optional[Union[Message, dict]] = None,
-    response_type: Optional[str] = "",
-    response_mode: Optional[str] = "",
+        context,
+        request_args: Optional[Union[Message, dict]] = None,
+        response_type: Optional[str] = "",
+        response_mode: Optional[str] = "",
 ):
     if request_args is None:
         request_args = {}
@@ -87,7 +78,7 @@ def pick_redirect_uri(
 
 
 def pre_construct_pick_redirect_uri(
-    request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None, **kwargs
+        request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None, **kwargs
 ):
     request_args["redirect_uri"] = pick_redirect_uri(
         service.upstream_get("context"), request_args=request_args
@@ -97,5 +88,9 @@ def pre_construct_pick_redirect_uri(
 
 def set_state_parameter(request_args=None, **kwargs):
     """Assigned a state value."""
-    request_args["state"] = get_state_parameter(request_args, kwargs)
-    return request_args, {"state": request_args["state"]}
+    _state = get_state_parameter(request_args, kwargs)
+    if _state:
+        request_args["state"] = _state
+        return request_args, {"state": request_args["state"]}
+    else:
+        return request_args, {}

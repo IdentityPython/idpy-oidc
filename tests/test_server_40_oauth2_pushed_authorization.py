@@ -1,4 +1,5 @@
 import io
+import json
 import os
 
 import pytest
@@ -251,7 +252,8 @@ class TestEndpoint(object):
 
         # And now for the authorization request with the OP provided request_uri
 
-        _msg["request_uri"] = _resp["http_response"]["request_uri"]
+        _resp = json.loads(_resp["http_response"])
+        _msg["request_uri"] = _resp["request_uri"]
         for parameter in ["code_challenge", "code_challenge_method"]:
             del _msg[parameter]
 
