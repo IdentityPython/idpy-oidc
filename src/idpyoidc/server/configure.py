@@ -256,6 +256,10 @@ class EntityConfiguration(Base):
             _val = conf.get(key)
             if not _val:
                 if key in self.default_config:
+                    if key == "issuer" and self.default_config[key] == 'https://{domain}:{port}':
+                        self.issuer = ""
+                        continue
+
                     _val = self.format(
                         copy.deepcopy(self.default_config[key]),
                         base_path=base_path,

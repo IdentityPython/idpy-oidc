@@ -117,7 +117,8 @@ class EndpointContext(OidcContext):
         keyjar: Optional[KeyJar] = None,
         claims_class: Optional[Claims] = None,
     ):
-        _id = entity_id or conf.get("issuer", "")
+        _id = entity_id or conf.get("entity_id", conf.get("issuer", ""))
+        conf["issuer"] = _id
         OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
         self.upstream_get = upstream_get
@@ -158,7 +159,7 @@ class EndpointContext(OidcContext):
         self.endpoint_to_authn_method = {}
         self.httpc = httpc or request
         self.idtoken = None
-        self.issuer = ""
+        self.issuer = _id
         # self.jwks_uri = None
         self.login_hint_lookup = None
         self.login_hint2acrs = None
@@ -175,7 +176,6 @@ class EndpointContext(OidcContext):
         self.client_authn_method = {}
 
         for param in [
-            "issuer",
             "sso_ttl",
             "symkey",
             "client_authn",

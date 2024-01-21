@@ -46,8 +46,16 @@ class Server(Unit):
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None,
     ):
-        self.entity_id = entity_id or conf.get("entity_id")
-        self.issuer = conf.get("issuer", self.entity_id)
+        # issuer == entity_id
+        # entity_id as parameter has higher precedence then in conf
+        _iss = entity_id or conf.get("entity_id", "")
+        if _iss:
+            self.entity_id = self.issuer = _iss
+        else:
+            _iss = conf.get("issuer", "")
+            if _iss:
+                self.entity_id = self.issuer = _iss
+
         self.persistence = None
 
         if upstream_get is None:
@@ -81,6 +89,7 @@ class Server(Unit):
             cwd=cwd,
             cookie_handler=cookie_handler,
             keyjar=self.keyjar,
+            entity_id=self.entity_id
         )
 
         # Need to have context in place before doing this
