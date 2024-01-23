@@ -31,6 +31,7 @@ def get_request_parameters(request_args: Union[dict, Message], service, **kwargs
 
     _http_method = method_args["http_client"]
     _httpc_params = service.upstream_get("unit").httpc_params
+    logger.debug(f"httpc_params: {_httpc_params}")
 
     # Add client authentication if needed
     _headers = {}
@@ -81,7 +82,7 @@ def get_request_parameters(request_args: Union[dict, Message], service, **kwargs
         "http_method": _http_method,
         "body": _body,
         "headers": _headers,
-        "httpd_params": _httpc_params
+        "httpc_params": _httpc_params
     }
 
 

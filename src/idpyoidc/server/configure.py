@@ -54,7 +54,7 @@ _C = {
                     "authorization_code": {
                         "supports_minting": ["access_token", "refresh_token"],
                         "max_usage": 1,
-                        "expires_in": 120,  # 2 minutes
+                        "expires_in": 300,  # 5 minutes
                     },
                     "access_token": {"expires_in": 3600},  # An hour
                     "refresh_token": {
@@ -123,7 +123,7 @@ OP_DEFAULT_CONFIG.update(
                                 "id_token",
                             ],
                             "max_usage": 1,
-                            "expires_in": 120,  # 2 minutes
+                            "expires_in": 300,  # 5 minutes
                         },
                         "access_token": {"expires_in": 3600},  # An hour
                         "refresh_token": {
