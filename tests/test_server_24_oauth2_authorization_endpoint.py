@@ -5,6 +5,7 @@ from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
+from cryptojwt.jws.jws import factory
 import pytest
 import yaml
 from cryptojwt import KeyJar
@@ -773,6 +774,49 @@ class TestEndpoint(object):
     #
     #     assert set(res.keys()) == {"authn_event", "identity", "user"}
 
+    def test_audience_id_token(self):
+        request = AuthorizationRequest(
+            client_id="client_1",
+            redirect_uri="https://example.com/cb",
+            response_type=["id_token"],
+            state="state",
+            nonce="nonce",
+            scope="openid",
+            audience="https://aud.exmple.org"
+        )
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_1"]["response_types_supported"] = ["code", "token", "id_token"]
+        _pr_resp = self.endpoint.parse_request(request)
+        _resp = self.endpoint.process_request(_pr_resp)
+        _jws = factory(_resp["response_args"]["id_token"])
+        _payload = _jws.jwt.payload()
+        assert 'aud' in _payload
+
+
+    # def test_audience(self):
+    #     request = AuthorizationRequest(
+    #         client_id="client_id",
+    #         redirect_uri="https://rp.example.com/cb",
+    #         response_type=["id_token"],
+    #         state="state",
+    #         nonce="nonce",
+    #         scope="openid",
+    #         audience="https://aud.exmple.org"
+    #     )
+    #     redirect_uri = request["redirect_uri"]
+    #     cinfo = {
+    #         "client_id": "client_id",
+    #         "redirect_uris": [("https://rp.example.com/cb", {})],
+    #         "id_token_signed_response_alg": "RS256",
+    #     }
+    #
+    #     session_id = self._create_session(request)
+    #
+    #     item = self.endpoint.upstream_get("context").authn_broker.db["anon"]
+    #     item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
+    #
+    #     res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
+    #     assert set(res.keys()) == {"session_id", "identity", "user"}
 
 def test_inputs():
     elems = inputs(dict(foo="bar", home="stead"))

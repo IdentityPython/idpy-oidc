@@ -116,7 +116,11 @@ class AccessTokenHelper(TokenEndpointHelper):
             if resources:
                 token_args = {"resources": resources}
             else:
-                token_args = None
+                token_args = {}
+
+            _aud = grant.authorization_request.get("audience")
+            if _aud:
+                token_args["aud"] = _aud
 
             try:
                 token = self._mint_token(

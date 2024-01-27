@@ -6,6 +6,7 @@ from cryptojwt.jws.exception import JWSException
 from cryptojwt.jws.jws import factory
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
+from idpyoidc.message import Message
 
 from idpyoidc.server.construct import construct_provider_info
 from idpyoidc.server.exception import ToOld
@@ -174,17 +175,16 @@ class IDToken(Token):
                         raise ValueError("Could not match expected 'acr'")
 
         if user_info:
-            try:
+            if isinstance(user_info, Message):
                 user_info = user_info.to_dict()
-            except AttributeError:
-                pass
 
             # Make sure that there are no name clashes
             for key in ["iss", "sub", "aud", "exp", "acr", "nonce", "auth_time"]:
-                try:
-                    del user_info[key]
-                except KeyError:
-                    pass
+                if key in _args:
+                    try:
+                        del user_info[key]
+                    except KeyError:
+                        pass
 
             _args.update(user_info)
 
@@ -242,6 +242,13 @@ class IDToken(Token):
             _context, client_info, "id_token", sign=sign, encrypt=encrypt
         )
 
+        pack_args = {}
+        if user_info:
+            _aud = user_info.get("aud")
+            if _aud:
+                del user_info["aud"]
+                pack_args = {"aud": _aud}
+
         _payload = self.payload(
             session_id=session_id,
             alg=alg_dict["sign_alg"],
@@ -261,7 +268,7 @@ class IDToken(Token):
             **alg_dict,
         )
 
-        return _jwt.pack(_payload, recv=client_id)
+        return _jwt.pack(_payload, recv=client_id, **pack_args)
 
     def __call__(
         self,
@@ -275,9 +282,14 @@ class IDToken(Token):
     ) -> str:
         _context = self.upstream_get("context")
 
+        try:
+            del kwargs["client_id"]
+        except KeyError:
+            pass
+
         user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
-        # Should I add session ID. This is about Single Logout.
+        # Should I add session ID ? This is about Single Logout.
         if include_session_id(_context, client_id, "back") or include_session_id(
             _context, client_id, "front"
         ):

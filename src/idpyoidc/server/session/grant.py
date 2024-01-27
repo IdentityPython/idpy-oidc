@@ -314,7 +314,11 @@ class Grant(Item):
         for param in ["audience", "aud"]:
             _val = class_args.get(param)
             if _val:
-                _aud = _aud.union(set(_val))
+                if isinstance(_val, list):
+                    _aud = _aud.union(set(_val))
+                else:
+                    _val = [_val]
+                    _aud = _aud.union(set(_val))
                 del class_args[param]
 
         if _aud != set():

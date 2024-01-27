@@ -1,18 +1,18 @@
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import build_keyjar
+import pytest
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.message import Message
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import JWTAccessToken
 from idpyoidc.message.oauth2 import ROPCAccessTokenRequest
@@ -789,6 +789,24 @@ class TestEndpoint(object):
         )
         assert isinstance(_resp, TokenErrorResponse)
         assert _resp.to_dict() == {"error": "invalid_grant", "error_description": "Wrong client"}
+
+    def test_audience(self):
+        auth_req = AUTH_REQ.copy()
+        auth_req["audience"] = "https://foobar.example.org"
+
+        session_id = self._create_session(auth_req)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, auth_req["client_id"])
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _context = self.context
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        _jws = factory(_resp["response_args"]["access_token"])
+        assert "aud" in _jws.jwt.payload()
+        assert _jws.jwt.payload()["aud"] == ['https://foobar.example.org']
 
 
 DEFAULT_TOKEN_HANDLER_ARGS = {

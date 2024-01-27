@@ -876,6 +876,15 @@ class Authorization(Endpoint):
 
             grant = _sinfo["grant"]
 
+            _aud = request.get("audience", None)
+            if _aud:
+                if isinstance(_aud, list):
+                    _aud_arg = {"aud": _aud}
+                else:
+                    _aud_arg = {"aud": [_aud]}
+            else:
+                _aud_arg = {}
+
             if "code" in rtype:
                 _code = self.mint_token(
                     token_class="authorization_code",
@@ -892,6 +901,7 @@ class Authorization(Endpoint):
                     token_class="access_token",
                     grant=grant,
                     session_id=_sinfo["branch_id"],
+                    **_aud_arg
                 )
                 aresp["access_token"] = _access_token.value
                 aresp["token_type"] = "Bearer"
@@ -910,6 +920,7 @@ class Authorization(Endpoint):
                 elif {"id_token", "token"}.issubset(rtype):
                     kwargs = {"access_token": _access_token.value}
 
+                kwargs.update(_aud_arg)
                 if rtype == {"id_token"}:
                     kwargs["as_if"] = "userinfo"
 
