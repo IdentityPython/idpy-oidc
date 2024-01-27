@@ -805,8 +805,9 @@ class TestEndpoint(object):
         _resp = self.token_endpoint.process_request(request=_req)
 
         _jws = factory(_resp["response_args"]["access_token"])
-        assert "aud" in _jws.jwt.payload()
-        assert _jws.jwt.payload()["aud"] == ['https://foobar.example.org']
+        _payload = _jws.jwt.payload()
+        assert "aud" in _payload
+        assert _payload["aud"] == ['https://foobar.example.org']
 
 
 DEFAULT_TOKEN_HANDLER_ARGS = {

@@ -785,7 +785,7 @@ class TestEndpoint(object):
             audience="https://aud.exmple.org"
         )
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_1"]["response_types_supported"] = ["code", "token", "id_token"]
+        _context.cdb["client_1"]["response_types"] = ["code", "token", "id_token"]
         _pr_resp = self.endpoint.parse_request(request)
         _resp = self.endpoint.process_request(_pr_resp)
         _jws = factory(_resp["response_args"]["id_token"])
