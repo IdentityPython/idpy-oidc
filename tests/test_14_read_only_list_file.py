@@ -1,0 +1,27 @@
+import os
+
+from idpyoidc.storage.listfile import ReadOnlyListFile
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def full_path(local_file):
+    return os.path.join(BASEDIR, local_file)
+
+FILE_NAME = full_path("read_only")
+def test_read_only_list_file():
+    if os.path.exists(FILE_NAME):
+        os.unlink(FILE_NAME)
+        os.unlink(f"{FILE_NAME}.lock")
+
+    _read_only = ReadOnlyListFile(FILE_NAME)
+    assert len(_read_only) == 0
+
+    with open(FILE_NAME, "w") as fp:
+        for item in ["one", "two", "three"]:
+            fp.write(item)
+            fp.write("\n")
+
+    assert len(_read_only) == 3
+    assert set(_read_only) == {"one", "two", "three"}
+    assert _read_only[-1] == "three"
