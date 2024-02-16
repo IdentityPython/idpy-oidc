@@ -490,27 +490,29 @@ class JWSAuthnMethod(ClientAuthnMethod):
         return signing_key
 
     def _get_audience_and_algorithm(self, context, keyjar, **kwargs):
-        algorithm = None
+        algorithm = kwargs.get("algorithm", None)
+        audience = kwargs.get("audience", None)
 
-        # audience for the signed JWT depends on which endpoint
-        # we're talking to.
-        if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
-            algorithm = context.get_usage("token_endpoint_auth_signing_alg")
-            if algorithm is None:
-                _pi = context.provider_info
-                try:
-                    algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
-                except KeyError:
-                    algorithm = "RS256"  # default
-                else:
-                    for alg in algs:  # pick the first one I support and have keys for
-                        if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(alg, keyjar):
-                            algorithm = alg
-                            break
+        if not audience:
+            # audience for the signed JWT depends on which endpoint
+            # we're talking to.
+            if "authn_endpoint" in kwargs and kwargs["authn_endpoint"] in ["token_endpoint"]:
+                algorithm = context.get_usage("token_endpoint_auth_signing_alg")
+                if algorithm is None:
+                    _pi = context.provider_info
+                    try:
+                        algs = _pi["token_endpoint_auth_signing_alg_values_supported"]
+                    except KeyError:
+                        algorithm = "RS256"  # default
+                    else:
+                        for alg in algs:  # pick the first one I support and have keys for
+                            if alg in SIGNER_ALGS and self.get_signing_key_from_keyjar(alg, keyjar):
+                                algorithm = alg
+                                break
 
-            audience = context.provider_info.get("token_endpoint")
-        else:
-            audience = context.provider_info["issuer"]
+                audience = context.provider_info.get("token_endpoint")
+            else:
+                audience = context.provider_info["issuer"]
 
         if not algorithm:
             algorithm = self.choose_algorithm(**kwargs)
@@ -519,6 +521,9 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def _construct_client_assertion(self, service, **kwargs):
         _context = service.upstream_get("context")
         _entity = service.upstream_get("entity")
+        if _entity is None:
+            _entity = service.upstream_get("unit")
+
         _keyjar = service.upstream_get("attribute", "keyjar")
         audience, algorithm = self._get_audience_and_algorithm(_context, _keyjar, **kwargs)
 
@@ -527,7 +532,11 @@ class JWSAuthnMethod(ClientAuthnMethod):
                 algorithm, _keyjar, _context.kid["sig"], kid=kwargs["kid"]
             )
         else:
-            signing_key = self._get_signing_key(algorithm, _keyjar, _context.kid["sig"])
+            _key_type = _context.kid.get("sig", None)
+            if _key_type:
+                signing_key = self._get_signing_key(algorithm, _keyjar, _key_type)
+            else:
+                signing_key = self.get_signing_key_from_keyjar(algorithm, _keyjar)
 
         if not signing_key:
             raise UnsupportedAlgorithm(algorithm)
@@ -570,7 +579,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
             pass
 
         # If client_id is not required to be present, remove it.
-        if not request.c_param["client_id"][VREQUIRED]:
+        _cid_spec = request.c_param.get("client_id", None)
+        if _cid_spec and not _cid_spec[VREQUIRED]:
             try:
                 del request["client_id"]
             except KeyError:

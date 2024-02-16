@@ -12,6 +12,7 @@ FILE_NAME = full_path("read_only")
 def test_read_only_list_file():
     if os.path.exists(FILE_NAME):
         os.unlink(FILE_NAME)
+    if os.path.exists(f"{FILE_NAME}.lock"):
         os.unlink(f"{FILE_NAME}.lock")
 
     _read_only = ReadOnlyListFile(FILE_NAME)
