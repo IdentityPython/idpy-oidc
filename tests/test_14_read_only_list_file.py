@@ -19,9 +19,7 @@ def test_read_only_list_file():
     assert len(_read_only) == 0
 
     with open(FILE_NAME, "w") as fp:
-        for item in ["one", "two", "three"]:
-            fp.write(item)
-            fp.write("\n")
+        fp.writelines(line + '\n' for line in ["one", "two", "three"])
 
     assert len(_read_only) == 3
     assert set(_read_only) == {"one", "two", "three"}

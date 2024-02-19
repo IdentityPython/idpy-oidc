@@ -81,10 +81,7 @@ class ReadOnlyListFile(object):
                     fp = open(fname, "r")
                     info = [x.strip() for x in fp.readlines()]
                 lock.release()
-                if info == "":
-                    return None
-                else:
-                    return info
+                return info or None
             except Exception as err:
                 logger.error(err)
                 raise
