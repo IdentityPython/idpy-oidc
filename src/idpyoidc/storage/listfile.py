@@ -40,17 +40,14 @@ class ReadOnlyListFile(object):
         :param fname: File name
         :return: The last time the file was modified.
         """
+        p = Path(fname)
         try:
-            target = Path(fname)
-            mtime = target.stat().st_mtime
-            # mtime = os.stat(fname).st_mtime_ns
+            mtime = p.stat().st_mtime
         except OSError:
-            # The file might be right in the middle of being written to
+            # The file might be right in the middle of being created
             # so sleep
             time.sleep(1)
-            target = Path(fname)
-            mtime = target.stat().st_mtime
-            # mtime = os.stat(fname).st_mtime_ns
+            mtime = p.stat().st_mtime
 
         return mtime
 
