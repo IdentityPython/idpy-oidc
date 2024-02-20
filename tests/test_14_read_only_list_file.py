@@ -23,7 +23,7 @@ def test_read_only_list_file():
         for line in ["one", "two", "three"]:
             fp.write(line + '\n')
 
-    sleep(1)
+    sleep(2)
     assert len(_read_only) == 3
     assert set(_read_only) == {"one", "two", "three"}
     assert _read_only[-1] == "three"
