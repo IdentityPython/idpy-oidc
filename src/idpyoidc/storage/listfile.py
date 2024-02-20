@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 import time
 
 from filelock import FileLock
@@ -17,7 +18,6 @@ class ReadOnlyListFile(object):
         if not os.path.exists(file_name):
             fp = open(file_name, "x")
             fp.close()
-
 
     def __getitem__(self, item):
         if self.is_changed(self.file_name):
@@ -41,12 +41,16 @@ class ReadOnlyListFile(object):
         :return: The last time the file was modified.
         """
         try:
-            mtime = os.stat(fname).st_mtime_ns
+            target = Path(fname)
+            mtime = target.stat().st_mtime
+            # mtime = os.stat(fname).st_mtime_ns
         except OSError:
-            # The file might be right in the middle of being written
+            # The file might be right in the middle of being written to
             # so sleep
             time.sleep(1)
-            mtime = os.stat(fname).st_mtime_ns
+            target = Path(fname)
+            mtime = target.stat().st_mtime
+            # mtime = os.stat(fname).st_mtime_ns
 
         return mtime
 
