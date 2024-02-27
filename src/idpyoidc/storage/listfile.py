@@ -7,7 +7,7 @@ from filelock import FileLock
 logger = logging.getLogger(__name__)
 
 
-class ReadOnlyListFile(object):
+class ReadOnlyListFileMtime(object):
 
     def __init__(self, file_name):
         self.file_name = file_name
@@ -16,24 +16,25 @@ class ReadOnlyListFile(object):
         if not os.path.exists(file_name):
             fp = open(file_name, "x")
             fp.close()
-            self.lst = []
+            _lst = []
         else:
-            self.lst = self._read_info(self.file_name)
+            _lst = self._read_info(self.file_name)
+
     def __getitem__(self, item):
         if self.is_changed(self.file_name):
-            self.lst = self._read_info(self.file_name)
-        if self.lst:
-            return self.lst[item]
+            _lst = self._read_info(self.file_name)
+        if _lst:
+            return _lst[item]
         else:
             return None
 
     def __len__(self):
         if self.is_changed(self.file_name):
-            self.lst = self._read_info(self.file_name)
-        if self.lst is None or self.lst == []:
+            _lst = self._read_info(self.file_name)
+        if _lst is None or _lst == []:
             return 0
 
-        return len(self.lst)
+        return len(_lst)
 
     @staticmethod
     def get_mtime(fname):
@@ -75,6 +76,47 @@ class ReadOnlyListFile(object):
         else:
             logger.error("Could not access {}".format(fname))
             raise FileNotFoundError()
+
+    def _read_info(self, fname):
+        if os.path.isfile(fname):
+            try:
+                lock = FileLock(f"{fname}.lock")
+                with lock:
+                    fp = open(fname, "r")
+                    info = [x.strip() for x in fp.readlines()]
+                lock.release()
+                return info or None
+            except Exception as err:
+                logger.error(err)
+                raise
+        else:
+            _msg = f"No such file: '{fname}'"
+            logger.error(_msg)
+        return None
+
+
+class ReadOnlyListFile(object):
+
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+        if not os.path.exists(file_name):
+            fp = open(file_name, "x")
+            fp.close()
+
+    def __getitem__(self, item):
+        _lst = self._read_info(self.file_name)
+        if _lst:
+            return _lst[item]
+        else:
+            return None
+
+    def __len__(self):
+        _lst = self._read_info(self.file_name)
+        if _lst is None or _lst == []:
+            return 0
+
+        return len(_lst)
 
     def _read_info(self, fname):
         if os.path.isfile(fname):
