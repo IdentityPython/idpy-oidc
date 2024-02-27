@@ -12,16 +12,20 @@ class ReadOnlyListFile(object):
     def __init__(self, file_name):
         self.file_name = file_name
         self.fmtime = 0
-        self.lst = None
 
         if not os.path.exists(file_name):
             fp = open(file_name, "x")
             fp.close()
-
+            self.lst = []
+        else:
+            self.lst = self._read_info(self.file_name)
     def __getitem__(self, item):
         if self.is_changed(self.file_name):
             self.lst = self._read_info(self.file_name)
-        return self.lst[item]
+        if self.lst:
+            return self.lst[item]
+        else:
+            return None
 
     def __len__(self):
         if self.is_changed(self.file_name):
