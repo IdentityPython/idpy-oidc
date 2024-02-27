@@ -16,10 +16,7 @@ class Claims(claims.Claims):
     def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         _base = configuration.get("base_url")
         if not _base:
-            if entity_id:
-                _base = entity_id
-            else:
-                _base = configuration.get("client_id")
+            _base = configuration.get("client_id", configuration.get("entity_id"))
 
         return _base
 
