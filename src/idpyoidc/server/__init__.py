@@ -45,6 +45,7 @@ class Server(Unit):
             httpc_params: Optional[dict] = None,
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None,
+            server_type: Optional[str] = ""
     ):
         self.entity_id = entity_id or conf.get("entity_id")
         self.issuer = conf.get("issuer", self.entity_id)
@@ -68,10 +69,27 @@ class Server(Unit):
         )
 
         self.upstream_get = upstream_get
-        if isinstance(conf, OPConfiguration) or isinstance(conf, ASConfiguration):
+        if isinstance(conf, OPConfiguration) :
+            if server_type == "":
+                self.server_type = "oidc"
+            elif server_type != "oidc":
+                raise ValueError("server_type 'oidc' MUST be combined with configuration type OPConfiguration")
+            self.conf = conf
+        elif isinstance(conf, ASConfiguration):
+            if server_type == "":
+                self.server_type = "oauth2"
+            elif server_type != "oauth2":
+                raise ValueError("server_type 'oauth2' MUST be combined with configuration type ASConfiguration")
             self.conf = conf
         else:
-            self.conf = OPConfiguration(conf)
+            if server_type == "oidc" or server_type == "":
+                self.conf = OPConfiguration(conf)
+                self.server_type = "oidc"
+            elif server_type == "oauth2":
+                self.conf = ASConfiguration(conf)
+                self.server_type = "oauth2"
+            else:
+                raise ValueError("Only allow 'oidc' and 'oauth2' as server types")
 
         self.endpoint = do_endpoints(self.conf, self.unit_get)
 
@@ -120,3 +138,24 @@ class Server(Unit):
         _val = getattr(self.context, attr)
         if not _val and self.upstream_get:
             return self.upstream_get("context_attribute", attr)
+
+    def get_metadata(self):
+        metadata = self.get_context().claims.prefer
+        # collect endpoints
+        metadata.update(self.get_endpoint_claims())
+        # _issuer = getattr(self.server.context, "trust_mark_server", None)
+        return metadata
+
+    def get_endpoint_claims(self):
+        _info = {}
+        for endp in self.endpoint.values():
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+                for arg, claim in [("client_authn_method", "auth_methods"),
+                                   ("auth_signing_alg_values", "auth_signing_alg_values")]:
+                    _val = getattr(endp, arg, None)
+                    if _val:
+                        # trust_mark_status_endpoint_auth_methods_supported
+                        md_param = f"{endp.endpoint_name}_{claim}"
+                        _info[md_param] = _val
+        return _info
