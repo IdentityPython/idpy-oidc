@@ -8,6 +8,8 @@ from typing import Union
 from cryptojwt import KeyJar
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
+from idpyoidc.message.oauth2 import ASConfigurationResponse
+from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.node import Unit
 # from idpyoidc.server import authz
 # from idpyoidc.server.client_authn import client_auth_setup
@@ -47,20 +49,25 @@ class Server(Unit):
             key_conf: Optional[dict] = None,
             server_type: Optional[str] = ""
     ):
-        self.entity_id = entity_id or conf.get("entity_id")
-        self.issuer = conf.get("issuer", self.entity_id)
+        self.entity_id = entity_id or conf.get("entity_id", conf.get("issuer"))
+        self.issuer = self.entity_id
         self.persistence = None
+        self.upstream_get = upstream_get
+        self.keyjar = keyjar
 
         if upstream_get is None:
             if key_conf is None:
                 _conf = conf.get("key_conf")
                 if _conf is None:
                     key_conf = {"key_defs": DEFAULT_KEY_DEFS}
+        else:
+            if key_conf is None and keyjar is None and conf.get("keys", None) is None:
+                self.keyjar = self.get_attribute("keyjar")
 
         Unit.__init__(
             self,
             config=conf,
-            keyjar=keyjar,
+            keyjar=self.keyjar,
             httpc=httpc,
             upstream_get=upstream_get,
             httpc_params=httpc_params,
@@ -68,7 +75,6 @@ class Server(Unit):
             issuer_id=self.issuer,
         )
 
-        self.upstream_get = upstream_get
         if isinstance(conf, OPConfiguration) :
             if server_type == "":
                 self.server_type = "oidc"
@@ -91,6 +97,7 @@ class Server(Unit):
             else:
                 raise ValueError("Only allow 'oidc' and 'oauth2' as server types")
 
+        self.conf["issuer"] = self.entity_id
         self.endpoint = do_endpoints(self.conf, self.unit_get)
 
         self.context = EndpointContext(
@@ -99,6 +106,7 @@ class Server(Unit):
             cwd=cwd,
             cookie_handler=cookie_handler,
             keyjar=self.keyjar,
+            entity_id=self.entity_id
         )
 
         # Need to have context in place before doing this
@@ -140,7 +148,17 @@ class Server(Unit):
             return self.upstream_get("context_attribute", attr)
 
     def get_metadata(self):
+        if isinstance(self.conf, OPConfiguration):
+            metadata_claims = list(ProviderConfigurationResponse.c_param.keys())
+        elif isinstance(self.conf, ASConfiguration):
+            metadata_claims = list(ASConfigurationResponse.c_param.keys())
+        else:
+            raise ValueError("Unknown server type")
+
         metadata = self.get_context().claims.prefer
+        metadata = {k:v for k,v in metadata.items() if v != []}
+        metadata = {k:v for k,v in metadata.items() if k in metadata_claims}
+        metadata["issuer"] = self.entity_id
         # collect endpoints
         metadata.update(self.get_endpoint_claims())
         # _issuer = getattr(self.server.context, "trust_mark_server", None)
@@ -156,6 +174,6 @@ class Server(Unit):
                     _val = getattr(endp, arg, None)
                     if _val:
                         # trust_mark_status_endpoint_auth_methods_supported
-                        md_param = f"{endp.endpoint_name}_{claim}"
+                        md_param = f"{endp.endpoint_name}_{claim}_supported"
                         _info[md_param] = _val
         return _info

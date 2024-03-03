@@ -332,4 +332,6 @@ def test_entity():
     assert _as.server_type == "oauth2"
 
     op_metadata = _op.get_metadata()
+    op_provider_info = _op.context.get_metadata()
+    assert op_metadata == op_provider_info
     assert op_metadata

@@ -24,6 +24,13 @@ class Combo(Unit):
             httpc_params = self._get_httpc_params(config)
 
         Unit.__init__(self, config=config, httpc=httpc, issuer_id=self.entity_id, keyjar=keyjar)
+
+        _keys_conf = config.get("keys", None)
+        if _keys_conf:
+            self.jwks_uri_path = _keys_conf.get("public_path", "")
+        else:
+            self.jwks_uri_path = ""
+
         self._part = {}
         for key, spec in config.items():
             if isinstance(spec, dict) and 'class' in spec:

@@ -137,10 +137,14 @@ class Claims(ImpExp):
     def handle_keys(self,
                     configuration: dict,
                     keyjar: Optional[KeyJar] = None,
-                    entity_id: Optional[str] = ""):
+                    entity_id: Optional[str] = "",
+                    uri_path: Optional[str] = ""):
         _jwks = _jwks_uri = None
         _id = self.get_id(configuration)
-        keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
+        if keyjar and uri_path:
+            pass
+        else:
+            keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
 
         _kj = self.add_extra_keys(keyjar, _id)
         if keyjar is None and _kj:
@@ -162,7 +166,8 @@ class Claims(ImpExp):
             configuration: dict,
             supports: dict,
             keyjar: Optional[KeyJar] = None,
-            entity_id: Optional[str] = ""
+            entity_id: Optional[str] = "",
+            uri_path: Optional[str] = ""
     ) -> KeyJar:
         for attr, val in configuration.items():
             if attr in ["preference", "capabilities"]:
@@ -174,7 +179,7 @@ class Claims(ImpExp):
 
         self.locals(configuration)
 
-        for key, val in self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id).items():
+        for key, val in self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id, uri_path=uri_path).items():
             if key == "keyjar":
                 keyjar = val
             elif val:

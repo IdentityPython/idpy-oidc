@@ -8,6 +8,7 @@ from typing import Union
 from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
+from requests import request
 
 from idpyoidc.context import OidcContext
 from idpyoidc.server import authz
@@ -18,14 +19,13 @@ from idpyoidc.server.client_authn import client_auth_setup
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
-from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.session.manager import create_session_manager
+from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
-from requests import request
 
 logger = logging.getLogger(__name__)
 
@@ -105,18 +105,18 @@ class EndpointContext(OidcContext):
     init_args = ["upstream_get", "handler"]
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        upstream_get: Callable,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-        server_type: Optional[str] = "",
-        entity_id: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        claims_class: Optional[Claims] = None,
+            self,
+            conf: Union[dict, OPConfiguration],
+            upstream_get: Callable,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            server_type: Optional[str] = "",
+            entity_id: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            claims_class: Optional[Claims] = None,
     ):
-        _id = entity_id or conf.get("issuer", "")
+        _id = entity_id or conf.get("entity_id", conf.get("issuer", ""))
         OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
         self.upstream_get = upstream_get
@@ -237,11 +237,12 @@ class EndpointContext(OidcContext):
 
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
+
         _supports = self.supports()
-        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
-        self.provider_info = self.claims.provider_info(_supports)
-        self.provider_info["issuer"] = self.issuer
-        self.provider_info.update(self._get_endpoint_info())
+        _uri_path = upstream_get("attribute", "jwks_uri_path")
+        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, uri_path=_uri_path,
+                                            entity_id=self.entity_id)
+        self.provider_info = self.get_metadata(_supports)
 
         # INTERFACES
 
@@ -267,6 +268,15 @@ class EndpointContext(OidcContext):
         # _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
         # if _id_token_handler:
         #     self.provider_info.update(_id_token_handler.provider_info)
+
+    def get_metadata(self, supports: Optional[dict] = None):
+        if supports is None:
+            supports = self.supports()
+
+        _provider_info = self.claims.provider_info(supports)
+        _provider_info["issuer"] = self.issuer
+        _provider_info.update(self._get_endpoint_info())
+        return _provider_info
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
