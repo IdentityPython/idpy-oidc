@@ -52,6 +52,9 @@ class RPHandler(object):
         **kwargs,
     ):
         self.base_url = base_url
+        if not base_url and kwargs.get("upstream_get", None):
+            self.base_url = kwargs.get("upstream_get")("attribute", "entity_id")
+
         _jwks_path = kwargs.get("jwks_path")
 
         if config:
