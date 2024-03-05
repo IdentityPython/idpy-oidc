@@ -18,6 +18,7 @@ from idpyoidc.claims import Claims
 from idpyoidc.claims import claims_dump
 from idpyoidc.claims import claims_load
 from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
+from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
 from idpyoidc.util import rndstr
@@ -133,6 +134,8 @@ class ServiceContext(ImpExp):
             self.claims = OIDC_Specs()
         elif client_type == "oauth2":
             self.claims = OAUTH2_Specs()
+        elif client_type == "oauth2resource":
+            self.claims = OAUTH2RESOURCE_Specs()
         else:
             raise ValueError(f"Unknown client type: {client_type}")
 

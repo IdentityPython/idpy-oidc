@@ -262,9 +262,16 @@ class Service(ImpExp):
         _args = self.gather_request_args(**request_args)
 
         # logger.debug("kwargs: %s" % sanitize(kwargs))
+
+        # we must check if claims module is idpyoidc.client.claims.oauth2recource as
+        # in that case we don't want to set_defaults like application_type etc.
+        obj = self.upstream_get("context").claims
         # initiate the request as in an instance of the self.msg_type
         # message type
-        request = self.msg_type(**_args)
+        if(obj.__class__.__module__ == "idpyoidc.client.claims.oauth2resource"):
+            request = self.msg_type(**_args, set_defaults=False)
+        else:
+            request = self.msg_type(**_args)
 
         _behaviour_args = kwargs.get("behaviour_args")
         if _behaviour_args:
