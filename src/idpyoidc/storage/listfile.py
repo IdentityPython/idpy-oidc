@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from copy import copy
 
 from filelock import FileLock
 
@@ -11,30 +12,33 @@ class ReadOnlyListFileMtime(object):
 
     def __init__(self, file_name):
         self.file_name = file_name
-        self.fmtime = 0
+        self.mtime = 0
+        self.size = 0
+        self.inode = 0
 
         if not os.path.exists(file_name):
             fp = open(file_name, "x")
             fp.close()
-            _lst = []
+            self._lst = []
         else:
-            _lst = self._read_info(self.file_name)
+            self._lst = self._read_info(self.file_name)
 
     def __getitem__(self, item):
         if self.is_changed(self.file_name):
-            _lst = self._read_info(self.file_name)
-        if _lst:
-            return _lst[item]
+            self._lst = self._read_info(self.file_name)
+
+        if self._lst:
+            return self._lst[item]
         else:
             return None
 
     def __len__(self):
         if self.is_changed(self.file_name):
-            _lst = self._read_info(self.file_name)
-        if _lst is None or _lst == []:
+            self._lst = self._read_info(self.file_name)
+        if self._lst is None or self._lst == []:
             return 0
 
-        return len(_lst)
+        return len(self._lst)
 
     @staticmethod
     def get_mtime(fname):
@@ -61,15 +65,16 @@ class ReadOnlyListFileMtime(object):
         :param fname: A file name
         :return: True/False
         """
+
         if os.path.isfile(fname):
+            inode = os.stat(fname).st_ino
             mtime = self.get_mtime(fname)
+            size = os.stat(fname).st_size
 
-            if self.fmtime == 0:
-                self.fmtime = mtime
-                return True
-
-            if mtime != self.fmtime:  # has changed
-                self.fmtime = mtime
+            if inode != self.inode or mtime != self.mtime or size != self.size:
+                self.inode = copy(inode)
+                self.mtime = copy(mtime)
+                self.size = copy(size)
                 return True
             else:
                 return False

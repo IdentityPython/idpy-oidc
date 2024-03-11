@@ -59,17 +59,23 @@ class RPHandler(object):
 
         if config:
             if not hash_seed:
-                self.hash_seed = config.hash_seed
+                _seed = config.get("hash_seed", rndstr(32))
+                self.hash_seed = as_bytes(_seed)
             if not keyjar:
-                self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
+                _key_defs = config.get("keys", config.get("key_conf", DEFAULT_RP_KEY_DEFS))
+                self.keyjar = init_key_jar(**_key_defs, issuer_id="")
+                self.keyjar.import_jwks_as_json(self.keyjar.export_jwks_as_json(True, ""), base_url)
+                if _jwks_path is None:
+                    _jwks_path = DEFAULT_RP_KEY_DEFS["public_path"]
             if not client_configs:
-                self.client_configs = config.clients
+                self.client_configs = config.get("clients", config.get("client_configs", DEFAULT_CLIENT_CONFIGS))
 
-            if "client_class" in config:
-                if isinstance(config["client_class"], str):
-                    self.client_cls = importer(config["client_class"])
+            _client_cls = config.get("client_class", None)
+            if _client_cls:
+                if isinstance(_client_cls, str):
+                    self.client_cls = importer(_client_cls)
                 else: # assume it's a class
-                    self.client_cls = config["client_class"]
+                    self.client_cls = _client_cls
             else:
                 self.client_cls = StandAloneClient
         else:
@@ -184,9 +190,11 @@ class RPHandler(object):
 
         try:
             _cnf = self.pick_config(issuer)
+            static_registration = True
         except KeyError:
             _cnf = self.pick_config("")
             _cnf["issuer"] = issuer
+            static_registration = False
 
         try:
             _services = _cnf["services"]
@@ -230,6 +238,9 @@ class RPHandler(object):
 
         _context.base_url = self.base_url
         _context.jwks_uri = self.jwks_uri
+        if static_registration:
+            client.context.map_preferred_to_registered()
+
         return client
 
     def do_provider_info(
