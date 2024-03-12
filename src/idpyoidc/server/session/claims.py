@@ -45,14 +45,14 @@ class ClaimsInterface:
     def _get_module(self, usage, context):
         module = None
         if usage == "userinfo":
-            module = self.upstream_get("endpoint", "userinfo")
+            module = context.upstream_get("endpoint","userinfo")
         elif usage == "id_token":
             try:
                 module = context.session_manager.token_handler["id_token"]
             except KeyError:
                 raise ServiceError("No support for ID Tokens")
         elif usage == "introspection":
-            module = self.upstream_get("endpoint", "introspection")
+            module = context.upstream_get("endpoint","introspection")
         elif usage == "access_token":
             try:
                 module = context.session_manager.token_handler["access_token"]
@@ -68,8 +68,8 @@ class ClaimsInterface:
         claims_release_point: str,
         secondary_identifier: Optional[str] = "",
     ):
-        _context = self.upstream_get("context")
-        add_claims_by_scope = _context.cdb[client_id].get("add_claims", {}).get("by_scope", {})
+        _cdb = self.upstream_get("attribute", "cdb")
+        add_claims_by_scope = _cdb[client_id].get("add_claims", {}).get("by_scope", {})
         if add_claims_by_scope:
             _claims_by_scope = add_claims_by_scope.get(claims_release_point)
             if _claims_by_scope is None and secondary_identifier:
@@ -80,7 +80,7 @@ class ClaimsInterface:
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
 
-        add_claims_always = _context.cdb[client_id].get("add_claims", {}).get("always", {})
+        add_claims_always = _cdb[client_id].get("add_claims", {}).get("always", {})
         _always_add = add_claims_always.get(claims_release_point, [])
         if secondary_identifier:
             _always_2 = add_claims_always.get(secondary_identifier, [])

@@ -151,8 +151,8 @@ class UserInfo(Endpoint):
             # if "offline_access" in session["authn_req"]["scope"]:
             #     pass
 
+        _cntxt = self.upstream_get("context")
         if allowed:
-            _cntxt = self.upstream_get("context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
                 _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )

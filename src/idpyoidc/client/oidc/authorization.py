@@ -90,7 +90,7 @@ class Authorization(authorization.Authorization):
         _context.cstate.update(key, resp)
 
     def get_request_from_response(self, response):
-        _context = self.upstream_get("service_context")
+        _context = self.upstream_get("context")
         return _context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
 
     def post_parse_response(self, response, **kwargs):
