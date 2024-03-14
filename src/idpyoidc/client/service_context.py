@@ -156,6 +156,7 @@ class ServiceContext(ImpExp):
         self.httpc_params = {}
         self.client_secret_expires_at = 0
         self.registration_response = {}
+        self.client_authn_methods = {}
 
         # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
