@@ -187,6 +187,9 @@ class ServiceContext(ImpExp):
 
         self.construct_uris(response_types=_response_types)
 
+        self.map_supported_to_preferred()
+        self.map_preferred_to_registered()
+
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
