@@ -163,6 +163,10 @@ class UserInfo(Endpoint):
             if _grant.add_acr_value("userinfo"):
                 info["acr"] = _grant.authentication_event["authn_info"]
 
+            extra_claims = kwargs.get("extra_claims")
+            if extra_claims:
+                info.update(extra_claims)
+
         if "userinfo" in _cntxt.cdb[request["client_id"]]:
             self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
 
