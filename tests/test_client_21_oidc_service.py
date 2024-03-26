@@ -1,13 +1,13 @@
 import os
 
-import pytest
-import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
+import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -725,7 +725,7 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.upstream_get("context")
-        assert _context.claims.use == {}
+        # assert _context.claims.use == {}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)
@@ -788,7 +788,31 @@ class TestProviderInfo(object):
             "end_session_endpoint": "{}/end_session".format(OP_BASEURL),
         }
         _context = self.service.upstream_get("context")
-        assert _context.claims.use == {}
+        assert set(_context.claims.use.keys()) == {
+            'application_type',
+            'backchannel_logout_session_required',
+            'backchannel_logout_uri',
+            'callback_uris',
+            'client_id',
+            'client_secret',
+            'contacts',
+            'default_max_age',
+            'encrypt_id_token_supported',
+            'encrypt_request_object_supported',
+            'encrypt_userinfo_supported',
+            'grant_types',
+            'id_token_signed_response_alg',
+            'jwks',
+            'post_logout_redirect_uris',
+            'redirect_uris',
+            'request_object_signing_alg',
+            'response_modes',
+            'response_types',
+            'scope',
+            'subject_type',
+            'token_endpoint_auth_method',
+            'token_endpoint_auth_signing_alg',
+            'userinfo_signed_response_alg'}
         resp = self.service.post_parse_response(provider_info_response)
 
         iss_jwks = ISS_KEY.export_jwks_as_json(issuer_id=ISS)

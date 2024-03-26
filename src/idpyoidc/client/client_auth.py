@@ -520,9 +520,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def _construct_client_assertion(self, service, **kwargs):
         _context = service.upstream_get("context")
-        _entity = service.upstream_get("entity")
-        if _entity is None:
-            _entity = service.upstream_get("unit")
+        _entity = service.upstream_get("unit")
 
         _keyjar = service.upstream_get("attribute", "keyjar")
         audience, algorithm = self._get_audience_and_algorithm(_context, _keyjar, **kwargs)

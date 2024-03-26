@@ -14,7 +14,6 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
-from idpyoidc import claims
 from idpyoidc import metadata
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
@@ -93,11 +92,11 @@ def max_age(request):
 
 
 def verify_uri(
-    context: EndpointContext,
-    request: Union[dict, Message],
-    uri_type: str,
-    client_id: Optional[str] = None,
-    endpoint_type: Optional[str] = 'oidc'
+        context: EndpointContext,
+        request: Union[dict, Message],
+        uri_type: str,
+        client_id: Optional[str] = None,
+        endpoint_type: Optional[str] = 'oidc'
 ):
     """
     A redirect URI
@@ -210,7 +209,7 @@ def get_uri(context,
     uri = ""
 
     if uri_type in request:
-        verify_uri(context, request, uri_type,endpoint_type=endpoint_type)
+        verify_uri(context, request, uri_type, endpoint_type=endpoint_type)
         uri = request[uri_type]
     else:
         uris = f"{uri_type}s"
@@ -231,10 +230,10 @@ def get_uri(context,
 
 
 def authn_args_gather(
-    request: Union[AuthorizationRequest, dict],
-    authn_class_ref: str,
-    cinfo: dict,
-    **kwargs,
+        request: Union[AuthorizationRequest, dict],
+        authn_class_ref: str,
+        cinfo: dict,
+        **kwargs,
 ):
     """
     Gather information to be used by the authentication method
@@ -298,8 +297,8 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     client_id = request["client_id"]
 
     if (
-        isinstance(resource_servers_per_client, dict)
-        and client_id not in resource_servers_per_client
+            isinstance(resource_servers_per_client, dict)
+            and client_id not in resource_servers_per_client
     ):
         return oauth2.AuthorizationErrorResponse(
             error="invalid_target",
@@ -375,7 +374,7 @@ class Authorization(Endpoint):
     def filter_request(self, context, req):
         return req
 
-    def extra_response_args(self, aresp):
+    def extra_response_args(self, aresp, **kwargs):
         return aresp
 
     def authentication_error_response(self, request, error, error_description, **kwargs):
@@ -526,8 +525,8 @@ class Authorization(Endpoint):
             request["redirect_uri"] = redirect_uri
 
         if (
-            "resource_indicators" in _cinfo
-            and "authorization_code" in _cinfo["resource_indicators"]
+                "resource_indicators" in _cinfo
+                and "authorization_code" in _cinfo["resource_indicators"]
         ):
             resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
         else:
@@ -642,13 +641,13 @@ class Authorization(Endpoint):
             return identity
 
     def setup_auth(
-        self,
-        request: Optional[Union[Message, dict]],
-        redirect_uri: str,
-        cinfo: dict,
-        cookie: List[dict] = None,
-        acr: str = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]],
+            redirect_uri: str,
+            cinfo: dict,
+            cookie: List[dict] = None,
+            acr: str = None,
+            **kwargs,
     ) -> dict:
         """
 
@@ -772,12 +771,12 @@ class Authorization(Endpoint):
         return ""
 
     def response_mode(
-        self,
-        request: Union[dict, AuthorizationRequest],
-        response_args: Optional[Union[dict, AuthorizationResponse]] = None,
-        return_uri: Optional[str] = "",
-        fragment_enc: Optional[bool] = None,
-        **kwargs,
+            self,
+            request: Union[dict, AuthorizationRequest],
+            response_args: Optional[Union[dict, AuthorizationResponse]] = None,
+            return_uri: Optional[str] = "",
+            fragment_enc: Optional[bool] = None,
+            **kwargs,
     ) -> dict:
         resp_mode = request["response_mode"]
         if resp_mode == "form_post":
@@ -943,7 +942,7 @@ class Authorization(Endpoint):
                 )
                 return {"response_args": resp, "fragment_enc": fragment_enc}
 
-        aresp = self.extra_response_args(aresp)
+        aresp = self.extra_response_args(aresp, client_id=request["client_id"])
 
         return {"response_args": aresp, "fragment_enc": fragment_enc}
 
@@ -1087,10 +1086,10 @@ class Authorization(Endpoint):
         return kwargs
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         """The AuthorizationRequest endpoint
 
@@ -1153,6 +1152,7 @@ class Authorization(Endpoint):
 
 
 class AllowedAlgorithms:
+
     def __init__(self, algorithm_parameters):
         self.algorithm_parameters = algorithm_parameters
 

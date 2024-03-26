@@ -281,6 +281,7 @@ class TestEndpoint(object):
                 "handler": server2.context.session_manager.token_handler,
             },
         )
+        server2.context.upstream_get = server2.unit_get
 
         self.endpoint = {
             1: server1.get_endpoint("userinfo"),
@@ -290,6 +291,10 @@ class TestEndpoint(object):
         self.session_manager = {
             1: server1.context.session_manager,
             2: server2.context.session_manager,
+        }
+        self.context_unit_get = {
+            1: server1.context.unit_get,
+            2: server2.context.unit_get
         }
         self.user_id = "diana"
 
@@ -339,8 +344,9 @@ class TestEndpoint(object):
 
     def _dump_restore(self, fro, to):
         _store = self.session_manager[fro].dump()
+        context_unit_get = self.endpoint[to].upstream_get("unit").context.unit_get
         self.session_manager[to].load(
-            _store, init_args={"upstream_get": self.endpoint[to].upstream_get}
+            _store, init_args={"upstream_get": context_unit_get}
         )
 
     def test_init(self):

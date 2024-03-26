@@ -181,9 +181,9 @@ class Unit(ImpExp):
 def topmost_unit(unit):
     if hasattr(unit, "upstream_get"):
         if unit.upstream_get:
-            next_unit = unit.upstream_get("unit")
-            if next_unit:
-                unit = topmost_unit(next_unit)
+            superior = unit.upstream_get("unit")
+            if superior:
+                unit = topmost_unit(superior)
 
     return unit
 

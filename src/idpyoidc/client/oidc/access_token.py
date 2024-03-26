@@ -42,7 +42,7 @@ class AccessToken(access_token.AccessToken):
         :return: dictionary with arguments to the verify call
         """
         _context = self.upstream_get("context")
-        _entity = self.upstream_get("entity")
+        _entity = self.upstream_get("unit")
 
         kwargs = {
             "client_id": _entity.get_client_id(),

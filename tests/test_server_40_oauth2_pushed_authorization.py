@@ -139,8 +139,8 @@ class TestEndpoint(object):
                             "client_secret_jwt",
                             "private_key_jwt",
                         ]
-                    },
-                },
+                    }
+                }
             },
             "authentication": {
                 "anon": {

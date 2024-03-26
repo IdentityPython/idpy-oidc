@@ -90,7 +90,7 @@ class AuthzHandling(object):
         grant.scope = scopes
 
         # After this is where user consent should be handled
-        grant.claims = self.upstream_get("context").claims_interface.get_claims_all_usage(
+        grant.claims = _context.claims_interface.get_claims_all_usage(
             session_id=session_id, scopes=scopes
         )
 

@@ -45,13 +45,9 @@ def push_authorization(request_args, service, **kwargs):
                     _context.client_authn_methods[_name] = execute(spec)
             authn_method = _name
 
-        _args = {}
+        _args = kwargs.copy()
         if _context.issuer:
             _args["iss"] = _context.issuer
-        if _name == "client_attestation":
-            _wia = kwargs.get("client_attestation")
-            if _wia:
-                _args["client_attestation"] = _wia
 
         _headers = service.get_headers(
             request_args, http_method=_http_method, authn_method=authn_method, **_args

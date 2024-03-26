@@ -4,16 +4,18 @@ from hashlib import sha256
 from typing import Optional
 
 from cryptojwt.jwk.jwk import key_from_jwk_dict
-from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
+from cryptojwt.jws.jws import JWS
 from cryptojwt.key_bundle import key_by_alg
 
+from idpyoidc.client.client_auth import BearerHeader
+from idpyoidc.client.client_auth import find_token_info
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.metadata import get_signing_algs
 from idpyoidc.time_util import utc_time_sans_frac
 
@@ -91,13 +93,13 @@ class DPoPProof(Message):
 
 
 def dpop_header(
-    service_context: ServiceContext,
-    service_endpoint: str,
-    http_method: str,
-    headers: Optional[dict] = None,
-    token: Optional[str] = "",
-    nonce: Optional[str] = "",
-    **kwargs
+        service_context: ServiceContext,
+        service_endpoint: str,
+        http_method: str,
+        headers: Optional[dict] = None,
+        token: Optional[str] = "",
+        nonce: Optional[str] = "",
+        **kwargs
 ) -> dict:
     """
 
@@ -159,7 +161,7 @@ def dpop_header(
     return headers
 
 
-def add_support(services, dpop_signing_alg_values_supported):
+def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=None):
     """
     Add the necessary pieces to make pushed authorization happen.
 
@@ -185,3 +187,53 @@ def add_support(services, dpop_signing_alg_values_supported):
     _userinfo_service = services.get("userinfo")
     if _userinfo_service:
         _userinfo_service.construct_extra_headers.append(dpop_header)
+    # To be backward compatible
+    if with_dpop_header is None:
+        with_dpop_header = ["userinfo"]
+
+    # Add dpop HTTP header to these
+    for _srv in with_dpop_header:
+        if _srv == "accesstoken":
+            continue
+        _service = services.get(_srv)
+        if _service:
+            _service.construct_extra_headers.append(dpop_header)
+
+
+class DPoPClientAuth(BearerHeader):
+    tag = "dpop_client_auth"
+
+    def construct(self, request=None, service=None, http_args=None, **kwargs):
+        """
+        Constructing the Authorization header. The value of
+        the Authorization header is "Bearer <access_token>".
+
+        :param request: Request class instance
+        :param service: The service this authentication method applies to.
+        :param http_args: HTTP header arguments
+        :param kwargs: extra keyword arguments
+        :return:
+        """
+
+        _token_type = "access_token"
+
+        _token_info = find_token_info(request, _token_type, service, **kwargs)
+
+        if not _token_info:
+            raise KeyError("No bearer token available")
+
+        # The authorization value starts with the token_type
+        # if _token_info["token_type"].to_lower() != "bearer":
+        _bearer = f"DPoP {_token_info[_token_type]}"
+
+        # Add 'Authorization' to the headers
+        if http_args is None:
+            http_args = {"headers": {}}
+            http_args["headers"]["Authorization"] = _bearer
+        else:
+            try:
+                http_args["headers"]["Authorization"] = _bearer
+            except KeyError:
+                http_args["headers"] = {"Authorization": _bearer}
+
+        return http_args

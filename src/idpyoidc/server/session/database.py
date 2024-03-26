@@ -30,8 +30,8 @@ class Database(ImpExp):
         ImpExp.__init__(self)
         self.db = DLDict()
 
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        # for k, v in kwargs.items():
+        #     setattr(self, k, v)
 
         if crypt_config is None:
             crypt_config = default_crypt_config()
