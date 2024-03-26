@@ -636,6 +636,22 @@ class TokenRevocationErrorResponse(ResponseMessage):
     c_allowed_values = ResponseMessage.c_allowed_values.copy()
     c_allowed_values.update({"error": ["unsupported_token_type"]})
 
+class OAuthProtectedResourceRequest(Message):
+    c_param = {
+        "resource": SINGLE_REQUIRED_STRING,
+        "authorization_servers": OPTIONAL_LIST_OF_STRINGS,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "resource_documentation": SINGLE_OPTIONAL_STRING,
+        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "bearer_methods_supported": OPTIONAL_LIST_OF_STRINGS,
+        "resource_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "resource_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "resource_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "client_registration_types": OPTIONAL_LIST_OF_STRINGS,
+        "organization_name": SINGLE_OPTIONAL_STRING,
+        "resource_policy_uri": SINGLE_OPTIONAL_STRING,
+        "resource_tos_uri": SINGLE_OPTIONAL_STRING
+    }
 
 def factory(msgtype, **kwargs):
     """
