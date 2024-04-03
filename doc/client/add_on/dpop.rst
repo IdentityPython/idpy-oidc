@@ -40,7 +40,7 @@ in a client configuration.
 
     'add_ons': {
         "dpop": {
-            "function": "oidcrp.oauth2.add_on.dpop.add_support",
+            "function": "idpyoidc.client.oauth2.add_on.dpop.add_support",
             "kwargs": {
                 "signing_algorithms": ["ES256", "ES512"]
             }
