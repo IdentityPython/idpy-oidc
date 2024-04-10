@@ -70,7 +70,7 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "cryptojwt>=1.8.3",
+        "cryptojwt>=1.8.4",
         "pyOpenSSL",
         "filelock>=3.0.12",
         'pyyaml>=5.1.2',
