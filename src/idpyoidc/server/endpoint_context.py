@@ -61,14 +61,14 @@ def get_token_handler_args(conf: dict) -> dict:
     :param conf: The configuration
     :rtype: dict
     """
-    th_args = conf.get("token_handler_args", None)
-    if not th_args:
-        th_args = {
+    token_handler_args = conf.get("token_handler_args", None)
+    if not token_handler_args:
+        token_handler_args = {
             typ: {"lifetime": tid}
             for typ, tid in [("code", 600), ("token", 3600), ("refresh", 86400)]
         }
 
-    return th_args
+    return token_handler_args
 
 
 class EndpointContext(OidcContext):
@@ -102,7 +102,7 @@ class EndpointContext(OidcContext):
         "client_authn_method": {},
     }
 
-    init_args = ["upstream_get", "handler"]
+    init_args = ["upstream_get", "conf"]
 
     def __init__(
         self,
@@ -185,7 +185,7 @@ class EndpointContext(OidcContext):
             except KeyError:
                 pass
 
-        self.th_args = get_token_handler_args(conf)
+        self.token_handler_args = get_token_handler_args(conf)
 
         # session db
         self._sub_func = {}
@@ -249,12 +249,11 @@ class EndpointContext(OidcContext):
 
         self.setup_authentication()
 
-        self.session_manager = create_session_manager(
-            self.unit_get,
-            self.th_args,
+        self.session_manager = SessionManager(
+            self.token_handler_args,
             sub_func=self._sub_func,
-            conf=self.conf,
-        )
+            conf=conf,
+            upstream_get=self.unit_get)
 
         self.do_userinfo()
 

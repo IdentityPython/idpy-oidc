@@ -46,7 +46,16 @@ class ImpExp:
         elif cls == b"":
             val = f"BYTES:{base64.b64encode(item).decode('utf-8')}"
         elif cls == {} and isinstance(item, dict):
-            val = {k: self.dump_attr(type2cls(v), v, exclude_attributes) for k, v in item.items()}
+            val = {}
+            for k, v in item.items():
+                if k != "upstream_get":
+                    if k == "class":
+                        if isinstance(v, str):
+                            val[k] = v
+                        else:
+                            val[k] = fully_qualified_name(v)
+                    else:
+                        val[k] = self.dump_attr(type2cls(v), v, exclude_attributes)
         elif cls == [] and isinstance(item, list):
             val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
         elif cls == "DICT_TYPE":
@@ -161,7 +170,6 @@ class ImpExp:
         return val
 
     def load(self, item: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None):
-
         if load_args:
             _kwargs = {"load_args": load_args}
             _load_args = load_args
@@ -179,6 +187,18 @@ class ImpExp:
         for attr, cls in self.parameter.items():
             if attr not in item or attr in self.special_load_dump:
                 continue
+
+            _cls_init_args = getattr(cls, "init_args", {})
+
+            for param, target in {"upstream_get": "unit_get", "conf": "conf",
+                                  "token_handler_args": "token_handler_args"}.items():
+                target_val = getattr(self, target, None)
+                if target_val:
+                    if param in _cls_init_args and param not in _kwargs:
+                        if _kwargs["init_args"] is None:
+                            _kwargs["init_args"] = {param: target_val}
+                        else:
+                            _kwargs["init_args"][param] = target_val
 
             setattr(self, attr, self.load_attr(cls, item[attr], **_kwargs))
 

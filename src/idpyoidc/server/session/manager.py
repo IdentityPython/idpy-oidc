@@ -81,20 +81,22 @@ def ephemeral_id(*args, **kwargs):
 class SessionManager(GrantManager):
     parameter = Database.parameter.copy()
     # parameter.update({"salt": ""})
-    init_args = ["handler"]
+    init_args = ["token_handler_args", "upstream_get"]
 
     def __init__(
         self,
-        handler: TokenHandler,
+        token_handler_args: dict,
         conf: Optional[dict] = None,
         sub_func: Optional[dict] = None,
         remember_token: Optional[Callable] = None,
         remove_inactive_token: Optional[bool] = False,
+        upstream_get: Optional[Callable] = None,
     ):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
-
         session_params = self.conf.get("session_params") or {}
-        super(SessionManager, self).__init__(handler, self.conf)
+        self.token_handler = self.create_token_handler(upstream_get, token_handler_args)
+
+        super(SessionManager, self).__init__(self.token_handler, self.conf)
 
         self.node_type = session_params.get("node_type", ["user", "client", "grant"])
         # Make sure node_type is a list and must contain at least one element.
@@ -108,7 +110,6 @@ class SessionManager(GrantManager):
             {"user": UserSessionInfo, "client": ClientSessionInfo, "grant": Grant},
         )
 
-        self.token_handler = handler
         self.remember_token = remember_token
         self.remove_inactive_token = remove_inactive_token
 
@@ -130,6 +131,9 @@ class SessionManager(GrantManager):
                 self.sub_func["ephemeral"] = ephemeral_id
 
         self.auth_req_id_map = {}
+
+    def create_token_handler(self, upstream_get, token_handler_args) -> TokenHandler:
+        return handler.factory(upstream_get, **token_handler_args)
 
     def get_user_info(self, uid: str) -> UserSessionInfo:
         usi = self.get([uid])
@@ -534,6 +538,6 @@ class SessionManager(GrantManager):
         return self.unpack_branch_key(key)
 
 
+
 def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
-    _token_handler = handler.factory(upstream_get, **token_handler_args)
     return SessionManager(_token_handler, sub_func=sub_func, conf=conf)
