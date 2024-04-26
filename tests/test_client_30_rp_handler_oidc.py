@@ -4,16 +4,16 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
+from cryptojwt.key_jar import init_key_jar
 import pytest
 import responses
-from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
-from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
@@ -260,14 +260,21 @@ class TestRPHandler(object):
         }
 
         _pref = [k for k, v in _context.prefers().items() if v]
-        assert set(_pref) == {
-            "client_id",
-            "client_secret",
-            "redirect_uris",
-            "response_types_supported",
-            "callback_uris",
-            "scopes_supported",
-        }
+        assert set(_pref) == {'application_type',
+                              'callback_uris',
+                              'client_id',
+                              'client_secret',
+                              'default_max_age',
+                              'grant_types_supported',
+                              'id_token_signing_alg_values_supported',
+                              'redirect_uris',
+                              'request_object_signing_alg_values_supported',
+                              'response_modes_supported',
+                              'response_types_supported',
+                              'scopes_supported',
+                              'subject_types_supported',
+                              'token_endpoint_auth_signing_alg_values_supported',
+                              'userinfo_signing_alg_values_supported'}
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
@@ -304,8 +311,9 @@ class TestRPHandler(object):
 
         assert self.rph.hash2issuer["github"] == issuer
         assert (
-            client.get_context().get_preference("callback_uris").get("post_logout_redirect_uris")
-            is None
+                client.get_context().get_preference("callback_uris").get(
+                    "post_logout_redirect_uris")
+                is None
         )
 
     def test_do_client_setup(self):

@@ -94,7 +94,6 @@ class RP(oauth2.Client):
         jwks_uri: Optional[str] = "",
         **kwargs
     ):
-        self.upstream_get = upstream_get
         if services:
             _srvs = services
         else:

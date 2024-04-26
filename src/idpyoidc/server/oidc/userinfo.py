@@ -151,8 +151,8 @@ class UserInfo(Endpoint):
             # if "offline_access" in session["authn_req"]["scope"]:
             #     pass
 
+        _cntxt = self.upstream_get("context")
         if allowed:
-            _cntxt = self.upstream_get("context")
             _claims_restriction = _cntxt.claims_interface.get_claims(
                 _session_info["branch_id"], scopes=token.scope, claims_release_point="userinfo"
             )
@@ -162,6 +162,10 @@ class UserInfo(Endpoint):
             info["sub"] = _grant.sub
             if _grant.add_acr_value("userinfo"):
                 info["acr"] = _grant.authentication_event["authn_info"]
+
+            extra_claims = kwargs.get("extra_claims")
+            if extra_claims:
+                info.update(extra_claims)
 
         if "userinfo" in _cntxt.cdb[request["client_id"]]:
             self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]

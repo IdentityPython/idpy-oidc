@@ -233,7 +233,7 @@ class EndpointContext(OidcContext):
         self.dev_auth_db = None
         _interface = conf.get("claims_interface")
         if _interface:
-            self.claims_interface = init_service(_interface, self.upstream_get)
+            self.claims_interface = init_service(_interface, self.unit_get)
 
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
@@ -276,9 +276,7 @@ class EndpointContext(OidcContext):
             return authz.Implicit(self.unit_get)
 
     def setup_client_authn_methods(self):
-        self.client_authn_methods = client_auth_setup(
-            self.upstream_get, self.conf.get("client_authn_methods")
-        )
+        self.client_authn_methods = client_auth_setup(self.unit_get, self.conf.get("client_authn_methods"))
 
     def setup_login_hint_lookup(self):
         _conf = self.conf.get("login_hint_lookup")
@@ -307,10 +305,10 @@ class EndpointContext(OidcContext):
         if _spec:
             _kwargs = _spec.get("kwargs", {})
             _cls = importer(_spec["class"])
-            self.scopes_handler = _cls(self.upstream_get, **_kwargs)
+            self.scopes_handler = _cls(self.unit_get, **_kwargs)
         else:
             self.scopes_handler = Scopes(
-                self.upstream_get,
+                self.unit_get,
                 allowed_scopes=self.conf.get("allowed_scopes"),
                 scopes_to_claims=self.conf.get("scopes_to_claims"),
             )
@@ -440,7 +438,7 @@ class EndpointContext(OidcContext):
         _conf = self.conf.get("authentication")
         if _conf:
             self.authn_broker = populate_authn_broker(
-                _conf, self.upstream_get, self.template_handler
+                _conf, self.unit_get, self.template_handler
             )
         else:
             self.authn_broker = {}
