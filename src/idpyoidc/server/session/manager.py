@@ -13,21 +13,21 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.exception import ConfigurationError
 from idpyoidc.server.session.grant_manager import GrantManager
 from idpyoidc.util import rndstr
-
-from ..token import UnknownToken
-from ..token import WrongTokenClass
-from ..token import handler
-from ..token.handler import TokenHandler
 from .database import Database
 from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
+from ..token import handler
+from ..token import UnknownToken
+from ..token import WrongTokenClass
+from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
 
 
 class RawID(object):
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -42,6 +42,7 @@ def pairwise_id(uid, sector_identifier, salt="", **kwargs):
 
 
 class PairWiseID(object):
+
     def __init__(self, salt: Optional[str] = "", filename: Optional[str] = ""):
         if salt:
             self.salt = salt
@@ -49,7 +50,7 @@ class PairWiseID(object):
             if os.path.isfile(filename):
                 self.salt = open(filename).read()
             elif not os.path.isfile(filename) and os.path.exists(
-                filename
+                    filename
             ):  # Not a file, Something else
                 raise ConfigurationError("Salt filename points to something that is not a file")
             else:
@@ -70,6 +71,7 @@ def public_id(uid, salt="", **kwargs):
 
 
 class PublicID(PairWiseID):
+
     def __call__(self, uid, sector_identifier, *args, **kwargs):
         return public_id(uid, self.salt)
 
@@ -84,13 +86,13 @@ class SessionManager(GrantManager):
     init_args = ["token_handler_args", "upstream_get"]
 
     def __init__(
-        self,
-        token_handler_args: dict,
-        conf: Optional[dict] = None,
-        sub_func: Optional[dict] = None,
-        remember_token: Optional[Callable] = None,
-        remove_inactive_token: Optional[bool] = False,
-        upstream_get: Optional[Callable] = None,
+            self,
+            token_handler_args: dict,
+            conf: Optional[dict] = None,
+            sub_func: Optional[dict] = None,
+            remember_token: Optional[Callable] = None,
+            remove_inactive_token: Optional[bool] = False,
+            upstream_get: Optional[Callable] = None,
     ):
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
         session_params = self.conf.get("session_params") or {}
@@ -164,14 +166,14 @@ class SessionManager(GrantManager):
         return _path
 
     def create_grant(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -214,15 +216,15 @@ class SessionManager(GrantManager):
         )
 
     def create_exchange_grant(
-        self,
-        exchange_request: TokenExchangeRequest,
-        original_grant: Grant,
-        original_session_id: str,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
+            original_session_id: str,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
 
@@ -246,14 +248,14 @@ class SessionManager(GrantManager):
         )
 
     def create_session(
-        self,
-        authn_event: AuthnEvent,
-        auth_req: AuthorizationRequest,
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            authn_event: AuthnEvent,
+            auth_req: AuthorizationRequest,
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -280,15 +282,15 @@ class SessionManager(GrantManager):
         )
 
     def create_exchange_session(
-        self,
-        exchange_request: TokenExchangeRequest,
-        original_grant: Grant,
-        original_session_id: str,
-        user_id: str,
-        client_id: Optional[str] = "",
-        sub_type: Optional[str] = "public",
-        token_usage_rules: Optional[dict] = None,
-        scopes: Optional[list] = None,
+            self,
+            exchange_request: TokenExchangeRequest,
+            original_grant: Grant,
+            original_session_id: str,
+            user_id: str,
+            client_id: Optional[str] = "",
+            sub_type: Optional[str] = "public",
+            token_usage_rules: Optional[dict] = None,
+            scopes: Optional[list] = None,
     ) -> str:
         """
         Create part of a user session. The parts added are user- and client
@@ -376,10 +378,10 @@ class SessionManager(GrantManager):
             grant.revoke_token(value=token.value)
 
     def get_authentication_events(
-        self,
-        session_id: Optional[str] = "",
-        user_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            session_id: Optional[str] = "",
+            user_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ) -> List[AuthnEvent]:
         """
         Return the authentication events that exists for a user/client combination.
@@ -453,13 +455,13 @@ class SessionManager(GrantManager):
     #     return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
 
     def get_session_info(
-        self,
-        session_id: str,
-        user_session_info: bool = False,
-        client_session_info: bool = False,
-        grant: bool = False,
-        authentication_event: bool = False,
-        authorization_request: bool = False,
+            self,
+            session_id: str,
+            user_session_info: bool = False,
+            client_session_info: bool = False,
+            grant: bool = False,
+            authentication_event: bool = False,
+            authorization_request: bool = False,
     ) -> dict:
         """
         Returns information connected to a session.
@@ -484,14 +486,14 @@ class SessionManager(GrantManager):
         return res
 
     def get_session_info_by_token(
-        self,
-        token_value: str,
-        user_session_info: Optional[bool] = False,
-        client_session_info: Optional[bool] = False,
-        grant: Optional[bool] = False,
-        authentication_event: Optional[bool] = False,
-        authorization_request: Optional[bool] = False,
-        handler_key: Optional[str] = "",
+            self,
+            token_value: str,
+            user_session_info: Optional[bool] = False,
+            client_session_info: Optional[bool] = False,
+            grant: Optional[bool] = False,
+            authentication_event: Optional[bool] = False,
+            authorization_request: Optional[bool] = False,
+            handler_key: Optional[str] = "",
     ) -> dict:
 
         if handler_key:
@@ -537,7 +539,5 @@ class SessionManager(GrantManager):
     def unpack_session_key(self, key):
         return self.unpack_branch_key(key)
 
-
-
-def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
-    return SessionManager(token_handler_args, sub_func=sub_func, conf=conf, upstream_get=upstream_get)
+# def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
+#     return SessionManager(token_handler_args, sub_func=sub_func, conf=conf, upstream_get=upstream_get)

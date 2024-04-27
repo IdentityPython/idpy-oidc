@@ -19,7 +19,6 @@ from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
 from idpyoidc.server.session.manager import SessionManager
-from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
