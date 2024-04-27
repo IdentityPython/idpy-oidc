@@ -540,4 +540,4 @@ class SessionManager(GrantManager):
 
 
 def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
-    return SessionManager(_token_handler, sub_func=sub_func, conf=conf)
+    return SessionManager(token_handler_args, sub_func=sub_func, conf=conf, upstream_get=upstream_get)
