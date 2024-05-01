@@ -8,6 +8,7 @@ from typing import Union
 from cryptojwt import KeyJar
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
+from requests import request
 
 from idpyoidc.context import OidcContext
 from idpyoidc.server import authz
@@ -19,13 +20,11 @@ from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.scopes import SCOPE2CLAIMS
 from idpyoidc.server.scopes import Scopes
 from idpyoidc.server.session.manager import SessionManager
-from idpyoidc.server.session.manager import create_session_manager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
-from requests import request
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,7 @@ class EndpointContext(OidcContext):
         "jwks_uri": "",
         "keyjar": KeyJar,
         "login_hint_lookup": None,
-        "login_hint2acrs": {},
+        "login_hint2acrs": None,
         "par_db": {},
         "provider_info": {},
         "registration_access_token": {},
@@ -105,16 +104,16 @@ class EndpointContext(OidcContext):
     init_args = ["upstream_get", "conf"]
 
     def __init__(
-        self,
-        conf: Union[dict, OPConfiguration],
-        upstream_get: Callable,
-        cwd: Optional[str] = "",
-        cookie_handler: Optional[Any] = None,
-        httpc: Optional[Any] = None,
-        server_type: Optional[str] = "",
-        entity_id: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        claims_class: Optional[Claims] = None,
+            self,
+            conf: Union[dict, OPConfiguration],
+            upstream_get: Callable,
+            cwd: Optional[str] = "",
+            cookie_handler: Optional[Any] = None,
+            httpc: Optional[Any] = None,
+            server_type: Optional[str] = "",
+            entity_id: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            claims_class: Optional[Claims] = None,
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -275,7 +274,8 @@ class EndpointContext(OidcContext):
             return authz.Implicit(self.unit_get)
 
     def setup_client_authn_methods(self):
-        self.client_authn_methods = client_auth_setup(self.unit_get, self.conf.get("client_authn_methods"))
+        self.client_authn_methods = client_auth_setup(self.unit_get,
+                                                      self.conf.get("client_authn_methods"))
 
     def setup_login_hint_lookup(self):
         _conf = self.conf.get("login_hint_lookup")
