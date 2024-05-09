@@ -145,7 +145,6 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             )
 
         self.setup_client_authn_methods(config)
-
         self.upstream_get = upstream_get
 
     def get_services(self, *arg):
@@ -170,8 +169,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         return None
 
-    def get_entity(self):
-        return self
+    # def get_entity(self):
+    #     return self
 
     def get_client_id(self):
         _val = self.context.claims.get_usage("client_id")

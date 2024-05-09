@@ -25,7 +25,7 @@ def add_redirect_uris(request_args, service=None, **kwargs):
     :param kwargs: Possible extra keyword arguments
     :return: A possibly augmented set of request arguments.
     """
-    _work_environment = service.upstream_get("context").claims
+    _work_environment = service.upstream_get("attribute", "claims")
     if "redirect_uris" not in request_args:
         # Callbacks is a dictionary with callback type 'code', 'implicit',
         # 'form_post' as keys.

@@ -67,7 +67,6 @@ class Server(Unit):
             issuer_id=self.issuer,
         )
 
-        self.upstream_get = upstream_get
         if isinstance(conf, OPConfiguration) or isinstance(conf, ASConfiguration):
             self.conf = conf
         else:

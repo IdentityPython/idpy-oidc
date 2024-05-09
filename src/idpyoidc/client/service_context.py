@@ -159,6 +159,7 @@ class ServiceContext(ImpExp):
         self.httpc_params = {}
         self.client_secret_expires_at = 0
         self.registration_response = {}
+        self.client_authn_methods = {}
 
         # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
@@ -188,6 +189,9 @@ class ServiceContext(ImpExp):
         )
 
         self.construct_uris(response_types=_response_types)
+
+        self.map_supported_to_preferred()
+        self.map_preferred_to_registered()
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
