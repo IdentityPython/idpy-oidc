@@ -76,7 +76,7 @@ class AuthzHandling(object):
             else:
                 setattr(grant, key, val)
 
-        if resources is None and grant.resources is None:
+        if resources is None and (grant.resources is None or len(grant.resources) == 0):
             grant.resources = [_client_id]
         elif resources is not None:
             grant.resources = resources
