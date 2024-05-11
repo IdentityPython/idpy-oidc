@@ -169,6 +169,7 @@ class IDToken(Token):
                 user_info = _context.claims_interface.get_user_claims(
                     user_id=session_information["user_id"],
                     claims_restriction=_claims_restriction,
+                    client_id=session_information["client_id"]
                 )
                 if _claims_restriction and "acr" in _claims_restriction and "acr" in _args:
                     if claims_match(_args["acr"], _claims_restriction["acr"]) is False:
