@@ -30,7 +30,7 @@ def dict_subset(a, b):
 class UserInfo(object):
     """Read only interface to a user info store"""
 
-    def __init__(self, db=None, db_file=""):
+    def __init__(self, db=None, db_file="", **kwargs):
         if db is not None:
             self.db = db
         elif db_file:

@@ -41,10 +41,11 @@ CLAIMS_2 = {
         "email_verified": {"essential": True},
     }
 }
+CLIENT_ID = "client1"
 
 OIDR = OpenIDRequest(
     response_type="code",
-    client_id="client1",
+    client_id=CLIENT_ID,
     redirect_uri="http://example.com/authz",
     scope=["openid"],
     state="state000",
@@ -194,7 +195,7 @@ class TestCollectUserInfo:
         server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         self.endpoint_context = server.context
         # Just has to be there
-        self.endpoint_context.cdb["client1"] = {
+        self.endpoint_context.cdb[CLIENT_ID] = {
             "add_claims": {
                 "always": {},
                 "by_scope": {},
@@ -228,7 +229,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=OIDR["scope"], claims_release_point="userinfo"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
+        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction, CLIENT_ID)
 
         assert res == {
             "eduperson_scoped_affiliation": ["staff@example.org"],
@@ -241,7 +242,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=OIDR["scope"], claims_release_point="id_token"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _id_token_restriction)
+        res = self.claims_interface.get_user_claims("diana", _id_token_restriction, CLIENT_ID)
 
         assert res == {
             "email": "diana@example.org",
@@ -252,7 +253,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=OIDR["scope"], claims_release_point="introspection"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _restriction)
+        res = self.claims_interface.get_user_claims("diana", _restriction, CLIENT_ID)
 
         assert res == {}
 
@@ -268,7 +269,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
+        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction, CLIENT_ID)
 
         assert res == {
             "address": {
@@ -299,7 +300,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
+        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction, CLIENT_ID)
 
         assert res == {}
 
@@ -324,7 +325,7 @@ class TestCollectUserInfo:
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction)
+        res = self.claims_interface.get_user_claims("diana", _userinfo_restriction, CLIENT_ID)
 
         assert res == {"phone_number": "+46907865000"}
 
@@ -423,7 +424,7 @@ class TestCollectUserInfoCustomScopes:
     def create_endpoint_context(self, conf):
         self.server = Server(conf)
         self.endpoint_context = self.server.context
-        self.endpoint_context.cdb["client1"] = {
+        self.endpoint_context.cdb[CLIENT_ID] = {
             "allowed_scopes": [
                 "openid",
                 "profile",
@@ -470,7 +471,7 @@ class TestCollectUserInfoCustomScopes:
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
         )
 
-        res = self.claims_interface.get_user_claims("diana", _restriction)
+        res = self.claims_interface.get_user_claims("diana", _restriction, CLIENT_ID)
 
         assert res == {
             "eduperson_scoped_affiliation": ["staff@example.org"],
@@ -487,7 +488,7 @@ class TestCollectUserInfoCustomScopes:
         endpoint_context = server.context
         self.session_manager = endpoint_context.session_manager
         claims_interface = endpoint_context.claims_interface
-        endpoint_context.cdb["client1"] = {
+        endpoint_context.cdb[CLIENT_ID] = {
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"]
         }
 
@@ -501,7 +502,7 @@ class TestCollectUserInfoCustomScopes:
             session_id=session_id, scopes=_req["scope"], claims_release_point="userinfo"
         )
 
-        res = claims_interface.get_user_claims("diana", _restriction)
+        res = claims_interface.get_user_claims("diana", _restriction, CLIENT_ID)
         assert res == {
             "eduperson_scoped_affiliation": ["staff@example.org"],
             "email": "diana@example.org",

@@ -280,6 +280,9 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
+        # reset code usage
+        code.used = 0
+
         id_token = self._mint_id_token(
             grant, session_id, token_ref=code, access_token=access_token.value
         )
@@ -310,6 +313,9 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
+
+        # reset code usage
+        code.used = 0
 
         id_token = self._mint_id_token(
             grant,
@@ -374,6 +380,8 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
+        # reset code usage
+        code.used = 0
         id_token = self._mint_id_token(
             grant,
             session_id,
@@ -628,6 +636,8 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
+        # reset code usage
+        code.used = 0
         id_token = self._mint_id_token(
             grant, session_id, token_ref=code, access_token=access_token.value
         )
@@ -660,6 +670,8 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
+        # reset code usage
+        code.used = 0
         id_token = self._mint_id_token(
             grant, session_id, token_ref=code, access_token=access_token.value
         )
@@ -677,6 +689,8 @@ class TestEndpoint(object):
         code = self._mint_code(grant, session_id)
         access_token = self._mint_access_token(grant, session_id, code)
 
+        # reset code usage
+        code.used = 0
         id_token = self._mint_id_token(
             grant, session_id, token_ref=code, access_token=access_token.value
         )
