@@ -50,7 +50,7 @@ class Database(ImpExp):
         return DIVIDER.join(args)
 
     @staticmethod
-    def unpack_branch_key(key):
+    def unpack_branch_key(key: str) -> list:
         """Translate a key into an ordered list of names"""
         return key.split(DIVIDER)
 
