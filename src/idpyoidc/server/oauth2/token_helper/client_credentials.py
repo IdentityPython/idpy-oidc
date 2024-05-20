@@ -3,11 +3,13 @@ from typing import Optional
 from typing import Union
 
 from idpyoidc.message import Message
+from idpyoidc.message.oauth2 import TokenErrorResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import sanitize
 
 from . import TokenEndpointHelper
+from . import validate_resource_indicators_policy
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +47,38 @@ class ClientCredentials(TokenEndpointHelper):
             branch_id = _mngr.add_grant(["client_credentials", client_id])
             _session_info = _mngr.get_session_info(branch_id)
 
+
+        ## LIONICK CHANGE START
+        _cinfo = _context.cdb.get(client_id)
+
+        if "resource_indicators" in _cinfo and "client_credentials" in _cinfo["resource_indicators"]:
+            resource_indicators_config = _cinfo["resource_indicators"]["client_credentials"]
+        else:
+            resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
+
+        if resource_indicators_config is not None:
+            if "policy" not in resource_indicators_config:
+                policy = {"policy": {"function": validate_resource_indicators_policy}}
+                resource_indicators_config.update(policy)
+
+            req = self._enforce_resource_indicators_policy(req, resource_indicators_config)
+
+            if isinstance(req, TokenErrorResponse):
+                return req
+
+        ## LIONICK CHANGE END
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
 
         _allowed = _context.cdb[client_id].get("allowed_scopes", [])
+        ## LIONICK CHANGE START
+        resources = req.get("resource", None)
+        if resources:
+            token_args = {"resources": resources}
+        else:
+            token_args = None
+        ## LIONICK CHANGE END
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
@@ -58,6 +87,7 @@ class ClientCredentials(TokenEndpointHelper):
             based_on=None,
             scope=_allowed,
             token_type=token_type,
+            token_args=token_args,
         )
 
         _resp = {
@@ -77,3 +107,24 @@ class ClientCredentials(TokenEndpointHelper):
         request = CCAccessTokenRequest(**request.to_dict())
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
         return request
+    
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.endpoint.upstream_get("context")
+
+        policy = config["policy"]
+        function = policy["function"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
+        else:
+            fn = function
+        try:
+            return fn(request, context=_context, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy function: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
