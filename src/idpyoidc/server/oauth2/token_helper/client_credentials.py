@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import TokenErrorResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
