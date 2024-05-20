@@ -24,7 +24,6 @@ class ClientCredentials(TokenEndpointHelper):
         logger.debug("Client credentials flow")
 
         # verify the client and the user
-
         client_id = req["client_id"]
         _authenticated = req.get("authenticated", False)
         if not _authenticated:
@@ -47,8 +46,6 @@ class ClientCredentials(TokenEndpointHelper):
             branch_id = _mngr.add_grant(["client_credentials", client_id])
             _session_info = _mngr.get_session_info(branch_id)
 
-
-        ## LIONICK CHANGE START
         _cinfo = _context.cdb.get(client_id)
 
         if "resource_indicators" in _cinfo and "client_credentials" in _cinfo["resource_indicators"]:
@@ -66,19 +63,16 @@ class ClientCredentials(TokenEndpointHelper):
             if isinstance(req, TokenErrorResponse):
                 return req
 
-        ## LIONICK CHANGE END
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
 
         _allowed = _context.cdb[client_id].get("allowed_scopes", [])
-        ## LIONICK CHANGE START
         resources = req.get("resource", None)
         if resources:
             token_args = {"resources": resources}
         else:
             token_args = None
-        ## LIONICK CHANGE END
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
