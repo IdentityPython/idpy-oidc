@@ -529,7 +529,12 @@ def verify_client(
             try:
                 _cinfo = _cdb[client_id]
             except KeyError:
-                raise UnknownClient("Unknown Client ID")
+                _auto_reg = getattr(endpoint, "automatic_registration", None)
+                if _auto_reg:
+                    _cinfo = {"client_id": client_id}
+                    _auto_reg.set(client_id, _cinfo)
+                else:
+                    raise UnknownClient("Unknown Client ID")
 
         if not _cinfo:
             raise UnknownClient("Unknown Client ID")
