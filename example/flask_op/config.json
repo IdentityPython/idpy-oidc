@@ -260,6 +260,7 @@
         "verify": false
       },
       "issuer": "https://{domain}:{port}",
+      "entity_id": "https://{domain}:{port}",
       "keys": {
         "private_path": "private/jwks.json",
         "key_defs": [

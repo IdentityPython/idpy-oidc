@@ -490,11 +490,13 @@ def verify_client(
 
     _method = None
     _cdb = _cinfo = None
+    _tested = []
     for _method in (methods[meth] for meth in allowed_methods):
         if not _method.is_usable(request=request, authorization_token=authorization_token):
             continue
         try:
             logger.info(f"Verifying client authentication using {_method.tag}")
+            _tested.append(_method.tag)
             auth_info = _method.verify(
                 keyjar=endpoint.upstream_get("attribute", "keyjar"),
                 request=request,
@@ -557,6 +559,7 @@ def verify_client(
         break
 
     logger.debug(f"Authn methods applied")
+    logger.debug(f"Method tested: {_tested}")
 
     # store what authn method was used
     if "method" in auth_info and client_id and _cdb:
