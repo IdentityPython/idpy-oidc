@@ -193,12 +193,14 @@ class ImpExp:
             for param, target in {"upstream_get": "unit_get", "conf": "conf",
                                   "token_handler_args": "token_handler_args"}.items():
                 target_val = getattr(self, target, None)
-                if target_val:
-                    if param in _cls_init_args and param not in _kwargs:
-                        if _kwargs["init_args"] is None:
-                            _kwargs["init_args"] = {param: target_val}
-                        else:
-                            _kwargs["init_args"][param] = target_val
+                if not target_val:
+                    continue
+
+                if param in _cls_init_args and param not in _kwargs:
+                    if _kwargs["init_args"] is None:
+                        _kwargs["init_args"] = {param: target_val}
+                    else:
+                        _kwargs["init_args"][param] = target_val
 
             setattr(self, attr, self.load_attr(cls, item[attr], **_kwargs))
 
