@@ -285,7 +285,7 @@ class TestEndpoint(object):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
 
-        # Free standing access token, not based on an authorization code
+        # Freestanding access token, not based on an authorization code
         access_token = self._mint_token("access_token", grant, session_id)
         http_info = {"headers": {"authorization": "Bearer {}".format(access_token.value)}}
         _req = self.endpoint.parse_request({}, http_info=http_info)
