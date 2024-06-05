@@ -11,6 +11,7 @@ import responses
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oidc import AccessTokenResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
 from idpyoidc.message.oidc import JRD
@@ -23,7 +24,7 @@ from idpyoidc.util import rndstr
 BASE_URL = "https://example.com/rp"
 
 PREF = {
-    "application_type": "web",
+    "application_type": APPLICATION_TYPE_WEB,
     "contacts": ["ops@example.com"],
     "response_types_supported": [
         "code",
@@ -1019,7 +1020,7 @@ class TestRPHandlerWithMockOP(object):
         }
         pcr = ProviderConfigurationResponse(**resp)
         _crr = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "response_types": ["code", "code id_token"],
             "redirect_uris": [
                 "https://example.com/rp/authz_cb"

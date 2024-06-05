@@ -11,6 +11,7 @@ from idpyoidc.client.entity import Entity
 from idpyoidc.client.oidc.webfinger import WebFinger
 from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
@@ -116,7 +117,7 @@ SERVICES = {
 
 def test_conversation():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "response_types": ["code"],
@@ -429,7 +430,7 @@ def test_conversation():
             "registration_client_uri": f"{RP_BASEURL}/registration?client_id=zls2qhN1jO6A",
             "client_secret_expires_at": now + 3600,
             "client_id_issued_at": now,
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "response_types": ["code"],
             "contacts": ["ops@example.com"],
             "redirect_uris": [f"{RP_BASEURL}/authz_cb"],

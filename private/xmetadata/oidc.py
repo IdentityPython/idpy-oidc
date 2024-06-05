@@ -4,6 +4,7 @@ from typing import Optional
 
 from idpyoidc import metadata
 from idpyoidc.client import metadata as client_metadata
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -64,7 +65,7 @@ class Metadata(client_metadata.Metadata):
 
     _supports = {
         "acr_values_supported": None,
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "callback_uris": None,
         # "client_authn_methods": get_client_authn_methods,
         "client_id": None,

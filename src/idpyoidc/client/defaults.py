@@ -1,6 +1,8 @@
 import hashlib
 import string
 
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+
 SUCCESSFUL = [200, 201, 202, 203, 204, 205, 206]
 
 SERVICE_NAME = "OIC"
@@ -27,7 +29,7 @@ DEFAULT_OAUTH2_SERVICES = {
 }
 
 DEFAULT_CLIENT_PREFERENCES = {
-    "application_type": "web",
+    "application_type": APPLICATION_TYPE_WEB,
     "response_types": [
         "code",
         "id_token",
