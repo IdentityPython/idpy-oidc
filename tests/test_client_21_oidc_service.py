@@ -16,6 +16,7 @@ from idpyoidc.client.oidc.registration import response_types_to_grant_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AccessTokenResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
@@ -483,7 +484,7 @@ class TestProviderInfo(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "issuer": self._iss,
             "application_name": "rphandler",
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "contacts": ["ops@example.org"],
             "preference": {
                 "scope": ["openid", "profile", "email", "address", "phone"],
@@ -744,7 +745,7 @@ class TestProviderInfo(object):
         del use_copy["callback_uris"]
 
         assert use_copy == {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "backchannel_logout_session_required": True,
             "backchannel_logout_uri": "https://rp.example.com/back",
             "client_id": "client_id",
@@ -831,7 +832,7 @@ class TestProviderInfo(object):
         del use_copy["callback_uris"]
 
         assert use_copy == {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "backchannel_logout_session_required": True,
             "backchannel_logout_uri": "https://rp.example.com/back",
             "client_id": "client_id",

@@ -4,6 +4,7 @@ import os
 
 import pytest
 
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
@@ -51,7 +52,7 @@ CAPABILITIES = {
 
 msg = {
     "client_id": "client_1",
-    "application_type": "web",
+    "application_type": APPLICATION_TYPE_WEB,
     "redirect_uris": [
         "https://client.example.org/callback",
         "https://client.example.org/callback2",

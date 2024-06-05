@@ -7,6 +7,7 @@ from idpyoidc.client.claims.oidc import Claims
 from idpyoidc.client.claims.transform import create_registration_request
 from idpyoidc.client.claims.transform import preferred_to_registered
 from idpyoidc.client.claims.transform import supported_to_preferred
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYSPEC = [
     {"type": "RSA", "use": ["sig"]},
@@ -46,7 +47,7 @@ class TestWorkEnvironment:
     def test_load_conf(self):
         # Only symmetric key
         client_conf = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
@@ -65,7 +66,7 @@ class TestWorkEnvironment:
     def test_load_jwks(self):
         # Symmetric and asymmetric keys published as JWKS
         client_conf = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "base_url": "https://client.example.org/",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -86,7 +87,7 @@ class TestWorkEnvironment:
     def test_load_jwks_uri1(self):
         # Symmetric and asymmetric keys published through a jwks_uri
         client_conf = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "base_url": "https://client.example.org/",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -108,7 +109,7 @@ class TestWorkEnvironment:
     def test_load_jwks_uri2(self):
         # Symmetric and asymmetric keys published through a jwks_uri
         client_conf = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "base_url": "https://client.example.org/",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -127,7 +128,7 @@ class TestWorkEnvironment:
 
     def test_registration_response(self):
         client_conf = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "base_url": "https://client.example.org/",
             "redirect_uris": [
                 "https://client.example.org/callback",
@@ -197,7 +198,7 @@ class TestWorkEnvironment:
         assert registration_request["subject_type"] == "public"
 
         registration_response = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",

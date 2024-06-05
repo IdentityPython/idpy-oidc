@@ -5,6 +5,7 @@ from typing import Optional
 from idpyoidc import metadata
 from idpyoidc.client import claims as client_claims
 from idpyoidc.client.claims.transform import create_registration_request
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -63,7 +64,7 @@ class Claims(client_claims.Claims):
 
     _supports = {
         "acr_values_supported": None,
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "callback_uris": None,
         # "client_authn_methods": get_client_authn_methods,
         "client_id": None,

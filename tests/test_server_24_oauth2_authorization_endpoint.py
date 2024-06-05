@@ -18,6 +18,8 @@ from idpyoidc.exception import URIError
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.authz import AuthzHandling
@@ -356,6 +358,134 @@ class TestEndpoint(object):
         request = {"redirect_uri": "https://rp.example.com/cb"}
 
         with pytest.raises(RedirectURIError):
+            verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, redirect_uri", [
+            ("http://127.0.0.1:9999/auth_cb", "http://127.0.0.1/auth_cb"),
+            ("http://127.0.0.1:9999/auth_cb", "http://127.0.0.1:3456/auth_cb"),
+            ("http://127.0.0.1/auth_cb", "http://127.0.0.1/auth_cb"),
+            ("http://127.0.0.1/auth_cb", "http://127.0.0.1:3456/auth_cb"),
+        ]
+    )
+    def test_verify_uri_localhost_ipv4_native_client(self, client_redirect_uri, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        request = {"redirect_uri": redirect_uri}
+
+        verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, redirect_uri", [
+            ("http://[::1]:9999/auth_cb", "http://[::1]/auth_cb"),
+            ("http://[::1]:9999/auth_cb", "http://[::1]:3456/auth_cb"),
+            ("http://[::1]/auth_cb", "http://[::1]/auth_cb"),
+            ("http://[::1]/auth_cb", "http://[::1]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+        ]
+    )
+    def test_verify_uri_localhost_ipv6_native_client(self, client_redirect_uri, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        request = {"redirect_uri": redirect_uri}
+
+        verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, redirect_uri", [
+            ("http://localhost:9999/auth_cb", "http://localhost/auth_cb"),
+            ("http://localhost:9999/auth_cb", "http://localhost:3456/auth_cb"),
+            ("http://localhost/auth_cb", "http://localhost:3456/auth_cb"),
+        ]
+    )
+    def test_verify_uri_literal_localhost_native_client(self, client_redirect_uri, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        request = {"redirect_uri": redirect_uri}
+        with pytest.raises(RedirectURIError):
+          verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, redirect_uri", [
+            ("http://127.0.0.1:9999/auth_cb", "http://127.0.0.1/auth_cb"),
+            ("http://127.0.0.1:9999/auth_cb", "http://127.0.0.1:3456/auth_cb"),
+            ("http://127.0.0.1/auth_cb", "http://127.0.0.1:3456/auth_cb"),
+        ]
+    )
+    def test_verify_uri_localhost_ipv4_web_client(self, client_redirect_uri, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_WEB}
+        request = {"redirect_uri": redirect_uri}
+        with pytest.raises(RedirectURIError):
+          verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, redirect_uri", [
+            ("http://[::1]:9999/auth_cb", "http://[::1]/auth_cb"),
+            ("http://[::1]:9999/auth_cb", "http://[::1]:3456/auth_cb"),
+            ("http://[::1]/auth_cb", "http://[::1]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+        ]
+    )
+    def test_verify_uri_localhost_ipv6_web_client(self, client_redirect_uri, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_WEB}
+        request = {"redirect_uri": redirect_uri}
+        with pytest.raises(RedirectURIError):
+          verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
+            ("http://127.0.0.1:9999/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:9999/auth_cb?foo=bar"),
+            ("http://127.0.0.1:9999/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
+            ("http://127.0.0.1/auth_cb", {"foo":["bar"]}, "http://127.0.0.1/auth_cb?foo=bar"),
+            ("http://127.0.0.1/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
+        ]
+    )
+    def test_verify_uri_qp_localhost_ipv4_native_client(self, client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)],"application_type": APPLICATION_TYPE_NATIVE}
+        request = {"redirect_uri": redirect_uri}
+
+        verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
+            ("http://[::1]:9999/auth_cb", {"foo":["bar"]}, "http://[::1]:9999/auth_cb?foo=bar"),
+            ("http://[::1]:9999/auth_cb", {"foo":["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
+            ("http://[::1]/auth_cb", {"foo":["bar"]}, "http://[::1]/auth_cb?foo=bar"),
+            ("http://[::1]/auth_cb", {"foo":["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
+        ]
+    )
+    def test_verify_uri_qp_localhost_ipv6_native_client(self, client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)], "application_type": APPLICATION_TYPE_NATIVE}
+        request = {"redirect_uri": redirect_uri}
+
+        verify_uri(_context, request, "redirect_uri", "client_id")
+
+    @pytest.mark.parametrize(
+        "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
+            ("https://rp.example.com:9999/auth_cb", {"foo":["bar"]}, "http://rp.example.com/auth_cb?foo=bar"),
+            ("https://rp.example.com/auth_cb", {"foo":["bar"]}, "http://rp.example.com:9999/auth_cb?foo=bar"),
+        ]
+    )
+    def test_verify_uri_qp_match_native_client(self,  client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+        _context = self.endpoint.upstream_get("context")
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)], "application_type": APPLICATION_TYPE_NATIVE}
+
+        request = {"redirect_uri": redirect_uri}
+
+        with pytest.raises(ValueError):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_qp_match(self):

@@ -2,7 +2,11 @@ import json
 import logging
 from typing import List
 from typing import Optional
+from typing import TypeVar
 from typing import Union
+from urllib.parse import ParseResult
+from urllib.parse import SplitResult
+from urllib.parse import parse_qs
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -21,6 +25,8 @@ from idpyoidc.exception import URIError
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import AuthorizationRequest
+from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.server.authn_event import create_authn_event
@@ -41,7 +47,9 @@ from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
-from idpyoidc.util import split_uri
+
+
+ParsedURI = TypeVar('ParsedURI', ParseResult, SplitResult)
 
 logger = logging.getLogger(__name__)
 
@@ -106,80 +114,115 @@ def verify_uri(
     :param context: An EndpointContext instance
     :param request: The authorization request
     :param uri_type: redirect_uri or post_logout_redirect_uri
-    :return: An error response if the redirect URI is faulty otherwise
-        None
+    :return: Raise an exception response if the redirect URI is faulty otherwise None
     """
-    _cid = request.get("client_id", client_id)
 
-    if not _cid:
-        logger.error("No client id found")
+    client_id = request.get("client_id") or client_id
+    if not client_id:
+        logger.error("No client_id provided")
         raise UnknownClient("No client_id provided")
 
-    _uri = request.get(uri_type)
-    if _uri is None:
+    client_info = context.cdb.get(client_id)
+    if not client_info:
+        logger.error("No client info found")
+        raise KeyError("No client info found")
+
+    req_redirect_uri_quoted = request.get(uri_type)
+    if req_redirect_uri_quoted is None:
         raise ValueError(f"Wrong uri_type: {uri_type}")
 
-    _redirect_uri = unquote(_uri)
-
-    part = urlparse(_redirect_uri)
-    if part.fragment:
+    req_redirect_uri = unquote(req_redirect_uri_quoted)
+    req_redirect_uri_obj = urlparse(req_redirect_uri)
+    if req_redirect_uri_obj.fragment:
         raise URIError("Contains fragment")
 
-    (_base, _query) = split_uri(_redirect_uri)
+    # basic URL validation
+    if not req_redirect_uri_obj.hostname:
+        raise URIError("Invalid redirect_uri hostname")
+    if req_redirect_uri_obj.path and not req_redirect_uri_obj.path.startswith("/"):
+        raise URIError("Invalid redirect_uri path")
+    try:
+        req_redirect_uri_obj.port
+    except ValueError as e:
+        raise URIError(f"Invalid redirect_uri port: {str(e)}") from e
 
-    # Get the clients registered redirect uris
-    client_info = context.cdb.get(_cid)
-    if client_info is None:
-        raise KeyError("No such client")
-
-    if uri_type == "redirect_uri":
-        redirect_uris = client_info.get(f"{uri_type}s")
-    else:
-        redirect_uris = client_info.get(f"{uri_type}")
-
-    if redirect_uris is None:
+    uri_type_property = f"{uri_type}s" if uri_type == "redirect_uri" else uri_type
+    client_redirect_uris: list[Union[str, tuple[str, dict]]] = client_info.get(uri_type_property)
+    if not client_redirect_uris:
+        # an OIDC client must have registered with redirect URIs
         if endpoint_type == "oidc":
-            raise RedirectURIError(f"No registered {uri_type} for {_cid}")
-    else:
-        match = False
-        for _item in redirect_uris:
-            if isinstance(_item, str):
-                regbase = _item
-                rquery = {}
-            else:
-                regbase, rquery = _item
+            raise RedirectURIError(f"No registered {uri_type} for {client_id}")
+        else:
+            return
 
-            # The URI MUST exactly match one of the Redirection URI
-            if _base == regbase:
-                # every registered query component must exist in the uri
-                if rquery:
-                    if not _query:
-                        raise ValueError("Missing query part")
+    # TODO move: this processing should be done during client registration/loading
+    # TODO optimize: keep unique URIs (mayby use a set)
+    # Pre-processing to homogenize the types of each item,
+    # and normalize (lower-case, remove params, etc) the rediret URIs.
+    # Each item is a tuple composed of:
+    # - a ParseResult item, representing a URI without the query part, and
+    # - a dict, representing a query string
+    client_redirect_uris_obj: list[tuple[ParseResult, dict[str, list[str]]]] = [
+        (
+            urlparse(uri_base)._replace(query=None),
+            (uri_qs_obj or {}),
+        )
+        for uri in client_redirect_uris
+        for uri_base, uri_qs_obj in [(uri, {}) if isinstance(uri, str) else uri]
+    ]
 
-                    for key, vals in rquery.items():
-                        if key not in _query:
-                            raise ValueError('"{}" not in query part'.format(key))
+    # Handle redirect URIs for native clients:
+    # When the URI is an http localhost (IPv4 or IPv6) literal, then
+    # the port should not be taken into account when matching redirect URIs.
+    client_type = client_info.get("application_type") or APPLICATION_TYPE_WEB
+    if client_type == APPLICATION_TYPE_NATIVE:
+        if is_http_uri(req_redirect_uri_obj) and is_localhost_uri(req_redirect_uri_obj):
+            req_redirect_uri_obj = remove_port_from_uri(req_redirect_uri_obj)
 
-                        for val in vals:
-                            if val not in _query[key]:
-                                raise ValueError("{}={} value not in query part".format(key, val))
+        # TODO move: this processing should be done during client registration/loading
+        # When the URI is an http localhost (IPv4 or IPv6) literal, then
+        # the port should not be taken into account when matching redirect URIs.
+        _client_redirect_uris_without_port_obj = []
+        for uri_obj, url_qs_obj in client_redirect_uris_obj:
+            if is_http_uri(uri_obj) and is_localhost_uri(uri_obj):
+                uri_obj = remove_port_from_uri(uri_obj)
+            _client_redirect_uris_without_port_obj.append((uri_obj, url_qs_obj))
+        client_redirect_uris_obj = _client_redirect_uris_without_port_obj
 
-                # and vice versa, every query component in the uri
-                # must be registered
-                if _query:
-                    if not rquery:
-                        raise ValueError("No registered query part")
+    # Separate the URL from the query string object for the requested redirect URI.
+    req_redirect_uri_query_obj = parse_qs(req_redirect_uri_obj.query)
+    req_redirect_uri_without_query_obj = req_redirect_uri_obj._replace(query=None)
 
-                    for key, vals in _query.items():
-                        if key not in rquery:
-                            raise ValueError('"{}" extra in query part'.format(key))
-                        for val in vals:
-                            if val not in rquery[key]:
-                                raise ValueError("Extra {}={} value in query part".format(key, val))
-                match = True
-                break
-        if not match:
-            raise RedirectURIError("Doesn't match any registered uris")
+    match = any(
+        req_redirect_uri_without_query_obj == uri_obj
+        and req_redirect_uri_query_obj == uri_query_obj
+        for uri_obj, uri_query_obj in client_redirect_uris_obj
+    )
+    if not match:
+        raise RedirectURIError("Doesn't match any registered uris")
+
+
+def is_http_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
+    value = uri_obj.scheme == "http"
+    return value
+
+
+def is_localhost_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
+    value = uri_obj.hostname in [
+        "127.0.0.1",
+        "::1",
+        "0000:0000:0000:0000:0000:0000:0000:0001",
+    ]
+    return value
+
+
+def remove_port_from_uri(uri_obj: ParsedURI) -> ParsedURI:
+    if not uri_obj.port or not uri_obj.netloc:
+        return uri_obj
+
+    netloc_without_port = uri_obj.netloc.rsplit(":", 1)[0]
+    uri_without_port_obj = uri_obj._replace(netloc=netloc_without_port)
+    return uri_without_port_obj
 
 
 def join_query(base, query):
