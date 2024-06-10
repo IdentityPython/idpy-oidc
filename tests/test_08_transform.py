@@ -7,6 +7,7 @@ from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
 from idpyoidc.client.claims.transform import create_registration_request
 from idpyoidc.client.claims.transform import preferred_to_registered
 from idpyoidc.client.claims.transform import supported_to_preferred
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
 
@@ -307,7 +308,7 @@ class TestTransform2:
 
         self.supported = supported
         preference = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
@@ -376,7 +377,7 @@ class TestTransform2:
         assert registration_request["subject_type"] == "public"
 
         registration_response = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",

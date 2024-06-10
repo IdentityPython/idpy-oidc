@@ -27,6 +27,7 @@ from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AddressClaim
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AtHashError
 from idpyoidc.message.oidc import AuthnToken
 from idpyoidc.message.oidc import AuthorizationErrorResponse
@@ -520,7 +521,7 @@ class TestProviderConfigurationResponse(object):
 class TestRegistrationRequest(object):
     def test_deserialize(self):
         msg = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
@@ -550,7 +551,7 @@ class TestRegistrationRequest(object):
             default_max_age=10,
             require_auth_time=True,
             default_acr="foo",
-            application_type="web",
+            application_type=APPLICATION_TYPE_WEB,
             redirect_uris=["https://example.com/authz_cb"],
         )
         assert req.verify()
@@ -558,7 +559,7 @@ class TestRegistrationRequest(object):
         js_obj = json.loads(js)
         expected_js_obj = {
             "redirect_uris": ["https://example.com/authz_cb"],
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "default_acr": "foo",
             "require_auth_time": True,
             "operation": "register",
@@ -595,7 +596,7 @@ class TestRegistrationRequest(object):
             default_max_age=10,
             require_auth_time=True,
             default_acr="foo",
-            application_type="web",
+            application_type=APPLICATION_TYPE_WEB,
             redirect_uris=["https://example.com/authz_cb"],
         )
         ser_req = req.serialize("urlencoded")
@@ -616,7 +617,7 @@ class TestRegistrationRequest(object):
             "default_max_age": 10,
             "require_auth_time": True,
             "default_acr": "foo",
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": ["https://example.com/authz_cb"],
         }
 
@@ -637,7 +638,7 @@ class TestRegistrationRequest(object):
             "default_max_age": 10,
             "require_auth_time": True,
             "default_acr": "foo",
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": ["https://example.com/authz_cb"],
         }
 
@@ -663,7 +664,7 @@ class TestRegistrationResponse(object):
             "registration_client_uri": "https://server.example.com/connect/register?client_id"
             "=s6BhdRkqt3",
             "token_endpoint_auth_method": "client_secret_basic",
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",

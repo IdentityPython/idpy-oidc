@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 
 NONCE_STORAGE_TIME = 4 * 3600
 
+APPLICATION_TYPE_NATIVE = "native"
+APPLICATION_TYPE_WEB = "web"
+
 
 class AtHashError(VerificationError):
     pass
@@ -638,9 +641,9 @@ class RegistrationRequest(Message):
         # "organization_name": SINGLE_OPTIONAL_STRING,
         "response_modes": OPTIONAL_LIST_OF_STRINGS,
     }
-    c_default = {"application_type": "web", "response_types": ["code"]}
+    c_default = {"application_type": APPLICATION_TYPE_WEB, "response_types": ["code"]}
     c_allowed_values = {
-        "application_type": ["native", "web"],
+        "application_type": [APPLICATION_TYPE_NATIVE, APPLICATION_TYPE_WEB],
         "subject_type": ["public", "pairwise"],
     }
 

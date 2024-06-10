@@ -1,6 +1,7 @@
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 
 ISS = "http://example.org/op"
@@ -12,7 +13,7 @@ CLIENT_CONFIG = {
     "issuer": ISS,
     "application_name": "rphandler",
     "preference": {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": "support@example.com",
         "response_types_supported": ["code"],
         "request_parameter": "request_uri",

@@ -7,6 +7,7 @@ from cryptojwt.utils import as_bytes
 
 import requests
 from idpyoidc.client.entity import Entity
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationResponse
 
 ISS = "https://example.com"
@@ -21,7 +22,7 @@ class TestRegistrationRead(object):
             "issuer": self._iss,
             "requests_dir": "requests",
             "base_url": "https://example.com/cli/",
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "response_types_supported": ["code"],
             "contacts": ["ops@example.org"],
             "jwks_uri": "https://example.com/rp/static/jwks.json",
@@ -61,7 +62,7 @@ class TestRegistrationRead(object):
                 "registration_client_uri": "{}/registration_api?client_id=zls2qhN1jO6A".format(ISS),
                 "client_secret_expires_at": now + 3600,
                 "client_id_issued_at": now,
-                "application_type": "web",
+                "application_type": APPLICATION_TYPE_WEB,
                 "response_types": ["code"],
                 "contacts": ["ops@example.com"],
                 "redirect_uris": ["{}/authz_cb".format(RP_BASEURL)],
