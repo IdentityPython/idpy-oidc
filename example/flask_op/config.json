@@ -91,7 +91,7 @@
           }
         }
       },
-      "capabilities": {
+      "preference": {
         "subject_types_supported": [
           "public",
           "pairwise"
@@ -278,9 +278,8 @@
             ]
           }
         ],
-        "public_path": "static/jwks.json",
         "read_only": false,
-        "uri_path": "static/jwks.json"
+        "uri_path": "jwks"
       },
       "login_hint2acrs": {
         "class": "idpyoidc.server.login_hint.LoginHint2Acrs",
@@ -350,6 +349,6 @@
     "verify_user": false,
     "port": 5000,
     "domain": "127.0.0.1",
-    "debug": true
+    "debug": false
   }
 }
