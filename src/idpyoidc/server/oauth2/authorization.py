@@ -462,15 +462,18 @@ class Authorization(Endpoint):
     def _do_request_uri(self, request, client_id, context, **kwargs):
         _request_uri = request.get("request_uri")
         if _request_uri:
+            logger.debug("Got a 'request_uri")
             # Do I do pushed authorization requests ?
             _endp = self.upstream_get("endpoint", "pushed_authorization")
             if _endp:
                 # Is it a UUID urn
                 if _request_uri.startswith("urn:uuid:"):
+                    logger.debug("It's a PAR request_uri")
                     _req = context.par_db.get(_request_uri)
                     if _req:
                         # One time usage
                         del context.par_db[_request_uri]
+                        logger.debug(f"Restored request: {_req}")
                         return _req
                     else:
                         raise ValueError("Got a request_uri I can not resolve")
@@ -517,6 +520,7 @@ class Authorization(Endpoint):
                     request[k] = v
 
                 request[verified_claim_name("request")] = _ver_request
+                logger.debug(f"Fetched request: {request}")
             else:
                 raise ServiceError("Got a %s response", _resp.status)
 

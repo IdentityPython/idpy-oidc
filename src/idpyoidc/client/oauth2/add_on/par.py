@@ -56,11 +56,14 @@ def push_authorization(request_args, service, **kwargs):
         _http_client = service.upstream_get("unit").httpc
 
     _httpc_params = service.upstream_get("unit").httpc_params
+    _par_endpoint = kwargs.get("pushed_authorization_request_endpoint", None)
+    if not _par_endpoint:
+        _par_endpoint = _context.provider_info["pushed_authorization_request_endpoint"]
 
     # Send it to the Pushed Authorization Request Endpoint using POST
     resp = _http_client(
         method=HTTP_METHOD,
-        url=_context.provider_info["pushed_authorization_request_endpoint"],
+        url=_par_endpoint,
         data=_body,
         headers=_headers,
         **_httpc_params

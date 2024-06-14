@@ -4,16 +4,16 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt import as_unicode
 from cryptojwt import JWS
+from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
-from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
+from idpyoidc.message import Message
 from idpyoidc.metadata import get_signing_algs
 from idpyoidc.server.client_authn import BearerHeader
 
@@ -143,7 +143,18 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     if not _http_info:
         return request
 
-    _dpop = DPoPProof().verify_header(_http_info["headers"]["dpop"])
+    _headers = _http_info.get("headers", "")
+    if _headers:
+        _dpop_header = _headers.get("dpop", "")
+        if not _dpop_header:
+            _dpop_header = _headers.get("http_dpop", "")
+            if not _dpop_header:
+                logger.debug(f"Request Headers: {_headers}")
+                raise ValueError("Expected DPoP header, none found")
+    else:
+        raise ValueError("Expected DPoP header, no headers found")
+
+    _dpop = DPoPProof().verify_header(_dpop_header)
 
     # The signature of the JWS is verified, now for checking the
     # content
@@ -157,10 +168,15 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     if not _dpop.key:
         _dpop.key = key_from_jwk_dict(_dpop["jwk"])
 
-    ath = sha256(auth_info["token"].encode("utf8")).hexdigest()
+    _token = auth_info.get("token", None)
+    if _token:
+        ath = sha256(_token.encode("utf8")).hexdigest()
 
-    if _dpop["ath"] != ath:
-        raise ValueError("'ath' in DPoP does not match the token hash")
+        _ath = _dpop.get("ath", None)
+        if _ath is None:
+            raise ValueError("'ath' missing from DPoP")
+        if _ath != ath:
+            raise ValueError("'ath' in DPoP does not match the token hash")
 
     # Need something I can add as a reference when minting tokens
     request["dpop_jkt"] = as_unicode(_dpop.key.thumbprint("SHA-256"))
@@ -179,36 +195,29 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
 
     return token_args
 
-
 def _add_to_context(endpoint, algs_supported):
     _context = endpoint.upstream_get("context")
     _context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
     _context.add_on["dpop"] = {"algs_supported": algs_supported}
     _context.client_authn_methods["dpop"] = DPoPClientAuth
 
-
-def add_support(endpoint: dict, **kwargs):
-    # Pick the token endpoint
-    _endp = endpoint.get("token", None)
-    if _endp:
-        _endp.post_parse_request.append(token_post_parse_request)
-    _added_to_context = False
-
-    _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
-    if not _algs_supported:
+def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None, **kwargs):
+    if dpop_signing_alg_values_supported is None:
         _algs_supported = ["RS256"]
     else:
-        _algs_supported = [alg for alg in _algs_supported if alg in get_signing_algs()]
+        # Pick out the ones I support
+        _algs_supported = [alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()]
 
-    if _endp:
-        _add_to_context(_endp, _algs_supported)
-        _added_to_context = True
+    _added_to_context = False
 
-    for _dpop_endpoint in kwargs.get("dpop_endpoints", ["userinfo"]):
+    if dpop_endpoints is None:
+        dpop_endpoints = ["userinfo"]
+
+    for _dpop_endpoint in dpop_endpoints:
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
             if not _added_to_context:
-                _add_to_context(_endp, _algs_supported)
+                _add_to_context(_dpop_endpoint, _algs_supported)
                 _added_to_context = True
 
             _endpoint.post_parse_request.append(userinfo_post_parse_request)
