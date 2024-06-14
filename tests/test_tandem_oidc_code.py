@@ -74,6 +74,7 @@ _OIDC_SERVICES = {
 
 
 class TestFlow(object):
+
     @pytest.fixture(autouse=True)
     def create_entities(self):
         server_conf = {
@@ -81,6 +82,7 @@ class TestFlow(object):
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "scopes_supported": ["openid", "profile", "email", "offline_access", "address", "phone"],
             "endpoint": {
                 "provider_info": {
                     "path": ".well-known/openid-configuration",
@@ -180,6 +182,7 @@ class TestFlow(object):
             "redirect_uris": ["https://example.com/cb"],
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
             "response_types_supported": ["code", "id_token", "id_token token"],
+            "preference": {"scopes_supported": ["openid", "profile"]}
         }
         self.rp = RP(config=client_config, keyjar=build_keyjar(KEYDEFS), services=_OIDC_SERVICES)
 
@@ -252,10 +255,13 @@ class TestFlow(object):
         if scope:
             _scope = scope
         else:
-            _scope = ["openid"]
-
-            if token and list(token.keys())[0] == "refresh_token":
-                _scope = ["openid", "offline_access"]
+            _scope = _context.claims.get_usage("scope", None)
+            if not _scope:
+                if token:
+                    if isinstance(token, list) and list(token.keys())[0] == "refresh_token":
+                        _scope = ["openid", "offline_access"]
+                else:
+                    _scope = ["openid"]
 
         req_args["scope"] = _scope
 
@@ -281,13 +287,11 @@ class TestFlow(object):
         Test that token exchange requests work correctly
         """
 
-        resp, _state, _scope = self.process_setup(
-            token="access_token",
-            scope=["openid", "profile", "email", "address", "phone", "offline_access"],
-        )
+        resp, _state, _scope = self.process_setup(token="access_token")
 
         # The User Info request
 
         _request, resp = self.do_query("userinfo", "userinfo", {}, _state)
 
         assert resp
+        assert "given_name" in resp

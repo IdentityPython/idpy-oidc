@@ -13,7 +13,6 @@ from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
-from idpyoidc.server.cookie_handler import CookieHandler
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.util import rndstr
@@ -72,6 +71,7 @@ _OAUTH2_SERVICES = {
 
 
 class TestFlow(object):
+
     @pytest.fixture(autouse=True)
     def create_entities(self):
         server_conf = {
