@@ -54,6 +54,12 @@ def keys(jwks):
     fname = os.path.join('static', jwks)
     return open(fname).read()
 
+@oidc_op_views.route('/jwks.json')
+def jwks():
+    _context = current_app.server.get_context()
+    _jwks = _context.keyjar.export_jwks()
+    return _jwks
+
 
 @oidc_op_views.route('/')
 def index():
