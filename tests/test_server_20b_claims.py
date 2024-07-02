@@ -19,9 +19,12 @@ KEYDEFS = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
+CLIENT_ID = "client_1"
+
+
 AREQ = AuthorizationRequest(
     response_type="code",
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="http://example.com/authz",
     scope=["openid"],
     state="state000",
@@ -30,7 +33,7 @@ AREQ = AuthorizationRequest(
 
 AREQ_2 = AuthorizationRequest(
     response_type="code",
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="http://example.com/authz",
     scope=["openid", "address", "email"],
     state="state000",
@@ -40,7 +43,7 @@ AREQ_2 = AuthorizationRequest(
 
 AREQ_3 = AuthorizationRequest(
     response_type="code",
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="http://example.com/authz",
     scope=["openid", "address", "email"],
     state="state000",
@@ -116,7 +119,7 @@ class TestEndpoint(object):
     @pytest.fixture(autouse=True)
     def create_idtoken(self):
         server = Server(conf)
-        server.context.cdb["client_1"] = {
+        server.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligtochintekort",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -127,7 +130,7 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        server.keyjar.add_symmetric(CLIENT_ID, "hemligtochintekort", ["sig", "enc"])
         self.claims_interface = server.context.claims_interface
         self.context = server.context
         self.session_manager = self.context.session_manager
@@ -161,7 +164,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb[CLIENT_ID]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
@@ -182,7 +185,7 @@ class TestEndpoint(object):
             "enable_claims_per_client": True,
             "add_claims_by_scope": True,
         }
-        self.context.cdb["client_1"]["add_claims"]["always"]["introspection"] = [
+        self.context.cdb[CLIENT_ID]["add_claims"]["always"]["introspection"] = [
             "name",
             "email",
         ]
@@ -227,7 +230,7 @@ class TestEndpoint(object):
         self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb[CLIENT_ID]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
@@ -259,7 +262,7 @@ class TestEndpoint(object):
         self.server.get_endpoint("userinfo").kwargs = {
             "enable_claims_per_client": True,
         }
-        self.context.cdb["client_1"]["add_claims"]["always"]["userinfo"] = [
+        self.context.cdb[CLIENT_ID]["add_claims"]["always"]["userinfo"] = [
             "name",
             "email",
         ]
@@ -273,14 +276,14 @@ class TestEndpoint(object):
             session_id, ["openid", "address"]
         )
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"])
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"], CLIENT_ID)
         assert _claims == {"name": "Diana Krall", "email": "diana@example.org"}
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["id_token"])
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["id_token"], CLIENT_ID)
         assert _claims == {"email_verified": False, "email": "diana@example.org"}
 
         _claims = self.claims_interface.get_user_claims(
-            USER_ID, claims_restriction["introspection"]
+            USER_ID, claims_restriction["introspection"], CLIENT_ID
         )
         # Note that sub is not a user claim
         assert _claims == {
@@ -292,5 +295,5 @@ class TestEndpoint(object):
             }
         }
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["access_token"])
+        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["access_token"], CLIENT_ID)
         assert _claims == {}

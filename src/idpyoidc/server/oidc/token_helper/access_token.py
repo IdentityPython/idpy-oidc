@@ -121,6 +121,8 @@ class AccessTokenHelper(TokenEndpointHelper):
                     _response["expires_in"] = token.expires_at - utc_time_sans_frac()
 
         if issue_refresh and "refresh_token" in _supports_minting:
+            if token:
+                _based_on.used -= 1
             try:
                 refresh_token = self._mint_token(
                     token_class="refresh_token",
@@ -139,6 +141,8 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         if "openid" in _authn_req["scope"] and "id_token" in _supports_minting:
             if "id_token" in _based_on.usage_rules.get("supports_minting"):
+                if token:
+                    _based_on.used -= 1
                 try:
                     _idtoken = self._mint_token(
                         token_class="id_token",

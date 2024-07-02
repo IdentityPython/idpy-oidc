@@ -866,7 +866,12 @@ class Authorization(Endpoint):
                 list(set(scope + resource_scopes)), _sinfo["client_id"]
             )
 
-            rtype = set(request["response_type"][:])
+            if isinstance(request["response_type"], list):
+                rtype = set(request["response_type"][:])
+            else: # assume it's a string
+                rtype = set()
+                rtype.add(request["response_type"])
+
             handled_response_type = []
 
             fragment_enc = True

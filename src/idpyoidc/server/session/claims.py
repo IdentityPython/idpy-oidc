@@ -200,7 +200,7 @@ class ClaimsInterface:
             auth_req = {}
         return self.get_claims_all_usage_from_request(auth_req, scopes)
 
-    def get_user_claims(self, user_id: str, claims_restriction: dict) -> dict:
+    def get_user_claims(self, user_id: str, claims_restriction: dict, client_id: str) -> dict:
         """
 
         :param user_id: User identifier
@@ -212,7 +212,7 @@ class ClaimsInterface:
             raise ImproperlyConfigured("userinfo MUST be defined in the configuration")
         if claims_restriction:
             # Get all possible claims
-            user_info = meth(user_id, client_id=None)
+            user_info = meth(user_id, client_id)
             # Filter out the claims that can be returned
             return {
                 k: user_info.get(k)

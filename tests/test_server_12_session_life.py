@@ -154,6 +154,8 @@ class TestSession:
 
         assert tok.supports_minting("refresh_token")
 
+        # reset code usage
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id=session_id,
             context=self.context,
@@ -388,6 +390,8 @@ class TestSessionJWTToken:
         # this test is include in the mint_token methods
         # assert tok.supports_minting("refresh_token")
 
+        # reset code usage
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id=session_id,
             context=self.context,

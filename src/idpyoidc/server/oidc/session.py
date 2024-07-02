@@ -94,7 +94,7 @@ class Session(Endpoint):
         _csi = kwargs.get("check_session_iframe")
         if _csi and not _csi.startswith("http"):
             # unit since context does not exist at this point in time
-            kwargs["check_session_iframe"] = add_path(upstream_get("unit").issuer, _csi)
+            kwargs["check_session_iframe"] = add_path(upstream_get("unit").entity_id, _csi)
         Endpoint.__init__(self, upstream_get, **kwargs)
         self.iv = as_bytes(rndstr(24))
 

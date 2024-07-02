@@ -99,6 +99,7 @@ def dpop_header(
         headers: Optional[dict] = None,
         token: Optional[str] = "",
         nonce: Optional[str] = "",
+        endpoint_url: Optional[str] = "",
         **kwargs
 ) -> dict:
     """
@@ -114,7 +115,11 @@ def dpop_header(
     :return:
     """
 
-    provider_info = service_context.provider_info
+    if not endpoint_url:
+        endpoint_url = kwargs.get("endpoint")
+        if not endpoint_url:
+            endpoint_url = service_context.provider_info[service_endpoint]
+
     _dpop_conf = service_context.add_on.get("dpop")
     if not _dpop_conf:
         logger.warning("Asked to do dpop when I do not support it")
@@ -139,7 +144,7 @@ def dpop_header(
         "jwk": dpop_key.serialize(),
         "jti": uuid.uuid4().hex,
         "htm": http_method,
-        "htu": provider_info[service_endpoint],
+        "htu": endpoint_url,
         "iat": utc_time_sans_frac(),
     }
 

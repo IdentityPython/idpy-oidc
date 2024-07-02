@@ -63,14 +63,13 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "cryptojwt>=1.8.3",
+        "cryptojwt>=1.8.4",
         "pyOpenSSL",
         "filelock>=3.0.12",
         'pyyaml>=5.1.2',

@@ -170,7 +170,7 @@ class TestGrant:
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
-
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id,
             context=self.context,
@@ -231,7 +231,7 @@ class TestGrant:
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
-
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id,
             context=self.context,
@@ -271,9 +271,11 @@ class TestGrant:
 
         grant.revoke_token(based_on=code.value)
 
-        assert code.is_active() is True
+        assert code.is_active() is False
         assert access_token.is_active() is False
 
+        # Reset code usage
+        code.used = 0
         access_token_2 = grant.mint_token(
             session_id,
             context=self.context,
@@ -535,6 +537,8 @@ class TestGrant:
             based_on=code,
         )
 
+        # reset code usage
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id,
             context=self.context,
@@ -567,6 +571,8 @@ class TestGrant:
             based_on=code,
         )
 
+        # reset code usage
+        code.used = 0
         refresh_token = grant.mint_token(
             session_id,
             context=self.context,

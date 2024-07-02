@@ -44,8 +44,12 @@ class AccessToken(access_token.AccessToken):
         _context = self.upstream_get("context")
         _entity = self.upstream_get("unit")
 
+        _client_id = _entity.get_client_id()
+        if not _client_id:
+            _client_id = _context.get_client_id()
+
         kwargs = {
-            "client_id": _entity.get_client_id(),
+            "client_id": _client_id,
             "iss": _context.issuer,
             "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,

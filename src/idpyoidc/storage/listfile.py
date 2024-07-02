@@ -134,3 +134,6 @@ class ReadOnlyListFile(object):
             _msg = f"No such file: '{fname}'"
             logger.error(_msg)
         return None
+
+    def __call__(self):
+        return self._read_info(self.file_name)

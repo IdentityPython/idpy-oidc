@@ -29,8 +29,10 @@ from idpyoidc.util import rndstr
 logger = logging.getLogger(__name__)
 
 
-def init_user_info(conf, cwd: str):
+def init_user_info(conf, cwd: str, upstream_get: Optional[Callable] = None):
     kwargs = conf.get("kwargs", {})
+    if upstream_get:
+        kwargs["upstream_get"] = upstream_get
 
     if isinstance(conf["class"], str):
         return importer(conf["class"])(**kwargs)
@@ -337,7 +339,7 @@ class EndpointContext(OidcContext):
         _conf = self.conf.get("userinfo")
         if _conf:
             if self.session_manager:
-                self.userinfo = init_user_info(_conf, self.cwd)
+                self.userinfo = init_user_info(_conf, self.cwd, upstream_get=self.unit_get)
                 self.session_manager.userinfo = self.userinfo
             else:
                 logger.warning("Cannot init_user_info if no session manager was provided.")

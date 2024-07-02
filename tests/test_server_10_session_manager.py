@@ -259,6 +259,7 @@ class TestSessionManager:
         assert access_token.is_active()
         assert len(grant.issued_token) == 2
 
+        code.used = 0
         refresh_token = self._mint_token("refresh_token", grant, session_id, code)
         assert isinstance(refresh_token, RefreshToken)
         assert refresh_token.is_active()
@@ -411,6 +412,8 @@ class TestSessionManager:
 
         assert token.usage_rules == {}
 
+        # reset code usage
+        code.used = 0
         refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
 
         assert refresh_token.usage_rules == {"supports_minting": ["access_token", "refresh_token"]}
@@ -443,6 +446,8 @@ class TestSessionManager:
         token = self._mint_token("access_token", grant, _session_id, code)
         assert token.usage_rules == {"expires_in": 3600}
 
+        # reset code usage
+        code.used = 0
         refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
         assert refresh_token.usage_rules == {
             "supports_minting": ["access_token", "refresh_token", "id_token"]
@@ -546,6 +551,8 @@ class TestSessionManager:
         token = self._mint_token("access_token", grant, _session_id, code)
         assert token.usage_rules == {"expires_in": 600}
 
+        # reset code usage
+        code.used = 0
         refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
         assert refresh_token.usage_rules == {"supports_minting": ["access_token"]}
 
@@ -694,9 +701,15 @@ class TestSessionManager:
         grant = self.session_manager[_session_id]
 
         code = self._mint_token("authorization_code", grant, _session_id)
+        # reset code usage
+        code.used = 0
         id_token_1 = self._mint_token("id_token", grant, _session_id)
 
+        # reset code usage
+        code.used = 0
         refresh_token = self._mint_token("refresh_token", grant, _session_id, code)
+        # reset code usage
+        code.used = 0
         id_token_2 = self._mint_token("id_token", grant, _session_id, code)
 
         _jwt1 = factory(id_token_1.value)

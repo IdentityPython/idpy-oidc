@@ -46,7 +46,11 @@ class Server(Unit):
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None,
     ):
-        self.entity_id = entity_id or conf.get("entity_id")
+        self.entity_id = entity_id or conf.get("entity_id", None)
+        if not self.entity_id:
+            _conf = conf.get("conf", None)
+            if _conf:
+                self.entity_id = _conf.get("entity_id", "")
         self.issuer = conf.get("issuer", self.entity_id)
         self.persistence = None
 
@@ -80,6 +84,7 @@ class Server(Unit):
             cwd=cwd,
             cookie_handler=cookie_handler,
             keyjar=self.keyjar,
+            entity_id=self.entity_id
         )
 
         # Need to have context in place before doing this

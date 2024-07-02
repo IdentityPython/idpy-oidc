@@ -198,6 +198,11 @@ class SessionManager(GrantManager):
         resources = []
         if "resource" in auth_req:
             resources = auth_req["resource"]
+        if "audience" in auth_req:
+            if isinstance(auth_req["audience"], str):
+                resources.append(auth_req["audience"])
+            else:
+                resources.extend(auth_req["audience"])
 
         return self.add_grant(
             path=self.make_path(user_id=user_id, client_id=client_id),

@@ -180,9 +180,10 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
 
 
 def add_support(endpoint: dict, **kwargs):
-    #
-    _token_endp = endpoint["token"]
-    _token_endp.post_parse_request.append(token_post_parse_request)
+    # Pick one endpoint
+    _endp_name = list(endpoint.keys())[0]
+    _endp = endpoint[_endp_name]
+    _endp.post_parse_request.append(token_post_parse_request)
 
     _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
     if not _algs_supported:
@@ -190,17 +191,15 @@ def add_support(endpoint: dict, **kwargs):
     else:
         _algs_supported = [alg for alg in _algs_supported if alg in get_signing_algs()]
 
-    _token_endp.upstream_get("context").provider_info[
-        "dpop_signing_alg_values_supported"
-    ] = _algs_supported
-
-    _context = _token_endp.upstream_get("context")
+    _context = _endp.upstream_get("context")
+    _context.provider_info["dpop_signing_alg_values_supported"] = _algs_supported
     _context.add_on["dpop"] = {"algs_supported": _algs_supported}
     _context.client_authn_methods["dpop"] = DPoPClientAuth
 
-    _userinfo_endpoint = endpoint.get("userinfo")
-    if _userinfo_endpoint:
-        _userinfo_endpoint.post_parse_request.append(userinfo_post_parse_request)
+    for _dpop_endpoint in kwargs.get("dpop_endpoints", ["userinfo"]):
+        _endpoint = endpoint.get(_dpop_endpoint, None)
+        if _endpoint:
+            _endpoint.post_parse_request.append(userinfo_post_parse_request)
 
 
 # DPoP-bound access token in the "Authorization" header and the DPoP proof in the "DPoP" header

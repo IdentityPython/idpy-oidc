@@ -36,14 +36,9 @@ class TestPushedAuth:
             "add_ons": {
                 "pushed_authorization": {
                     "function": "idpyoidc.client.oauth2.add_on.par.add_support",
-                    "kwargs": {
-                        "body_format": "jws",
-                        "signing_algorithm": "RS256",
-                        "http_client": None,
-                        "merge_rule": "lax",
-                    },
+                    "kwargs": {}
                 }
-            },
+            }
         }
         self.entity = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
 

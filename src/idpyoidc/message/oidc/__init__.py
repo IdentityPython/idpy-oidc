@@ -777,7 +777,7 @@ class IdToken(OpenIDSchema):
 
         try:
             if kwargs["iss"] != self["iss"]:
-                raise IssuerMismatch("{} != {}".format(kwargs["iss"], self["iss"]))
+                raise IssuerMismatch("{kwargs['iss']} != {self['iss']}")
         except KeyError:
             pass
 
@@ -785,7 +785,7 @@ class IdToken(OpenIDSchema):
             if "client_id" in kwargs:
                 # check that I'm among the recipients
                 if kwargs["client_id"] not in self["aud"]:
-                    raise NotForMe('"{}" not in {}'.format(kwargs["client_id"], self["aud"]), self)
+                    raise NotForMe(f'{kwargs["client_id"]} not in {self["aud"]}')
 
             # Then azp has to be present and be one of the aud values
             if len(self["aud"]) > 1:

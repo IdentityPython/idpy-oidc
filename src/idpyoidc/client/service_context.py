@@ -295,7 +295,13 @@ class ServiceContext(ImpExp):
         setattr(self, key, value)
 
     def get_client_id(self):
-        return self.claims.get_usage("client_id")
+        res = self.claims.get_usage("client_id")
+        if not res:
+            res = self.entity_id
+            if not res and self.upstream_get:
+                res = self.upstream_get("unit").entity_id
+
+        return res
 
     def collect_usage(self):
         return self.claims.use
