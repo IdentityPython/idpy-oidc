@@ -136,7 +136,7 @@ class Message(MutableMapping):
                     params.append((key, str(val)))
 
         try:
-            return urlencode(params, doseq)
+            return urlencode(params, doseq=doseq)
         except UnicodeEncodeError:
             _val = []
             for k, v in params:
@@ -144,7 +144,7 @@ class Message(MutableMapping):
                     _val.append((k, v.encode("utf-8")))
                 except TypeError:
                     _val.append((k, v))
-            return urlencode(_val, doseq)
+            return urlencode(_val, doseq=doseq)
 
     def serialize(self, method="urlencoded", **kwargs):
         """
