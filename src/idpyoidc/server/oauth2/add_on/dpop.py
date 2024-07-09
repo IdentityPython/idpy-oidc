@@ -4,16 +4,16 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt import JWS
 from cryptojwt import as_unicode
+from cryptojwt import JWS
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
+from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.metadata import get_signing_algs
 from idpyoidc.server.client_authn import BearerHeader
 
@@ -130,6 +130,7 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     """
     Expect http_info attribute in kwargs. http_info should be a dictionary
     containing HTTP information.
+    This function is ment for DPoP-protected resources.
 
     :param request:
     :param client_id:
@@ -179,11 +180,19 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
     return token_args
 
 
+def _add_to_context(endpoint, algs_supported):
+    _context = endpoint.upstream_get("context")
+    _context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
+    _context.add_on["dpop"] = {"algs_supported": algs_supported}
+    _context.client_authn_methods["dpop"] = DPoPClientAuth
+
+
 def add_support(endpoint: dict, **kwargs):
-    # Pick one endpoint
-    _endp_name = list(endpoint.keys())[0]
-    _endp = endpoint[_endp_name]
-    _endp.post_parse_request.append(token_post_parse_request)
+    # Pick the token endpoint
+    _endp = endpoint.get("token", None)
+    if _endp:
+        _endp.post_parse_request.append(token_post_parse_request)
+    _added_to_context = False
 
     _algs_supported = kwargs.get("dpop_signing_alg_values_supported")
     if not _algs_supported:
@@ -191,14 +200,17 @@ def add_support(endpoint: dict, **kwargs):
     else:
         _algs_supported = [alg for alg in _algs_supported if alg in get_signing_algs()]
 
-    _context = _endp.upstream_get("context")
-    _context.provider_info["dpop_signing_alg_values_supported"] = _algs_supported
-    _context.add_on["dpop"] = {"algs_supported": _algs_supported}
-    _context.client_authn_methods["dpop"] = DPoPClientAuth
+    if _endp:
+        _add_to_context(_endp, _algs_supported)
+        _added_to_context = True
 
     for _dpop_endpoint in kwargs.get("dpop_endpoints", ["userinfo"]):
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
+            if not _added_to_context:
+                _add_to_context(_endp, _algs_supported)
+                _added_to_context = True
+
             _endpoint.post_parse_request.append(userinfo_post_parse_request)
 
 
@@ -214,12 +226,12 @@ class DPoPClientAuth(BearerHeader):
         return False
 
     def verify(
-        self,
-        request: Optional[Union[dict, Message]] = None,
-        authorization_token: Optional[str] = None,
-        endpoint=None,  # Optional[Endpoint]
-        get_client_id_from_token: Optional[Callable] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[dict, Message]] = None,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            **kwargs,
     ):
         # info contains token and client_id
         info = BearerHeader._verify(
