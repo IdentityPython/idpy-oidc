@@ -299,7 +299,10 @@ class IDToken(Token):
         else:
             xargs = {}
 
-        lifetime = self.lifetime
+        if usage_rules and "expires_in" in usage_rules:
+            lifetime = usage_rules.get("expires_in")
+        else:
+            lifetime = self.lifetime
 
         id_token = self.sign_encrypt(
             session_id,

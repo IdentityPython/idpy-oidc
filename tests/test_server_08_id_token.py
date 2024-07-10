@@ -9,6 +9,7 @@ from cryptojwt.jws.jws import factory
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
+from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.token.id_token import get_sign_and_encrypt_algorithms
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -179,7 +180,7 @@ class TestEndpoint(object):
         self.session_manager = self.context.session_manager
         self.user_id = USER_ID
 
-    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info=""):
+    def _create_session(self, auth_req, sub_type="public", sector_identifier="", authn_info="", token_usage_rules=""):
         if sector_identifier:
             authz_req = auth_req.copy()
             authz_req["sector_identifier_uri"] = sector_identifier
@@ -189,7 +190,7 @@ class TestEndpoint(object):
         client_id = authz_req["client_id"]
         ae = create_authn_event(self.user_id, authn_info=authn_info)
         return self.session_manager.create_session(
-            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
+            ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type, token_usage_rules=token_usage_rules
         )
 
     def _mint_code(self, grant, session_id):
@@ -246,6 +247,58 @@ class TestEndpoint(object):
             "iss",
             "sid",
         }
+
+    def test_id_token_lifetime_per_client(self):
+        grant_config = {
+            "usage_rules": {
+                "authorization_code": {
+                    "supports_minting": [
+                        "access_token",
+                        "refresh_token",
+                        "id_token",
+                    ],
+                    "max_usage": 1,
+                    "expires_in": 120,
+                },
+                "access_token": {"expires_in": 600},
+            },
+            "expires_in": 43200,
+        }
+        self.context.cdb["client_1"]["token_usage_rules"] = {
+            "id_token": {
+                "expires_in": 100
+            }
+        }
+       
+        self.context.authz = AuthzHandling(
+            self.server.get_endpoint_context, grant_config=grant_config
+        )
+        
+        token_usage_rules = self.context.authz.usage_rules("client_1")
+        session_id = self._create_session(auth_req=AREQ, token_usage_rules=token_usage_rules)
+        
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, session_id)
+        id_token = self._mint_id_token(grant, session_id, code)
+        _jwt = factory(id_token.value)
+        payload = _jwt.jwt.payload()
+
+        assert set(payload.keys()) == {
+            "aud",
+            "sub",
+            "auth_time",
+            "nonce",
+            "iat",
+            "exp",
+            "email",
+            "email_verified",
+            "jti",
+            "scope",
+            "client_id",
+            "iss",
+            "sid",
+        }        
+        assert payload["exp"] - payload["iat"] == 100
 
     def test_id_token_payload_with_code(self):
         session_id = self._create_session(AREQ)
