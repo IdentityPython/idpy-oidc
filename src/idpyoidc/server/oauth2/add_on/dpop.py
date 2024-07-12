@@ -137,7 +137,7 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     """
     Expect http_info attribute in kwargs. http_info should be a dictionary
     containing HTTP information.
-    This function is ment for DPoP-protected resources.
+    This function is meant for DPoP-protected resources.
 
     :param request:
     :param client_id:
