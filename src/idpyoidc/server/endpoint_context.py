@@ -11,6 +11,7 @@ from jinja2 import FileSystemLoader
 from requests import request
 
 from idpyoidc.context import OidcContext
+from idpyoidc.message import Message
 from idpyoidc.server import authz
 from idpyoidc.server.claims import Claims
 from idpyoidc.server.claims.oauth2 import Claims as OAUTH2_Claims
@@ -240,9 +241,11 @@ class EndpointContext(OidcContext):
             conf = conf.conf
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
-        self.provider_info = self.claims.provider_info(_supports)
+        metadata_schema = conf.conf.get("metadata_schema", None)
+        if metadata_schema:
+            metadata_schema = importer(metadata_schema)
+        self.provider_info = self.get_provider_info(_supports, schema=metadata_schema)
         self.provider_info["issuer"] = self.issuer
-        self.provider_info.update(self._get_endpoint_info())
 
         # INTERFACES
 
@@ -267,6 +270,13 @@ class EndpointContext(OidcContext):
         # _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
         # if _id_token_handler:
         #     self.provider_info.update(_id_token_handler.provider_info)
+
+    def get_provider_info(self, supports: Optional[dict] = None, schema: Optional[Message] = None):
+        if supports is None:
+            supports = self.supports()
+        _provider_info = self.claims.provider_info(supports, schema)
+        _provider_info.update(self._get_endpoint_info())
+        return _provider_info
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
