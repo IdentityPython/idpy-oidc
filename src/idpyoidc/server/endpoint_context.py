@@ -241,6 +241,11 @@ class EndpointContext(OidcContext):
             conf = conf.conf
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
+        metadata_schema = conf.conf.get("metadata_schema", None)
+        if metadata_schema:
+            metadata_schema = importer(metadata_schema)
+        self.provider_info = self.get_provider_info(_supports, schema=metadata_schema)
+        self.provider_info["issuer"] = self.issuer
 
         # INTERFACES
 
@@ -266,12 +271,12 @@ class EndpointContext(OidcContext):
         # if _id_token_handler:
         #     self.provider_info.update(_id_token_handler.provider_info)
 
-    def get_metadata(self, supports: Optional[dict] = None, schema: Optional[Message] = None):
+    def get_provider_info(self, supports: Optional[dict] = None, schema: Optional[Message] = None):
         if supports is None:
             supports = self.supports()
-        _metadata = self.claims.metadata(supports, schema)
-        _metadata.update(self._get_endpoint_info())
-        return _metadata
+        _provider_info = self.claims.provider_info(supports, schema)
+        _provider_info.update(self._get_endpoint_info())
+        return _provider_info
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
