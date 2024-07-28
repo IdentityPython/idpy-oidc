@@ -107,7 +107,14 @@ def token_post_parse_request(request, client_id, context, **kwargs):
     if not _http_info:
         return request
 
-    _dpop = DPoPProof().verify_header(_http_info["headers"]["dpop"])
+    _headers = _http_info['headers']
+    logger.debug(f"http headers: {_headers}")
+
+    _dpop_header = _headers.get("dpop", _headers.get("http_dpop", None))
+    if not _dpop_header:
+        raise ValueError("Missing DPoP header")
+
+    _dpop = DPoPProof().verify_header(_dpop_header)
 
     # The signature of the JWS is verified, now for checking the
     # content
@@ -225,7 +232,7 @@ def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_end
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
             if not _added_to_context:
-                _add_to_context(_endp, _algs_supported)
+                _add_to_context(_endpoint, _algs_supported)
                 _added_to_context = True
 
             _endpoint.post_parse_request.append(userinfo_post_parse_request)

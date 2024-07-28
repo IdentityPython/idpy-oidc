@@ -1,6 +1,7 @@
 from typing import Optional
 
 from idpyoidc import metadata
+from idpyoidc.message import Message
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
@@ -91,7 +92,7 @@ class Claims(server_claims.Claims):
             self.set_preference("id_token_encryption_alg_values_supported", [])
             self.set_preference("id_token_encryption_enc_values_supported", [])
 
-    def provider_info(self, supports):
+    def provider_info(self, supports, schema: Optional[Message] = None):
         _info = {}
         for key in ProviderConfigurationResponse.c_param.keys():
             _val = self.get_preference(key, supports.get(key, None))
