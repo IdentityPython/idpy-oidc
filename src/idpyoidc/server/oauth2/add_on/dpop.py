@@ -107,7 +107,14 @@ def token_post_parse_request(request, client_id, context, **kwargs):
     if not _http_info:
         return request
 
-    _dpop = DPoPProof().verify_header(_http_info["headers"]["dpop"])
+    _headers = _http_info['headers']
+    logger.debug(f"http headers: {_headers}")
+
+    _dpop_header = _headers.get("dpop", _headers.get("http_dpop", None))
+    if not _dpop_header:
+        raise ValueError("Missing DPoP header")
+
+    _dpop = DPoPProof().verify_header(_dpop_header)
 
     # The signature of the JWS is verified, now for checking the
     # content

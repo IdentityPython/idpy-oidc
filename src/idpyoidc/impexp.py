@@ -1,4 +1,6 @@
 import base64
+import inspect
+import logging
 from typing import Any
 from typing import List
 from typing import Optional
@@ -10,6 +12,7 @@ from cryptojwt.utils import qualified_name
 from idpyoidc.message import Message
 from idpyoidc.storage import DictType
 
+logger = logging.getLogger(__name__)
 
 def fully_qualified_name(cls):
     return cls.__module__ + "." + cls.__class__.__name__
@@ -41,6 +44,7 @@ class ImpExp:
         pass
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
+        logger.debug(f"dump_attr:: cls: {cls}, item: {item}")
         if cls in [None, 0, "", bool]:
             val = item
         elif cls == b"":
@@ -74,9 +78,29 @@ class ImpExp:
             val = qualified_name(item)
         elif isinstance(cls, list):
             val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
+        elif inspect.isclass(cls):
+            logger.debug(f"class instance: {cls}")
+            _dump = getattr(cls, "dump", None)
+            if _dump:
+                val = _dump(item, exclude_attributes=exclude_attributes)
+            else:
+                if isinstance(item, cls):
+                    val = {qualified_name(cls): item.to_dict()}
+                elif isinstance(item, dict):
+                    val = {qualified_name(cls): item}
+                else:
+                    logger.error(f"Can't dump {item} as {cls}")
         else:
-            val = item.dump(exclude_attributes=exclude_attributes)
+            _dump = getattr(item, "dump", None)
+            if _dump:
+                val = _dump(exclude_attributes=exclude_attributes)
+            elif isinstance(item, dict):
+                val = item
+            else:
+                logger.error(f"Do not know how to dump: {item}")
+                raise AttributeError()
 
+        logger.debug(f"-> {val}")
         return val
 
     def dump(self, exclude_attributes: Optional[List[str]] = None) -> dict:
@@ -154,7 +178,11 @@ class ImpExp:
             val = [_cls(**_args).load(v, **_kwargs) for v in item]
         elif issubclass(cls, Message):
             _cls_name = list(item.keys())[0]
-            _cls = importer(_cls_name)
+            try:
+                _cls = importer(_cls_name)
+            except Exception as err:
+                logger.error(f"Could not import {item}: {err}")
+                raise
             val = _cls().from_dict(item[_cls_name])
         else:
             if issubclass(cls, ImpExp) and init_args:

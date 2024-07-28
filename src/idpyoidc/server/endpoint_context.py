@@ -241,7 +241,10 @@ class EndpointContext(OidcContext):
             conf = conf.conf
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
-        metadata_schema = conf.conf.get("metadata_schema", None)
+        if isinstance(conf, dict):
+            metadata_schema = conf.get("metadata_schema", None)
+        else:
+            metadata_schema = conf.conf.get("metadata_schema", None)
         if metadata_schema:
             metadata_schema = importer(metadata_schema)
         self.provider_info = self.get_provider_info(_supports, schema=metadata_schema)
