@@ -16,7 +16,6 @@ from idpyoidc.util import qualified_name
 
 logger = logging.getLogger(__name__)
 
-
 def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
 
