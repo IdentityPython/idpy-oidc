@@ -94,3 +94,27 @@ def test_flush():
     assert len(b.bundles) == 2
     for kb in b.bundles:
         assert isinstance(kb, KeyBundle)
+
+
+def test_dict():
+    b = ImpExpTest()
+    b.string = "foo"
+    b.list = ["a", "b", "c"]
+    b.dict = {"a": 1, "b": 2}
+    b.message = {
+        "scope": "openid",
+        "redirect_uri": "https://example.com/cb",
+        "response_type": "code",
+        "client_id": "abcdefg",
+    }
+
+    dump = b.dump()
+
+    b.flush()
+
+    b.load(dump)
+
+    assert b.string == "foo"
+    assert b.list == ["a", "b", "c"]
+    assert b.dict == {"a": 1, "b": 2}
+    assert isinstance(b.message, AuthorizationRequest)

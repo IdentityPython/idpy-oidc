@@ -196,7 +196,9 @@ class Endpoint(Node):
         :return:
         """
         LOGGER.debug("- {} -".format(self.endpoint_name))
-        LOGGER.info("Request: %s" % sanitize(request))
+        LOGGER.info(f"Request: {sanitize(request)}")
+        if http_info:
+            LOGGER.info(f"HTTP info: {http_info}")
 
         _context = self.upstream_get("context")
         _keyjar = self.upstream_get("attribute", "keyjar")

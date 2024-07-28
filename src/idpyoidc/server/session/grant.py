@@ -377,7 +377,6 @@ class Grant(Item):
             )
 
             logger.debug(f"token_payload: {token_payload}")
-
             item.value = token_handler(
                 session_id=session_id, usage_rules=usage_rules, **token_payload
             )

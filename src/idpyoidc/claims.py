@@ -1,3 +1,4 @@
+import logging
 from typing import Callable
 from typing import Optional
 
@@ -10,6 +11,7 @@ from idpyoidc.impexp import ImpExp
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
+logger = logging.getLogger(__name__)
 
 def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
@@ -138,6 +140,7 @@ class Claims(ImpExp):
                     configuration: dict,
                     keyjar: Optional[KeyJar] = None,
                     entity_id: Optional[str] = ""):
+        logger.debug(f"configuration: {configuration}")
         _jwks = _jwks_uri = None
         _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
