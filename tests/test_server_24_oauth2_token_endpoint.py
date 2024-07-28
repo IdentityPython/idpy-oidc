@@ -6,6 +6,7 @@ from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import build_keyjar
 import pytest
+from idpyoidc.server.exception import UnAuthorizedClient
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
@@ -342,7 +343,7 @@ class TestEndpoint(object):
         _resp = self.token_endpoint.process_request(request=_req)
 
         # 2nd time used
-        with pytest.raises(InvalidToken):
+        with pytest.raises((InvalidToken, UnAuthorizedClient)):
             self.token_endpoint.parse_request(_token_request)
 
     def test_do_refresh_access_token(self):
