@@ -488,6 +488,8 @@ def verify_client(
     if not allowed_methods:
         allowed_methods = list(methods.keys())  # If not specific for this endpoint then all
 
+    logger.info(f"Allowed client authentication methods: {allowed_methods}")
+
     _method = None
     _cdb = _cinfo = None
     _tested = []
@@ -504,8 +506,8 @@ def verify_client(
                 endpoint=endpoint,
                 get_client_id_from_token=get_client_id_from_token,
             )
-        except (BearerTokenAuthenticationError, ClientAuthenticationError):
-            raise
+        # except (BearerTokenAuthenticationError, ClientAuthenticationError):
+        #     raise
         except Exception as err:
             logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
             continue
@@ -534,7 +536,7 @@ def verify_client(
                 _auto_reg = getattr(endpoint, "automatic_registration", None)
                 if _auto_reg:
                     _cinfo = {"client_id": client_id}
-                    _auto_reg.set(client_id, _cinfo)
+                    _cdb[client_id] = _cinfo
                 else:
                     raise UnknownClient("Unknown Client ID")
 

@@ -76,10 +76,7 @@ def push_authorization(request_args, service, **kwargs):
             _req[param] = request_args.get(param)
         request_args = _req
     else:
-        raise ConnectionError(
-            f"Could not connect to "
-            f'{_context.provider_info["pushed_authorization_request_endpoint"]}'
-        )
+        raise ConnectionError(f"Could not connect to {_par_endpoint}")
 
     return request_args
 
