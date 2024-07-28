@@ -551,8 +551,9 @@ class TestEndpoint(object):
 
         monkeypatch.setattr("idpyoidc.server.token.utc_time_sans_frac", mock)
 
-        with pytest.raises(BearerTokenAuthenticationError):
-            self.endpoint.parse_request({}, http_info=http_info)
+        res = self.endpoint.parse_request({}, http_info=http_info)
+        assert "error" in res
+        assert res["error"] == "invalid_token"
 
     def test_userinfo_claims(self):
         _acr = "https://refeds.org/profile/mfa"
