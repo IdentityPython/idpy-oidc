@@ -1022,7 +1022,7 @@ class JsonWebToken(Message):
             except KeyError:
                 pass
 
-        if "iss" in kwargs and "iss" in self:
+        if "iss" in kwargs and kwargs["iss"] and "iss" in self:
             if kwargs["iss"] != self["iss"]:
                 raise ValueError("Wrong issuer")
 
