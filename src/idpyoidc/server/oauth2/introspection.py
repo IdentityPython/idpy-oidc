@@ -74,6 +74,11 @@ class Introspection(Endpoint):
         if _token_type:
             ret["token_type"] = _token_type
 
+        _custom_attributes = grant.claims.get("custom_attributes", None)
+            
+        if _custom_attributes:
+            for key, value in _custom_attributes.items():
+                ret[key] = value
         if aud:
             ret["aud"] = aud
 
@@ -140,7 +145,8 @@ class Introspection(Endpoint):
                     pass
 
         _resp.update(_info)
-        _resp.weed()
+        # Have to comment this as it deletes non-standard fields
+        #_resp.weed()
 
         _claims_restriction = _context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"
