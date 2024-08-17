@@ -5,11 +5,12 @@ common between all the services that are used by OAuth2 client or OpenID Connect
 import hashlib
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -22,12 +23,12 @@ from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
 from idpyoidc.util import rndstr
-
-from ..impexp import ImpExp
 from .claims.transform import preferred_to_registered
 from .claims.transform import supported_to_preferred
 from .configure import get_configuration
 from .current import Current
+from .entity_metadata import EntityMetadata
+from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ class ServiceContext(ImpExp):
         "httpc_params": None,
         "iss_hash": None,
         "issuer": None,
+        "server_metadata": EntityMetadata,
         "keyjar": KeyJar,
         "claims": Claims,
         "provider_info": None,
@@ -116,14 +118,14 @@ class ServiceContext(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-        self,
-        upstream_get: Optional[Callable] = None,
-        base_url: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        cstate: Optional[Current] = None,
-        client_type: Optional[str] = "oauth2",
-        **kwargs,
+            self,
+            upstream_get: Optional[Callable] = None,
+            base_url: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            cstate: Optional[Current] = None,
+            client_type: Optional[str] = "oauth2",
+            **kwargs,
     ):
         ImpExp.__init__(self)
         config = get_configuration(config)
@@ -150,6 +152,7 @@ class ServiceContext(ImpExp):
         self.allow = config.conf.get("allow", {})
         self.base_url = base_url or config.conf.get("base_url", self.entity_id)
         self.provider_info = config.conf.get("provider_info", {})
+        self.server_metadata = config.conf.get("server_metadata", EntityMetadata())
 
         # Below so my IDE won't complain
         self.args = {}
@@ -212,7 +215,7 @@ class ServiceContext(ImpExp):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url) :]
+        _name = webname[len(self.base_url):]
         if _name.startswith("/"):
             return _name[1:]
 
@@ -415,3 +418,12 @@ class ServiceContext(ImpExp):
         )
 
         return self.claims.use
+
+    def get_metadata_claim(self, claim, entity_type: Optional[List[str]] = ""):
+        if entity_type:
+            for _type in entity_type:
+                if _type in self.server_metadata:
+                    return self.server_metadata[_type][claim]
+            return KeyError(f"{claim} not in {entity_type} metadata")
+        else:
+            return self.provider_info[claim]
