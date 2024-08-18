@@ -7,6 +7,8 @@ from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
+from cryptojwt.jws.jws import factory
+
 from idpyoidc.constant import DEFAULT_POST_CONTENT_TYPE
 from idpyoidc.constant import JOSE_ENCODED
 from idpyoidc.constant import JSON_ENCODED
@@ -264,7 +266,11 @@ def get_deserialization_method(reqresp):
             reqresp.json()
             return "json"
         except Exception:
-            return "urlencoded"  # reasonable default ??
+            try:
+                _jwt = factory(reqresp.txt)
+                return "jwt"
+            except Exception:
+                return "urlencoded"  # reasonable default ??
 
     if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
         deser_method = "json"
@@ -276,6 +282,8 @@ def get_deserialization_method(reqresp):
         deser_method = "urlencoded"
     elif match_to_("text/plain", _ctype) or match_to_("test/html", _ctype):
         deser_method = ""
+    elif _ctype.startswith("application/") and _ctype.endswith("+jwt"):
+        deser_method = "jwt"
     else:
         deser_method = ""  # reasonable default ??
 
