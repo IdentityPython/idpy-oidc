@@ -34,3 +34,6 @@ class EntityMetadata(object):
 
     def __contains__(self, item):
         return item in self.metadata
+
+    def get(self, item, default=None):
+        return self.metadata.get(item, default)
