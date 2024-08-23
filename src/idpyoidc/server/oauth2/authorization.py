@@ -359,6 +359,7 @@ class Authorization(Endpoint):
         # "grant_types_supported": ["authorization_code", "implicit"],
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],
+        # "grant_types": [],
     }
     default_capabilities = {
         "client_authn_method": ["request_param", "public"],
