@@ -32,6 +32,7 @@ class Authorization(Service):
     _supports = {
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment"],
+        "grant_types": []
     }
 
     _callback_path = {
