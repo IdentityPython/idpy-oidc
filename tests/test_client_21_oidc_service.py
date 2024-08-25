@@ -214,6 +214,8 @@ class TestAuthorization(object):
             "iss",
             "aud",
             "iat",
+            "jti",
+            "exp"
         }
 
     def test_request_param(self):
