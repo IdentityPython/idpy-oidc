@@ -7,8 +7,8 @@ from idpyoidc import metadata
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
-from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.request_object import construct_request_parameter
+from idpyoidc.client.request_object import construct_request_uri
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingRequiredAttribute
