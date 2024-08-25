@@ -15,7 +15,7 @@ def request_object_encryption(msg, service_context, keyjar, **kwargs):
     """
     Created an encrypted JSON Web token with *msg* as body.
 
-    :param msg: The mesaqg
+    :param msg: The message
     :param service_context:
     :param kwargs:
     :return:
@@ -124,7 +124,10 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
     if _issuer is None:
         kwargs["issuer"] = _context.get_client_id()
 
-    if kwargs.get("recv") is None:
+    # The receiver
+    if audience:
+        kwargs["recv"] = audience
+    elif kwargs.get("recv") is None:
         try:
             kwargs["recv"] = _context.provider_info["issuer"]
         except KeyError:
@@ -140,10 +143,12 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
 
     kwargs["with_jti"] = kwargs.get("with_jti",True)
 
-    # _enc_enc = _jar_conf.get("request_object_encryption_enc", "")
-    # if _enc_enc:
-    #     kwargs["request_object_encryption_enc"] = _enc_enc
-    #     kwargs["request_object_encryption_alg"] = _jar_conf.get("request_object_encryption_alg")
+    _enc_enc = kwargs.get("request_object_encryption_enc", "")
+    if not _enc_enc:
+        _enc_enc = _context.get_usage("request_object_encryption_enc")
+        if _enc_enc:
+            kwargs["request_object_encryption_enc"] = _enc_enc
+            kwargs["request_object_encryption_alg"] = _context.get_usage("request_object_encryption_alg")
 
     # Filter out only the arguments I want
     _mor_args = {
@@ -158,9 +163,6 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
         ]
         if k in kwargs
     }
-
-    if audience:
-        _mor_args["aud"] = audience
 
     _req_jwt = make_openid_request(req, **_mor_args)
 

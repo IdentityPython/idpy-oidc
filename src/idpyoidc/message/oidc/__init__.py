@@ -1188,7 +1188,7 @@ def make_openid_request(
     :param request_object_signing_alg: Which signing algorithm to use
     :param recv: The intended receiver of the request
     :param with_jti: Whether a JTI should be included in the JWT.
-    :param lifetime: How long the JWT is expect to be live.
+    :param lifetime: How long the JWT is expected to be alive.
     :return: JWT encoded OpenID request
     """
 
