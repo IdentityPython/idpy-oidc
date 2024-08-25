@@ -5,6 +5,7 @@ from idpyoidc import claims
 from idpyoidc import metadata
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
+from idpyoidc.client.request_object import construct_request_parameter
 from idpyoidc.message.oidc import make_openid_request
 from idpyoidc.time_util import utc_time_sans_frac
 
@@ -34,93 +35,6 @@ def store_request_on_file(service, req, **kwargs):
     fid.close()
     return _webname
 
-
-def get_request_object_signing_alg(service, **kwargs):
-    alg = ""
-    for arg in ["request_object_signing_alg", "algorithm"]:
-        try:  # Trumps everything
-            alg = kwargs[arg]
-        except KeyError:
-            pass
-        else:
-            break
-
-    if not alg:
-        _context = service.upstream_get("context")
-        alg = _context.add_on["jar"].get("request_object_signing_alg")
-        if alg is None:
-            alg = "RS256"
-    return alg
-
-
-def construct_request_parameter(service, req, audience=None, **kwargs):
-    """Construct a request parameter"""
-    alg = get_request_object_signing_alg(service, **kwargs)
-    kwargs["request_object_signing_alg"] = alg
-
-    _context = service.upstream_get("context")
-    if "keys" not in kwargs and alg and alg != "none":
-        kwargs["keys"] = service.upstream_get("attribute", "keyjar")
-
-    if alg == "none":
-        kwargs["keys"] = []
-
-    # This is the issuer of the JWT, that is me !
-    _issuer = kwargs.get("issuer")
-    if _issuer is None:
-        kwargs["issuer"] = _context.get_client_id()
-
-    if kwargs.get("recv") is None:
-        try:
-            kwargs["recv"] = _context.provider_info["issuer"]
-        except KeyError:
-            kwargs["recv"] = _context.issuer
-
-    try:
-        del kwargs["service"]
-    except KeyError:
-        pass
-
-    _jar_conf = _context.add_on["jar"]
-    expires_in = _jar_conf.get("expires_in", DEFAULT_EXPIRES_IN)
-    if expires_in:
-        req["exp"] = utc_time_sans_frac() + int(expires_in)
-
-    if _jar_conf.get("with_jti", False):
-        kwargs["with_jti"] = True
-
-    _enc_enc = _jar_conf.get("request_object_encryption_enc", "")
-    if _enc_enc:
-        kwargs["request_object_encryption_enc"] = _enc_enc
-        kwargs["request_object_encryption_alg"] = _jar_conf.get("request_object_encryption_alg")
-
-    # Filter out only the arguments I want
-    _mor_args = {
-        k: kwargs[k]
-        for k in [
-            "keys",
-            "issuer",
-            "request_object_signing_alg",
-            "recv",
-            "with_jti",
-            "lifetime",
-        ]
-        if k in kwargs
-    }
-
-    if audience:
-        _mor_args["aud"] = audience
-
-    _req_jwt = make_openid_request(req, **_mor_args)
-
-    if "target" not in kwargs:
-        kwargs["target"] = _context.provider_info.get("issuer", _context.issuer)
-
-    # Should the request be encrypted
-    _req_jwte = request_object_encryption(
-        _req_jwt, _context, service.upstream_get("attribute", "keyjar"), **kwargs
-    )
-    return _req_jwte
 
 
 def jar_post_construct(request_args, service, **kwargs):
