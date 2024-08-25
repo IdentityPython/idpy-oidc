@@ -1,8 +1,8 @@
 from cryptojwt.jwe.jwe import factory
 from cryptojwt.key_jar import build_keyjar
 
-from idpyoidc.client.oidc.utils import construct_request_uri
-from idpyoidc.client.oidc.utils import request_object_encryption
+from idpyoidc.client.request_object import construct_request_uri
+from idpyoidc.client.request_object import request_object_encryption
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message.oidc import AuthorizationRequest
 

@@ -1,13 +1,9 @@
 import logging
 from typing import Optional
 
-from idpyoidc import claims
 from idpyoidc import metadata
-from idpyoidc.client.oidc.utils import construct_request_uri
-from idpyoidc.client.oidc.utils import request_object_encryption
 from idpyoidc.client.request_object import construct_request_parameter
-from idpyoidc.message.oidc import make_openid_request
-from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.client.request_object import construct_request_uri
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +30,6 @@ def store_request_on_file(service, req, **kwargs):
     fid.write(req)
     fid.close()
     return _webname
-
 
 
 def jar_post_construct(request_args, service, **kwargs):
@@ -89,14 +84,14 @@ def jar_post_construct(request_args, service, **kwargs):
 
 
 def add_support(
-    service,
-    request_type: Optional[str] = "request_parameter",
-    request_dir: Optional[str] = "",
-    request_object_signing_alg: Optional[str] = "RS256",
-    expires_in: Optional[int] = DEFAULT_EXPIRES_IN,
-    with_jti: Optional[bool] = False,
-    request_object_encryption_alg: Optional[str] = "",
-    request_object_encryption_enc: Optional[str] = "",
+        service,
+        request_type: Optional[str] = "request_parameter",
+        request_dir: Optional[str] = "",
+        request_object_signing_alg: Optional[str] = "RS256",
+        expires_in: Optional[int] = DEFAULT_EXPIRES_IN,
+        with_jti: Optional[bool] = False,
+        request_object_encryption_alg: Optional[str] = "",
+        request_object_encryption_enc: Optional[str] = "",
 ):
     """
     JAR support can only be considered if this client can access an authorization service.
