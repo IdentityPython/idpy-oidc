@@ -81,18 +81,18 @@ class RP(oauth2.Client):
     client_type = "oidc"
 
     def __init__(
-        self,
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        services: Optional[dict] = None,
-        httpc: Optional[Callable] = None,
-        httpc_params: Optional[dict] = None,
-        upstream_get: Optional[Callable] = None,
-        key_conf: Optional[dict] = None,
-        entity_id: Optional[str] = "",
-        verify_ssl: Optional[bool] = True,
-        jwks_uri: Optional[str] = "",
-        **kwargs
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = "",
+            verify_ssl: Optional[bool] = True,
+            jwks_uri: Optional[str] = "",
+            **kwargs
     ):
         if services:
             _srvs = services
