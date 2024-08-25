@@ -1,9 +1,12 @@
 from typing import Optional
 
+from idpyoidc.impexp import ImpExp
 
-class EntityMetadata(object):
 
+class EntityMetadata(ImpExp):
+    parameter = {"metadata": {}}
     def __init__(self, metadata: Optional[dict] = None):
+        ImpExp.__init__(self)
         if metadata is None:
             self.metadata = {}
         else:
@@ -20,20 +23,14 @@ class EntityMetadata(object):
         # Assumes not multiple entity types
         self.metadata[key] = value
 
-    def entity_types(self):
-        return list(self.metadata.keys())
-
-    def entity_type(self, etype):
-        return self.metadata[etype]
-
     def items(self):
         return self.metadata.items()
-
-    def get_entity_type_claim(self, entity_type, claim):
-        return self.metadata[entity_type][claim]
 
     def __contains__(self, item):
         return item in self.metadata
 
     def get(self, item, default=None):
         return self.metadata.get(item, default)
+
+    def to_dict(self):
+        return self.metadata
