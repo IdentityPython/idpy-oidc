@@ -243,8 +243,8 @@ class Grant(Item):
             )
 
         if _claims_restriction and context.session_manager.node_type[0] == "user":
-            user_id, _, _ = context.session_manager.decrypt_branch_id(session_id)
-            user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction)
+            user_id, client_id, _ = context.session_manager.decrypt_branch_id(session_id)
+            user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction, client_id=client_id)
             payload.update(user_info)
 
         # Should I add the acr value
@@ -382,6 +382,8 @@ class Grant(Item):
                 session_id=session_id, usage_rules=usage_rules, **token_payload
             )
 
+            if based_on:
+                based_on.used += 1
         else:
             raise ValueError("Can not mint that kind of token")
 
@@ -596,8 +598,8 @@ class ExchangeGrant(Grant):
                 secondary_identifier=secondary_identifier,
             )
 
-        user_id, _, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction)
+        user_id, client_id, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
+        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction, client_id)
         payload.update(user_info)
 
         # Should I add the acr value

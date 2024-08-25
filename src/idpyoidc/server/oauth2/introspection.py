@@ -147,7 +147,7 @@ class Introspection(Endpoint):
         )
         if _claims_restriction:
             user_info = _context.claims_interface.get_user_claims(
-                _session_info["user_id"], _claims_restriction
+                _session_info["user_id"], _claims_restriction, client_id=_session_info["client_id"]
             )
             if user_info:
                 _resp.update(user_info)

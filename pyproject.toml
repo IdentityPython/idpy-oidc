@@ -24,7 +24,7 @@ classifiers =[
 [options]
 package_dir = "src"
 packages = "find:"
-python= "^3.6"
+python= "^3.8"
 
 [tool.black]
 line-length = 100

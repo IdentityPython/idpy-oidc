@@ -1,26 +1,24 @@
 import json
-import os
 import sys
 import traceback
 from typing import Union
 from urllib.parse import urlparse
 
+import werkzeug
 from cryptojwt import as_unicode
 from flask import Blueprint
-from flask import Response
 from flask import current_app
 from flask import redirect
 from flask import render_template
 from flask import request
+from flask import Response
 from flask.helpers import make_response
-from flask.helpers import send_from_directory
+
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
-import werkzeug
-
-from idpyoidc.server.exception import FailedAuthentication
 from idpyoidc.server.exception import ClientAuthenticationError
+from idpyoidc.server.exception import FailedAuthentication
 from idpyoidc.server.oidc.token import Token
 
 # logger = logging.getLogger(__name__)
@@ -29,8 +27,8 @@ oidc_op_views = Blueprint('oidc_op', __name__, url_prefix='')
 
 
 def _add_cookie(resp: Response, cookie_spec: Union[dict, list]):
-    kwargs = {k:v
-              for k,v in cookie_spec.items()
+    kwargs = {k: v
+              for k, v in cookie_spec.items()
               if k not in ('name',)}
     kwargs["path"] = "/"
     kwargs["samesite"] = "Lax"
@@ -44,15 +42,22 @@ def add_cookie(resp: Response, cookie_spec: Union[dict, list]):
     elif isinstance(cookie_spec, dict):
         _add_cookie(resp, cookie_spec)
 
-@oidc_op_views.route('/static/<path:path>')
-def send_js(path):
-    return send_from_directory('static', path)
 
+# @oidc_op_views.route('/static/<path:path>')
+# def send_js(path):
+#     return send_from_directory('static', path)
+#
+#
+# @oidc_op_views.route('/keys/<jwks>')
+# def keys(jwks):
+#     fname = os.path.join('static', jwks)
+#     return open(fname).read()
+#
 
-@oidc_op_views.route('/keys/<jwks>')
-def keys(jwks):
-    fname = os.path.join('static', jwks)
-    return open(fname).read()
+@oidc_op_views.route('/jwks')
+def jwks():
+    _context = current_app.server.get_context()
+    return _context.keyjar.export_jwks()
 
 
 @oidc_op_views.route('/')
@@ -188,10 +193,12 @@ def token():
     return service_endpoint(
         current_app.server.get_endpoint('token'))
 
+
 @oidc_op_views.route('/introspection', methods=['POST'])
 def introspection_endpoint():
     return service_endpoint(
         current_app.server.get_endpoint('introspection'))
+
 
 @oidc_op_views.route('/userinfo', methods=['GET', 'POST'])
 def userinfo():

@@ -451,16 +451,18 @@ class Service(ImpExp):
         if _context.issuer:
             _args["iss"] = _context.issuer
 
-        # Client authentication by usage of the Authorization HTTP header
-        # or by modifying the request object
-        _args.update(self.get_headers_args())
-        _headers = self.get_headers(request, http_method=method, authn_method=authn_method, **_args)
-
         # Find out where to send this request
         try:
             endpoint_url = kwargs["endpoint"]
         except KeyError:
             endpoint_url = self.get_endpoint()
+
+        _args["endpoint_url"] = endpoint_url
+
+        # Client authentication by usage of the Authorization HTTP header
+        # or by modifying the request object
+        _args.update(self.get_headers_args())
+        _headers = self.get_headers(request, http_method=method, authn_method=authn_method, **_args)
 
         _info["url"] = get_http_url(endpoint_url, request, method=method)
 
