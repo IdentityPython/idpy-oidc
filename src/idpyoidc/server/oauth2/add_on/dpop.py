@@ -225,7 +225,7 @@ def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_end
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
             if not _added_to_context:
-                _add_to_context(_dpop_endpoint, _algs_supported)
+                _add_to_context(_endpoint, _algs_supported)
                 _added_to_context = True
 
             _endpoint.post_parse_request.append(userinfo_post_parse_request)
