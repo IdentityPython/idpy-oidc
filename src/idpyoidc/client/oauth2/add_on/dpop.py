@@ -168,7 +168,7 @@ def dpop_header(
 
 def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=None):
     """
-    Add the necessary pieces to make pushed authorization happen.
+    Add the necessary pieces to make DPoP happen.
 
     :param services: A dictionary with all the services the client has access to.
     :param dpop_signing_alg_values_supported: Allowed signing algorithms, there is no default algorithms
