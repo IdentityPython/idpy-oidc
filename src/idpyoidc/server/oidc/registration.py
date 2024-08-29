@@ -279,13 +279,19 @@ class Registration(Endpoint):
 
         t = {"jwks_uri": "", "jwks": None}
 
-        for item in ["jwks_uri", "jwks"]:
-            if item in request:
-                t[item] = request[item]
+        _jwks_uri = request.get("jwks_uri")
+        if _jwks_uri:
+            # if it can't load keys because the URL is false it will
+            # just silently fail. Waiting for better times.
+            _keyjar.add_url(issuer_id=client_id, url=_jwks_uri)
+        else:
+            _jwks = request.get("jwks", None)
+            if _jwks:
+                if isinstance(_jwks, str):
+                    _keyjar.import_jwks_as_json(_jwks, client_id)
+                else:
+                    _keyjar.import_jwks(_jwks, client_id)
 
-        # if it can't load keys because the URL is false it will
-        # just silently fail. Waiting for better times.
-        _keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
         logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
 
         return _cinfo
@@ -468,6 +474,12 @@ class Registration(Endpoint):
             return _cinfo
 
         args = dict([(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param])
+
+        # Don't echo keys back
+        try:
+            del args["jwks"]
+        except KeyError:
+            pass
 
         comb_uri(args)
         response = self.response_cls(**args)
