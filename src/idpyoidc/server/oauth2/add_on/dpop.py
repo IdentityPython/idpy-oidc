@@ -206,7 +206,7 @@ def _add_to_context(endpoint, algs_supported):
     _context = endpoint.upstream_get("context")
     _context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
     _context.add_on["dpop"] = {"algs_supported": algs_supported}
-    _context.client_authn_methods["dpop"] = DPoPClientAuth
+    _context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
 
 def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None, **kwargs):
     if dpop_signing_alg_values_supported is None:
@@ -224,7 +224,7 @@ def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_end
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
             if not _added_to_context:
-                _add_to_context(_dpop_endpoint, _algs_supported)
+                _add_to_context(_endpoint, _algs_supported)
                 _added_to_context = True
 
             _endpoint.post_parse_request.append(userinfo_post_parse_request)
