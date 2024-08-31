@@ -71,6 +71,7 @@ class Claims(client_claims.Claims):
         "client_name": None,
         "client_secret": None,
         "client_uri": None,
+        "code_challenge_methods_supported": None,
         "contacts": None,
         "default_max_age": 86400,
         "encrypt_id_token_supported": None,
