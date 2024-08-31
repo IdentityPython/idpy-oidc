@@ -39,7 +39,7 @@ class Claims(claims.Claims):
     def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
         claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
-    def provider_info(self, supports, schema: Optional[Message] = None):
+    def metadata(self, supports, schema: Optional[Message] = None):
         _info = {}
         if schema is None:
             schema = ASConfigurationResponse
