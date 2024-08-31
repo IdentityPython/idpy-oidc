@@ -13,6 +13,8 @@ def get_client_authn_methods():
 
 
 class Claims(claims.Claims):
+    _supports = {}
+
     def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         _base = configuration.get("base_url")
         if not _base:
