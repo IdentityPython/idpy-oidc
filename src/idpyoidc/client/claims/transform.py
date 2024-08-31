@@ -51,10 +51,10 @@ REQUEST2REGISTER = {
 
 
 def supported_to_preferred(
-    supported: dict,
-    preference: dict,
-    base_url: str,
-    info: Optional[dict] = None,
+        supported: dict,
+        preference: dict,
+        base_url: str,
+        info: Optional[dict] = None,
 ):
     if info:  # The provider info
         for key, val in supported.items():
@@ -83,7 +83,7 @@ def supported_to_preferred(
                         preference[key] = [x for x in val if x in _info_val]
                     else:
                         pass
-                else:
+                elif val:
                     preference[key] = val
 
         # special case -> must have a request_uris value
@@ -148,7 +148,7 @@ def _intersection(a, b):
 
 
 def preferred_to_registered(
-    prefers: dict, supported: dict, registration_response: Optional[dict] = None
+        prefers: dict, supported: dict, registration_response: Optional[dict] = None
 ):
     """
     The claims with values that are returned from the OP is what goes unless (!!)
@@ -219,4 +219,10 @@ def create_registration_request(prefers: dict, supported: dict) -> dict:
             continue
 
         _request[key] = array_or_singleton(spec, value)
+
+    for key, val in prefers.items():
+        if key not in RegistrationRequest.c_param.keys():
+            if key not in REGISTER2PREFERRED.values():
+                _request[key] = val
+
     return _request
