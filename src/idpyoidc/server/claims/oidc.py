@@ -1,6 +1,6 @@
 from typing import Optional
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
@@ -49,9 +49,9 @@ class Claims(server_claims.Claims):
         "display_values_supported": None,
         "encrypt_id_token_supported": None,
         # "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
-        "id_token_signing_alg_values_supported": metadata.get_signing_algs(),
-        "id_token_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "id_token_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "id_token_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "id_token_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "id_token_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         "initiate_login_uri": None,
         "jwks": None,
         "jwks_uri": None,
@@ -72,13 +72,13 @@ class Claims(server_claims.Claims):
         server_claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def verify_rules(self, supports):
-        if self.get_preference("request_parameter_supported") and self.get_preference(
-                "request_uri_parameter_supported"
-        ):
-            raise ValueError(
-                "You have to chose one of 'request_parameter_supported' and "
-                "'request_uri_parameter_supported'. You can't have both."
-            )
+        # if self.get_preference("request_parameter_supported") and self.get_preference(
+        #         "request_uri_parameter_supported"
+        # ):
+        #     raise ValueError(
+        #         "You have to chose one of 'request_parameter_supported' and "
+        #         "'request_uri_parameter_supported'. You can't have both."
+        #     )
 
         if not self.get_preference("encrypt_userinfo_supported"):
             self.set_preference("userinfo_encryption_alg_values_supported", [])

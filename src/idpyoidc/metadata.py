@@ -1,6 +1,7 @@
 from functools import cmp_to_key
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 
 from cryptojwt import KeyJar
@@ -9,8 +10,10 @@ from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
+from idpyoidc.transform import preferred_to_registered
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
+from idpyoidc.message import Message
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
@@ -212,6 +215,49 @@ class Metadata(ImpExp):
 
     def prefers(self):
         return self.prefer
+
+    def get_endpoint_claims(self, endpoints):
+        _info = {}
+        for endp in endpoints:
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+                for arg, claim in [("client_authn_method", "auth_methods"),
+                                   ("auth_signing_alg_values", "auth_signing_alg_values")]:
+                    _val = getattr(endp, arg, None)
+                    if _val:
+                        # trust_mark_status_endpoint_auth_methods_supported
+                        md_param = f"{endp.endpoint_name}_{claim}"
+                        _info[md_param] = _val
+        return _info
+
+    def get_metadata(self,
+                     entity_type: str,
+                     endpoints: Optional[list] = None,
+                     metadata_schema: Optional[Message] = None,
+                     extra_claims: Optional[List[str]] = None,
+                     **kwargs):
+
+        if not self.use:
+            self.use = preferred_to_registered(self.prefer, supported=self.supports())
+
+        metadata = self.use
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr}
+
+        # collect endpoints
+        if endpoints:
+            metadata.update(self.get_endpoint_claims(endpoints))
+
+        return {entity_type: metadata}
 
 
 SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS", "Ed"]
