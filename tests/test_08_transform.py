@@ -171,7 +171,6 @@ class TestTransform:
             "request_object_encryption_enc_values_supported",
             "request_object_signing_alg_values_supported",
             "request_parameter_supported",
-            "request_uri_parameter_supported",
             "response_modes_supported",
             "response_types_supported",
             "scopes_supported",
@@ -365,7 +364,6 @@ class TestTransform2:
             "redirect_uris",
             "request_object_signing_alg",
             'request_parameter_supported',
-            'request_uri_parameter_supported',
             "response_types",
             "response_modes",  # non-standard
             "subject_type",
@@ -412,7 +410,6 @@ class TestTransform2:
                                       'redirect_uris',
                                       'request_object_signing_alg',
                                       'request_uris',
-                                      'request_uri_parameter_supported',
                                       'encrypt_userinfo_supported',
                                       'request_parameter_supported',
                                       'encrypt_request_object_supported',

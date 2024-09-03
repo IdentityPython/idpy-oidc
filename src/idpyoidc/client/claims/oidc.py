@@ -97,13 +97,13 @@ class Claims(client_claims.Claims):
         client_claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
     def verify_rules(self, supports):
-        if self.get_preference("request_parameter_supported") and self.get_preference(
-            "request_uri_parameter_supported"
-        ):
-            raise ValueError(
-                "You have to chose one of 'request_parameter_supported' and "
-                "'request_uri_parameter_supported'. You can't have both."
-            )
+        # if self.get_preference("request_parameter_supported") and self.get_preference(
+        #     "request_uri_parameter_supported"
+        # ):
+        #     raise ValueError(
+        #         "You have to chose one of 'request_parameter_supported' and "
+        #         "'request_uri_parameter_supported'. You can't have both."
+        #     )
 
         if self.get_preference("request_parameter_supported") or self.get_preference(
             "request_uri_parameter_supported"

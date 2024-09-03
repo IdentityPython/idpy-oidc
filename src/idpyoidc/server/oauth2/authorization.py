@@ -393,7 +393,7 @@ class Authorization(Endpoint):
     _supports = {
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
-        "request_uri_parameter_supported": False,
+        "request_uri_parameter_supported": None,
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
         "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),

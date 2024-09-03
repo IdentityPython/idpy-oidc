@@ -96,7 +96,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 25
+    assert len(_conf_args) == 24
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined and will therefore not appear in a registration request
     d = rr.difference(set(_conf_args))
@@ -152,11 +152,11 @@ def test_create_client_jwks_uri():
 def test_metadata():
     client = Entity(config=CLIENT_CONFIG, client_type="oidc")
     # With entity type
-    metadata = client.context.claims.get_metadata("openid_relying_pary", endpoints=None,
+    metadata = client.context.claims.get_client_metadata("openid_relying_party",
                                                   metadata_schema=RegistrationRequest)
-    assert set(metadata.keys()) == {"openid_relying_pary"}
+    assert set(metadata.keys()) == {"openid_relying_party"}
     # Without entity type, no endpoints. Typical client
-    metadata = client.context.claims.get_metadata(metadata_schema=RegistrationRequest)
+    metadata = client.context.claims.get_client_metadata(metadata_schema=RegistrationRequest)
     assert set(metadata.keys()) == {'application_type',
                                     'backchannel_logout_session_required',
                                     'backchannel_logout_uri',
