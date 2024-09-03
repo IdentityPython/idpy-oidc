@@ -209,12 +209,15 @@ def _add_to_context(endpoint, algs_supported):
     _context.add_on["dpop"] = {"algs_supported": algs_supported}
     _context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
 
-def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None, **kwargs):
+
+def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None,
+                **kwargs):
     if dpop_signing_alg_values_supported is None:
         _algs_supported = ["RS256"]
     else:
         # Pick out the ones I support
-        _algs_supported = [alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()]
+        _algs_supported = [alg for alg in dpop_signing_alg_values_supported if
+                           alg in get_signing_algs()]
 
     _added_to_context = False
 
