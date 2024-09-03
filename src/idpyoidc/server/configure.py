@@ -83,7 +83,7 @@ _C = {
                 "client_authn_method": None,
                 "claims_parameter_supported": True,
                 "request_parameter_supported": True,
-                "request_uri_parameter_supported": False,
+                "request_uri_parameter_supported": None,
                 "response_types_supported": ["code"],
                 "response_modes_supported": ["query", "fragment", "form_post"],
             },
@@ -152,7 +152,7 @@ OP_DEFAULT_CONFIG.update(
                     "client_authn_method": None,
                     "claims_parameter_supported": True,
                     "request_parameter_supported": True,
-                    "request_uri_parameter_supported": False,
+                    "request_uri_parameter_supported": None,
                     "response_types_supported": [
                         "code",
                         # "token",
@@ -480,7 +480,7 @@ DEFAULT_EXTENDED_CONF = {
                 "client_authn_method": None,
                 "claims_parameter_supported": True,
                 "request_parameter_supported": True,
-                "request_uri_parameter_supported": False,
+                "request_uri_parameter_supported": None,
                 "response_types_supported": [
                     "code",
                     # "token",

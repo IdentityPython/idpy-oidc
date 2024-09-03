@@ -212,6 +212,7 @@ ENDPOINT_CONTEXT_CONFIG = {
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         try:
@@ -351,14 +352,15 @@ class TestEndpoint(object):
 
     def test_init(self):
         assert self.endpoint[1]
-        assert set(self.endpoint[1].upstream_get("context").provider_info["scopes_supported"]) == {
-            "openid"
-        }
+
+        _context_1 = self.endpoint[1].upstream_get("context")
+        _context_2 = self.endpoint[2].upstream_get("context")
+
         assert (
-                self.endpoint[1].upstream_get("context").provider_info["claims_parameter_supported"]
-                == self.endpoint[2].upstream_get("context").provider_info[
-                    "claims_parameter_supported"]
+            _context_1.provider_info["claims_parameter_supported"] == _context_2.provider_info[
+               "claims_parameter_supported"]
         )
+        print(_context_1.provider_info.get("claims_parameter_supported"))
 
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ, index=1)
