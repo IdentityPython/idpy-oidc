@@ -9,8 +9,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -22,9 +22,9 @@ from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
+from idpyoidc.transform import preferred_to_registered
+from idpyoidc.transform import supported_to_preferred
 from idpyoidc.util import rndstr
-from .claims.transform import preferred_to_registered
-from .claims.transform import supported_to_preferred
 from .configure import get_configuration
 from .current import Current
 from .entity_metadata import EntityMetadata
@@ -434,4 +434,3 @@ class ServiceContext(ImpExp):
                     return _val
 
         return KeyError(f"{claim} not in {entity_type} metadata")
-

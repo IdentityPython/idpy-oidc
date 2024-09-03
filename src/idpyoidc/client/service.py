@@ -143,6 +143,9 @@ class Service(ImpExp):
         if not _use:
             _use = _context.map_preferred_to_registered()
 
+        if "client_id" not in _use:
+            _use["client_id"] = _context.get('entity_id', _context.get("client_id", ""))
+
         if "request_args" in self.conf:
             ar_args.update(self.conf["request_args"])
 

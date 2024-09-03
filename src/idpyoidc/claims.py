@@ -1,5 +1,6 @@
 import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 
 from cryptojwt import KeyJar
@@ -8,10 +9,13 @@ from cryptojwt.utils import importer
 
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
+from idpyoidc.message import Message
+from idpyoidc.transform import preferred_to_registered
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
 logger = logging.getLogger(__name__)
+
 
 def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
@@ -124,7 +128,7 @@ class Claims(ImpExp):
 
         return keyjar, _uri_path
 
-    def get_base_url(self, configuration: dict, entity_id: Optional[str]=""):
+    def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         raise NotImplementedError()
 
     def get_id(self, configuration: dict):
@@ -183,6 +187,10 @@ class Claims(ImpExp):
             elif val:
                 self.set_preference(key, val)
 
+        for attr,val in supports.items():
+            if attr not in self.prefer and val is not None:
+                self.set_preference(attr,val)
+
         self.verify_rules(supports)
         return keyjar
 
@@ -222,3 +230,53 @@ class Claims(ImpExp):
             return default
         else:
             return _val
+
+    def get_endpoint_claims(self, endpoints):
+        _info = {}
+        for endp in endpoints:
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+                for arg, claim in [("client_authn_method", "auth_methods"),
+                                   ("auth_signing_alg_values", "auth_signing_alg_values")]:
+                    _val = getattr(endp, arg, None)
+                    if _val:
+                        # trust_mark_status_endpoint_auth_methods_supported
+                        md_param = f"{endp.endpoint_name}_{claim}"
+                        _info[md_param] = _val
+        return _info
+
+    def get_metadata(self,
+                     entity_type: Optional[str] = "",
+                     endpoints: Optional[list] = None,
+                     metadata_schema: Optional[Message] = None,
+                     extra_claims: Optional[List[str]] = None,
+                     supported: Optional[dict] = None,
+                     **kwargs):
+
+        if supported is None:
+            supported = self.supports()
+
+        if not self.use:
+            self.use = preferred_to_registered(self.prefer, supported=supported)
+
+        metadata = self.use
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr}
+
+        # collect endpoints
+        if endpoints:
+            metadata.update(self.get_endpoint_claims(endpoints))
+
+        if entity_type:
+            return {entity_type: metadata}
+        else:
+            return metadata

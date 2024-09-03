@@ -1,17 +1,14 @@
 import copy
 import os
 
-import pytest
 from cryptojwt.key_jar import build_keyjar
+import pytest
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.exception import OidcEndpointError
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from idpyoidc.server.util import allow_refresh_token
-
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
@@ -28,9 +25,9 @@ class Endpoint_1(Endpoint):
     name = "userinfo"
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
-        "userinfo_signing_alg_values_supported": metadata.get_signing_algs(),
-        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "userinfo_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "userinfo_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "userinfo_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         "client_authn_method": ["bearer_header", "bearer_body"],
         "encrypt_userinfo_supported": False,
     }

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from idpyoidc.client import claims
-from idpyoidc.client.claims.transform import create_registration_request
+from idpyoidc.transform import create_registration_request
 
 REGISTER2PREFERRED = {
     "scope": "scopes_supported",
@@ -26,7 +26,9 @@ class Claims(claims.Claims):
         "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
         "token_endpoint_auth_methods_supported": ["none", "client_secret_post", "client_secret_basic"],
         # "token_auth_signing_algs_supported": metadata.get_signing_algs(),
+        "client_id": None,
         "client_name": None,
+        "client_secret": None,
         "client_uri": None,
         "logo_uri": None,
         "scope": None,

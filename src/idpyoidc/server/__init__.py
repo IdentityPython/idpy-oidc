@@ -6,6 +6,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.utils import importer
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.node import Unit
@@ -97,6 +98,20 @@ class Server(Unit):
             self.endpoint[endpoint_name].upstream_get = self.unit_get
 
         _token_endp = self.endpoint.get("token")
+
+        if isinstance(conf, dict):
+            metadata_schema = conf.get("metadata_schema", None)
+        else:
+            metadata_schema = conf.conf.get("metadata_schema", None)
+        if metadata_schema:
+            metadata_schema = importer(metadata_schema)
+        self.context.provider_info = self.context.claims.get_metadata(
+            endpoints=self.endpoint.values(),
+            metadata_schema=metadata_schema,
+            supported=self.context.supports()
+        )
+        self.context.provider_info["issuer"] = self.issuer
+        self.context.metadata = self.context.provider_info
 
         self.context.map_supported_to_preferred()
         if _token_endp:
