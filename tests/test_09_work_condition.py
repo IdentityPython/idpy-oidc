@@ -168,16 +168,14 @@ class TestWorkEnvironment:
             "acr_values_supported": ["mfa"],
         }
 
-        pref = self.claims.prefer = supported_to_preferred(
+        self.claims.prefer = supported_to_preferred(
             supported=self.supported,
             preference=self.claims.prefer,
             base_url="https://example.com",
             info=provider_info_response,
         )
 
-
-        # registration_request = create_registration_request(self.claims.prefer, self.supported)
-        registration_request = self.claims.get_metadata(metadata_schema=RegistrationRequest)
+        registration_request = self.claims.get_client_metadata(metadata_schema=RegistrationRequest)
 
         assert set(registration_request.keys()) == {
             "application_type",
@@ -241,7 +239,6 @@ class TestWorkEnvironment:
             "redirect_uris",
             "request_object_signing_alg",
             "request_uris",
-            'request_uri_parameter_supported',
             'request_parameter_supported',
             "response_modes",
             "response_types",
@@ -317,7 +314,7 @@ class TestWorkEnvironment:
             info=provider_info_response,
         )
 
-        registration_request = self.claims.get_metadata(metadata_schema=RegistrationRequest)
+        registration_request = self.claims.get_client_metadata(metadata_schema=RegistrationRequest)
 
         assert set(registration_request.keys()) == {
             "application_type",
@@ -382,7 +379,6 @@ class TestWorkEnvironment:
             "request_object_signing_alg",
             'request_parameter_supported',
             "request_uris",
-            'request_uri_parameter_supported',
             "response_modes",
             "response_types",
             "scope",

@@ -144,7 +144,7 @@ class TestEndpoint(object):
                 "claims_parameter_supported": True,
                 "request_parameter_supported": True,
                 "request_uri_parameter_supported": True,
-                "request_object_signing_alg_values_supported": metadata.get_signing_algs()
+                "request_object_signing_alg_values_supported": ["HS256"]
             },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "request_cls": JWTSecuredAuthorizationRequest,
@@ -194,7 +194,6 @@ class TestEndpoint(object):
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
         server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        server.keyjar.import_jwks(self.rp_keyjar.export_jwks(), "client_1")
 
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
@@ -215,7 +214,7 @@ class TestEndpoint(object):
         assert "__verified_request" in _req
 
     def test_parse_request_uri(self):
-        _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="RS256")
+        _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
             aud=self.endpoint.upstream_get("context").provider_info["issuer"],

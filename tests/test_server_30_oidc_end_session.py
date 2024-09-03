@@ -8,6 +8,7 @@ import pytest
 import responses
 from cryptojwt.key_jar import build_keyjar
 
+from idpyoidc import metadata
 from idpyoidc.exception import InvalidRequest
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -67,6 +68,7 @@ PREFRERENCES = {
     "claims_parameter_supported": True,
     "request_parameter_supported": True,
     "request_uri_parameter_supported": True,
+    "id_token_signing_alg_values_supported": metadata.get_signing_algs()
 }
 
 AUTH_REQ = AuthorizationRequest(
