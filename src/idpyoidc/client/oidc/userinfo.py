@@ -8,9 +8,9 @@ from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
-from idpyoidc.metadata import get_encryption_algs
-from idpyoidc.metadata import get_encryption_encs
-from idpyoidc.metadata import get_signing_algs
+from idpyoidc.alg_info import get_encryption_algs
+from idpyoidc.alg_info import get_encryption_encs
+from idpyoidc.alg_info import get_signing_algs
 
 logger = logging.getLogger(__name__)
 

@@ -1,15 +1,16 @@
+from http.cookies import SimpleCookie
 import io
 import json
 import os
-from http.cookies import SimpleCookie
 
-import pytest
-import responses
-import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jwt import utc_time_sans_frac
+import pytest
+import responses
+import yaml
 
+from idpyoidc import metadata
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 from idpyoidc.server import Server
@@ -27,15 +28,6 @@ KEYDEFS = [
 ]
 
 RESPONSE_TYPES_SUPPORTED = [["code"], ["token"], ["code", "token"], ["none"]]
-
-CAPABILITIES = {
-    "grant_types_supported": [
-        "authorization_code",
-        "implicit",
-        "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        "refresh_token",
-    ]
-}
 
 AUTH_REQ = AuthorizationRequest(
     client_id="client_1",
@@ -138,19 +130,23 @@ class TestEndpoint(object):
         conf = {
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
-            "verify_ssl": False,
-            "grant_types_supported": [
-                "authorization_code",
-                "implicit",
-                "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "refresh_token",
-            ],
+            "httpc_params": {
+                "verify": False
+            },
+            "preference": {
+                "grant_types_supported": [
+                    "authorization_code",
+                    "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    "refresh_token",
+                ],
+                "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+                "response_modes_supported": ["query", "fragment", "form_post"],
+                "claims_parameter_supported": True,
+                "request_parameter_supported": True,
+                "request_uri_parameter_supported": True,
+                "request_object_signing_alg_values_supported": metadata.get_signing_algs()
+            },
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
-            "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-            "response_modes_supported": ["query", "fragment", "form_post"],
-            "claims_parameter_supported": True,
-            "request_parameter_supported": True,
-            "request_uri_parameter_supported": True,
             "request_cls": JWTSecuredAuthorizationRequest,
             "endpoint": {
                 "authorization": {
@@ -198,6 +194,7 @@ class TestEndpoint(object):
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
         server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.keyjar.import_jwks(self.rp_keyjar.export_jwks(), "client_1")
 
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
@@ -218,7 +215,7 @@ class TestEndpoint(object):
         assert "__verified_request" in _req
 
     def test_parse_request_uri(self):
-        _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")
+        _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="RS256")
         _jws = _jwt.pack(
             AUTH_REQ_DICT,
             aud=self.endpoint.upstream_get("context").provider_info["issuer"],

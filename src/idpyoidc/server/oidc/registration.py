@@ -143,7 +143,7 @@ class Registration(Endpoint):
         # Use my defaults
         _my_key = _context.claims.register2preferred.get(claim, claim)
         try:
-            _val = _context.provider_info[_my_key]
+            _val = _context.claims.get_preference(_my_key)
         except KeyError:
             return val
 

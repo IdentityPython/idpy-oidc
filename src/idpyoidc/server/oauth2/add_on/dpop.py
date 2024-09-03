@@ -1,5 +1,5 @@
-import logging
 from hashlib import sha256
+import logging
 from typing import Callable
 from typing import Optional
 from typing import Union
@@ -9,12 +9,12 @@ from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 
+from idpyoidc.alg_info import get_signing_algs
+from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_JSON
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
-from idpyoidc.metadata import get_signing_algs
 from idpyoidc.server.client_authn import BearerHeader
 
 logger = logging.getLogger(__name__)
@@ -202,18 +202,22 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
 
     return token_args
 
+
 def _add_to_context(endpoint, algs_supported):
     _context = endpoint.upstream_get("context")
     _context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
     _context.add_on["dpop"] = {"algs_supported": algs_supported}
     _context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
 
-def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None, **kwargs):
+
+def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None,
+                **kwargs):
     if dpop_signing_alg_values_supported is None:
         _algs_supported = ["RS256"]
     else:
         # Pick out the ones I support
-        _algs_supported = [alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()]
+        _algs_supported = [alg for alg in dpop_signing_alg_values_supported if
+                           alg in get_signing_algs()]
 
     _added_to_context = False
 

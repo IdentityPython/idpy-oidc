@@ -62,6 +62,8 @@ class TestService:
             "jwks",
             "redirect_uris",
             "request_object_signing_alg",
+            'request_parameter_supported',
+            'request_uri_parameter_supported',
             "response_modes",
             "response_types",
             "scope",

@@ -487,133 +487,133 @@ CLI_KEY = init_key_jar(
 )
 
 
-class TestBCAEndpointService(object):
-    @pytest.fixture(autouse=True)
-    def create_endpoint(self):
-        self.ciba = {"self.server": self._create_self.server(), "client": self._create_ciba_client()}
-
-    def _create_self.server(self):
-        self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
-        context = self.server.context
-        context.cdb["client_1"] = {
-            "client_secret": "hemligt",
-            "redirect_uris": [("https://example.com/cb", None)],
-            "client_salt": "salted",
-            "token_endpoint_auth_method": "client_secret_post",
-            "response_types": ["code", "token", "code id_token", "id_token"],
-        }
-
-        client_keyjar = build_keyjar(KEYDEFS)
-        # Add self.servers keys
-        client_keyjar.import_jwks(self.server.keyjar.export_jwks(), ISSUER)
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", CLIENT_SECRET, ["sig"])
-        # Need to add the client_secret as a symmetric key bound to the client_id
-        self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
-        self.server.keyjar.import_jwks(client_keyjar.export_jwks(), CLIENT_ID)
-
-        self.server.context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
-        # login_hint
-        self.server.context.login_hint_lookup = init_service(
-            {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
-        )
-        # userinfo
-        _userinfo = init_user_info(
-            {
-                "class": "idpyoidc.self.server.user_info.UserInfo",
-                "kwargs": {"db_file": full_path("users.json")},
-            },
-            "",
-        )
-        self.server.context.login_hint_lookup.userinfo = _userinfo
-        return self.server
-
-    def _create_ciba_client(self):
-        config = {
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "redirect_uris": ["https://example.com/cb"],
-            "services": {
-                "client_notification": {
-                    "class": "idpyoidc.client.oidc.backchannel_authentication.ClientNotification",
-                    "kwargs": {"conf": {"default_authn_method": "client_notification_authn"}},
-                },
-            },
-            "client_authn_methods": {
-                "client_notification_authn": {
-                    'class': "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
-                }
-            },
-        }
-
-        client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
-
-        client.upstream_get("context").provider_info = {
-            "client_notification_endpoint": "https://example.com/notify",
-        }
-
-        return client
-
-    def _create_session(self, user_id, auth_req, sub_type="public", sector_identifier=""):
-        if sector_identifier:
-            authz_req = auth_req.copy()
-            authz_req["sector_identifier_uri"] = sector_identifier
-        else:
-            authz_req = auth_req
-        client_id = authz_req["client_id"]
-        ae = create_authn_event(user_id)
-        _session_manager = self.ciba["self.server"].context.session_manager
-        return _session_manager.create_session(
-            ae, authz_req, user_id, client_id=client_id, sub_type=sub_type
-        )
-
-    def test_client_notification(self):
-        _keyjar = self.ciba["self.server"].context.keyjar
-        _jwt = JWT(_keyjar, iss=CLIENT_ID, sign_alg="HS256")
-        _jwt.with_jti = True
-        _assertion = _jwt.pack({"aud": [ISSUER]})
-
-        request = {
-            "client_assertion": _assertion,
-            "client_assertion_type": JWT_BEARER,
-            "scope": "openid email example-scope",
-            "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
-            "binding_message": "W4SCT",
-            "login_hint": "mail:diana@example.org",
-        }
-
-        _authn_endpoint = self.ciba["self.server"].upstream_get("endpoint", "backchannel_authentication")
-
-        req = AuthenticationRequest(**request)
-        req = _authn_endpoint.parse_request(req.to_urlencoded())
-        _info = _authn_endpoint.process_request(req)
-        assert _info
-
-        _session_manager = self.ciba["self.server"].context.session_manager
-        sid = _session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
-        _user_id, _client_id, _grant_id = _session_manager.decrypt_session_id(sid)
-
-        # Some time passes and the client authentication is successfully performed
-        # The interaction with the authentication device is not shown
-        session_id_2 = self._create_session(_user_id, req)
-
-        # Now it's time to send a client notification
-        req_args = {
-            "auth_req_id": _info["response_args"]["auth_req_id"],
-            "client_notification_token": request["client_notification_token"],
-        }
-
-        _service = self.ciba["client"].upstream_get("service", "client_notification")
-        _req_param = _service.get_request_parameters(request_args=req_args)
-        assert _req_param
-        assert isinstance(_req_param["request"], NotificationRequest)
-        assert set(_req_param.keys()) == {"method", "request", "url", "body", "headers"}
-        assert _req_param["method"] == "POST"
-        # This is the client's notification endpoint
-        assert (
-            _req_param["url"]
-            == self.ciba["client"]
-            .upstream_get("context")
-            .provider_info["client_notification_endpoint"]
-        )
-        assert set(_req_param["request"].keys()) == {"auth_req_id", "client_notification_token"}
+# class TestBCAEndpointServi ce(object):
+#     @pytest.fixture(autouse=True)
+#     def create_endpoint(self):
+#         self.ciba = {"self.server": self._create_self.server(), "client": self._create_ciba_client()}
+#
+#     def _create_self.server(self):
+#         self.server = Server(OPConfiguration(SERVER_CONF, base_path=BASEDIR))
+#         context = self.server.context
+#         context.cdb["client_1"] = {
+#             "client_secret": "hemligt",
+#             "redirect_uris": [("https://example.com/cb", None)],
+#             "client_salt": "salted",
+#             "token_endpoint_auth_method": "client_secret_post",
+#             "response_types": ["code", "token", "code id_token", "id_token"],
+#         }
+#
+#         client_keyjar = build_keyjar(KEYDEFS)
+#         # Add self.servers keys
+#         client_keyjar.import_jwks(self.server.keyjar.export_jwks(), ISSUER)
+#         # The only own key the client has a this point
+#         client_keyjar.add_symmetric("", CLIENT_SECRET, ["sig"])
+#         # Need to add the client_secret as a symmetric key bound to the client_id
+#         self.server.keyjar.add_symmetric(CLIENT_ID, CLIENT_SECRET, ["sig"])
+#         self.server.keyjar.import_jwks(client_keyjar.export_jwks(), CLIENT_ID)
+#
+#         self.server.context.cdb = {CLIENT_ID: {"client_secret": CLIENT_SECRET}}
+#         # login_hint
+#         self.server.context.login_hint_lookup = init_service(
+#             {"class": "idpyoidc.self.server.login_hint.LoginHintLookup"}, None
+#         )
+#         # userinfo
+#         _userinfo = init_user_info(
+#             {
+#                 "class": "idpyoidc.self.server.user_info.UserInfo",
+#                 "kwargs": {"db_file": full_path("users.json")},
+#             },
+#             "",
+#         )
+#         self.server.context.login_hint_lookup.userinfo = _userinfo
+#         return self.server
+#
+#     def _create_ciba_client(self):
+#         config = {
+#             "client_id": CLIENT_ID,
+#             "client_secret": CLIENT_SECRET,
+#             "redirect_uris": ["https://example.com/cb"],
+#             "services": {
+#                 "client_notification": {
+#                     "class": "idpyoidc.client.oidc.backchannel_authentication.ClientNotification",
+#                     "kwargs": {"conf": {"default_authn_method": "client_notification_authn"}},
+#                 },
+#             },
+#             "client_authn_methods": {
+#                 "client_notification_authn": {
+#                     'class': "idpyoidc.client.oidc.backchannel_authentication.ClientNotificationAuthn"
+#                 }
+#             },
+#         }
+#
+#         client = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
+#
+#         client.upstream_get("context").provider_info = {
+#             "client_notification_endpoint": "https://example.com/notify",
+#         }
+#
+#         return client
+#
+#     def _create_session(self, user_id, auth_req, sub_type="public", sector_identifier=""):
+#         if sector_identifier:
+#             authz_req = auth_req.copy()
+#             authz_req["sector_identifier_uri"] = sector_identifier
+#         else:
+#             authz_req = auth_req
+#         client_id = authz_req["client_id"]
+#         ae = create_authn_event(user_id)
+#         _session_manager = self.ciba["self.server"].context.session_manager
+#         return _session_manager.create_session(
+#             ae, authz_req, user_id, client_id=client_id, sub_type=sub_type
+#         )
+#
+#     def test_client_notification(self):
+#         _keyjar = self.ciba["self.server"].context.keyjar
+#         _jwt = JWT(_keyjar, iss=CLIENT_ID, sign_alg="HS256")
+#         _jwt.with_jti = True
+#         _assertion = _jwt.pack({"aud": [ISSUER]})
+#
+#         request = {
+#             "client_assertion": _assertion,
+#             "client_assertion_type": JWT_BEARER,
+#             "scope": "openid email example-scope",
+#             "client_notification_token": "8d67dc78-7faa-4d41-aabd-67707b374255",
+#             "binding_message": "W4SCT",
+#             "login_hint": "mail:diana@example.org",
+#         }
+#
+#         _authn_endpoint = self.ciba["self.server"].upstream_get("endpoint", "backchannel_authentication")
+#
+#         req = AuthenticationRequest(**request)
+#         req = _authn_endpoint.parse_request(req.to_urlencoded())
+#         _info = _authn_endpoint.process_request(req)
+#         assert _info
+#
+#         _session_manager = self.ciba["self.server"].context.session_manager
+#         sid = _session_manager.auth_req_id_map[_info["response_args"]["auth_req_id"]]
+#         _user_id, _client_id, _grant_id = _session_manager.decrypt_session_id(sid)
+#
+#         # Some time passes and the client authentication is successfully performed
+#         # The interaction with the authentication device is not shown
+#         session_id_2 = self._create_session(_user_id, req)
+#
+#         # Now it's time to send a client notification
+#         req_args = {
+#             "auth_req_id": _info["response_args"]["auth_req_id"],
+#             "client_notification_token": request["client_notification_token"],
+#         }
+#
+#         _service = self.ciba["client"].upstream_get("service", "client_notification")
+#         _req_param = _service.get_request_parameters(request_args=req_args)
+#         assert _req_param
+#         assert isinstance(_req_param["request"], NotificationRequest)
+#         assert set(_req_param.keys()) == {"method", "request", "url", "body", "headers"}
+#         assert _req_param["method"] == "POST"
+#         # This is the client's notification endpoint
+#         assert (
+#             _req_param["url"]
+#             == self.ciba["client"]
+#             .upstream_get("context")
+#             .provider_info["client_notification_endpoint"]
+#         )
+#         assert set(_req_param["request"].keys()) == {"auth_req_id", "client_notification_token"}

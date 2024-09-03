@@ -4,9 +4,10 @@ import pytest as pytest
 from cryptojwt.utils import importer
 
 from idpyoidc.client.claims.oidc import Claims
-from idpyoidc.client.claims.transform import create_registration_request
-from idpyoidc.client.claims.transform import preferred_to_registered
-from idpyoidc.client.claims.transform import supported_to_preferred
+from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.transform import create_registration_request
+from idpyoidc.transform import preferred_to_registered
+from idpyoidc.transform import supported_to_preferred
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYSPEC = [
@@ -175,7 +176,9 @@ class TestWorkEnvironment:
             info=provider_info_response,
         )
 
-        registration_request = create_registration_request(self.claims.prefer, self.supported)
+
+        # registration_request = create_registration_request(self.claims.prefer, self.supported)
+        registration_request = self.claims.get_metadata(metadata_schema=RegistrationRequest)
 
         assert set(registration_request.keys()) == {
             "application_type",
@@ -230,8 +233,8 @@ class TestWorkEnvironment:
             "client_secret",
             "contacts",
             "default_max_age",
-            "encrypt_request_object_supported",
-            "encrypt_userinfo_supported",
+            'encrypt_userinfo_supported',
+            'encrypt_request_object_supported',
             "id_token_signed_response_alg",
             "jwks",
             "jwks_uri",
@@ -239,6 +242,8 @@ class TestWorkEnvironment:
             "redirect_uris",
             "request_object_signing_alg",
             "request_uris",
+            'request_uri_parameter_supported',
+            'request_parameter_supported',
             "response_modes",
             "response_types",
             "scope",
@@ -313,7 +318,7 @@ class TestWorkEnvironment:
             info=provider_info_response,
         )
 
-        registration_request = create_registration_request(self.claims.prefer, self.supported)
+        registration_request = self.claims.get_metadata(metadata_schema=RegistrationRequest)
 
         assert set(registration_request.keys()) == {
             "application_type",
@@ -376,7 +381,9 @@ class TestWorkEnvironment:
             "logo_uri",
             "redirect_uris",
             "request_object_signing_alg",
+            'request_parameter_supported',
             "request_uris",
+            'request_uri_parameter_supported',
             "response_modes",
             "response_types",
             "scope",

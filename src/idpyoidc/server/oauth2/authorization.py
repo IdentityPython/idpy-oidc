@@ -18,7 +18,7 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -393,12 +393,12 @@ class Authorization(Endpoint):
     _supports = {
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
-        "request_uri_parameter_supported": True,
+        "request_uri_parameter_supported": False,
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
-        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "request_object_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "request_object_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         # "grant_types_supported": ["authorization_code", "implicit"],
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],
@@ -1228,10 +1228,12 @@ class AllowedAlgorithms:
         _allowed = _cinfo.get(_reg)
         if _allowed is None:
             _allowed = _pinfo.get(_sup)
+            if _allowed is None:
+                _allowed = [_pinfo.get(_reg)]
 
         if alg not in _allowed:
-            logger.error("Signing alg user: {} not among allowed: {}".format(alg, _allowed))
-            raise ValueError("Not allowed '%s' algorithm used", alg)
+            logger.error(f"Signing alg user: {alg} not among allowed: {_allowed}")
+            raise ValueError(f"Not allowed {alg} algorithm used")
 
 
 def re_authenticate(request, authn) -> bool:

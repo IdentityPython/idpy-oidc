@@ -74,6 +74,7 @@ def test_create_client():
         "redirect_uris",
         "request_object_signing_alg_values_supported",
         "request_parameter",
+        "request_parameter_supported",
         "response_modes_supported",
         "response_types_supported",
         "scopes_supported",
@@ -95,7 +96,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 23
+    assert len(_conf_args) == 25
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined and will therefore not appear in a registration request
     d = rr.difference(set(_conf_args))
@@ -146,3 +147,28 @@ def test_create_client_jwks_uri():
     client_config["jwks_uri"] = "https://rp.example.com/jwks_uri.json"
     client = Entity(config=client_config)
     assert client.get_service_context().get_preference("jwks_uri")
+
+
+def test_metadata():
+    client = Entity(config=CLIENT_CONFIG, client_type="oidc")
+    # With entity type
+    metadata = client.context.claims.get_metadata("openid_relying_pary", endpoints=None,
+                                                  metadata_schema=RegistrationRequest)
+    assert set(metadata.keys()) == {"openid_relying_pary"}
+    # Without entity type, no endpoints. Typical client
+    metadata = client.context.claims.get_metadata(metadata_schema=RegistrationRequest)
+    assert set(metadata.keys()) == {'application_type',
+                                    'backchannel_logout_session_required',
+                                    'backchannel_logout_uri',
+                                    'contacts',
+                                    'default_max_age',
+                                    'grant_types',
+                                    'id_token_signed_response_alg',
+                                    'redirect_uris',
+                                    'request_object_signing_alg',
+                                    'response_modes',
+                                    'response_types',
+                                    'subject_type',
+                                    'token_endpoint_auth_method',
+                                    'token_endpoint_auth_signing_alg',
+                                    'userinfo_signed_response_alg'}

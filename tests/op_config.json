@@ -44,7 +44,7 @@
       }
     }
   },
-  "capabilities": {
+  "preference": {
     "subject_types_supported": [
       "public",
       "pairwise"

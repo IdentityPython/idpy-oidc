@@ -291,7 +291,7 @@ class TestRPHandler(object):
         assert query["client_id"] == ["eeeeeeeee"]
         assert query["redirect_uri"] == ["https://example.com/rp/authz_cb/github"]
         assert query["response_type"] == ["code"]
-        assert query["scope"] == ["user public_repo openid"]
+        assert query["scope"] == ["openid"]
 
     def test_get_session_information(self):
         rph_1 = RPHandler(
