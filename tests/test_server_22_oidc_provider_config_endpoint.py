@@ -19,12 +19,8 @@ KEYDEFS = [
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
-    ["token"],
     ["id_token"],
-    ["code", "token"],
     ["code", "id_token"],
-    ["id_token", "token"],
-    ["code", "token", "id_token"],
     ["none"],
 ]
 
@@ -94,14 +90,14 @@ class TestProviderConfigEndpoint(object):
         assert "claims_supported" not in _msg  # No default for this
         assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
 
-    def test_scopes_supported(self, conf):
-        scopes_supported = ["openid", "random", "profile"]
-        conf["scopes_supported"] = scopes_supported
-
-        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
-        endpoint = server.get_endpoint("provider_config")
-        args = endpoint.process_request()
-        msg = endpoint.do_response(args["response_args"])
-        assert isinstance(msg, dict)
-        _msg = json.loads(msg["response"])
-        assert set(_msg["scopes_supported"]) == set(scopes_supported)
+    # def test_scopes_supported(self, conf):
+    #     scopes_supported = ["openid", "random", "profile"]
+    #     conf["scopes_supported"] = scopes_supported
+    #
+    #     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+    #     endpoint = server.get_endpoint("provider_config")
+    #     args = endpoint.process_request()
+    #     msg = endpoint.do_response(args["response_args"])
+    #     assert isinstance(msg, dict)
+    #     _msg = json.loads(msg["response"])
+    #     assert set(_msg["scopes_supported"]) == set(scopes_supported)

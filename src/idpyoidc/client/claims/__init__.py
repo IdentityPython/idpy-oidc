@@ -58,7 +58,7 @@ class Claims(claims.Claims):
             if (
                 len(_own_keys) == 1
                 and isinstance(_own_keys[0], SYMKey)
-                and self.prefer["client_secret"]
+                and self.prefer.get("client_secret", None)
             ):
                 pass
             else:

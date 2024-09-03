@@ -269,6 +269,7 @@ class TestRPHandler(object):
                               'id_token_signing_alg_values_supported',
                               'redirect_uris',
                               'request_object_signing_alg_values_supported',
+                              'request_parameter_supported',
                               'response_modes_supported',
                               'response_types_supported',
                               'scopes_supported',
@@ -346,7 +347,7 @@ class TestRPHandler(object):
         cb = _context.get_preference("callback_uris")
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb["redirect_uris"].keys()) == {"query", "fragment"}
+        assert set(cb["redirect_uris"].keys()) == {"query", "fragment", "form_post"}
         _hash = _context.iss_hash
 
         assert cb["redirect_uris"]["query"] == [f"https://example.com/rp/authz_cb/{_hash}"]

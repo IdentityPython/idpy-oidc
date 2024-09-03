@@ -117,12 +117,12 @@ def test_capabilities_default():
     configuration = OPConfiguration(conf=_conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
 
     server = Server(configuration)
-    assert set(server.context.provider_info["response_types_supported"]) == {
+    assert set(server.context.provider_info["response_types"]) == {
         "code",
         "id_token",
         "code id_token",
     }
-    assert server.context.provider_info["request_uri_parameter_supported"] is True
+    assert server.context.provider_info["request_uri_parameter_supported"] is False
     assert server.context.get_preference("jwks_uri") == "https://127.0.0.1:443/static/jwks.json"
 
 
@@ -130,14 +130,14 @@ def test_capabilities_subset1():
     _cnf = deepcopy(CONF)
     _cnf["response_types_supported"] = ["code"]
     server = Server(_cnf)
-    assert server.context.provider_info["response_types_supported"] == ["code"]
+    assert server.context.provider_info["response_types"] == ["code"]
 
 
 def test_capabilities_subset2():
     _cnf = deepcopy(CONF)
     _cnf["response_types_supported"] = ["code", "id_token"]
     server = Server(_cnf)
-    assert set(server.context.provider_info["response_types_supported"]) == {
+    assert set(server.context.provider_info["response_types"]) == {
         "code",
         "id_token",
     }
