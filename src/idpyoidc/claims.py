@@ -245,9 +245,37 @@ class Claims(ImpExp):
                         _info[md_param] = _val
         return _info
 
-    def get_metadata(self,
+    def get_server_metadata(self,
                      entity_type: Optional[str] = "",
                      endpoints: Optional[list] = None,
+                     metadata_schema: Optional[Message] = None,
+                     extra_claims: Optional[List[str]] = None,
+                     **kwargs):
+
+        metadata = self.prefer
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr}
+
+        # collect endpoints
+        if endpoints:
+            metadata.update(self.get_endpoint_claims(endpoints))
+
+        if entity_type:
+            return {entity_type: metadata}
+        else:
+            return metadata
+
+    def get_client_metadata(self,
+                     entity_type: Optional[str] = "",
                      metadata_schema: Optional[Message] = None,
                      extra_claims: Optional[List[str]] = None,
                      supported: Optional[dict] = None,
@@ -271,10 +299,6 @@ class Claims(ImpExp):
 
         if attr:
             metadata = {k: v for k, v in metadata.items() if k in attr}
-
-        # collect endpoints
-        if endpoints:
-            metadata.update(self.get_endpoint_claims(endpoints))
 
         if entity_type:
             return {entity_type: metadata}

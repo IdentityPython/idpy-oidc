@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
+
     def _get_session_info(self, request, session_manager):
         if request["grant_type"] != "authorization_code":
             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
@@ -56,7 +57,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "grant_types_supported" in _context.cdb[client_id]:
             grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
         else:
-            grant_types_supported = _context.provider_info["grant_types_supported"]
+            grant_types_supported = _context.provider_info.get("grant_types", [])
         grant = _session_info["grant"]
 
         token_type = "Bearer"
@@ -166,7 +167,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens

@@ -135,7 +135,11 @@ class Session(Endpoint):
         try:
             alg = cinfo["id_token_signed_response_alg"]
         except KeyError:
-            alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
+            _algs = _context.provider_info.get("id_token_signing_alg_values_supported")
+            if _algs:
+                alg = _algs[0]
+            else:
+                alg = _context.provider_info.get("id_token_signed_response_alg", "RS256")
 
         _jws = JWT(
             self.upstream_get("attribute", "keyjar"),

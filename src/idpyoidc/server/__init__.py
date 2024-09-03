@@ -105,10 +105,9 @@ class Server(Unit):
             metadata_schema = conf.conf.get("metadata_schema", None)
         if metadata_schema:
             metadata_schema = importer(metadata_schema)
-        self.context.provider_info = self.context.claims.get_metadata(
+        self.context.provider_info = self.context.claims.get_server_metadata(
             endpoints=self.endpoint.values(),
             metadata_schema=metadata_schema,
-            supported=self.context.supports()
         )
         self.context.provider_info["issuer"] = self.issuer
         self.context.metadata = self.context.provider_info

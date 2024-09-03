@@ -102,7 +102,8 @@ class Registration(Service):
         @return:
         """
         _context = self.upstream_get("context")
-        req_args = _context.claims.get_metadata(metadata_schema=self.msg_type)
+        req_args = _context.claims.get_client_metadata(metadata_schema=self.msg_type,
+                                                       supported=_context.supports())
         if "request_args" in self.conf:
             req_args.update(self.conf["request_args"])
 

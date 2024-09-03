@@ -76,6 +76,8 @@ CAPABILITIES = {
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "refresh_token",
     ],
+    "request_uri_parameter_supported": True,
+    "request_object_signing_alg_values_supported": ["HS256"]
 }
 
 CLAIMS = {"id_token": {"given_name": {"essential": True}, "nickname": None}}
@@ -157,7 +159,7 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
-            "capabilities": CAPABILITIES,
+            "preference": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
