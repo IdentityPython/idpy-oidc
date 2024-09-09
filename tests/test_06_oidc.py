@@ -470,6 +470,7 @@ class TestProviderConfigurationResponse(object):
         [
             "issuer",
             "authorization_endpoint",
+            "token_endpoint",
             "jwks_uri",
             "response_types_supported",
             "subject_types_supported",
@@ -480,6 +481,7 @@ class TestProviderConfigurationResponse(object):
         provider_config = {
             "issuer": "https://server.example.com",
             "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "token_endpoint": "https://server.example.com/connect/token",
             "jwks_uri": "https://server.example.com/jwks.json",
             "response_types_supported": ["code", "code id_token", "id_token", "token id_token"],
             "subject_types_supported": ["public", "pairwise"],
@@ -520,19 +522,20 @@ class TestProviderConfigurationResponse(object):
         provider_config = {
             "issuer": "https://server.example.com",
             "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "token_endpoint": "https://server.example.com/connect/token",
             "jwks_uri": "https://server.example.com/jwks.json",
             "response_types_supported": ["code", "code id_token", "id_token", "token id_token"],
             "subject_types_supported": ["public", "pairwise"],
             "id_token_signing_alg_values_supported": ["none", "ES256", "HS256"],
         }
 
-        with pytest.raises(MissingRequiredAttribute):
-            ProviderConfigurationResponse(**provider_config).verify()
+        assert ProviderConfigurationResponse(**provider_config).verify()
 
     def test_required_parameters_only_none_signing_alg(self):
         provider_config = {
             "issuer": "https://server.example.com",
             "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "token_endpoint": "https://server.example.com/connect/token",
             "jwks_uri": "https://server.example.com/jwks.json",
             "response_types_supported": ["code", "code id_token", "id_token", "token id_token"],
             "subject_types_supported": ["public", "pairwise"],
