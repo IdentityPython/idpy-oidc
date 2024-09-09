@@ -516,6 +516,32 @@ class TestProviderConfigurationResponse(object):
         with pytest.raises(MissingRequiredAttribute):
             ProviderConfigurationResponse(**provider_config).verify()
 
+    def test_required_parameters_without_rs256(self):
+        provider_config = {
+            "issuer": "https://server.example.com",
+            "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "jwks_uri": "https://server.example.com/jwks.json",
+            "response_types_supported": ["code", "code id_token", "id_token", "token id_token"],
+            "subject_types_supported": ["public", "pairwise"],
+            "id_token_signing_alg_values_supported": ["none", "ES256", "HS256"],
+        }
+
+        with pytest.raises(MissingRequiredAttribute):
+            ProviderConfigurationResponse(**provider_config).verify()
+
+    def test_required_parameters_only_none_signing_alg(self):
+        provider_config = {
+            "issuer": "https://server.example.com",
+            "authorization_endpoint": "https://server.example.com/connect/authorize",
+            "jwks_uri": "https://server.example.com/jwks.json",
+            "response_types_supported": ["code", "code id_token", "id_token", "token id_token"],
+            "subject_types_supported": ["public", "pairwise"],
+            "id_token_signing_alg_values_supported": ["none"],
+        }
+
+        with pytest.raises(ValueError):
+            ProviderConfigurationResponse(**provider_config).verify()
+
 
 class TestRegistrationRequest(object):
     def test_deserialize(self):
