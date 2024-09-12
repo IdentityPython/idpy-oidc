@@ -271,6 +271,11 @@ def get_deserialization_method(reqresp):
                 return "jwt"
             except Exception:
                 return "urlencoded"  # reasonable default ??
+    elif ';' in _ctype:
+        for _typ in _ctype.split(";"):
+            if _typ.startswith("application") or _typ.startswith("text"):
+                _ctype = _typ
+                break
 
     if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
         deser_method = "json"
