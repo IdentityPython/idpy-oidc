@@ -239,6 +239,14 @@ class AbstractFileSystem(DictType):
                 else:
                     self.fmtime[f] = mtime
 
+        _keys = self.storage.keys()
+        for f in _keys:
+            fname = os.path.join(self.fdir, f)
+            if os.path.isfile(fname):
+                pass
+            else:
+                del self.storage[f]
+
     def items(self):
         """
         Implements the dict.items() method

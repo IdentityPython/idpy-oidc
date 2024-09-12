@@ -3,6 +3,7 @@ import logging
 from cryptojwt.utils import importer
 
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
+from idpyoidc.client.service import Service
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 from idpyoidc.server.util import execute
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 HTTP_METHOD = "POST"
 
 
-def push_authorization(request_args, service, **kwargs):
+def push_authorization(request_args: Message, service: Service, **kwargs):
     """
     :param request_args: All the request arguments as a AuthorizationRequest instance
     :param service: The service to which this post construct method is applied.
