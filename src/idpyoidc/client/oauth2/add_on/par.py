@@ -1,5 +1,6 @@
 import logging
 
+from cryptojwt import JWT
 from cryptojwt.utils import importer
 
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
@@ -49,8 +50,15 @@ def push_authorization(request_args: Message, service: Service, **kwargs):
         )
         _headers["Content-Type"] = "application/x-www-form-urlencoded"
 
+    # construct a signed request object
+    _jwt = JWT(key_jar=_context.keyjar)
+    _request_object = _jwt.pack(request_args)
+
     # construct the message body
-    _body = request_args.to_urlencoded()
+    _required_params = {k: v for k, v in request_args.items() if k in request_args.required_parameters()}
+    _required_params["request"] = _request_object
+    _req = service.msg_type(**_required_params)
+    _body = _req.to_urlencoded()
 
     _http_client = method_args.get("http_client", None)
     if not _http_client:
