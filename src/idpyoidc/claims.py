@@ -206,14 +206,20 @@ class Claims(ImpExp):
     def construct_uris(self, *args):
         pass
 
-    def supports(self):
+    def _expand(self, dictionary):
         res = {}
-        for key, val in self._supports.items():
+        for key, val in dictionary.items():
             if isinstance(val, Callable):
                 res[key] = val()
             else:
-                res[key] = val
+                if isinstance(val, dict):
+                    res[key] = self._expand(val)
+                else:
+                    res[key] = val
         return res
+
+    def supports(self):
+        return self._expand(self._supports)
 
     def supported(self, claim):
         return claim in self._supports
