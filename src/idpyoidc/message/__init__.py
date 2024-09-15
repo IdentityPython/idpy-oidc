@@ -79,10 +79,11 @@ class Message(MutableMapping):
         for key, val in self.c_default.items():
             self._dict.setdefault(key, val)
 
-    def to_urlencoded(self):
+    def to_urlencoded(self, doseq=False):
         """
         Creates a string using the application/x-www-form-urlencoded format
 
+        :doseq: If set to true, key=value pairs separated by '&' are generated for each element of the value sequence for the key.
         :return: A string of the application/x-www-form-urlencoded format
         """
 
@@ -135,7 +136,7 @@ class Message(MutableMapping):
                     params.append((key, str(val)))
 
         try:
-            return urlencode(params)
+            return urlencode(params, doseq=doseq)
         except UnicodeEncodeError:
             _val = []
             for k, v in params:
@@ -143,7 +144,7 @@ class Message(MutableMapping):
                     _val.append((k, v.encode("utf-8")))
                 except TypeError:
                     _val.append((k, v))
-            return urlencode(_val)
+            return urlencode(_val, doseq=doseq)
 
     def serialize(self, method="urlencoded", **kwargs):
         """
