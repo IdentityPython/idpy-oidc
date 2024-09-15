@@ -14,6 +14,7 @@ from idpyoidc.client.service import REQUEST_INFO
 from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
 from idpyoidc.client.util import do_add_ons
+from idpyoidc.client.util import get_content_type
 from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.configure import Configuration
 from idpyoidc.context import OidcContext
@@ -254,12 +255,13 @@ class Client(Entity):
 
         if reqresp.status_code in SUCCESSFUL:
             logger.debug('response_body_type: "{}"'.format(response_body_type))
-            _deser_method = get_deserialization_method(reqresp)
+            _content_type = get_content_type(reqresp)
+            _deser_method = get_deserialization_method(_content_type)
 
-            if _deser_method != response_body_type:
+            if _content_type != response_body_type:
                 logger.warning(
                     "Not the body type I expected: {} != {}".format(
-                        _deser_method, response_body_type
+                        _content_type, response_body_type
                     )
                 )
             if _deser_method in ["json", "jwt", "urlencoded"]:
@@ -282,7 +284,9 @@ class Client(Entity):
         elif 400 <= reqresp.status_code < 500:
             logger.error("Error response ({}): {}".format(reqresp.status_code, reqresp.text))
             # expecting an error response
-            _deser_method = get_deserialization_method(reqresp)
+            _content_type = get_content_type(reqresp)
+            _deser_method = get_deserialization_method(_content_type)
+
             if not _deser_method:
                 _deser_method = "json"
 

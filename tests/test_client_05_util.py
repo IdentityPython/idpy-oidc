@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from idpyoidc.client.exception import WrongContentType
+from idpyoidc.client.util import get_content_type
 from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.client.util import get_http_body
 from idpyoidc.client.util import get_http_url
@@ -139,28 +140,35 @@ def test_verify_header():
 
 def test_get_deserialization_method_json():
     resp = FakeResponse("application/json")
-    assert get_deserialization_method(resp) == "json"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "json"
 
     resp = FakeResponse("application/json; charset=utf-8")
-    assert get_deserialization_method(resp) == "json"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "json"
 
     resp.headers["content-type"] = "application/jrd+json"
-    assert get_deserialization_method(resp) == "json"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "json"
 
 
 def test_get_deserialization_method_jwt():
     resp = FakeResponse("application/jwt")
-    assert get_deserialization_method(resp) == "jwt"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "jwt"
 
 
 def test_get_deserialization_method_urlencoded():
     resp = FakeResponse(URL_ENCODED)
-    assert get_deserialization_method(resp) == "urlencoded"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "urlencoded"
 
 
 def test_get_deserialization_method_text():
     resp = FakeResponse("text/html")
-    assert get_deserialization_method(resp) == ""
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == ""
 
     resp = FakeResponse("text/plain")
-    assert get_deserialization_method(resp) == ""
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == ""
