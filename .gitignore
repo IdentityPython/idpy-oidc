@@ -46,6 +46,14 @@ coverage.xml
 *.cover
 .hypothesis/
 
+# Test artefacts
+static/
+requests/
+request123456.jwt
+private/cookie_jwks.json
+private/jwks.json
+private/token_jwks.json
+
 # Translations
 *.mo
 *.pot
