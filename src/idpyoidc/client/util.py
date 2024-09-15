@@ -1,8 +1,8 @@
 """Utilities"""
-import logging
-import secrets
 from http.cookiejar import Cookie
 from http.cookiejar import http2time
+import logging
+import secrets
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -16,7 +16,6 @@ from idpyoidc.constant import URL_ENCODED
 from idpyoidc.defaults import BASECHR
 from idpyoidc.exception import UnSupported
 from idpyoidc.util import importer
-
 from .exception import TimeFormatError
 from .exception import WrongContentType
 
@@ -202,7 +201,7 @@ def verify_header(reqresp, body_type):
     logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
     try:
-        _ctype = reqresp.headers["content-type"]
+        _ctype = get_content_type(reqresp)
     except KeyError:
         if body_type:
             return body_type
@@ -249,45 +248,54 @@ def verify_header(reqresp, body_type):
     return body_type
 
 
-def get_deserialization_method(reqresp):
+def get_content_type(reqresp) -> str:
+    logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
+    logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
+    ctype = reqresp.headers.get("content-type")
+
+    if not ctype:
+        # let's try to detect the format
+        try:
+            reqresp.json()
+            return "application/json"
+        except Exception:
+            try:
+                _jwt = factory(reqresp.txt)
+                return "application/jwt"
+            except Exception:
+                try:
+                    _info = parse_qs(reqresp.txt)
+                    return "application/x-www-form-urlencoded"
+                except Exception:
+                    return "text/html"  # reasonable default ??
+    elif ';' in ctype:
+        for _typ in ctype.split(";"):
+            if _typ.startswith("application") or _typ.startswith("text"):
+                ctype = _typ
+                break
+
+    return ctype
+
+
+def get_deserialization_method(ctype):
     """
 
     :param reqresp: Class instance with attributes: ['status', 'text',
         'headers', 'url']
     :return: Verified body content type
     """
-    logger.debug("resp.headers: %s" % (sanitize(reqresp.headers),))
-    logger.debug("resp.txt: %s" % (sanitize(reqresp.text),))
 
-    _ctype = reqresp.headers.get("content-type")
-    if not _ctype:
-        # let's try to detect the format
-        try:
-            reqresp.json()
-            return "json"
-        except Exception:
-            try:
-                _jwt = factory(reqresp.txt)
-                return "jwt"
-            except Exception:
-                return "urlencoded"  # reasonable default ??
-    elif ';' in _ctype:
-        for _typ in _ctype.split(";"):
-            if _typ.startswith("application") or _typ.startswith("text"):
-                _ctype = _typ
-                break
-
-    if match_to_("application/json", _ctype) or match_to_("application/jrd+json", _ctype):
+    if match_to_("application/json", ctype) or match_to_("application/jrd+json", ctype):
         deser_method = "json"
-    elif match_to_("application/jwt", _ctype):
+    elif match_to_("application/jwt", ctype):
         deser_method = "jwt"
-    elif match_to_("application/jose", _ctype):
+    elif match_to_("application/jose", ctype):
         deser_method = "jose"
-    elif match_to_(URL_ENCODED, _ctype):
+    elif match_to_(URL_ENCODED, ctype):
         deser_method = "urlencoded"
-    elif match_to_("text/plain", _ctype) or match_to_("test/html", _ctype):
+    elif match_to_("text/plain", ctype) or match_to_("test/html", ctype):
         deser_method = ""
-    elif _ctype.startswith("application/") and _ctype.endswith("+jwt"):
+    elif ctype.startswith("application/") and ctype.endswith("+jwt"):
         deser_method = "jwt"
     else:
         deser_method = ""  # reasonable default ??
