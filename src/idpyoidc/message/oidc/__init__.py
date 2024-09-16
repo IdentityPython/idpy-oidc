@@ -942,8 +942,14 @@ class ProviderConfigurationResponse(ResponseMessage):
                 "token_endpoint_auth_signing_alg_values_supported"
             )
 
-        if "RS256" not in self["id_token_signing_alg_values_supported"]:
-            raise ValueError("RS256 missing from id_token_signing_alg_values_supported")
+        # Check that any alg that is not "none" is supported.
+        # While OpenID Connect Core 1.0 says RS256 MUST be supported,
+        # reality has moved on and more modern alg values may be required.
+        if not any(i.lower() != "none" for i in self["id_token_signing_alg_values_supported"]):
+            raise ValueError(
+                "Secure signing algorithm (for example RS256 or ES256) missing from id_token_signing_alg_values_supported: %s"
+                % self["id_token_signing_alg_values_supported"]
+            )
 
         if not parts.query and not parts.fragment:
             pass
