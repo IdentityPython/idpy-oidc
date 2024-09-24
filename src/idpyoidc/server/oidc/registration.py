@@ -290,7 +290,10 @@ class Registration(Endpoint):
                 else:
                     _keyjar.import_jwks(_jwks, client_id)
 
-        logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
+        if client_id in _keyjar:
+            logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
+        else:
+            logger.debug(f"No keys for {client_id}")
 
         return _cinfo
 
@@ -505,7 +508,7 @@ class Registration(Endpoint):
             reg_resp = self.client_registration_setup(request, new_id, set_secret,
                                                       reserved_client_id)
         except Exception as err:
-            logger.error("client_registration_setup: %s", request)
+            logger.exception(f"client_registration_setup: {request}")
             return ResponseMessage(
                 error="invalid_configuration_request", error_description="%s" % err
             )

@@ -81,6 +81,7 @@ class ClientAuthnMethod(object):
             self,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
+            http_info: Optional[dict] = None
     ):
         """
         Verify that this authentication method is applicable.
@@ -113,7 +114,11 @@ class NoneAuthn(ClientAuthnMethod):
 
     tag = "none"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self,
+                  request=None,
+                  authorization_token=None,
+                  http_info: Optional[dict] = None
+                  ):
         return request is not None
 
     def _verify(
@@ -121,7 +126,8 @@ class NoneAuthn(ClientAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
-            **kwargs,
+            http_info: Optional[dict] = None,
+            **kwargs
     ):
         return {"client_id": request.get("client_id")}
 
@@ -134,7 +140,7 @@ class PublicAuthn(ClientAuthnMethod):
 
     tag = "public"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         return request and "client_id" in request
 
     def _verify(
@@ -142,6 +148,7 @@ class PublicAuthn(ClientAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         return {"client_id": request["client_id"]}
@@ -156,7 +163,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     tag = "client_secret_basic"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if authorization_token is not None and authorization_token.startswith("Basic "):
             return True
         return False
@@ -166,6 +173,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         client_info = basic_authn(authorization_token)
@@ -186,7 +194,7 @@ class ClientSecretPost(ClientSecretBasic):
 
     tag = "client_secret_post"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if request is None:
             return False
         if "client_id" in request and "client_secret" in request:
@@ -198,6 +206,7 @@ class ClientSecretPost(ClientSecretBasic):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         _context = self.upstream_get("context")
@@ -212,7 +221,7 @@ class BearerHeader(ClientSecretBasic):
 
     tag = "bearer_header"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if authorization_token is not None and authorization_token.startswith("Bearer "):
             return True
         return False
@@ -223,6 +232,7 @@ class BearerHeader(ClientSecretBasic):
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             get_client_id_from_token: Optional[Callable] = None,
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         logger.debug(f"Client Auth method: {self.tag}")
@@ -249,7 +259,7 @@ class BearerBody(ClientSecretPost):
 
     tag = "bearer_body"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if request is not None and "access_token" in request:
             return True
         return False
@@ -260,6 +270,7 @@ class BearerBody(ClientSecretPost):
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             get_client_id_from_token: Optional[Callable] = None,
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         _token = request.get("access_token")
@@ -276,7 +287,7 @@ class BearerBody(ClientSecretPost):
 
 class JWSAuthnMethod(ClientAuthnMethod):
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if request is None:
             return False
         if "client_assertion" in request:
@@ -289,6 +300,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             key_type: Optional[str] = None,
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         _context = self.upstream_get("context")
@@ -356,6 +368,7 @@ class ClientSecretJWT(JWSAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         res = super()._verify(
@@ -377,6 +390,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         res = super()._verify(
@@ -393,7 +407,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
 class RequestParam(ClientAuthnMethod):
     tag = "request_param"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         if request and "request" in request:
             return True
 
@@ -402,6 +416,7 @@ class RequestParam(ClientAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         _context = self.upstream_get("context")
@@ -432,7 +447,7 @@ class PushedAuthorization(ClientAuthnMethod):
     # pushed authorization endpoint
     tag = "pushed_authz"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
         _request_uri = request.get("request_uri", None)
         if _request_uri:
             _context = self.upstream_get("context")
@@ -444,6 +459,7 @@ class PushedAuthorization(ClientAuthnMethod):
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         client_id = request["client_id"]
@@ -518,7 +534,7 @@ def verify_client(
     _cdb = _cinfo = None
     _tested = []
     for _method in (methods[meth] for meth in allowed_methods):
-        if not _method.is_usable(request=request, authorization_token=authorization_token):
+        if not _method.is_usable(request=request, authorization_token=authorization_token, http_info=http_info):
             continue
         try:
             logger.info(f"Verifying client authentication using {_method.tag}")
@@ -529,6 +545,7 @@ def verify_client(
                 authorization_token=authorization_token,
                 endpoint=endpoint,
                 get_client_id_from_token=get_client_id_from_token,
+                http_info=http_info
             )
         # except (BearerTokenAuthenticationError, ClientAuthenticationError):
         #     raise

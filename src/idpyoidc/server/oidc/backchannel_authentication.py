@@ -86,10 +86,10 @@ class BackChannelAuthentication(Endpoint):
         return set(res)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         try:
             request_user = self.do_request_user(request)
@@ -125,6 +125,7 @@ class BackChannelAuthentication(Endpoint):
 
 
 class CIBATokenHelper(AccessTokenHelper):
+
     def _get_session_info(self, request, session_manager):
         _path = request["_session_path"]
         _grant = session_manager.get(_path)
@@ -137,7 +138,7 @@ class CIBATokenHelper(AccessTokenHelper):
         return session_info, _grant
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         _context = self.endpoint.upstream_get("context")
         _mngr = _context.session_manager
@@ -303,10 +304,10 @@ class ClientNotification(Endpoint):
         Endpoint.__init__(self, upstream_get, **kwargs)
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs,
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ) -> Union[Message, dict]:
         return {}
 
@@ -316,17 +317,18 @@ class ClientNotificationAuthn(ClientSecretBasic):
 
     tag = "client_notification_authn"
 
-    def is_usable(self, request=None, authorization_token=None):
+    def is_usable(self, request=None, authorization_token=None, http_info=None):
         if authorization_token is not None and authorization_token.startswith("Bearer "):
             return True
         return False
 
     def _verify(
-        self,
-        authorization_token: Optional[str] = None,
-        endpoint=None,  # Optional[Endpoint]
-        get_client_id_from_token: Optional[Callable] = None,
-        **kwargs,
+            self,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            get_client_id_from_token: Optional[Callable] = None,
+            http_info: Optional[dict] = None,
+            **kwargs,
     ):
         ttype, token = authorization_token.split(" ", 1)
         if ttype != "Bearer":
