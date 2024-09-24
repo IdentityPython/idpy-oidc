@@ -240,7 +240,7 @@ def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_end
 class DPoPClientAuth(BearerHeader):
     tag = "dpop_client_auth"
 
-    def is_usable(self, request=None, authorization_token=None, http_headers=None):
+    def is_usable(self, request=None, authorization_token=None, http_info=None):
         if authorization_token is not None and authorization_token.startswith("DPoP "):
             return True
         return False
@@ -251,6 +251,7 @@ class DPoPClientAuth(BearerHeader):
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             get_client_id_from_token: Optional[Callable] = None,
+            http_info: Optional[dict] = None,
             **kwargs,
     ):
         # info contains token and client_id
