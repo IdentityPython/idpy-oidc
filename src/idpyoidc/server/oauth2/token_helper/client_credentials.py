@@ -87,7 +87,10 @@ class ClientCredentials(TokenEndpointHelper):
     def _apply_client_credentials_filter_policy(self, request, grant):
         _context = self.endpoint.upstream_get("context")
 
-        policy = self.config["policy"]
+        policy = self.config.get("policy")
+        if not policy:
+            return
+
         function = policy[""]["function"]
         kwargs = policy.get("kwargs", {})
         if isinstance(function, str):

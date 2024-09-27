@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class TokenEndpointHelper(object):
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
-        self.config = config
+        self.config = config or {}
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
