@@ -45,6 +45,6 @@ class PushedAuthorization(Authorization):
         self.upstream_get("context").par_db[_urn] = _request
 
         return {
-            "http_response": {"request_uri": _urn, "expires_in": self.ttl},
+            "response_args": {"request_uri": _urn, "expires_in": self.ttl},
             "return_uri": _request["redirect_uri"],
         }
