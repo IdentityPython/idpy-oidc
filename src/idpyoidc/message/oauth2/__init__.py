@@ -560,6 +560,12 @@ class PushedAuthorizationRequest(AuthorizationRequest):
         return True
 
 
+class PushedAuthorizationResponse(ResponseMessage):
+    c_param = ResponseMessage.c_param.copy()
+    c_param.update({"request_uri": SINGLE_REQUIRED_STRING})
+
+
+
 class SecurityEventToken(Message):
     c_param = {
         "iss": SINGLE_REQUIRED_STRING,

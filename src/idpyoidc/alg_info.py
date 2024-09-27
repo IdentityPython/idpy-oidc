@@ -1,6 +1,7 @@
 from functools import cmp_to_key
 import logging
 
+from cryptojwt.jwe import DEPRECATED
 from cryptojwt.jwe import SUPPORTED
 from cryptojwt.jws.jws import SIGNER_ALGS
 
@@ -31,7 +32,7 @@ def alg_cmp(a, b):
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != "none"]
+    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != "none" and name not in DEPRECATED["alg"]]
     return sorted(_algs, key=cmp_to_key(alg_cmp))
 
 
