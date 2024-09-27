@@ -5,6 +5,7 @@ from cryptojwt.jwe.utils import alg2keytype
 from cryptojwt.jwt import utc_time_sans_frac
 
 from idpyoidc.exception import MissingRequiredAttribute
+from idpyoidc.message import Message
 from idpyoidc.message.oidc import make_openid_request
 from idpyoidc.util import rndstr
 
@@ -164,7 +165,10 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
         if k in kwargs
     }
 
-    _req_jwt = make_openid_request(req, **_mor_args)
+    if isinstance(req, Message):
+        _req_jwt = make_openid_request(req, **_mor_args)
+    else:
+        _req_jwt = make_openid_request(Message(**req), **_mor_args)
 
     if "target" not in kwargs:
         kwargs["target"] = _context.provider_info.get("issuer", _context.issuer)

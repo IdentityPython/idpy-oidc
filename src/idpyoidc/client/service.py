@@ -356,10 +356,11 @@ class Service(ImpExp):
         # If I should deal with client authentication
         if authn_method:
             h_arg = self.init_authentication_method(request, authn_method, **kwargs)
-            try:
-                headers = h_arg["headers"]
-            except KeyError:
-                pass
+            if h_arg:
+                try:
+                    headers = h_arg["headers"]
+                except KeyError:
+                    pass
 
         return headers
 

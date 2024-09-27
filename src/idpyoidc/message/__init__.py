@@ -83,7 +83,8 @@ class Message(MutableMapping):
         """
         Creates a string using the application/x-www-form-urlencoded format
 
-        :doseq: If set to true, key=value pairs separated by '&' are generated for each element of the value sequence for the key.
+        :doseq: If set to true, key=value pairs separated by '&' are generated for each element
+        of the value sequence for the key.
         :return: A string of the application/x-www-form-urlencoded format
         """
 
@@ -388,7 +389,7 @@ class Message(MutableMapping):
                 else:
                     self._dict[skey] = val
             else:
-                raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+                raise DecodeError(ERRTXT % (key, f"type != {vtype}, val:{val}, type:{type(val)}"))
         else:
             if val is None:
                 self._dict[skey] = None

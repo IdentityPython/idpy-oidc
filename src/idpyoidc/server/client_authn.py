@@ -601,8 +601,7 @@ def verify_client(
             continue
         break
 
-    logger.debug(f"Authn methods applied")
-    logger.debug(f"Method tested: {_tested}")
+    logger.debug(f"Authn methods tested: {_tested}")
 
     # store what authn method was used
     if "method" in auth_info and client_id and _cdb:
