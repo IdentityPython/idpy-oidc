@@ -52,8 +52,14 @@ class ClientCredentials(TokenEndpointHelper):
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
-        
+        scopes_allowed_cfg = _context.cdb[client_id].get("allowed_scopes", [])
+        scopes_req = req.get("scope") or []
+        scopes = [
+            scope
+            for scope in scopes_req
+            if scope in scopes_allowed_cfg
+        ]
+
         self._apply_client_credentials_filter_policy(req, _grant)
 
         access_token = self._mint_token(
@@ -62,14 +68,14 @@ class ClientCredentials(TokenEndpointHelper):
             session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=None,
-            scope=_allowed,
+            scope=scopes,
             token_type=token_type
         )
 
         _resp = {
             "access_token": access_token.value,
             "token_type": access_token.token_class,
-            "scope": _allowed,
+            "scope": scopes,
         }
 
         if access_token.expires_at:
