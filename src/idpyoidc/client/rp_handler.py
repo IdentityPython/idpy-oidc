@@ -3,16 +3,19 @@ import sys
 import traceback
 from typing import List
 from typing import Optional
+from typing import Union
 
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import importer
 
+from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.defaults import DEFAULT_CLIENT_CONFIGS
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.defaults import DEFAULT_RP_KEY_DEFS
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
+from idpyoidc.configure import Base
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
 from .oauth2 import Client
@@ -34,42 +37,42 @@ class RPHandler(object):
             state_db=None,
             httpc=None,
             httpc_params=None,
-            config=None,
+            config: Optional[Union[dict, Base]] = None,
             **kwargs,
     ):
-        self.base_url = base_url
+        if config is None:
+            config = RPHConfiguration({})
+        elif isinstance(config, dict):
+            config = RPHConfiguration(config)
 
-        if keyjar is None:
-            keyjar_defs = {}
-            if config:
-                keyjar_defs = getattr(config, "key_conf", None)
+        self.base_url = base_url or config.get("base_url", config.get("entity_id", ""))
+        self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
 
-            if not keyjar_defs:
-                keyjar_defs = kwargs.get("key_conf", DEFAULT_RP_KEY_DEFS)
-
-            _jwks_path = kwargs.get("jwks_path", keyjar_defs.get("uri_path", keyjar_defs.get("public_path", "")))
-            if "uri_path" in keyjar_defs:
-                del keyjar_defs["uri_path"]
-            self.keyjar = init_key_jar(**keyjar_defs, issuer_id="")
-            self.keyjar.import_jwks_as_json(self.keyjar.export_jwks_as_json(True, ""), base_url)
-        else:
+        if keyjar:
             self.keyjar = keyjar
             _jwks_path = kwargs.get("jwks_path", "")
-
-        if _jwks_path:
-            self.jwks_uri = add_path(base_url, _jwks_path)
-        else:
-            self.jwks_uri = ""
-            if len(self.keyjar):
-                self.jwks = self.keyjar.export_jwks()
+            if _jwks_path:
+                self.jwks_uri = add_path(base_url, _jwks_path)
             else:
-                self.jwks = {}
+                self.jwks_uri = ""
+                if len(self.keyjar):
+                    self.jwks = self.keyjar.export_jwks()
+                else:
+                    self.jwks = {}
 
         if config:
             if not hash_seed:
                 self.hash_seed = config.hash_seed
-            if not keyjar:
-                self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
+
+            if not keyjar and config.key_conf:
+                _conf = {k:v for k,v in config.key_conf.items() if k != "uri_path"}
+                self.keyjar = init_key_jar(**_conf, issuer_id="")
+                _jwks_path = kwargs.get("jwks_path",
+                                        config.key_conf.get("uri_path",
+                                                            config.key_conf.get("public_path", "")))
+                if _jwks_path:
+                    self.jwks_uri = add_path(base_url, _jwks_path)
+
             if not client_configs:
                 self.client_configs = config.clients
 
@@ -99,10 +102,9 @@ class RPHandler(object):
             if _cc:
                 if isinstance(_cc, str):
                     _cc = importer(_cc)
-                self.client_cls =_cc
+                self.client_cls = _cc
             else:
                 self.client_cls = StandAloneClient
-
 
         if state_db:
             self.state_db = state_db
