@@ -535,9 +535,10 @@ def verify_client(
     _tested = []
     for _method in (methods[meth] for meth in allowed_methods):
         if not _method.is_usable(request=request, authorization_token=authorization_token, http_info=http_info):
+            logger.debug(f"'{_method.tag}' not usable")
             continue
         try:
-            logger.info(f"Verifying client authentication using {_method.tag}")
+            logger.info(f"Verifying client authentication using '{_method.tag}'")
             _tested.append(_method.tag)
             auth_info = _method.verify(
                 keyjar=endpoint.upstream_get("attribute", "keyjar"),
@@ -550,7 +551,7 @@ def verify_client(
         # except (BearerTokenAuthenticationError, ClientAuthenticationError):
         #     raise
         except Exception as err:
-            logger.info("Verifying auth using {} failed: {}".format(_method.tag, err))
+            logger.info(f"Verifying auth using '{_method.tag}' failed: {err}")
             continue
 
         logger.debug(f"Verify returned: {auth_info}")

@@ -1,7 +1,7 @@
 from typing import Callable
 
-import pytest
 from cryptojwt.utils import importer
+import pytest
 
 from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
@@ -303,7 +303,7 @@ class TestTransform2:
 
         self.supported = supported
         preference = {
-            "application_type": APPLICATION_TYPE_WEB,
+            "application_type": "web",
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
