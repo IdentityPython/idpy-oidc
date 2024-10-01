@@ -184,7 +184,7 @@ class TestFlow(object):
 
     def do_query(self, service_type, endpoint_type, request_args, state):
         _client_service = self.client.get_service(service_type)
-        req_info = _client_service.get_request_parameters(request_args=request_args)
+        req_info = _client_service.get_request_parameters(request_args=request_args, state=state)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -246,7 +246,7 @@ class TestFlow(object):
         # ***** Authorization Request **********
         _context = self.client.get_service_context()
 
-        req_args = {"request_uri": auth_response["request_uri"]}
+        req_args = {"request_uri": auth_response["request_uri"], "response_type": ["code"]}
 
         areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
 

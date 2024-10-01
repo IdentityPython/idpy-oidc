@@ -5,7 +5,6 @@ from typing import Optional
 from idpyoidc import alg_info
 from idpyoidc.client import claims as client_claims
 from idpyoidc.transform import create_registration_request
-from idpyoidc.client.claims.transform import create_registration_request
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
