@@ -13,6 +13,8 @@ from cryptojwt.utils import as_bytes
 
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import ClientRegistrationErrorResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
@@ -291,10 +293,10 @@ class Registration(Endpoint):
     @staticmethod
     def verify_redirect_uris(registration_request):
         verified_redirect_uris = []
-        client_type = registration_request.get("application_type", "web")
+        client_type = registration_request.get("application_type") or APPLICATION_TYPE_WEB
 
         must_https = False
-        if client_type == "web":
+        if client_type == APPLICATION_TYPE_WEB:
             must_https = True
             if registration_request.get("response_types") == ["code"]:
                 must_https = False
@@ -302,7 +304,7 @@ class Registration(Endpoint):
         for uri in registration_request["redirect_uris"]:
             _custom = False
             p = urlparse(uri)
-            if client_type == "native":
+            if client_type == APPLICATION_TYPE_NATIVE:
                 if p.scheme not in ["http", "https"]:  # Custom scheme
                     _custom = True
                 elif p.scheme == "http" and p.hostname in ["localhost", "127.0.0.1"]:

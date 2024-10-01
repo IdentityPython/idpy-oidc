@@ -6,6 +6,8 @@ import pytest
 import responses
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.server import Server
@@ -48,7 +50,7 @@ RESPONSE_TYPES_SUPPORTED = [
 
 MSG = {
     "client_id": "client_id",
-    "application_type": "web",
+    "application_type": APPLICATION_TYPE_WEB,
     "redirect_uris": [
         "https://client.example.org/callback",
         "https://client.example.org/callback2",
@@ -269,7 +271,7 @@ class TestEndpoint(object):
     def test_register_custom_redirect_uri_native(self):
         _msg = MSG.copy()
         _msg["redirect_uris"] = ["custom://cb.example.com"]
-        _msg["application_type"] = "native"
+        _msg["application_type"] = APPLICATION_TYPE_NATIVE
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())
         with responses.RequestsMock() as rsps:
             rsps.add(
@@ -287,7 +289,7 @@ class TestEndpoint(object):
 
         _msg = MSG.copy()
         _msg["redirect_uris"] = ["custom://cb.example.com"]
-        _msg["application_type"] = "native"
+        _msg["application_type"] = APPLICATION_TYPE_NATIVE
         _msg["sector_identifier_uri"] = _url
 
         _req = self.endpoint.parse_request(RegistrationRequest(**_msg).to_json())

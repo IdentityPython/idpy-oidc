@@ -7,6 +7,7 @@ from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 BASE_URL = "https://example.com"
 
@@ -111,7 +112,7 @@ class TestClientInfo(object):
 
     def test_registration_userinfo_sign_enc_algs(self):
         self.service_context.claims.use = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
@@ -130,7 +131,7 @@ class TestClientInfo(object):
 
     def test_registration_request_object_sign_enc_algs(self):
         self.service_context.claims.use = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",
@@ -152,7 +153,7 @@ class TestClientInfo(object):
 
     def test_registration_id_token_sign_enc_algs(self):
         self.service_context.claims.use = {
-            "application_type": "web",
+            "application_type": APPLICATION_TYPE_WEB,
             "redirect_uris": [
                 "https://client.example.org/callback",
                 "https://client.example.org/callback2",

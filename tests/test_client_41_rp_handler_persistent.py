@@ -7,13 +7,14 @@ from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oidc import AccessTokenResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
 
 BASE_URL = "https://example.com/rp"
 
 PREFERENCE = {
-    "application_type": "web",
+    "application_type": APPLICATION_TYPE_WEB,
     "contacts": ["ops@example.com"],
     "response_types": [
         "code",

@@ -2,6 +2,7 @@ import pytest
 
 from idpyoidc.client.client_auth import ClientAuthnMethod
 from idpyoidc.client.entity import Entity
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -61,7 +62,7 @@ KEYSPEC = [
 
 def test_client_authn_default():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
@@ -74,7 +75,7 @@ def test_client_authn_default():
 
 def test_client_authn_by_names():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
@@ -99,7 +100,7 @@ class FooBar(ClientAuthnMethod):
 
 def test_client_authn_full():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
@@ -121,7 +122,7 @@ def test_client_authn_full():
 
 def test_service_specific():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},
@@ -150,7 +151,7 @@ def test_service_specific():
 
 def test_service_specific2():
     config = {
-        "application_type": "web",
+        "application_type": APPLICATION_TYPE_WEB,
         "contacts": ["ops@example.org"],
         "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
         "keys": {"key_defs": KEYSPEC, "read_only": True},

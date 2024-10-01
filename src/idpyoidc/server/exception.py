@@ -66,7 +66,7 @@ class UnknownAssertionType(OidcEndpointError):
     pass
 
 
-class RedirectURIError(OidcEndpointError):
+class RedirectURIError(OidcEndpointError, ValueError):
     pass
 
 
