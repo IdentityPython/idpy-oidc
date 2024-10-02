@@ -294,7 +294,6 @@ class TestEndpoint(object):
             "email_verified",
             "jti",
             "scope",
-            "client_id",
             "iss",
             "sid",
         }        
