@@ -91,15 +91,15 @@ class Claims(ImpExp):
         self.callback = callbacks
 
     def verify_rules(self, supports):
-        if not self.get_preference("encrypt_userinfo_supported"):
+        if self.get_preference("encrypt_userinfo_supported", False) is True:
             self.set_preference("userinfo_encryption_alg_values_supported", [])
             self.set_preference("userinfo_encryption_enc_values_supported", [])
 
-        if not self.get_preference("encrypt_request_object_supported"):
+        if self.get_preference("encrypt_request_object_supported", False) is True:
             self.set_preference("request_object_encryption_alg_values_supported", [])
             self.set_preference("request_object_encryption_enc_values_supported", [])
 
-        if not self.get_preference("encrypt_id_token_supported"):
+        if self.get_preference("encrypt_id_token_supported", False) is True:
             self.set_preference("id_token_encryption_alg_values_supported", [])
             self.set_preference("id_token_encryption_enc_values_supported", [])
 

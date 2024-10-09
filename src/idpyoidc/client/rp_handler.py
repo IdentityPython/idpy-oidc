@@ -13,7 +13,6 @@ from cryptojwt.utils import importer
 from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.defaults import DEFAULT_CLIENT_CONFIGS
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.defaults import DEFAULT_RP_KEY_DEFS
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.configure import Base
 from idpyoidc.util import add_path
@@ -47,6 +46,8 @@ class RPHandler(object):
 
         self.base_url = base_url or config.get("base_url", config.get("entity_id", ""))
         self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
+        self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
+        self.client_type = config.get("client_type", config.conf.get("client_type", ""))
 
         if keyjar:
             self.keyjar = keyjar
@@ -65,22 +66,23 @@ class RPHandler(object):
                 self.hash_seed = config.hash_seed
 
             if not keyjar and config.key_conf:
-                _conf = {k:v for k,v in config.key_conf.items() if k != "uri_path"}
+                _conf = {k: v for k, v in config.key_conf.items() if k != "uri_path"}
                 self.keyjar = init_key_jar(**_conf, issuer_id="")
                 _jwks_path = kwargs.get("jwks_path",
                                         config.key_conf.get("uri_path",
                                                             config.key_conf.get("public_path", "")))
                 if _jwks_path:
-                    self.jwks_uri = add_path(base_url, _jwks_path)
+                    self.jwks_uri = add_path(self.base_url, _jwks_path)
 
             if not client_configs:
                 self.client_configs = config.clients
 
-            if "client_class" in config:
-                if isinstance(config["client_class"], str):
-                    self.client_cls = importer(config["client_class"])
+            _c_class = config.get("client_class", config.conf.get("client_class"))
+            if _c_class:
+                if isinstance(_c_class, str):
+                    self.client_cls = importer(_c_class)
                 else:  # assume it's a class
-                    self.client_cls = config["client_class"]
+                    self.client_cls = _c_class
             else:
                 self.client_cls = StandAloneClient
         else:
@@ -112,6 +114,9 @@ class RPHandler(object):
             self.state_db = {}
 
         self.extra = kwargs
+
+        if services is None:
+            services = config.get("services", config.conf.get("services", None))
 
         if services is None:
             self.services = DEFAULT_OIDC_SERVICES
@@ -161,7 +166,13 @@ class RPHandler(object):
         :param issuer: Issuer ID
         :return: A client configuration
         """
-        return self.client_configs[issuer]
+        _cnf = self.client_configs[issuer].copy()
+        for param in ["entity_id", "client_id", "base_url", "services", "jwks_uri", "entity_type",
+                      "client_type"]:
+            if param not in _cnf and getattr(self, param, None):
+                _cnf[param] = getattr(self, param)
+
+        return _cnf
 
     def get_session_information(self, key, client=None):
         """
@@ -194,16 +205,7 @@ class RPHandler(object):
             _cnf = self.pick_config("")
             _cnf["issuer"] = issuer
 
-        try:
-            _services = _cnf["services"]
-        except KeyError:
-            _services = self.services
-
-        if "base_url" not in _cnf:
-            _cnf["base_url"] = self.base_url
-
-        if self.jwks_uri:
-            _cnf["jwks_uri"] = self.jwks_uri
+        _services = _cnf["services"]
 
         logger.debug(f"config: {_cnf}")
         try:
@@ -641,7 +643,8 @@ class RPHandler(object):
         return client.logout(state, post_logout_redirect_uri=post_logout_redirect_uri)
 
     def close(
-            self, state: str, issuer: Optional[str] = "", post_logout_redirect_uri: Optional[str] = ""
+            self, state: str, issuer: Optional[str] = "",
+            post_logout_redirect_uri: Optional[str] = ""
     ) -> dict:
 
         if issuer:
