@@ -7,6 +7,8 @@ from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
 
+from ...exception import InvalidBranchID
+from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
@@ -140,16 +142,19 @@ class RefreshTokenHelper(TokenEndpointHelper):
         request = RefreshAccessTokenRequest(**request.to_dict())
         _context = self.endpoint.upstream_get("context")
 
-        request.verify(
-            keyjar=self.endpoint.upstream_get("attribute", "keyjar"), opponent_id=client_id
-        )
+        try:
+            request.verify(
+                keyjar=self.endpoint.upstream_get("attribute", "keyjar"), opponent_id=client_id
+            )
+        except MissingRequiredAttribute as e:
+            return self.error_cls(error="invalid_grant", error_description=str(e))
 
         _mngr = _context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["refresh_token"], handler_key="refresh_token", grant=True
             )
-        except (KeyError, UnknownToken, BadSyntax):
+        except (KeyError, UnknownToken, BadSyntax, InvalidBranchID):
             logger.error("Refresh token invalid")
             return self.error_cls(error="invalid_grant", error_description="Invalid refresh token")
 
