@@ -103,7 +103,8 @@ def verify_uri(
         request: Union[dict, Message],
         uri_type: str,
         client_id: Optional[str] = None,
-        endpoint_type: Optional[str] = 'oidc'
+        endpoint_type: Optional[str] = 'oidc',
+        schemes_denylist: Optional[list] = None
 ):
     """
     A redirect URI
@@ -175,6 +176,8 @@ def verify_uri(
     # the port should not be taken into account when matching redirect URIs.
     client_type = client_info.get("application_type") or APPLICATION_TYPE_WEB
     if client_type == APPLICATION_TYPE_NATIVE:
+        if not has_uri_allowed_scheme(req_redirect_uri_obj, schemes_denylist or []):
+            raise URIError("Invalid schema in redirect URI")
         if is_http_uri(req_redirect_uri_obj) and is_localhost_uri(req_redirect_uri_obj):
             req_redirect_uri_obj = remove_port_from_uri(req_redirect_uri_obj)
 
@@ -205,6 +208,9 @@ def is_http_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
     value = uri_obj.scheme == "http"
     return value
 
+def has_uri_allowed_scheme(uri_obj: Union[ParseResult, SplitResult], schemes_denylist) -> bool:
+    value = uri_obj.scheme not in schemes_denylist
+    return value
 
 def is_localhost_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
     value = uri_obj.hostname in [
@@ -240,7 +246,8 @@ def join_query(base, query):
 def get_uri(context,
             request: Union[Message, dict],
             uri_type: str,
-            endpoint_type: Optional[str] = "oidc"):
+            endpoint_type: Optional[str] = "oidc",
+            schemes_denylist: Optional[list] = None):
     """verify that the redirect URI is reasonable.
 
     :param context: An EndpointContext instance
@@ -251,7 +258,7 @@ def get_uri(context,
     uri = ""
 
     if uri_type in request:
-        verify_uri(context, request, uri_type, endpoint_type=endpoint_type)
+        verify_uri(context, request, uri_type, endpoint_type=endpoint_type, schemes_denylist=schemes_denylist)
         uri = request[uri_type]
     else:
         uris = f"{uri_type}s"
@@ -412,6 +419,7 @@ class Authorization(Endpoint):
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
         self.resource_indicators_config = kwargs.get("resource_indicators", None)
+        self.schemes_denylist = kwargs.get("schemes_denylist", None)
 
     def filter_request(self, context, req):
         return req
@@ -556,7 +564,7 @@ class Authorization(Endpoint):
 
         # Get a verified redirect URI
         try:
-            redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type)
+            redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type, self.schemes_denylist)
         except (RedirectURIError, ParameterError, URIError, UnknownClient) as err:
             return self.authentication_error_response(
                 request,
