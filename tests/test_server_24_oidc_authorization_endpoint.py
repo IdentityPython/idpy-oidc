@@ -450,7 +450,7 @@ class TestEndpoint(object):
         _ec = self.endpoint.upstream_get("context")
         request = {"redirect_uri": "https://rp.example.com/cb"}
 
-        with pytest.raises(KeyError):
+        with pytest.raises(UnknownClient):
             verify_uri(_ec, request, "redirect_uri", "client_id")
 
     def test_verify_uri_unregistered(self):
