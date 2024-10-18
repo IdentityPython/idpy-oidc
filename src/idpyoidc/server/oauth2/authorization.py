@@ -177,7 +177,7 @@ def verify_uri(
     client_type = client_info.get("application_type") or APPLICATION_TYPE_WEB
     if client_type == APPLICATION_TYPE_NATIVE:
         if not has_uri_allowed_scheme(req_redirect_uri_obj, schemes_denylist or []):
-            raise URIError("Invalid schema in redirect URI")
+            raise URIError("Invalid scheme in redirect URI")
         if is_http_uri(req_redirect_uri_obj) and is_localhost_uri(req_redirect_uri_obj):
             req_redirect_uri_obj = remove_port_from_uri(req_redirect_uri_obj)
 
