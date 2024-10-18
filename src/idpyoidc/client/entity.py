@@ -103,8 +103,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if config is None:
             config = {}
 
+        # Client ID is set through configuration or at registration
         _id = config.get("client_id")
-        self.client_id = self.entity_id = entity_id or config.get("entity_id", _id)
+        self.entity_id = entity_id or config.get("entity_id", _id)
 
         Unit.__init__(
             self,
@@ -114,7 +115,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             httpc_params=httpc_params,
             config=config,
             key_conf=key_conf,
-            client_id=self.client_id,
+            client_id=_id,
         )
 
         if services:

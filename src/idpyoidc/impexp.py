@@ -12,6 +12,7 @@ from cryptojwt.utils import qualified_name
 from idpyoidc.message import Message
 from idpyoidc.storage import DictType
 
+VERBOSE = False
 logger = logging.getLogger(__name__)
 
 def fully_qualified_name(cls):
@@ -44,7 +45,8 @@ class ImpExp:
         pass
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
-        logger.debug(f"dump_attr:: cls: {cls}, item: {item}")
+        if VERBOSE:
+            logger.debug(f"dump_attr:: cls: {cls}, item: {item}")
         if cls in [None, 0, "", bool]:
             val = item
         elif cls == b"":
@@ -79,7 +81,8 @@ class ImpExp:
         elif isinstance(cls, list):
             val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
         elif inspect.isclass(cls):
-            logger.debug(f"class instance: {cls}")
+            if VERBOSE:
+                logger.debug(f"class instance: {cls}")
             _dump = getattr(cls, "dump", None)
             if _dump:
                 val = _dump(item, exclude_attributes=exclude_attributes)
@@ -100,7 +103,8 @@ class ImpExp:
                 logger.error(f"Do not know how to dump: {item}")
                 raise AttributeError()
 
-        logger.debug(f"-> {val}")
+        if VERBOSE:
+            logger.debug(f"-> {val}")
         return val
 
     def dump(self, exclude_attributes: Optional[List[str]] = None) -> dict:

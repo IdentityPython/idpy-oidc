@@ -6,6 +6,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import importer
@@ -17,6 +18,7 @@ from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.configure import Base
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
+from .defaults import DEFAULT_KEY_DEFS
 from .oauth2 import Client
 from ..message import Message
 
@@ -48,6 +50,7 @@ class RPHandler(object):
         self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
         self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
         self.client_type = config.get("client_type", config.conf.get("client_type", ""))
+        self.client_configs = client_configs or {}
 
         if keyjar:
             self.keyjar = keyjar
@@ -74,9 +77,6 @@ class RPHandler(object):
                 if _jwks_path:
                     self.jwks_uri = add_path(self.base_url, _jwks_path)
 
-            if not client_configs:
-                self.client_configs = config.clients
-
             _c_class = config.get("client_class", config.conf.get("client_class"))
             if _c_class:
                 if isinstance(_c_class, str):
@@ -91,15 +91,6 @@ class RPHandler(object):
             else:
                 self.hash_seed = as_bytes(rndstr(32))
 
-            if client_configs is None:
-                self.client_configs = DEFAULT_CLIENT_CONFIGS
-                for param in ["client_type", "preference", "add_ons"]:
-                    val = kwargs.get(param, None)
-                    if val:
-                        self.client_configs[""][param] = val
-            else:
-                self.client_configs = client_configs
-
             _cc = kwargs.get("client_class", None)
             if _cc:
                 if isinstance(_cc, str):
@@ -107,6 +98,15 @@ class RPHandler(object):
                 self.client_cls = _cc
             else:
                 self.client_cls = StandAloneClient
+
+        if client_configs is None:
+            self.client_configs = DEFAULT_CLIENT_CONFIGS
+            for param in ["client_type", "preference", "add_ons"]:
+                val = kwargs.get(param, None)
+                if val:
+                    self.client_configs[""][param] = val
+        else:
+            self.client_configs = client_configs
 
         if state_db:
             self.state_db = state_db
@@ -133,10 +133,15 @@ class RPHandler(object):
         else:
             self.httpc_params = httpc_params
 
-        if not self.keyjar.httpc_params:
-            self.keyjar.httpc_params = self.httpc_params
-
         self.upstream_get = kwargs.get("upstream_get", None)
+
+        _keyjar = getattr(self, "keyjar", None)
+        if _keyjar is not None:
+            if not _keyjar.httpc_params:
+                _keyjar.httpc_params = getattr(self, "httpc_params", {})
+        else:
+            self.keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+            self.keyjar.httpc_params = getattr(self, "httpc_params", {})
 
     def state2issuer(self, state):
         """
@@ -225,20 +230,29 @@ class RPHandler(object):
         _context = client.get_context()
         if _context.iss_hash:
             self.hash2issuer[_context.iss_hash] = issuer
+
         # If non persistent
         _keyjar = client.keyjar
-        if not _keyjar:
+        if _keyjar is None:
             _keyjar = KeyJar()
             _keyjar.httpc_params.update(self.httpc_params)
 
-        for iss in self.keyjar.owners():
-            _keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
+        if self.upstream_get:
+            _srv_keyjar = self.upstream_get("attribute", "keyjar")
+        else:
+            _srv_keyjar = getattr(self, "keyjar", None)
+
+        if _srv_keyjar:
+            for iss in _srv_keyjar.owners():
+                _keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
 
         client.keyjar = _keyjar
         # If persistent nothing has to be copied
 
-        _context.base_url = self.base_url
-        _context.jwks_uri = self.jwks_uri
+        for item in ["jwks_uri", "base_url"]:
+            _val = getattr(self, item, None)
+            if _val:
+                setattr(_context, item, _val)
         return client
 
     def do_provider_info(

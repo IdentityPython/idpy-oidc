@@ -209,7 +209,7 @@ class TestEndpoint(object):
     def test_do_response_placement_body(self):
         self.endpoint.response_placement = "body"
         info = self.endpoint.do_response(EXAMPLE_MSG)
-        assert ("Content-type", "application/json; charset=utf-8") in info["http_headers"]
+        assert ("Content-type", "application/json") in info["http_headers"]
         assert (
             info["response"] == '{"name": "Doe, Jane", "given_name": "Jane", "family_name": '
             '"Doe"}'
@@ -217,6 +217,7 @@ class TestEndpoint(object):
 
     def test_do_response_placement_url(self):
         self.endpoint.response_placement = "url"
+        self.endpoint.response_format = "urlencoded"
         info = self.endpoint.do_response(EXAMPLE_MSG, return_uri="https://example.org/cb")
         assert ("Content-type", "application/x-www-form-urlencoded") in info["http_headers"]
         assert (

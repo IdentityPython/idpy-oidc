@@ -10,8 +10,8 @@ import responses
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
-from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
 from idpyoidc.message.oidc import JRD
@@ -286,7 +286,7 @@ class TestRPHandler(object):
         # secret. 2 because one is marked for encryption and the other signing
         # usage.
 
-        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
+        assert set(_keyjar.owners()) == {"", _context.claims.prefer["client_id"], _github_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3
 
@@ -332,7 +332,7 @@ class TestRPHandler(object):
         _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
+        assert set(_keyjar.owners()) == {"", _context.claims.prefer["client_id"], _github_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3
 

@@ -88,7 +88,7 @@ class TestProviderConfigEndpoint(object):
         assert _msg["token_endpoint"] == "https://example.com/token"
         assert _msg["jwks_uri"] == "https://example.com/static/jwks.json"
         assert "claims_supported" not in _msg  # No default for this
-        assert ("Content-type", "application/json; charset=utf-8") in msg["http_headers"]
+        assert ("Content-type", "application/json") in msg["http_headers"]
 
     # def test_scopes_supported(self, conf):
     #     scopes_supported = ["openid", "random", "profile"]

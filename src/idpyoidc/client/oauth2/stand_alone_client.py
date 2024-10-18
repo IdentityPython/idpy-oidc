@@ -746,7 +746,12 @@ def load_registration_response(client, request_args=None):
 
     :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
     """
-    if not client.get_context().get_client_id():
+    _client_id = getattr(client, "client_id", None)
+    if not _client_id:
+        _context = client.get_context()
+        _client_id = getattr(_context, "client_id", None)
+
+    if not _client_id:
         try:
             response = client.do_request("registration", request_args=request_args)
         except KeyError:

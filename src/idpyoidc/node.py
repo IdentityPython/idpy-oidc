@@ -136,6 +136,7 @@ class Unit(ImpExp):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
         self.httpc = httpc
+        self.client_id = client_id
 
         if config is None:
             config = {}
