@@ -279,7 +279,7 @@ class Claims(ImpExp):
             attr.extend(extra_claims)
 
         if attr:
-            metadata = {k: v for k, v in metadata.items() if k in attr}
+            metadata = {k: v for k, v in metadata.items() if k in attr and v != []}
 
         # collect endpoints
         if endpoints:
