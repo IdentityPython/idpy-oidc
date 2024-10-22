@@ -1,10 +1,10 @@
 import hashlib
 import logging
 import os
-import uuid
 from typing import Callable
 from typing import List
 from typing import Optional
+import uuid
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -18,9 +18,9 @@ from .grant import Grant
 from .grant import SessionToken
 from .info import ClientSessionInfo
 from .info import UserSessionInfo
-from ..token import handler
 from ..token import UnknownToken
 from ..token import WrongTokenClass
+from ..token import handler
 from ..token.handler import TokenHandler
 
 logger = logging.getLogger(__name__)
@@ -435,30 +435,6 @@ class SessionManager(GrantManager):
         """
         self._revoke_tree(self.get_grant(session_id))
 
-    # def grants(
-    #         self,
-    #         session_id: Optional[str] = "",
-    #         user_id: Optional[str] = "",
-    #         client_id: Optional[str] = "",
-    # ) -> List[Grant]:
-    #     """
-    #     Find all grant connected to a user session
-    #
-    #     :param client_id:
-    #     :param user_id:
-    #     :param session_id: A session identifier
-    #     :return: A list of grants
-    #     """
-    #     if session_id:
-    #         user_id, client_id, _ = self.decrypt_session_id(session_id)
-    #     elif user_id and client_id:
-    #         pass
-    #     else:
-    #         raise AttributeError("Must have session_id or user_id and client_id")
-    #
-    #     _csi = self.get([user_id, client_id])
-    #     return [self.get([user_id, client_id, gid]) for gid in _csi.subordinate]
-
     def get_session_info(
             self,
             session_id: str,
@@ -544,5 +520,15 @@ class SessionManager(GrantManager):
     def unpack_session_key(self, key):
         return self.unpack_branch_key(key)
 
-# def create_session_manager(upstream_get, token_handler_args, sub_func=None, conf=None):
-#     return SessionManager(token_handler_args, sub_func=sub_func, conf=conf, upstream_get=upstream_get)
+    def get_client_id_from_token(self, token_value: str, handler_key: Optional[str] = ""):
+        if handler_key:
+            _token_info = self.token_handler.handler[handler_key].info(token_value)
+        else:
+            _token_info = self.token_handler.info(token_value)
+
+        sid = _token_info.get("sid")
+        _path = self.decrypt_branch_id(sid)
+        if len(_path) == 3:
+            return _path[1]
+        else:
+            return _path[-1]
