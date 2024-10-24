@@ -115,13 +115,13 @@ class DefaultToken(Token):
         while rnd == tmp:  # Don't use the same random value again
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
-        return base64.b64encode(
+        return base64.urlsafe_b64encode(
             self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")
 
     def split_token(self, token):
         try:
-            plain = self.crypt.decrypt(base64.b64decode(token))
+            plain = self.crypt.decrypt(base64.urlsafe_b64decode(token))
         except Exception as err:
             raise UnknownToken(err)
         # order: rnd, type, sid
