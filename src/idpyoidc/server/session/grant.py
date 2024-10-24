@@ -380,7 +380,7 @@ class Grant(Item):
             item.value = token_handler(
                 session_id=session_id, usage_rules=usage_rules, **token_payload
             )
-
+            logger.debug(f"token: {item.value}")
             if based_on:
                 based_on.used += 1
         else:

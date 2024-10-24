@@ -108,7 +108,7 @@ class DefaultToken(Token):
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)
         else:
-            exp = "-1"  # Live for ever
+            exp = "-1"  # Live forever
 
         tmp = ""
         rnd = ""
