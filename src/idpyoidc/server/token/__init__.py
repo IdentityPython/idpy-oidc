@@ -120,6 +120,7 @@ class DefaultToken(Token):
         ).decode("utf-8")
 
     def split_token(self, token):
+        logger.debug(f"split_token: {token}")
         try:
             plain = self.crypt.decrypt(base64.urlsafe_b64decode(token))
         except Exception as err:
