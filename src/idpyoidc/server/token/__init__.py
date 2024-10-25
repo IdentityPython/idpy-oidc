@@ -105,6 +105,8 @@ class DefaultToken(Token):
         else:
             token_class = "authorization_code"
 
+        logger.debug(f"Mint {token_class}")
+
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)
         else:
@@ -115,6 +117,7 @@ class DefaultToken(Token):
         while rnd == tmp:  # Don't use the same random value again
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
+        logger.debug(f"rnd:{rnd}, token_class:{token_class}, session_id:{session_id}, exp:{exp}")
         return base64.urlsafe_b64encode(
             self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")

@@ -1,11 +1,6 @@
-import base64
-import hashlib
-import hmac
 import os
-import secrets
 
 import pytest
-from cryptojwt.jwe.fernet import FernetEncrypter
 
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.server import Server
@@ -39,6 +34,7 @@ def test_is_expired():
 
 
 class TestDefaultToken(object):
+
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
         password = "The longer the better. Is this close to enough ?"
@@ -78,6 +74,7 @@ class TestDefaultToken(object):
 
 
 class TestTokenHandler(object):
+
     @pytest.fixture(autouse=True)
     def setup_token_handler(self):
         grant_expires_in = 600
