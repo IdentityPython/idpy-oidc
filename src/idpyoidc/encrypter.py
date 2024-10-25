@@ -45,6 +45,8 @@ def get_crypt_config(conf):
 
 # This is pretty complex because it must be able to cope with many variants.
 def init_encrypter(conf: Optional[dict] = None):
+    _kj = None
+    _kwargs = {}
     if conf is None:
         conf = default_crypt_config()
         _kwargs = conf.get("kwargs")
@@ -81,7 +83,6 @@ def init_encrypter(conf: Optional[dict] = None):
         else:
             if "keys" in _cargs:
                 _kj = init_key_jar(**_cargs["keys"])
-                _kwargs = {}
                 for usage in ["password", "salt"]:
                     _key = _kj.get_encrypt_key(kid=usage)
                     if _key:
@@ -98,7 +99,10 @@ def init_encrypter(conf: Optional[dict] = None):
                 if attr == "keys":
                     continue
                 _kwargs[attr] = val
+    _conf = {"class": _class, "kwargs": _kwargs}
+    if _kj:
+        _conf["jwks"] = _kj.export_jwks(private=True)
     return {
         "encrypter": instantiate(_class, **_kwargs),
-        "conf": {"class": _class, "kwargs": _kwargs},
+        "conf": _conf
     }

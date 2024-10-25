@@ -106,6 +106,8 @@ class DefaultToken(Token):
             token_class = "authorization_code"
 
         logger.debug(f"Mint {token_class}")
+        logger.debug(f"crypt.key: {base64.urlsafe_b64encode(self.crypt.key)}")
+        logger.debug(f"crypt.jwks: {self.crypt_config['jwks']}")
 
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)
