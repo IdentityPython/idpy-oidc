@@ -6,6 +6,8 @@ from typing import List
 from typing import Optional
 import uuid
 
+from cryptojwt.jwe.fernet import FernetEncrypter
+
 from idpyoidc.encrypter import default_crypt_config
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import TokenExchangeRequest
@@ -82,6 +84,7 @@ def ephemeral_id(*args, **kwargs):
 
 class SessionManager(GrantManager):
     parameter = Database.parameter.copy()
+
     # parameter.update({"salt": ""})
     init_args = ["token_handler_args", "upstream_get"]
 

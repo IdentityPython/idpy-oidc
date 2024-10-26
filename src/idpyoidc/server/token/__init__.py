@@ -9,7 +9,6 @@ from idpyoidc.server.util import lv_pack
 from idpyoidc.server.util import lv_unpack
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
-
 from .exception import UnknownToken
 from .exception import WrongTokenClass
 
@@ -79,11 +78,11 @@ class Token(object):
 
 class DefaultToken(Token):
     def __init__(
-        self,
-        token_class: Optional[str] = "",
-        token_type: Optional[str] = "Bearer",
-        crypt_conf: Optional[dict] = None,
-        **kwargs
+            self,
+            token_class: Optional[str] = "",
+            token_type: Optional[str] = "Bearer",
+            crypt_conf: Optional[dict] = None,
+            **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         _res = init_encrypter(crypt_conf)
@@ -92,7 +91,7 @@ class DefaultToken(Token):
         self.token_type = token_type
 
     def __call__(
-        self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
+            self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload
     ) -> str:
         """
         Return a token.
@@ -107,7 +106,8 @@ class DefaultToken(Token):
 
         logger.debug(f"Mint {token_class}")
         logger.debug(f"crypt.key: {base64.urlsafe_b64encode(self.crypt.key)}")
-        logger.debug(f"crypt.jwks: {self.crypt_config['jwks']}")
+        if "jwks" in self.crypt_config:
+            logger.debug(f"crypt.jwks: {self.crypt_config['jwks']}")
 
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)

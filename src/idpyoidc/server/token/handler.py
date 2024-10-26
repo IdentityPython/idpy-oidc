@@ -137,6 +137,8 @@ def default_token(spec):
     else:
         return False
 
+def key_types(keys):
+    return [k["kid"] for k in keys]
 
 JWKS_FILE = "private/token_jwks.json"
 
@@ -193,9 +195,16 @@ def factory(
         ("refresh", refresh, "refresh_token"),
     ]:
         if cnf is not None:
-            if default_token(cnf):
-                if kj:
-                    _add_passwd(kj, cnf, cls)
+            try:
+                _key_types = key_types(cnf["kwargs"]["crypt_conf"]["kwargs"]["keys"]["key_defs"])
+            except KeyError:
+                pass
+            else:
+                if "key" in _key_types and "password" in _key_types:
+                    raise ValueError("You have to chose one of key or password")
+                if "password" not in _key_types and "key" not in _key_types:
+                    if kj:
+                        _add_passwd(kj, cnf, cls)
             args[attr] = init_token_handler(upstream_get, cnf, token_class_map[cls])
 
     if id_token is not None:

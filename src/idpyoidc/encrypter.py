@@ -42,6 +42,15 @@ def get_crypt_config(conf):
             _crypt_config = {"class": "cryptojwt.jwe.fernet.FernetEncrypter", "kwargs": _args}
     return _crypt_config
 
+def _enc_args(keyjar):
+    _kwargs = {}
+    for usage in ["password", "salt", "key"]:
+        _key = keyjar.get_encrypt_key(kid=usage)
+        if _key:
+            _kwargs[usage] = _key[0].key
+        elif usage == "salt":
+            _kwargs[usage] = os.urandom(16)
+    return _kwargs
 
 # This is pretty complex because it must be able to cope with many variants.
 def init_encrypter(conf: Optional[dict] = None):
@@ -67,13 +76,8 @@ def init_encrypter(conf: Optional[dict] = None):
                     _kwargs[attr] = val
             elif conf.get("keys"):
                 _kj = init_key_jar(**conf["keys"])
-                _kwargs = {}
-                for usage in ["password", "salt"]:
-                    _key = _kj.get_encrypt_key(kid=usage)
-                    if _key:
-                        _kwargs[usage] = _key[0].key
-                    else:
-                        _kwargs[usage] = os.urandom(16)
+                _jwks = _kj.export_jwks(private=True)
+                _kwargs = _enc_args(_kj)
                 for attr, val in conf.items():
                     if attr == "keys":
                         continue
@@ -83,18 +87,19 @@ def init_encrypter(conf: Optional[dict] = None):
         else:
             if "keys" in _cargs:
                 _kj = init_key_jar(**_cargs["keys"])
-                for usage in ["password", "salt"]:
-                    _key = _kj.get_encrypt_key(kid=usage)
-                    if _key:
-                        _kwargs[usage] = _key[0].key
-                    else:
-                        _kwargs[usage] = os.urandom(16)
-            elif "key" in _cargs:
-                _kwargs = {"key": _cargs["key"]}
+                _kwargs = _enc_args(_kj)
             else:
-                _kwargs = {
-                    usage: _cargs.get(usage, os.urandom(16)) for usage in ["password", "salt"]
-                }
+                if "key" in _cargs:
+                    _kwargs = {"key": _cargs["key"]}
+                    if "salt" in _cargs:
+                        _kwargs = {"salt": _cargs["salt"]}
+                    else:
+                        _kwargs = {"salt": os.urandom(16)}
+                else:
+                    _kwargs = {
+                        usage: _cargs.get(usage, os.urandom(16)) for usage in ["password", "salt"]
+                    }
+
             for attr, val in _cargs.items():
                 if attr == "keys":
                     continue

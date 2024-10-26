@@ -172,14 +172,12 @@ def test_init_crypto_keys():
         "keys": {
             "private_path": "private/cookie_jwks.json",
             "key_defs": [
-                {"type": "OCT", "use": ["enc"], "kid": "enc"},
-                {"type": "OCT", "use": ["sig"], "kid": "sig"},
+                {"type": "OCT", "use": ["enc"], "kid": "key", "bytes": 32},
             ],
             "read_only": False,
         }
     }
     _res = init_encrypter(_conf)
     assert _res["conf"]["class"] == DEFAULT_CRYPTO
-    assert set(_res["conf"]["kwargs"].keys()) == {"password", "salt"}
-    assert "password" in _res["conf"]["kwargs"]
-    assert "salt" in _res["conf"]["kwargs"]
+    assert set(_res["conf"]["kwargs"].keys()) == {"key", "salt"}
+    assert len(_res["conf"]["kwargs"]["salt"]) == 16
