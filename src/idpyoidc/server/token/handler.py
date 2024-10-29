@@ -194,7 +194,7 @@ def factory(
         ("token", token, "access_token"),
         ("refresh", refresh, "refresh_token"),
     ]:
-        if cnf is not None:
+        if cnf is not None: # else just default
             try:
                 _key_types = key_types(cnf["kwargs"]["crypt_conf"]["kwargs"]["keys"]["key_defs"])
             except KeyError:
