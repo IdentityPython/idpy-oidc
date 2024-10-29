@@ -1,12 +1,15 @@
+import logging
 import os
 from typing import Optional
 
 from cryptojwt.key_jar import init_key_jar
+from cryptojwt.utils import as_bytes
 
 from idpyoidc.util import instantiate
 
 DEFAULT_CRYPTO = "cryptojwt.jwe.fernet.FernetEncrypter"
 
+logger = logging.getLogger(__name__)
 
 def default_crypt_config():
     return {
@@ -90,21 +93,24 @@ def init_encrypter(conf: Optional[dict] = None):
                 _kwargs = _enc_args(_kj)
             else:
                 if "key" in _cargs:
-                    _kwargs = {"key": _cargs["key"]}
+                    _kwargs = {"key": as_bytes(_cargs["key"])}
                     if "salt" in _cargs:
-                        _kwargs = {"salt": _cargs["salt"]}
+                        _kwargs["salt"] = _cargs["salt"]
                     else:
-                        _kwargs = {"salt": os.urandom(16)}
+                        _kwargs["salt"] = os.urandom(16)
                 else:
                     _kwargs = {
                         usage: _cargs.get(usage, os.urandom(16)) for usage in ["password", "salt"]
                     }
 
             for attr, val in _cargs.items():
-                if attr == "keys":
+                if attr in ["keys", "key", "salt", "password"]:
                     continue
                 _kwargs[attr] = val
     _conf = {"class": _class, "kwargs": _kwargs}
+    if "key" in _kwargs:
+        logger.debug(f"key type: {type(_kwargs['key'])}")
+    logger.debug(f"config: {_conf}")
     if _kj:
         _conf["jwks"] = _kj.export_jwks(private=True)
     return {

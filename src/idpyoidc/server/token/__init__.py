@@ -78,11 +78,11 @@ class Token(object):
 
 class DefaultToken(Token):
     def __init__(
-            self,
-            token_class: Optional[str] = "",
-            token_type: Optional[str] = "Bearer",
-            crypt_conf: Optional[dict] = None,
-            **kwargs
+        self,
+        token_class: Optional[str] = "",
+        token_type: Optional[str] = "Bearer",
+        crypt_conf: Optional[dict] = None,
+        **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         _res = init_encrypter(crypt_conf)
@@ -105,9 +105,9 @@ class DefaultToken(Token):
             token_class = "authorization_code"
 
         logger.debug(f"Mint {token_class}")
-        logger.debug(f"crypt.key: {base64.urlsafe_b64encode(self.crypt.key)}")
-        if "jwks" in self.crypt_config:
-            logger.debug(f"crypt.jwks: {self.crypt_config['jwks']}")
+        logger.debug(f"crypt.key: {self.crypt.key}")
+        _jwks = self.crypt_config.get('jwks', None)
+        logger.debug(f"crypt.jwks: {_jwks}")
 
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)
@@ -119,7 +119,13 @@ class DefaultToken(Token):
         while rnd == tmp:  # Don't use the same random value again
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
-        logger.debug(f"rnd:{rnd}, token_class:{token_class}, session_id:{session_id}, exp:{exp}")
+        _args = {
+            "rnd": rnd,
+            "token_class": token_class,
+            "session_id": session_id,
+            "exp": exp
+        }
+        logger.debug(f"Encrypt arguments: {_args}")
         _value = base64.urlsafe_b64encode(
             self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")
@@ -129,6 +135,7 @@ class DefaultToken(Token):
 
     def split_token(self, token):
         logger.debug(f"split_token: {token}")
+        logger.debug(f"crypt key: {self.crypt.key}")
         try:
             plain = self.crypt.decrypt(base64.urlsafe_b64decode(token))
         except Exception as err:

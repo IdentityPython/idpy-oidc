@@ -279,3 +279,87 @@ def test_file(jwks):
     server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
     token_handler = server.context.session_manager.token_handler
     assert token_handler
+
+def test_token_handler_from_config_2():
+    conf = {
+        "issuer": "https://example.com/op",
+        "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+        "endpoint": {
+            "endpoint": {"path": "endpoint", "class": Endpoint, "kwargs": {}},
+        },
+        "token_handler_args": {
+            "jwks_def": {
+                "private_path": "private/token_jwks.json",
+                "read_only": False,
+                "key_defs": [{"type": "oct", "bytes": "24", "use": ["enc"], "kid": "code"}],
+            },
+            "code": {
+                "kwargs": {
+                    "lifetime": 600,
+                    "crypt_conf": {
+                        "kwargs": {
+                            "key": "0987654321abcdefghijklmnop...---",
+                            "salt": "abcdefghijklmnop",
+                            "iterations": 1
+                        }
+                    }
+                }
+            },
+            "token": {
+                "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                "kwargs": {
+                    "lifetime": 3600,
+                    "add_claims_by_scope": True,
+                    "aud": ["https://example.org/appl"],
+                },
+            },
+            "refresh": {
+                "class": "idpyoidc.server.token.jwt_token.JWTToken",
+                "kwargs": {
+                    "lifetime": 3600,
+                    "aud": ["https://example.org/appl"],
+                },
+            },
+            "id_token": {
+                "class": "idpyoidc.server.token.id_token.IDToken",
+                "kwargs": {
+                    "base_claims": {
+                        "email": {"essential": True},
+                        "email_verified": {"essential": True},
+                    }
+                },
+            },
+        },
+        "session_params": SESSION_PARAMS,
+    }
+
+    server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+    token_handler = server.context.session_manager.token_handler
+    assert token_handler
+    assert len(token_handler.handler) == 4
+    assert set(token_handler.handler.keys()) == {
+        "authorization_code",
+        "access_token",
+        "refresh_token",
+        "id_token",
+    }
+    assert isinstance(token_handler.handler["authorization_code"], DefaultToken)
+    assert isinstance(token_handler.handler["access_token"], JWTToken)
+    assert isinstance(token_handler.handler["refresh_token"], JWTToken)
+    assert isinstance(token_handler.handler["id_token"], IDToken)
+
+    assert token_handler.handler["authorization_code"].lifetime == 600
+
+    assert token_handler.handler["access_token"].alg == "ES256"
+    assert token_handler.handler["access_token"].kwargs == {"add_claims_by_scope": True}
+    assert token_handler.handler["access_token"].lifetime == 3600
+    assert token_handler.handler["access_token"].def_aud == ["https://example.org/appl"]
+
+    assert token_handler.handler["refresh_token"].alg == "ES256"
+    assert token_handler.handler["refresh_token"].kwargs == {}
+    assert token_handler.handler["refresh_token"].lifetime == 3600
+    assert token_handler.handler["refresh_token"].def_aud == ["https://example.org/appl"]
+
+    assert token_handler.handler["id_token"].lifetime == 300
+    assert "base_claims" in token_handler.handler["id_token"].kwargs
+

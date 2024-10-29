@@ -197,7 +197,7 @@ def factory(
         if cnf is not None: # else just default
             try:
                 _key_types = key_types(cnf["kwargs"]["crypt_conf"]["kwargs"]["keys"]["key_defs"])
-            except KeyError:
+            except KeyError: # will fail on keys if it fails
                 pass
             else:
                 if "key" in _key_types and "password" in _key_types:
