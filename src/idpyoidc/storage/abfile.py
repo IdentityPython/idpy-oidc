@@ -191,7 +191,7 @@ class AbstractFileSystem(DictType):
             else:
                 return False
         else:
-            logger.error("Could not access {}".format(fname))
+            logger.error(f"Not a file '{fname}'")
             raise KeyError(item)
 
     def _read_info(self, fname):
