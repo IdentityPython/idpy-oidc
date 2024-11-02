@@ -3,26 +3,28 @@ import os
 
 import pytest
 from cryptojwt.exception import MissingKey
-from cryptojwt.jws.jws import JWS
 from cryptojwt.jws.jws import factory
+from cryptojwt.jws.jws import JWS
 from cryptojwt.jwt import JWT
 from cryptojwt.key_bundle import KeyBundle
-from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import init_key_jar
+from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.claims import Claims
+from idpyoidc.client.client_auth import assertion_jwt
 from idpyoidc.client.client_auth import AuthnFailure
+from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import BearerBody
 from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.client_auth import ClientSecretBasic
 from idpyoidc.client.client_auth import ClientSecretJWT
 from idpyoidc.client.client_auth import ClientSecretPost
 from idpyoidc.client.client_auth import PrivateKeyJWT
-from idpyoidc.client.client_auth import assertion_jwt
-from idpyoidc.client.client_auth import bearer_auth
 from idpyoidc.client.client_auth import valid_service_context
 from idpyoidc.client.entity import Entity
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.key_import import add_kb
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AccessTokenResponse
@@ -88,12 +90,13 @@ def test_quote():
     )
 
     assert (
-        http_args["headers"]["Authorization"] == "Basic "
-        "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg="
+            http_args["headers"]["Authorization"] == "Basic "
+                                                     "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg="
     )
 
 
 class TestClientSecretBasic(object):
+
     def test_construct(self, entity):
         _service = entity.get_service("")
         request = _service.construct(
@@ -127,6 +130,7 @@ class TestClientSecretBasic(object):
 
 
 class TestBearerHeader(object):
+
     def test_construct(self, entity):
         request = ResourceRequest(access_token="Sesame")
         bh = BearerHeader()
@@ -196,6 +200,7 @@ class TestBearerHeader(object):
 
 
 class TestBearerBody(object):
+
     def test_construct(self, entity):
         _token_service = entity.get_service("")
         request = ResourceRequest(access_token="Sesame")
@@ -252,6 +257,7 @@ class TestBearerBody(object):
 
 
 class TestClientSecretPost(object):
+
     def test_construct(self, entity):
         _token_service = entity.get_service("")
         request = _token_service.construct(
@@ -292,6 +298,7 @@ class TestClientSecretPost(object):
 
 
 class TestPrivateKeyJWT(object):
+
     def test_construct(self, entity):
         token_service = entity.get_service("")
         kb_rsa = KeyBundle(
@@ -320,8 +327,8 @@ class TestPrivateKeyJWT(object):
 
         # Receiver
         _kj = KeyJar()
-        _kj.import_jwks(_keyjar.export_jwks(), issuer_id=_context.get_client_id())
-        _kj.add_kb(_context.get_client_id(), kb_rsa)
+        _kj = import_jwks(_kj, _keyjar.export_jwks(), _context.get_client_id())
+        _kj = add_kb(_kj, kb_rsa, _context.get_client_id())
         jso = JWT(key_jar=_kj).unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         # assert _jwt.headers == {'alg': 'RS256'}
@@ -350,6 +357,7 @@ class TestPrivateKeyJWT(object):
 
 
 class TestClientSecretJWT_TE(object):
+
     def test_client_secret_jwt(self, entity):
         _service_context = entity.get_context()
         _service_context.token_endpoint = "https://example.com/token"
@@ -487,6 +495,7 @@ class TestClientSecretJWT_TE(object):
 
 
 class TestClientSecretJWT_UI(object):
+
     def test_client_secret_jwt(self, entity):
         access_token_service = entity.get_service("")
 
@@ -526,6 +535,7 @@ class TestClientSecretJWT_UI(object):
 
 
 class TestValidClientInfo(object):
+
     def test_valid_service_context(self, entity):
         _service_context = entity.get_context()
 

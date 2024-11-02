@@ -1,6 +1,7 @@
 import logging
 
 from idpyoidc.client.service import Service
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -194,9 +195,7 @@ class Registration(Service):
         if _client_id:
             _context.set_metadata("client_id", _client_id)
             if _client_id not in _context.keyjar:
-                _context.keyjar.import_jwks(
-                    _context.keyjar.export_jwks(True, ""), issuer_id=_client_id
-                )
+                _context.keyjar = store_under_other_id(_context.keyjar, "", _client_id)
             _client_secret = resp.get("client_secret")
             if _client_secret:
                 _context.client_secret = _client_secret

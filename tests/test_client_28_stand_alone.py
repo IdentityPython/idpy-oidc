@@ -11,6 +11,7 @@ from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.exception import VerificationError
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
@@ -416,7 +417,7 @@ class TestPostAuthn(object):
         idval = {"nonce": _nonce, "sub": subject, "iss": _iss, "aud": _aud}
 
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(ISSUER_KEYS.export_jwks(issuer_id=ISSUER), ISSUER)
+        _keyjar = import_jwks(_keyjar, ISSUER_KEYS.export_jwks(issuer_id=ISSUER), ISSUER)
 
         idts = IdToken(**idval)
         return idts.to_jwt(

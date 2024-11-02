@@ -5,6 +5,7 @@ import pytest
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -212,8 +213,8 @@ class TestEndpoint(object):
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
         self.context.cdb["client_2"] = client_2_config
-        self.context.keyjar.import_jwks(self.client_1.keyjar.export_jwks(), "client_1")
-        self.context.keyjar.import_jwks(self.client_2.keyjar.export_jwks(), "client_2")
+        self.context.keyjar = import_jwks(self.context.keyjar, self.client_1.keyjar.export_jwks(), "client_1")
+        self.context.keyjar = import_jwks(self.context.keyjar, self.client_2.keyjar.export_jwks(), "client_2")
 
         self.context.set_provider_info()
 

@@ -6,6 +6,7 @@ import pytest
 import yaml
 from cryptojwt import KeyJar
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
@@ -199,7 +200,7 @@ class TestUserAuthn(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.context = context
         self.rp_keyjar = KeyJar()

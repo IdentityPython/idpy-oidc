@@ -15,6 +15,7 @@ from cryptojwt.utils import b64e
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -289,7 +290,7 @@ class TestEndpoint(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.context = context
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
@@ -1193,7 +1194,7 @@ class TestACR(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"

@@ -187,8 +187,6 @@ class EndpointContext(OidcContext):
             except KeyError:
                 pass
 
-        self.token_handler_args = get_token_handler_args(conf)
-
         # session db
         self._sub_func = {}
         self.do_sub_func()
@@ -248,23 +246,25 @@ class EndpointContext(OidcContext):
 
         self.setup_authentication()
 
-        self.session_manager = SessionManager(
-            self.token_handler_args,
-            sub_func=self._sub_func,
-            conf=conf,
-            upstream_get=self.unit_get)
+        if conf.get("session_management", conf["conf"].get("session_management", True)):
+            self.token_handler_args = get_token_handler_args(conf)
+
+            self.session_manager = SessionManager(
+                self.token_handler_args,
+                sub_func=self._sub_func,
+                conf=conf,
+                upstream_get=self.unit_get)
+        else:
+            self.session_manager = None
 
         self.do_userinfo()
 
         # Must be done after userinfo
         self.setup_login_hint_lookup()
-        self.set_remember_token()
+        if self.session_manager:
+            self.set_remember_token()
 
         self.setup_client_authn_methods()
-
-        # _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
-        # if _id_token_handler:
-        #     self.provider_info.update(_id_token_handler.provider_info)
 
     def get_metadata(self, supports: Optional[dict] = None, schema: Optional[Message] = None):
         if supports is None:

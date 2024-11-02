@@ -8,6 +8,7 @@ import pytest
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server import Server
@@ -61,7 +62,7 @@ def test_verify_header():
 ISSUER = "https://example.com/"
 
 KEYJAR = init_key_jar(key_defs=DEFAULT_KEY_DEFS, issuer_id=ISSUER)
-KEYJAR.import_jwks(KEYJAR.export_jwks(True, ISSUER), "")
+KEYJAR = store_under_other_id(KEYJAR, ISSUER, "", True)
 
 AUTH_REQ = AuthorizationRequest(
     scope=["openid"],

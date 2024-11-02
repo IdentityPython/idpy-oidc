@@ -3,6 +3,8 @@ import os
 import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
+
+from idpyoidc.key_import import import_jwks
 from idpyoidc.server.exception import UnAuthorizedClient
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
@@ -70,7 +72,7 @@ class TestEndpoint:
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        self.server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        self.server.keyjar = import_jwks(self.server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = self.server.get_endpoint("token")
         self.user_id = "diana"

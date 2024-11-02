@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class AbstractFileSystemNoCache(DictType):
     """
-    FileSystem implements a simple read-only file based database.
+    FileSystem implements a simple file based database.
     It has a dictionary like interface.
     Each key maps one-to-one to a file on disc, where the content of the
     file is the value.
@@ -28,6 +28,7 @@ class AbstractFileSystemNoCache(DictType):
             fdir: Optional[str] = "",
             key_conv: Optional[str] = "",
             value_conv: Optional[str] = "",
+            read_only: Optional[bool] = False,
             **kwargs
     ):
         """
@@ -52,6 +53,7 @@ class AbstractFileSystemNoCache(DictType):
         )
 
         self.fdir = fdir
+        self.read_only = read_only
 
         if key_conv:
             self.key_conv = importer(key_conv)()
@@ -94,6 +96,9 @@ class AbstractFileSystemNoCache(DictType):
         :return:
         """
 
+        if self.read_only:
+            return
+
         if not os.path.isdir(self.fdir):
             os.makedirs(self.fdir, exist_ok=True)
 
@@ -111,6 +116,9 @@ class AbstractFileSystemNoCache(DictType):
         logger.debug(f'Wrote to "{_file_name}"')
 
     def __delitem__(self, key):
+        if self.read_only:
+            return
+
         fname = os.path.join(self.fdir, key)
         if fname.endswith(".lock"):
             if os.path.isfile(fname):
@@ -122,7 +130,7 @@ class AbstractFileSystemNoCache(DictType):
                     os.unlink(fname)
                     os.unlink(f"{fname}.lock")
 
-    def keys(self):
+    def _keys(self):
         """
         Implements the dict.keys() method
         """
@@ -138,6 +146,9 @@ class AbstractFileSystemNoCache(DictType):
             keys.append(f)
 
         return keys
+
+    def keys(self):
+        return [self.key_conv.deserialize(k) for k in self._keys()]
 
     def _read_info(self, key):
         file_name = os.path.join(self.fdir, key)
@@ -160,18 +171,18 @@ class AbstractFileSystemNoCache(DictType):
         """
         Implements the dict.items() method
         """
-        _keys = self.keys()
-
-        for k in self.keys():
-            file_name = os.path.join(self.fdir, k)
-            v = self._read_info(file_name)
-            yield k, v
+        for k in self._keys():
+            v = self._read_info(k)
+            yield self.key_conv.deserialize(k), v
 
     def clear(self):
         """
         Completely resets the database. This means that all information in
         the local cache and on disc will be erased.
         """
+        if self.read_only:
+            return
+
         if not os.path.isdir(self.fdir):
             os.makedirs(self.fdir, exist_ok=True)
             return
@@ -187,15 +198,14 @@ class AbstractFileSystemNoCache(DictType):
             return False
 
     def __iter__(self):
-        _keys = self.keys()
-        for k in _keys:
-            yield k, self._read_info(k)
+        for k in self._keys():
+            yield self.key_conv.deserialize(k)
 
     def __call__(self, *args, **kwargs):
-        return [self.key_conv.deserialize(k) for k in self.keys()]
+        return [self.key_conv.deserialize(k) for k in self._keys()]
 
     def __len__(self):
         if not os.path.isdir(self.fdir):
             return 0
 
-        return len(self.keys())
+        return len(self._keys())

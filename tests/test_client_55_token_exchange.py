@@ -4,6 +4,7 @@ import pytest
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
+from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import AuthorizationResponse
@@ -27,7 +28,7 @@ ISS_KEY = init_key_jar(
     read_only=False,
 )
 
-ISS_KEY.import_jwks_as_json(open("{}/pub_client.jwks".format(_dirname)).read(), "client_id")
+ISS_KEY = import_jwks_from_file(ISS_KEY, f"{_dirname}/pub_client.jwks", "client_id")
 
 
 def create_jws(val):
@@ -63,6 +64,9 @@ class TestUserInfo(object):
             },
         )
         entity.get_context().issuer = "https://example.com"
+        _context = entity.get_context()
+        _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks", ISS)
+
         self.service = entity.get_service("token_exchange")
         _cstate = self.service.upstream_get("context").cstate
         # Add history
@@ -72,7 +76,7 @@ class TestUserInfo(object):
         idtval = {"nonce": "KUEYfRM2VzKDaaKD", "sub": "diana", "iss": ISS, "aud": "client_id"}
         idt = create_jws(idtval)
 
-        ver_idt = IdToken().from_jwt(idt, make_keyjar())
+        ver_idt = IdToken().from_jwt(idt, _context.keyjar)
 
         token_response = AccessTokenResponse(
             access_token="access_token", id_token=idt, __verified_id_token=ver_idt

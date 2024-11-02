@@ -5,16 +5,17 @@ from http.cookies import SimpleCookie
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-from cryptojwt.jws.jws import factory
 import pytest
 import yaml
 from cryptojwt import KeyJar
+from cryptojwt.jws.jws import factory
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
@@ -31,8 +32,8 @@ from idpyoidc.server.exception import RedirectURIError
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.exception import UnknownClient
-from idpyoidc.server.oauth2.authorization import FORM_POST
 from idpyoidc.server.oauth2.authorization import Authorization
+from idpyoidc.server.oauth2.authorization import FORM_POST
 from idpyoidc.server.oauth2.authorization import get_uri
 from idpyoidc.server.oauth2.authorization import inputs
 from idpyoidc.server.oauth2.authorization import join_query
@@ -84,6 +85,7 @@ USERINFO_db = json.loads(open(full_path("users.json")).read())
 
 
 class SimpleCookieDealer(object):
+
     def __init__(self, name=""):
         self.name = name
 
@@ -159,6 +161,7 @@ clients:
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -265,7 +268,7 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["clients"]
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.context = context
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
@@ -370,7 +373,8 @@ class TestEndpoint(object):
     )
     def test_verify_uri_localhost_ipv4_native_client(self, client_redirect_uri, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
         request = {"redirect_uri": redirect_uri}
 
         verify_uri(_context, request, "redirect_uri", "client_id")
@@ -381,15 +385,20 @@ class TestEndpoint(object):
             ("http://[::1]:9999/auth_cb", "http://[::1]:3456/auth_cb"),
             ("http://[::1]/auth_cb", "http://[::1]/auth_cb"),
             ("http://[::1]/auth_cb", "http://[::1]:3456/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
         ]
     )
     def test_verify_uri_localhost_ipv6_native_client(self, client_redirect_uri, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
         request = {"redirect_uri": redirect_uri}
 
         verify_uri(_context, request, "redirect_uri", "client_id")
@@ -403,10 +412,11 @@ class TestEndpoint(object):
     )
     def test_verify_uri_literal_localhost_native_client(self, client_redirect_uri, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
         request = {"redirect_uri": redirect_uri}
         with pytest.raises(RedirectURIError):
-          verify_uri(_context, request, "redirect_uri", "client_id")
+            verify_uri(_context, request, "redirect_uri", "client_id")
 
     @pytest.mark.parametrize(
         "client_redirect_uri, redirect_uri", [
@@ -417,71 +427,85 @@ class TestEndpoint(object):
     )
     def test_verify_uri_localhost_ipv4_web_client(self, client_redirect_uri, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_WEB}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],
+                                     "application_type": APPLICATION_TYPE_WEB}
         request = {"redirect_uri": redirect_uri}
         with pytest.raises(RedirectURIError):
-          verify_uri(_context, request, "redirect_uri", "client_id")
+            verify_uri(_context, request, "redirect_uri", "client_id")
 
     @pytest.mark.parametrize(
         "client_redirect_uri, redirect_uri", [
             ("http://[::1]:9999/auth_cb", "http://[::1]/auth_cb"),
             ("http://[::1]:9999/auth_cb", "http://[::1]:3456/auth_cb"),
             ("http://[::1]/auth_cb", "http://[::1]:3456/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb",
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb"),
         ]
     )
     def test_verify_uri_localhost_ipv6_web_client(self, client_redirect_uri, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],"application_type": APPLICATION_TYPE_WEB}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, {})],
+                                     "application_type": APPLICATION_TYPE_WEB}
         request = {"redirect_uri": redirect_uri}
         with pytest.raises(RedirectURIError):
-          verify_uri(_context, request, "redirect_uri", "client_id")
+            verify_uri(_context, request, "redirect_uri", "client_id")
 
     @pytest.mark.parametrize(
         "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
-            ("http://127.0.0.1:9999/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:9999/auth_cb?foo=bar"),
-            ("http://127.0.0.1:9999/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
-            ("http://127.0.0.1/auth_cb", {"foo":["bar"]}, "http://127.0.0.1/auth_cb?foo=bar"),
-            ("http://127.0.0.1/auth_cb", {"foo":["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
+            ("http://127.0.0.1:9999/auth_cb", {"foo": ["bar"]}, "http://127.0.0.1:9999/auth_cb?foo=bar"),
+            ("http://127.0.0.1:9999/auth_cb", {"foo": ["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
+            ("http://127.0.0.1/auth_cb", {"foo": ["bar"]}, "http://127.0.0.1/auth_cb?foo=bar"),
+            ("http://127.0.0.1/auth_cb", {"foo": ["bar"]}, "http://127.0.0.1:3456/auth_cb?foo=bar"),
         ]
     )
-    def test_verify_uri_qp_localhost_ipv4_native_client(self, client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+    def test_verify_uri_qp_localhost_ipv4_native_client(self, client_redirect_uri, client_redirect_uri_qp,
+                                                        redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)],"application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
         request = {"redirect_uri": redirect_uri}
 
         verify_uri(_context, request, "redirect_uri", "client_id")
 
     @pytest.mark.parametrize(
         "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
-            ("http://[::1]:9999/auth_cb", {"foo":["bar"]}, "http://[::1]:9999/auth_cb?foo=bar"),
-            ("http://[::1]:9999/auth_cb", {"foo":["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
-            ("http://[::1]/auth_cb", {"foo":["bar"]}, "http://[::1]/auth_cb?foo=bar"),
-            ("http://[::1]/auth_cb", {"foo":["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
-            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo":["bar"]}, "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
+            ("http://[::1]:9999/auth_cb", {"foo": ["bar"]}, "http://[::1]:9999/auth_cb?foo=bar"),
+            ("http://[::1]:9999/auth_cb", {"foo": ["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
+            ("http://[::1]/auth_cb", {"foo": ["bar"]}, "http://[::1]/auth_cb?foo=bar"),
+            ("http://[::1]/auth_cb", {"foo": ["bar"]}, "http://[::1]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo": ["bar"]},
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]:9999/auth_cb", {"foo": ["bar"]},
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo": ["bar"]},
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]:3456/auth_cb?foo=bar"),
+            ("http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb", {"foo": ["bar"]},
+             "http://[0000:0000:0000:0000:0000:0000:0000:0001]/auth_cb?foo=bar"),
         ]
     )
-    def test_verify_uri_qp_localhost_ipv6_native_client(self, client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+    def test_verify_uri_qp_localhost_ipv6_native_client(self, client_redirect_uri, client_redirect_uri_qp,
+                                                        redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)], "application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
         request = {"redirect_uri": redirect_uri}
 
         verify_uri(_context, request, "redirect_uri", "client_id")
 
     @pytest.mark.parametrize(
         "client_redirect_uri, client_redirect_uri_qp, redirect_uri", [
-            ("https://rp.example.com:9999/auth_cb", {"foo":["bar"]}, "http://rp.example.com/auth_cb?foo=bar"),
-            ("https://rp.example.com/auth_cb", {"foo":["bar"]}, "http://rp.example.com:9999/auth_cb?foo=bar"),
+            ("https://rp.example.com:9999/auth_cb", {"foo": ["bar"]}, "http://rp.example.com/auth_cb?foo=bar"),
+            ("https://rp.example.com/auth_cb", {"foo": ["bar"]}, "http://rp.example.com:9999/auth_cb?foo=bar"),
         ]
     )
-    def test_verify_uri_qp_match_native_client(self,  client_redirect_uri, client_redirect_uri_qp, redirect_uri):
+    def test_verify_uri_qp_match_native_client(self, client_redirect_uri, client_redirect_uri_qp, redirect_uri):
         _context = self.endpoint.upstream_get("context")
-        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)], "application_type": APPLICATION_TYPE_NATIVE}
+        _context.cdb["client_id"] = {"redirect_uris": [(client_redirect_uri, client_redirect_uri_qp)],
+                                     "application_type": APPLICATION_TYPE_NATIVE}
 
         request = {"redirect_uri": redirect_uri}
 
@@ -922,7 +946,6 @@ class TestEndpoint(object):
         _payload = _jws.jwt.payload()
         assert 'aud' in _payload
 
-
     # def test_audience(self):
     #     request = AuthorizationRequest(
     #         client_id="client_id",
@@ -947,6 +970,7 @@ class TestEndpoint(object):
     #
     #     res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
     #     assert set(res.keys()) == {"session_id", "identity", "user"}
+
 
 def test_inputs():
     elems = inputs(dict(foo="bar", home="stead"))

@@ -18,6 +18,8 @@ from idpyoidc.client.oauth2.utils import pick_redirect_uri
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import NotForMe
+from idpyoidc.key_import import add_kb
+from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
@@ -90,10 +92,10 @@ class StandAloneClient(Client):
                     elif typ == "file":
                         for kty, _name in _spec.items():
                             if kty == "jwks":
-                                _kj.import_jwks_from_file(_name, _context.get("issuer"))
+                                _kj = import_jwks_from_file(_kj, _name, _context.get("issuer"))
                             elif kty == "rsa":  # PEM file
                                 _kb = keybundle_from_local_file(_name, "der", ["sig"])
-                                _kj.add_kb(_context.get("issuer"), _kb)
+                                _kj = add_kb(_kj, _context.get("issuer"), _kb)
                     else:
                         raise ValueError("Unknown provider JWKS type: {}".format(typ))
 

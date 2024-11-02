@@ -10,6 +10,7 @@ import responses
 
 from idpyoidc import alg_info
 from idpyoidc.exception import InvalidRequest
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import verified_claim_name
@@ -44,7 +45,7 @@ KEYDEFS = [
 ]
 
 KEYJAR = build_keyjar(KEYDEFS)
-KEYJAR.import_jwks(KEYJAR.export_jwks(private=True), ISS)
+KEYJAR = store_under_other_id(KEYJAR, "", ISS, True)
 
 RESPONSE_TYPES_SUPPORTED = [["code"], ["id_token"], ["code", "id_token"]]
 

@@ -5,6 +5,7 @@ import pytest
 from cryptojwt import as_unicode
 from cryptojwt.utils import as_bytes
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import TokenRevocationRequest
 from idpyoidc.message.oauth2 import TokenRevocationResponse
 from idpyoidc.message.oidc import AccessTokenRequest
@@ -86,6 +87,7 @@ def full_path(local_file):
 
 @pytest.mark.parametrize("jwt_token", [True, False])
 class TestEndpoint:
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self, jwt_token):
         conf = {
@@ -216,10 +218,8 @@ class TestEndpoint:
                 "research_and_scholarship",
             ],
         }
-        endpoint_context.keyjar.import_jwks_as_json(
-            endpoint_context.keyjar.export_jwks_as_json(private=True),
-            endpoint_context.issuer,
-        )
+        endpoint_context.keyjar = store_under_other_id(endpoint_context.keyjar, "",
+                                                       endpoint_context.issuer, True)
         self.revocation_endpoint = server.get_endpoint("token_revocation")
         self.token_endpoint = server.get_endpoint("token")
         self.session_manager = endpoint_context.session_manager

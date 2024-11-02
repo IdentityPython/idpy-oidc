@@ -6,6 +6,7 @@ import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.key_import import import_jwks_as_json
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
@@ -222,9 +223,9 @@ class TestEndpoint(object):
 
         # Both have to use the same keyjar
         _keyjar = init_key_jar(key_defs=KEYDEFS)
-        _keyjar.import_jwks_as_json(
-            _keyjar.export_jwks_as_json(True, ""), ENDPOINT_CONTEXT_CONFIG["issuer"]
-        )
+        _keyjar = import_jwks_as_json(_keyjar,
+                                      _keyjar.export_jwks_as_json(True, ""),
+                                      ENDPOINT_CONTEXT_CONFIG["issuer"])
         server1 = Server(
             OPConfiguration(conf=ENDPOINT_CONTEXT_CONFIG, base_path=BASEDIR),
             cwd=BASEDIR,
@@ -357,8 +358,8 @@ class TestEndpoint(object):
         _context_2 = self.endpoint[2].upstream_get("context")
 
         assert (
-            _context_1.provider_info["claims_parameter_supported"] == _context_2.provider_info[
-               "claims_parameter_supported"]
+                _context_1.provider_info["claims_parameter_supported"] == _context_2.provider_info[
+            "claims_parameter_supported"]
         )
         print(_context_1.provider_info.get("claims_parameter_supported"))
 

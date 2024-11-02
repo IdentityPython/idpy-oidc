@@ -6,6 +6,7 @@ from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
@@ -159,6 +160,7 @@ USER_ID = "diana"
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_session_manager(self):
         self.server = Server(conf)
@@ -415,7 +417,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
 
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -449,7 +451,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "nickname" in res
@@ -462,7 +464,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -479,7 +481,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -494,7 +496,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "foobar" not in res
@@ -515,7 +517,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -534,7 +536,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
 
@@ -553,7 +555,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -575,7 +577,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         assert "address" in res
@@ -593,7 +595,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         # User information, from scopes -> claims
@@ -616,7 +618,7 @@ class TestEndpoint(object):
 
         client_keyjar = KeyJar()
         _jwks = self.server.keyjar.export_jwks()
-        client_keyjar.import_jwks(_jwks, self.context.issuer)
+        client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
         # Email didn't match

@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import pytest
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.server import Server
@@ -24,7 +25,7 @@ KEYDEFS = [
 ISSUER = "https://example.com/"
 
 KEYJAR = init_key_jar(key_defs=KEYDEFS, issuer_id=ISSUER)
-KEYJAR.import_jwks(KEYJAR.export_jwks(True, ISSUER), "")
+KEYJAR = store_under_other_id(KEYJAR, ISSUER, "", True)
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],

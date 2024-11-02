@@ -7,6 +7,8 @@ from cryptojwt import JWT
 from cryptojwt.jwt import remove_jwt_parameters
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.key_import import import_jwks
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server import Server
@@ -73,6 +75,7 @@ AUTHN_REQUEST = (
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -167,11 +170,11 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
 
         self.rp_keyjar = init_key_jar(key_defs=KEYDEFS, issuer_id="s6BhdRkqt3")
         # Add RP's keys to the OP's keyjar
-        server.keyjar.import_jwks(self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3")
+        server.keyjar = import_jwks(server.keyjar, self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3")
 
         self.pushed_authorization_endpoint = server.get_endpoint("pushed_authorization")
         self.authorization_endpoint = server.get_endpoint("authorization")

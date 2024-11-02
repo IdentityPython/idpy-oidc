@@ -5,6 +5,7 @@ from common import BASEDIR
 from common import KEYDEFS
 from flow import Flow
 from idpyoidc.client.oidc import RP
+from idpyoidc.key_import import import_jwks
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
 from oidc_client_conf import CLIENT_CONFIG
@@ -52,7 +53,7 @@ server.context.cdb[CLIENT_ID] = CLIENT_CONFIG
 for claim in ['allowed_scopes', 'response_types_supported']:
     server.context.cdb["client"][claim] = client_conf[claim]
 
-server.context.keyjar.import_jwks(client.keyjar.export_jwks(), CLIENT_ID)
+server.context.keyjar = import_jwks(server.context.keyjar,client.keyjar.export_jwks(), CLIENT_ID)
 
 # Initiating the server's metadata
 

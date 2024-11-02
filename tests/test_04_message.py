@@ -14,6 +14,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.exception import DecodeError
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import OidcMsgError
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import OPTIONAL_LIST_OF_MESSAGES
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import OPTIONAL_MESSAGE
@@ -48,13 +49,13 @@ keym = [
 KEYJAR = build_keyjar(keys)
 
 IKEYJAR = build_keyjar(keys)
-IKEYJAR.import_jwks(IKEYJAR.export_jwks(private=True), "issuer")
+IKEYJAR = store_under_other_id(IKEYJAR, "", "issuer", True)
 del IKEYJAR[""]
 
 KEYJARS = {}
 for iss in ["A", "B", "C"]:
     _kj = build_keyjar(keym)
-    _kj.import_jwks(_kj.export_jwks(private=True), iss)
+    _kj = store_under_other_id(_kj, "", iss, True)
     del _kj[""]
     KEYJARS[iss] = _kj
 

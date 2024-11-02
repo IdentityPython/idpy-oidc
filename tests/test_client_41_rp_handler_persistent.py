@@ -6,6 +6,7 @@ import responses
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.rp_handler import RPHandler
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
@@ -249,7 +250,7 @@ class TestRPHandler(object):
         assert _context.get("issuer") == _github_id
 
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
         keys = _keyjar.get_issuer_keys("")
@@ -376,7 +377,7 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.get_context()
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         _nonce = _session["nonce"]
         _iss = _session["iss"]
@@ -457,7 +458,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -508,7 +509,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -559,7 +560,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(

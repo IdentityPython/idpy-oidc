@@ -4,6 +4,7 @@ import os
 import pytest
 from cryptojwt.jwk.hmac import SYMKey
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -164,7 +165,7 @@ class TestAuthnBrokerEC:
                 "code id_token token",
             ],
         }
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
 
         self.server = server
 

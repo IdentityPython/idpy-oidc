@@ -4,6 +4,7 @@ import pytest
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
@@ -31,7 +32,7 @@ KEYDEFS = [
 ISSUER = "https://example.com/"
 
 KEYJAR = init_key_jar(key_defs=KEYDEFS, issuer_id=ISSUER)
-KEYJAR.import_jwks(KEYJAR.export_jwks(True, ISSUER), "")
+KEYJAR = store_under_other_id(KEYJAR, ISSUER, "", True)
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -98,6 +99,7 @@ def full_path(local_file):
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -297,6 +299,7 @@ class TestEndpoint(object):
 
 
 class TestEndpointWebID(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         _scope2claims = SCOPE2CLAIMS.copy()

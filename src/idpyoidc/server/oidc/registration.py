@@ -12,6 +12,8 @@ from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 
 from idpyoidc.exception import MessageException
+from idpyoidc.key_import import import_jwks
+from idpyoidc.key_import import import_jwks_as_json
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
@@ -288,9 +290,9 @@ class Registration(Endpoint):
             _jwks = request.get("jwks", None)
             if _jwks:
                 if isinstance(_jwks, str):
-                    _keyjar.import_jwks_as_json(_jwks, client_id)
+                    _keyjar = import_jwks_as_json(_keyjar, _jwks, client_id)
                 else:
-                    _keyjar.import_jwks(_jwks, client_id)
+                    _keyjar = import_jwks(_keyjar, _jwks, client_id)
 
         if client_id in _keyjar:
             logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")

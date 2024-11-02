@@ -2,23 +2,14 @@ import io
 import json
 import os
 from http.cookies import SimpleCookie
-from urllib.parse import parse_qs
-from urllib.parse import urlparse
 
 import pytest
 import yaml
 from cryptojwt import KeyJar
-from cryptojwt.jwt import JWT
 from cryptojwt.jwt import utc_time_sans_frac
-from cryptojwt.key_jar import init_key_jar
-from cryptojwt.utils import as_bytes
-from cryptojwt.utils import b64e
 
-from idpyoidc.exception import ParameterError
-from idpyoidc.exception import URIError
-from idpyoidc.message.oauth2 import AuthorizationErrorResponse
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationRequest
-from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import TokenErrorResponse
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.server import Server
@@ -26,21 +17,10 @@ from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
-from idpyoidc.server.exception import InvalidRequest
-from idpyoidc.server.exception import NoSuchAuthentication
-from idpyoidc.server.exception import RedirectURIError
-from idpyoidc.server.exception import ToOld
-from idpyoidc.server.exception import UnAuthorizedClientScope
-from idpyoidc.server.exception import UnknownClient
-from idpyoidc.server.oauth2.authorization import FORM_POST
 from idpyoidc.server.oauth2.authorization import Authorization
-from idpyoidc.server.oauth2.authorization import get_uri
-from idpyoidc.server.oauth2.authorization import inputs
-from idpyoidc.server.oauth2.authorization import join_query
 from idpyoidc.server.oauth2.authorization import (
     validate_resource_indicators_policy as validate_authorization_resource_indicators_policy,
 )
-from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.server.oauth2.token import Token
 from idpyoidc.server.oauth2.token_helper import (
     validate_resource_indicators_policy as validate_token_resource_indicators_policy,
@@ -104,6 +84,7 @@ USERINFO_db = json.loads(open(full_path("users.json")).read())
 
 
 class SimpleCookieDealer(object):
+
     def __init__(self, name=""):
         self.name = name
 
@@ -415,6 +396,7 @@ RESOURCE_INDICATORS_ENABLED = {
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=False)
     def create_endpoint_ri_disabled(self):
         conf = RESOURCE_INDICATORS_DISABLED
@@ -423,9 +405,7 @@ class TestEndpoint(object):
         endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        endpoint_context.keyjar = store_under_other_id(endpoint_context.keyjar, "", conf["issuer"], True)
         self.endpoint_context = endpoint_context
         self.endpoint = server.get_endpoint("authorization")
         self.token_endpoint = server.get_endpoint("token")
@@ -446,9 +426,8 @@ class TestEndpoint(object):
         endpoint_context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         endpoint_context.cdb = _clients["clients"]
-        endpoint_context.keyjar.import_jwks(
-            endpoint_context.keyjar.export_jwks(True, ""), conf["issuer"]
-        )
+        endpoint_context.keyjar = store_under_other_id(endpoint_context.keyjar, "",
+                                                       conf["issuer"], True)
         self.endpoint_context = endpoint_context
         self.endpoint = server.get_endpoint("authorization")
         self.token_endpoint = server.get_endpoint("token")
@@ -529,7 +508,7 @@ class TestEndpoint(object):
             assert msg[key] == request[key]
 
     def test_authorization_code_req_no_resource_indicators_disabled(
-        self, create_endpoint_ri_disabled
+            self, create_endpoint_ri_disabled
     ):
         """
         Test successful authorization request when resource indicators is disabled.

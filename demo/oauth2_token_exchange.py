@@ -3,6 +3,7 @@ import os
 
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import import_jwks
 from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration
 from oauth2_client_conf import CLIENT_CONFIG
@@ -53,7 +54,7 @@ client = Client(config=client_conf)
 server.context.cdb[CLIENT_ID] = {k: v for k, v in CLIENT_CONFIG.items() if k not in ['services']}
 server.context.cdb[CLIENT_ID]['allowed_scopes'] = client_conf['allowed_scopes']
 
-server.context.keyjar.import_jwks(client.keyjar.export_jwks(), CLIENT_ID)
+server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), CLIENT_ID)
 
 # Initiating the server's metadata
 

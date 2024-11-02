@@ -5,6 +5,7 @@ from typing import List
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -169,6 +170,7 @@ CLIENT_CONFIG = {
 
 
 class Flow(object):
+
     def __init__(self, client, server):
         self.client = client
         self.server = server
@@ -290,7 +292,7 @@ def test_pkce():
     )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
+    server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 
@@ -332,7 +334,7 @@ def test_jar():
     )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar.import_jwks(client.keyjar.export_jwks(), "client")
+    server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
 
     server.context.set_provider_info()
 

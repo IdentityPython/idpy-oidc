@@ -1,16 +1,16 @@
-from http.cookies import SimpleCookie
 import io
 import json
 import os
+from http.cookies import SimpleCookie
 
-from cryptojwt import JWT
-from cryptojwt import KeyJar
-from cryptojwt.jwt import utc_time_sans_frac
 import pytest
 import responses
 import yaml
+from cryptojwt import JWT
+from cryptojwt import KeyJar
+from cryptojwt.jwt import utc_time_sans_frac
 
-from idpyoidc import metadata
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 from idpyoidc.server import Server
@@ -50,6 +50,7 @@ USERINFO_db = json.loads(open(full_path("users.json")).read())
 
 
 class SimpleCookieDealer(object):
+
     def __init__(self, name=""):
         self.name = name
 
@@ -125,6 +126,7 @@ clients:
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -186,7 +188,7 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["clients"]
-        server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), conf["issuer"])
+        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"

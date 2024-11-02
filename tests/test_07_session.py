@@ -10,6 +10,8 @@ from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.exception import MessageException
 from idpyoidc.exception import NotForMe
+from idpyoidc.key_import import import_jwks_as_json
+from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.message.oidc import Claims
 from idpyoidc.message.oidc import ClaimsRequest
 from idpyoidc.message.oidc import IdToken
@@ -64,8 +66,8 @@ ISS_KEY = init_key_jar(
     issuer_id=ISS,
 )
 
-ISS_KEY.import_jwks_as_json(open(full_path("pub_client.jwks")).read(), CLIENT_ID)
-CLI_KEY.import_jwks_as_json(open(full_path("pub_iss.jwks")).read(), ISS)
+ISS_KEY = import_jwks_from_file(ISS_KEY, full_path("pub_client.jwks"), CLIENT_ID)
+CLI_KEY = import_jwks_from_file(CLI_KEY, full_path("pub_iss.jwks"), ISS)
 
 
 class TestEndSessionResponse(object):

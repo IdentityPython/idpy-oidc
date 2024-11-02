@@ -5,6 +5,7 @@ import pytest
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.oidc import RP
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -188,7 +189,7 @@ class TestFlow(object):
 
         self.context = self.server.context
         # self.context.cdb["client_1"] = client_config
-        # self.context.keyjar.import_jwks(self.rp.keyjar.export_jwks(), "client_1")
+        # self.context.keyjar = import_jwks(self.context.keyjar, self.rp.keyjar.export_jwks(), "client_1")
 
         self.context.set_provider_info()
         # self.session_manager = self.context.session_manager
@@ -228,10 +229,11 @@ class TestFlow(object):
         _client_service.update_service_context(_resp["response_args"], key=state)
         # Fake key import
         if service_type == "provider_info":
-            _client_service.upstream_get("attribute", "keyjar").import_jwks(
-                _server_endpoint.upstream_get("attribute", "keyjar").export_jwks(),
-                issuer_id=_server_endpoint.upstream_get("attribute", "issuer"),
-            )
+            _keyjar = _client_service.upstream_get("attribute", "keyjar")
+            _keyjar = import_jwks(_keyjar,
+                                  _server_endpoint.upstream_get("attribute", "keyjar").export_jwks(),
+                                  _server_endpoint.upstream_get("attribute", "issuer"))
+
         return areq, resp
 
     def process_setup(self, token=None, scope=None):

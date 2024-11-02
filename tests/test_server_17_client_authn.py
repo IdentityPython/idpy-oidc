@@ -6,14 +6,16 @@ from unittest.mock import MagicMock
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import KeyJar
 from cryptojwt.key_jar import build_keyjar
+from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
 
 from idpyoidc.defaults import JWT_BEARER
-from idpyoidc.server import Server
+from idpyoidc.key_import import import_jwks
 from idpyoidc.server import do_endpoints
+from idpyoidc.server import Server
+from idpyoidc.server.client_authn import basic_authn
 from idpyoidc.server.client_authn import BearerBody
 from idpyoidc.server.client_authn import BearerHeader
 from idpyoidc.server.client_authn import ClientSecretBasic
@@ -21,7 +23,6 @@ from idpyoidc.server.client_authn import ClientSecretJWT
 from idpyoidc.server.client_authn import ClientSecretPost
 from idpyoidc.server.client_authn import JWSAuthnMethod
 from idpyoidc.server.client_authn import PrivateKeyJWT
-from idpyoidc.server.client_authn import basic_authn
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
@@ -49,7 +50,7 @@ class Endpoint_3(Endpoint):
     name = "endpoint_3"
 
     def __init__(
-        self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
+            self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
     ):
         Endpoint.__init__(
             self,
@@ -127,6 +128,7 @@ def get_client_id_from_token(context, token, request=None):
 
 
 class TestClientSecretBasic:
+
     @pytest.fixture(autouse=True)
     def setup(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -162,6 +164,7 @@ class TestClientSecretBasic:
 
 
 class TestClientSecretPost:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -185,6 +188,7 @@ class TestClientSecretPost:
 
 
 class TestClientSecretJWT:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -194,7 +198,7 @@ class TestClientSecretJWT:
 
     def test_client_secret_jwt(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has at this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -212,6 +216,7 @@ class TestClientSecretJWT:
 
 
 class TestPrivateKeyJWT:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -225,10 +230,10 @@ class TestPrivateKeyJWT:
         # Own dynamic keys
         client_keyjar = build_keyjar(KEYDEFS)
         # The servers keys
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
 
         _jwks = client_keyjar.export_jwks()
-        self.server.keyjar.import_jwks(_jwks, client_id)
+        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -246,10 +251,10 @@ class TestPrivateKeyJWT:
         # Own dynamic keys
         client_keyjar = build_keyjar(KEYDEFS)
         # The servers keys
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
 
         _jwks = client_keyjar.export_jwks()
-        self.server.keyjar.import_jwks(_jwks, client_id)
+        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -273,10 +278,10 @@ class TestPrivateKeyJWT:
         # Own dynamic keys
         client_keyjar = build_keyjar(KEYDEFS)
         # The servers keys
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
 
         _jwks = client_keyjar.export_jwks()
-        self.server.keyjar.import_jwks(_jwks, client_id)
+        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -295,6 +300,7 @@ class TestPrivateKeyJWT:
 
 
 class TestBearerHeader:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -318,6 +324,7 @@ class TestBearerHeader:
 
 
 class TestBearerBody:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -341,6 +348,7 @@ class TestBearerBody:
 
 
 class TestJWSAuthnMethod:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         server = Server(conf=CONF, keyjar=KEYJAR)
@@ -352,7 +360,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_wrong_key(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # Fake symmetric key
         client_keyjar.add_symmetric("", "client_secret:client_secret", ["sig"])
 
@@ -366,7 +374,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_aud_iss(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar,KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -381,7 +389,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_aud_token_endpoint(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -401,7 +409,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_aud_not_me(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has at this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -419,7 +427,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_aud_userinfo_endpoint(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -465,6 +473,7 @@ def test_basic_auth_wrong_token():
 
 
 class TestVerify:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
@@ -520,7 +529,7 @@ class TestVerify:
 
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 
@@ -582,6 +591,7 @@ class TestVerify:
 
 
 class TestVerify2:
+
     @pytest.fixture(autouse=True)
     def create_method(self):
         self.server = Server(conf=CONF, keyjar=KEYJAR)
@@ -591,7 +601,7 @@ class TestVerify2:
 
     def test_verify_client_jws_authn_method(self):
         client_keyjar = KeyJar()
-        client_keyjar.import_jwks(KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 

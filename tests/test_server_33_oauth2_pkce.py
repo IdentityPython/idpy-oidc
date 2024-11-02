@@ -7,6 +7,7 @@ import string
 import pytest
 import yaml
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oidc import AccessTokenRequest
@@ -229,7 +230,7 @@ def create_server(config):
     context = server.context
     _clients = yaml.safe_load(io.StringIO(client_yaml))
     context.cdb = _clients["oidc_clients"]
-    server.keyjar.import_jwks(server.keyjar.export_jwks(True, ""), config["issuer"])
+    server.keyjar = store_under_other_id(server.keyjar, "", config["issuer"], True)
     return server
 
 

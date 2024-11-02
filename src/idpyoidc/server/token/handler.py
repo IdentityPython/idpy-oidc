@@ -205,6 +205,7 @@ def factory(
                 if "password" not in _key_types and "key" not in _key_types:
                     if kj:
                         _add_passwd(kj, cnf, cls)
+            logger.debug(f"init_token_handler: {cls}")
             args[attr] = init_token_handler(upstream_get, cnf, token_class_map[cls])
 
     if id_token is not None:

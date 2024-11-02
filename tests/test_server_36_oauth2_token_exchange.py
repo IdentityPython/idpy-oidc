@@ -5,6 +5,7 @@ import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import build_keyjar
 
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -80,6 +81,7 @@ USERINFO = UserInfo(json.loads(open(full_path("users.json")).read()))
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -199,7 +201,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
-        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        server.keyjar = import_jwks(server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         self.endpoint = server.get_endpoint("token")
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.session_manager = self.context.session_manager
@@ -646,8 +648,8 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"]
-            == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
+                _resp["error_description"]
+                == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
     def test_wrong_resource(self):
@@ -1374,7 +1376,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1454,7 +1456,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "profile"
@@ -1466,7 +1468,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )
 
         token_exchange_req["scope"] = "offline_access"
@@ -1488,5 +1490,5 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert _resp["error"] == "invalid_request"
         assert (
-            _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
+                _resp["error_description"] == "Exchanging this subject token to refresh token forbidden"
         )

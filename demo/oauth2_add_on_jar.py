@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-import os
 
 from common import BASEDIR
 from common import KEYDEFS
 from flow import Flow
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import import_jwks
 from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration
 from oauth2_client_conf import CLIENT_CONFIG
 from oauth2_client_conf import CLIENT_ID
 from oauth2_server_conf import SERVER_CONF
-
 
 # ================ Server side ===================================
 
@@ -44,7 +43,7 @@ client = Client(config=client_conf)
 # ==== What the server needs to know about the client.
 
 server.context.cdb[CLIENT_ID] = {k: v for k, v in CLIENT_CONFIG.items() if k not in ['services']}
-server.context.keyjar.import_jwks(client.keyjar.export_jwks(), CLIENT_ID)
+server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), CLIENT_ID)
 
 # Initiating the server's metadata
 

@@ -8,6 +8,7 @@ from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc import verified_claim_name
 from idpyoidc.exception import MissingRequiredAttribute
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import DecodeError
 from idpyoidc.message import json_deserializer
 from idpyoidc.message import json_serializer
@@ -44,10 +45,10 @@ keym = [
 ]
 
 KEYJAR = build_keyjar(keys)
-KEYJAR.import_jwks(KEYJAR.export_jwks(private=True), "issuer")
+KEYJAR = store_under_other_id(KEYJAR,"", "issuer", True)
 
 IKEYJAR = build_keyjar(keys)
-IKEYJAR.import_jwks(IKEYJAR.export_jwks(private=True), "issuer")
+IKEYJAR = store_under_other_id(IKEYJAR, "", "issuer", True)
 del IKEYJAR[""]
 
 

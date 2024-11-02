@@ -9,10 +9,11 @@ from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.oidc.webfinger import WebFinger
-from idpyoidc.message.oidc import JRD
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
+from idpyoidc.message.oidc import JRD
 from idpyoidc.message.oidc import Link
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
@@ -28,20 +29,20 @@ JWKS_OP = {
     "keys": [
         {
             "d": "mcAW1xeNsjzyV1M7F7_cUHz0MIR"
-            "-tcnKFJnbbo5UXxMRUPu17qwRHr8ttep1Ie64r2L9QlphcT9BjYd0KQ8ll3flIzLtiJv__MNPQVjk5bsYzb_erQRzSwLJU-aCcNFB8dIyQECzu-p44UVEPQUGzykImsSShvMQhcvrKiqqg7NlijJuEKHaKynV9voPsjwKYSqk6lH8kMloCaVS-dOkK-r7bZtbODUxx9GJWnxhX0JWXcdrPZRb29y9cdthrMcEaCXG23AxnMEfp-enDqarLHYTQrCBJXs_b-9k2d8v9zLm7E-Pf-0YGmaoJtX89lwQkO_SmFF3sXsnI2cFreqU3Q",
+                 "-tcnKFJnbbo5UXxMRUPu17qwRHr8ttep1Ie64r2L9QlphcT9BjYd0KQ8ll3flIzLtiJv__MNPQVjk5bsYzb_erQRzSwLJU-aCcNFB8dIyQECzu-p44UVEPQUGzykImsSShvMQhcvrKiqqg7NlijJuEKHaKynV9voPsjwKYSqk6lH8kMloCaVS-dOkK-r7bZtbODUxx9GJWnxhX0JWXcdrPZRb29y9cdthrMcEaCXG23AxnMEfp-enDqarLHYTQrCBJXs_b-9k2d8v9zLm7E-Pf-0YGmaoJtX89lwQkO_SmFF3sXsnI2cFreqU3Q",
             "e": "AQAB",
             "kid": "c19uYlBJXzVfNjNZeGVnYmxncHZwUzZTZDVwUFdxdVJLU3AxQXdwaFdfbw",
             "kty": "RSA",
             "n": "3ZblhNL2CjRktLM9vyDn8jnA4G1B1HCpPh"
-            "-gv2AK4m9qDBZPYZGOGqzeW3vanvLTBlqnPm0GHg4rOrfMEwwLrfMcgmg1y4GD0vVU8G9HP1"
-            "-oUPtKUqaKOp313tFKzFh9_OHGQ6EmhxG7gegPR9kQXduTDXqBFi81MzRplIQ8DHLM3-n2CyDW1V"
-            "-dhRVh"
-            "-AM0ZcJyzR_DvZ3mhG44DysPdHQOSeWnpdn1d81"
-            "-PriqZfhAF9tn1ihgtjXd5swf1HTSjLd7xv1hitGf2245Xmr"
-            "-V2pQFzeMukLM3JKbTYbElsB7Zm0wZx49hZMtgx35XMoO04bifdbO3yLtTA5ovXN3fQ",
+                 "-gv2AK4m9qDBZPYZGOGqzeW3vanvLTBlqnPm0GHg4rOrfMEwwLrfMcgmg1y4GD0vVU8G9HP1"
+                 "-oUPtKUqaKOp313tFKzFh9_OHGQ6EmhxG7gegPR9kQXduTDXqBFi81MzRplIQ8DHLM3-n2CyDW1V"
+                 "-dhRVh"
+                 "-AM0ZcJyzR_DvZ3mhG44DysPdHQOSeWnpdn1d81"
+                 "-PriqZfhAF9tn1ihgtjXd5swf1HTSjLd7xv1hitGf2245Xmr"
+                 "-V2pQFzeMukLM3JKbTYbElsB7Zm0wZx49hZMtgx35XMoO04bifdbO3yLtTA5ovXN3fQ",
             "p": "88aNu59aBn0elksaVznzoVKkdbT5B4euhOIEqJoFvFbEocw9mC4k"
-            "-yozIAQSV5FEakoSPOl8lrymCoM3Q1fVHfaM9Rbb9RCRlsV1JOeVVZOE05HUdz8zOIqLBDEGM_oQqDwF_kp"
-            "-4nDTZ1-dtnGdTo4Cf7QRuApzE_dwVabUCTc",
+                 "-yozIAQSV5FEakoSPOl8lrymCoM3Q1fVHfaM9Rbb9RCRlsV1JOeVVZOE05HUdz8zOIqLBDEGM_oQqDwF_kp"
+                 "-4nDTZ1-dtnGdTo4Cf7QRuApzE_dwVabUCTc",
             "q": "6LOHuM7H_0kDrMTwUEX7Aubzr792GoJ6EgTKIQY25SAFTZpYwuC3NnqlAdy8foIa3d7eGU2yICRbBG0S_ITcooDFrOa7nZ6enMUclMTxW8FwwvBXeIHo9cIsrKYtOThGplz43Cvl73MK5M58ZRmuhaNYa6Mk4PL4UokARfEiDus",
             "use": "sig",
         },
@@ -58,7 +59,7 @@ JWKS_OP = {
 }
 
 OP_KEYJAR = KeyJar()
-OP_KEYJAR.import_jwks(JWKS_OP, "")
+OP_KEYJAR = import_jwks(OP_KEYJAR, JWKS_OP, "")
 OP_PUBLIC_JWKS = OP_KEYJAR.export_jwks()
 OP_BASEURL = "https://example.org/op"
 
@@ -70,13 +71,13 @@ RP_JWKS = {
             "kid": "Mk0yN2w0N3BZLWtyOEpQWGFmNDZvQi1hbDl2azR3ai1WNElGdGZQSFd6MA",
             "e": "AQAB",
             "n": "yPrOADZtGoa9jxFCmDsJ1nAYmzgznUxCtUlb_ty33"
-            "-AFNEqzW_pSLr5g6RQAPGsvVQqbsb9AB18QNgz"
-            "-eG7cnvKIIR7JXWCuGv_Q9MwoRD0-zaYGRbRvFoTZokZMB6euBfMo6kijJ"
-            "-gdKuSaxIE84X_Fcf1ESAKJ0EX6Cxdm8hKkBelGIDPMW5z7EHQ8OuLCQtTJnDvbjEOk9sKzkKqVj53XFs5vjd4WUhxS6xIDcWE-lTafUpm0BsobklLePidHxyAMGOunL_Pt3RCLZGlWeWOO9fZhLtydiDWiZlcNR0FQEX_mfV1kCOHHBFN1VKOY2pyJpjp9djdtHxPZ9fP35w",
+                 "-AFNEqzW_pSLr5g6RQAPGsvVQqbsb9AB18QNgz"
+                 "-eG7cnvKIIR7JXWCuGv_Q9MwoRD0-zaYGRbRvFoTZokZMB6euBfMo6kijJ"
+                 "-gdKuSaxIE84X_Fcf1ESAKJ0EX6Cxdm8hKkBelGIDPMW5z7EHQ8OuLCQtTJnDvbjEOk9sKzkKqVj53XFs5vjd4WUhxS6xIDcWE-lTafUpm0BsobklLePidHxyAMGOunL_Pt3RCLZGlWeWOO9fZhLtydiDWiZlcNR0FQEX_mfV1kCOHHBFN1VKOY2pyJpjp9djdtHxPZ9fP35w",
             "d": "aRBTqGDLYFaXuba4LYSPe_5Vnq8erFg1dzfGU9Fmfi5KCjAS2z5cv_reBnpiNTODJt3Izn7AJhpYCyl3zdWGl8EJ0OabNalY2txoi9A-LI4nyrHEDaRpfkgszVwaWtYZbxrShMc8I5x_wvCGx7sX7Hoy6YgQreRFzw8Fy86MDncpmcUwQTnXVUMLgioeYz5gW6rwXkqj_NVyuHPiheykJG026cXFNBWplCk4ET1bvf_6ZB9QmLwO16Pu2O-dtu1HHDOqI7y6-YgKIC6mcLrQrF9-FO7NkilcOB7zODNiYzhDBQ2YJAbcdn_3M_lkhaFwR-n4WB7vCM0vNqz7lEg6QQ",
             "p": "_STNoJFkX9_uw8whytVmTrHP5K7vcZBIH9nuCTvj137lC48ZpR1UARx4qShxHLfK7DrufHd7TYnJkEMNUHFmdKvkaVQMY0_BsBSvCrUl10gzxsI08hg53L17E1Pe73iZp3f5nA4eB-1YB-km1Cc-Xs10OPWedJHf9brlCPDLAb8",
             "q": "yz9T0rPEc0ZPjSi45gsYiQL2KJ3UsPHmLrgOHq0D4UvsB6UFtUtOWh7A1UpQdmBuHjIJz"
-            "-Iq7VH4kzlI6VxoXhwE69oxBXr4I7fBudZRvlLuIJS9M2wvsTVouj0DBYSR6ZlAQHCCou89P2P6zQCEaqu7bWXNcpyTixbbvOU1w9k",
+                 "-Iq7VH4kzlI6VxoXhwE69oxBXr4I7fBudZRvlLuIJS9M2wvsTVouj0DBYSR6ZlAQHCCou89P2P6zQCEaqu7bWXNcpyTixbbvOU1w9k",
         },
         {
             "kty": "EC",
@@ -91,12 +92,12 @@ RP_JWKS = {
 }
 
 RP_KEYJAR = KeyJar()
-RP_KEYJAR.import_jwks(RP_JWKS, "")
-RP_KEYJAR.import_jwks(OP_PUBLIC_JWKS, OP_BASEURL)
+RP_KEYJAR = import_jwks(RP_KEYJAR, RP_JWKS, "")
+RP_KEYJAR = import_jwks(RP_KEYJAR, OP_PUBLIC_JWKS, OP_BASEURL)
 RP_BASEURL = "https://example.com/rp"
 
 SERVICE_PUBLIC_JWKS = RP_KEYJAR.export_jwks("")
-OP_KEYJAR.import_jwks(SERVICE_PUBLIC_JWKS, RP_BASEURL)
+OP_KEYJAR = import_jwks(OP_KEYJAR, SERVICE_PUBLIC_JWKS, RP_BASEURL)
 
 # ---------------------------------------------------
 
@@ -155,11 +156,11 @@ def test_conversation():
     info = webfinger_service.get_request_parameters(request_args={"resource": "foobar@example.org"})
 
     assert (
-        info["url"] == "https://example.org/.well-known/webfinger?rel=http"
-        "%3A%2F"
-        "%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
-        "&resource"
-        "=acct%3Afoobar%40example.org"
+            info["url"] == "https://example.org/.well-known/webfinger?rel=http"
+                           "%3A%2F"
+                           "%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer"
+                           "&resource"
+                           "=acct%3Afoobar%40example.org"
     )
 
     webfinger_response = json.dumps(

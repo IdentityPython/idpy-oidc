@@ -8,6 +8,7 @@ from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import TokenIntrospectionRequest
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -207,9 +208,7 @@ class TestEndpoint:
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.import_jwks_as_json(
-            server.keyjar.export_jwks_as_json(private=True), context.issuer
-        )
+        server.keyjar = store_under_other_id(server.keyjar, "", context.issuer, True)
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.token_endpoint = server.get_endpoint("token")
         self.session_manager = context.session_manager

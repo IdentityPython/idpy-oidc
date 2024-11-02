@@ -5,6 +5,7 @@ from common import BASEDIR
 from common import KEYDEFS
 from common import full_path
 from flow import Flow
+from idpyoidc.key_import import import_jwks
 from idpyoidc.metadata import get_signing_algs
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.server import Server
@@ -53,7 +54,7 @@ client = Client(config=client_conf)
 # ==== What the server needs to know about the client.
 
 server.context.cdb[CLIENT_ID] = {k: v for k, v in CLIENT_CONFIG.items() if k not in ['services']}
-server.context.keyjar.import_jwks(client.keyjar.export_jwks(), CLIENT_ID)
+server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), CLIENT_ID)
 
 # Initiating the Server's metadata
 

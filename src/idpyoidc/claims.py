@@ -9,6 +9,8 @@ from cryptojwt.utils import importer
 
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
+from idpyoidc.key_import import import_jwks
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
 from idpyoidc.transform import preferred_to_registered
 from idpyoidc.util import add_path
@@ -120,11 +122,11 @@ class Claims(ImpExp):
             else:
                 _keyjar = KeyJar()
                 if "jwks" in conf:
-                    _keyjar.import_jwks(conf["jwks"], "")
+                    _keyjar = import_jwks(_keyjar, conf["jwks"], "")
 
             if "" in _keyjar and entity_id:
                 # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
+                _keyjar = store_under_other_id(_keyjar, "", entity_id, True)
 
             _httpc_params = conf.get("httpc_params")
             if _httpc_params:
@@ -197,9 +199,9 @@ class Claims(ImpExp):
             elif val:
                 self.set_preference(key, val)
 
-        for attr,val in supports.items():
+        for attr, val in supports.items():
             if attr not in self.prefer and val is not None:
-                self.set_preference(attr,val)
+                self.set_preference(attr, val)
 
         self.verify_rules(supports)
         return keyjar
@@ -262,11 +264,11 @@ class Claims(ImpExp):
         return _info
 
     def get_server_metadata(self,
-                     entity_type: Optional[str] = "",
-                     endpoints: Optional[list] = None,
-                     metadata_schema: Optional[Message] = None,
-                     extra_claims: Optional[List[str]] = None,
-                     **kwargs):
+                            entity_type: Optional[str] = "",
+                            endpoints: Optional[list] = None,
+                            metadata_schema: Optional[Message] = None,
+                            extra_claims: Optional[List[str]] = None,
+                            **kwargs):
 
         metadata = self.prefer
         # the claims that can appear in the metadata
@@ -291,11 +293,11 @@ class Claims(ImpExp):
             return metadata
 
     def get_client_metadata(self,
-                     entity_type: Optional[str] = "",
-                     metadata_schema: Optional[Message] = None,
-                     extra_claims: Optional[List[str]] = None,
-                     supported: Optional[dict] = None,
-                     **kwargs):
+                            entity_type: Optional[str] = "",
+                            metadata_schema: Optional[Message] = None,
+                            extra_claims: Optional[List[str]] = None,
+                            supported: Optional[dict] = None,
+                            **kwargs):
 
         if supported is None:
             supported = self.supports()

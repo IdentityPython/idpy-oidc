@@ -5,14 +5,14 @@ from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
 from cryptojwt.key_jar import build_keyjar
-from idpyoidc.server.exception import UnAuthorizedClient
 
 from idpyoidc.context import OidcContext
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.key_import import import_jwks
+from idpyoidc.message import Message
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
 from idpyoidc.message import SINGLE_REQUIRED_INT
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
@@ -24,6 +24,7 @@ from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.exception import InvalidToken
+from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.token import handler
 from idpyoidc.time_util import utc_time_sans_frac
 from tests import CRYPT_CONFIG
@@ -65,6 +66,7 @@ def full_path(local_file):
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -84,7 +86,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
+        server.keyjar = import_jwks(server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
@@ -737,8 +739,8 @@ CONTEXT.cwd = BASEDIR
 CONTEXT.issuer = "https://op.example.com"
 CONTEXT.cdb = {"client_1": {}}
 KEYJAR = KeyJar()
-KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "client_1")
-KEYJAR.import_jwks(CLIENT_KEYJAR.export_jwks(private=True), "")
+KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), "client_1")
+KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), "")
 
 
 def upstream_get(what, *args):
@@ -801,6 +803,7 @@ def test_jwttoken_2():
 
 
 class TestClientCredentialsFlow(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -846,6 +849,7 @@ class TestClientCredentialsFlow(object):
 
 
 class TestResourceOwnerPasswordCredentialsFlow(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {

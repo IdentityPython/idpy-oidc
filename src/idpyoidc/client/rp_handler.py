@@ -20,6 +20,7 @@ from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
 from .defaults import DEFAULT_KEY_DEFS
 from .oauth2 import Client
+from ..key_import import import_jwks
 from ..message import Message
 
 logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ class RPHandler(object):
 
         if _srv_keyjar:
             for iss in _srv_keyjar.owners():
-                _keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
+                _keyjar = import_jwks(_keyjar, self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
 
         client.keyjar = _keyjar
         # If persistent nothing has to be copied
