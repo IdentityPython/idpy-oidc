@@ -4,6 +4,7 @@ import uuid
 from hashlib import sha256
 from typing import Optional
 
+from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 from cryptojwt.jws.jws import JWS
@@ -150,7 +151,7 @@ def dpop_header(
     }
 
     if token:
-        header_dict["ath"] = base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest())
+        header_dict["ath"] = as_unicode(base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest()))
 
     if nonce:
         header_dict["nonce"] = nonce

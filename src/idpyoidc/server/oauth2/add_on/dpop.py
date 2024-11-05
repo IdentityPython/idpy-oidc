@@ -1,15 +1,15 @@
 import base64
-from hashlib import sha256
 import logging
+from hashlib import sha256
 from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt import JWS
 from cryptojwt import as_unicode
+from cryptojwt import BadSyntax
+from cryptojwt import JWS
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
-from cryptojwt.utils import add_padding
 
 from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.message import Message
@@ -135,6 +135,20 @@ def token_post_parse_request(request, client_id, context, **kwargs):
     return request
 
 
+def add_padding(b):
+    # add padding chars
+    m = len(b) % 4
+    if m == 1:
+        # NOTE: for some reason b64decode raises *TypeError* if the
+        # padding is incorrect.
+        raise BadSyntax(b, "incorrect padding")
+    elif m == 2:
+        b += "=="
+    elif m == 3:
+        b += "="
+    return b
+
+
 def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs):
     """
     Expect http_info attribute in kwargs. http_info should be a dictionary
@@ -180,13 +194,13 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
     _token = auth_info.get("token", None)
     if _token:
         # base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest())
-        ath = base64.urlsafe_b64encode(sha256(_token.encode("utf8")).digest())
+        ath = as_unicode(base64.urlsafe_b64encode(sha256(_token.encode("utf8")).digest()))
 
         _ath = _dpop.get("ath", None)
         if _ath is None:
             raise ValueError("'ath' missing from DPoP")
         else:
-            _athb = _ath.rstrip(b"=")
+            _athb = _ath.rstrip("=")
             _ath = add_padding(_athb)
             if _ath != ath:
                 raise ValueError("'ath' in DPoP does not match the token hash")
