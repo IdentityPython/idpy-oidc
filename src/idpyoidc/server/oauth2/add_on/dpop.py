@@ -1,3 +1,4 @@
+import base64
 from hashlib import sha256
 import logging
 from typing import Callable
@@ -177,7 +178,8 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
 
     _token = auth_info.get("token", None)
     if _token:
-        ath = sha256(_token.encode("utf8")).hexdigest()
+        # base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest())
+        ath = base64.urlsafe_b64encode(sha256(_token.encode("utf8")).digest())
 
         _ath = _dpop.get("ath", None)
         if _ath is None:

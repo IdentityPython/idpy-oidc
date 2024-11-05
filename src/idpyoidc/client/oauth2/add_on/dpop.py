@@ -1,3 +1,4 @@
+import base64
 import logging
 import uuid
 from hashlib import sha256
@@ -149,7 +150,7 @@ def dpop_header(
     }
 
     if token:
-        header_dict["ath"] = sha256(token.encode("utf8")).hexdigest()
+        header_dict["ath"] = base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest())
 
     if nonce:
         header_dict["nonce"] = nonce
