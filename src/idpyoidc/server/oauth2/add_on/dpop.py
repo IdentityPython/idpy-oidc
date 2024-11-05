@@ -9,6 +9,7 @@ from cryptojwt import JWS
 from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
+from cryptojwt.utils import add_padding
 
 from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.message import Message
@@ -184,8 +185,11 @@ def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs
         _ath = _dpop.get("ath", None)
         if _ath is None:
             raise ValueError("'ath' missing from DPoP")
-        if _ath != ath:
-            raise ValueError("'ath' in DPoP does not match the token hash")
+        else:
+            _athb = _ath.rstrip(b"=")
+            _ath = add_padding(_athb)
+            if _ath != ath:
+                raise ValueError("'ath' in DPoP does not match the token hash")
 
     # Need something I can add as a reference when minting tokens
     request["dpop_jkt"] = as_unicode(_dpop.key.thumbprint("SHA-256"))
