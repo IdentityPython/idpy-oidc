@@ -125,11 +125,11 @@ def verify_uri(
     client_info = context.cdb.get(client_id)
     if not client_info:
         logger.error("No client info found")
-        raise KeyError("No client info found")
+        raise UnknownClient("No client info found")
 
     req_redirect_uri_quoted = request.get(uri_type)
     if req_redirect_uri_quoted is None:
-        raise ValueError(f"Wrong uri_type: {uri_type}")
+        raise URIError(f"Wrong uri_type: {uri_type}")
 
     req_redirect_uri = unquote(req_redirect_uri_quoted)
     req_redirect_uri_obj = urlparse(req_redirect_uri)
@@ -558,7 +558,7 @@ class Authorization(Endpoint):
         # Get a verified redirect URI
         try:
             redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type)
-        except (RedirectURIError, ParameterError) as err:
+        except (RedirectURIError, ParameterError, URIError, UnknownClient) as err:
             return self.authentication_error_response(
                 request,
                 error="invalid_request",

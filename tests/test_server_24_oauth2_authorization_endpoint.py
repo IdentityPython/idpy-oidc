@@ -348,7 +348,7 @@ class TestEndpoint(object):
         _context = self.endpoint.upstream_get("context")
         request = {"redirect_uri": "https://rp.example.com/cb"}
 
-        with pytest.raises(KeyError):
+        with pytest.raises(UnknownClient):
             verify_uri(_context, request, "redirect_uri", "client_id")
 
     def test_verify_uri_unregistered(self):
@@ -553,7 +553,7 @@ class TestEndpoint(object):
         _context.cdb["client_id"] = {"redirect_uris": [("https://rp.example.com/cb", {})]}
 
         request = {"redirect_uri": "https://rp.example.com/cb?foo=bob"}
-        with pytest.raises(ValueError):
+        with pytest.raises(URIError):
             verify_uri(_context, request, "post_logout_redirect_uri", "client_id")
 
     def test_verify_uri_none_registered(self):
