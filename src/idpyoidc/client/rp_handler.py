@@ -130,7 +130,7 @@ class RPHandler(object):
         self.httpc = httpc
 
         if not httpc_params:
-            self.httpc_params = {"verify": verify_ssl}
+            self.httpc_params = config.get("httpc_params", {"verify": verify_ssl})
         else:
             self.httpc_params = httpc_params
 

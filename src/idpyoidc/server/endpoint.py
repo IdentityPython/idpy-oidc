@@ -242,8 +242,6 @@ class Endpoint(Node):
         else:
             _client_id = req.get("client_id", None)
 
-        LOGGER.debug(f"parse_request:auth_info:{auth_info}")
-
         # verify that the request message is correct, may have to do it twice
         err_response = self.verify_request(
             request=req, keyjar=_keyjar, client_id=_client_id, verify_args=verify_args

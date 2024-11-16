@@ -200,7 +200,7 @@ def preferred_to_registered(
             # be a singleton or an array. So just add it as is.
             registered[_reg_key] = val
 
-    logger.debug(f"Entity registered: {registered}")
+    logger.debug(f"preferred2registered: {registered}")
     return registered
 
 

@@ -192,6 +192,9 @@ def verify_uri(
     # Separate the URL from the query string object for the requested redirect URI.
     req_redirect_uri_query_obj = parse_qs(req_redirect_uri_obj.query)
     req_redirect_uri_without_query_obj = req_redirect_uri_obj._replace(query=None)
+    logger.debug(f"req_redirect_uri_query_obj: {req_redirect_uri_query_obj}")
+    logger.debug(f"req_redirect_uri_without_query_obj: {req_redirect_uri_without_query_obj}")
+    logger.debug(f"client_redirect_uris_obj: {client_redirect_uris_obj}")
 
     match = any(
         req_redirect_uri_without_query_obj == uri_obj

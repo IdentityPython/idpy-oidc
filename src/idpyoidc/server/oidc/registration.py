@@ -448,7 +448,13 @@ class Registration(Endpoint):
             if not reserved_client_id:
                 reserved_client_id = _context.cdb.keys()
             client_id = cid_generator(reserved=reserved_client_id, **cid_gen_kwargs)
-            if "client_id" in request:
+            _entity_id = request.get("client_id", None)
+            if _entity_id:
+                # Already registered
+                _old_id = _context.client_known_as.get(request["client_id"], None)
+                if _old_id:
+                    del _context.cdb[_old_id]
+                _context.client_known_as[_entity_id] = client_id
                 del request["client_id"]
         else:
             client_id = request.get("client_id")
@@ -467,7 +473,7 @@ class Registration(Endpoint):
         if set_secret:
             client_secret = self.add_client_secret(_cinfo, client_id, _context)
 
-        logger.debug("Stored client info in CDB under cid={}".format(client_id))
+        logger.debug(f"Stored client info in CDB under cid={client_id}")
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
