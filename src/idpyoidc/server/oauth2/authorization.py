@@ -4,9 +4,9 @@ from typing import List
 from typing import Optional
 from typing import TypeVar
 from typing import Union
+from urllib.parse import parse_qs
 from urllib.parse import ParseResult
 from urllib.parse import SplitResult
-from urllib.parse import parse_qs
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -47,7 +47,6 @@ from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
-
 
 ParsedURI = TypeVar('ParsedURI', ParseResult, SplitResult)
 
@@ -438,8 +437,13 @@ class Authorization(Endpoint):
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
 
-        _set = set()
-        _set.add(request["response_type"])
+        if isinstance(request["response_type"], list):
+            _set = set(request["response_type"])
+        else:
+            _set = set()
+            _set.add(request["response_type"])
+        logger.debug(f"Asked for response_type: {_set}")
+        logger.debug(f"Supported response_types: {_registered}")
         # Is the asked for response_type among those that are permitted
         return _set in _registered
 
@@ -921,7 +925,7 @@ class Authorization(Endpoint):
 
             if isinstance(request["response_type"], list):
                 rtype = set(request["response_type"][:])
-            else: # assume it's a string
+            else:  # assume it's a string
                 rtype = set()
                 rtype.add(request["response_type"])
 
