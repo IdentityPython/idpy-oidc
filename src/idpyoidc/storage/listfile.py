@@ -116,7 +116,7 @@ class ReadOnlyListFile(object):
         if _lst is None or _lst == []:
             return 0
 
-        return len(_lst)
+        return len(set(_lst))
 
     def _read_info(self, fname):
         if os.path.isfile(fname):
@@ -126,7 +126,7 @@ class ReadOnlyListFile(object):
                     fp = open(fname, "r")
                     info = [x.strip() for x in fp.readlines()]
                 lock.release()
-                return info or None
+                return list(set(info))
             except Exception as err:
                 logger.error(err)
                 raise
@@ -136,6 +136,9 @@ class ReadOnlyListFile(object):
         return None
 
     def __call__(self):
+        return self._read_info(self.file_name)
+
+    def list(self):
         return self._read_info(self.file_name)
 
 class ReadWriteListFile(object):

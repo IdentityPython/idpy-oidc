@@ -174,6 +174,7 @@ class EndpointContext(OidcContext):
         self.token_args_methods = []
         self.userinfo = None
         self.client_authn_method = {}
+        self.client_known_as = {}
 
         for param in [
             "issuer",
@@ -246,8 +247,9 @@ class EndpointContext(OidcContext):
 
         self.setup_authentication()
 
-        if conf.get("session_management", conf["conf"].get("session_management", True)):
-            self.token_handler_args = get_token_handler_args(conf)
+        # default is to have session management
+        if self.conf.get("session_management", self.conf["conf"].get("session_management", True)):
+            self.token_handler_args = get_token_handler_args(self.conf)
 
             self.session_manager = SessionManager(
                 self.token_handler_args,
