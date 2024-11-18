@@ -438,8 +438,10 @@ class Authorization(Endpoint):
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
 
+        _set = set()
+        _set.add(request["response_type"])
         # Is the asked for response_type among those that are permitted
-        return set(request["response_type"]) in _registered
+        return _set in _registered
 
     def mint_token(self, token_class, grant, session_id, based_on=None, **kwargs):
         usage_rules = grant.usage_rules.get(token_class, {})
@@ -550,7 +552,7 @@ class Authorization(Endpoint):
 
         _cinfo = context.cdb.get(client_id)
         if not _cinfo:
-            logger.error("Client ID ({}) not in client database".format(request["client_id"]))
+            logger.error(f"Client ID ({request['client_id']}) not in client database")
             return self.authentication_error_response(
                 request, error="unauthorized_client", error_description="unknown client"
             )
