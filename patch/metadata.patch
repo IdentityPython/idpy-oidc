@@ -1,0 +1,63 @@
+diff --git a/src/idpyoidc/message/__init__.py b/src/idpyoidc/message/__init__.py
+index 46d2344..df3e5b3 100644
+--- a/src/idpyoidc/message/__init__.py
++++ b/src/idpyoidc/message/__init__.py
+@@ -83,7 +83,8 @@ class Message(MutableMapping):
+         """
+         Creates a string using the application/x-www-form-urlencoded format
+
+-        :doseq: If set to true, key=value pairs separated by '&' are generated for each element of the value sequence for the key.
++        :doseq: If set to true, key=value pairs separated by '&' are generated for each element
++        of the value sequence for the key.
+         :return: A string of the application/x-www-form-urlencoded format
+         """
+
+@@ -388,7 +389,7 @@ class Message(MutableMapping):
+                 else:
+                     self._dict[skey] = val
+             else:
+-                raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
++                raise DecodeError(ERRTXT % (key, f"type != {vtype}, val:{val}, type:{type(val)}"))
+         else:
+             if val is None:
+                 self._dict[skey] = None
+
+diff --git a/src/idpyoidc/message/oauth2/__init__.py b/src/idpyoidc/message/oauth2/__init__.py
+index 788fe8c..95440a9 100644
+--- a/src/idpyoidc/message/oauth2/__init__.py
++++ b/src/idpyoidc/message/oauth2/__init__.py
+@@ -560,6 +560,12 @@ class PushedAuthorizationRequest(AuthorizationRequest):
+         return True
+
+
++class PushedAuthorizationResponse(ResponseMessage):
++    c_param = ResponseMessage.c_param.copy()
++    c_param.update({"request_uri": SINGLE_REQUIRED_STRING})
++
++
++
+ class SecurityEventToken(Message):
+     c_param = {
+         "iss": SINGLE_REQUIRED_STRING,
+
+diff --git a/src/idpyoidc/message/oidc/__init__.py b/src/idpyoidc/message/oidc/__init__.py
+index d266224..4cef07a 100644
+--- a/src/idpyoidc/message/oidc/__init__.py
++++ b/src/idpyoidc/message/oidc/__init__.py
+@@ -1025,7 +1025,7 @@ class JsonWebToken(Message):
+             except KeyError:
+                 pass
+
+-        if "iss" in kwargs and "iss" in self:
++        if "iss" in kwargs and kwargs["iss"] and "iss" in self:
+             if kwargs["iss"] != self["iss"]:
+                 raise ValueError("Wrong issuer")
+
+@@ -1191,7 +1191,7 @@ def make_openid_request(
+     :param request_object_signing_alg: Which signing algorithm to use
+     :param recv: The intended receiver of the request
+     :param with_jti: Whether a JTI should be included in the JWT.
+-    :param lifetime: How long the JWT is expect to be live.
++    :param lifetime: How long the JWT is expected to be alive.
+     :return: JWT encoded OpenID request
+     """

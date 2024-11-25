@@ -1,0 +1,687 @@
+
+diff --git a/src/idpyoidc/client/oidc/__init__.py b/src/idpyoidc/client/oidc/__init__.py
+index 45cefe2..0ae936f 100755
+--- a/src/idpyoidc/client/oidc/__init__.py
++++ b/src/idpyoidc/client/oidc/__init__.py
+@@ -81,18 +81,18 @@ class RP(oauth2.Client):
+     client_type = "oidc"
+
+     def __init__(
+-        self,
+-        keyjar: Optional[KeyJar] = None,
+-        config: Optional[Union[dict, Configuration]] = None,
+-        services: Optional[dict] = None,
+-        httpc: Optional[Callable] = None,
+-        httpc_params: Optional[dict] = None,
+-        upstream_get: Optional[Callable] = None,
+-        key_conf: Optional[dict] = None,
+-        entity_id: Optional[str] = "",
+-        verify_ssl: Optional[bool] = True,
+-        jwks_uri: Optional[str] = "",
+-        **kwargs
++            self,
++            keyjar: Optional[KeyJar] = None,
++            config: Optional[Union[dict, Configuration]] = None,
++            services: Optional[dict] = None,
++            httpc: Optional[Callable] = None,
++            httpc_params: Optional[dict] = None,
++            upstream_get: Optional[Callable] = None,
++            key_conf: Optional[dict] = None,
++            entity_id: Optional[str] = "",
++            verify_ssl: Optional[bool] = True,
++            jwks_uri: Optional[str] = "",
++            **kwargs
+     ):
+         if services:
+             _srvs = services
+diff --git a/src/idpyoidc/client/oidc/access_token.py b/src/idpyoidc/client/oidc/access_token.py
+index af629fa..91736d5 100644
+--- a/src/idpyoidc/client/oidc/access_token.py
++++ b/src/idpyoidc/client/oidc/access_token.py
+@@ -2,6 +2,7 @@ import logging
+ from typing import Optional
+ from typing import Union
+
++from idpyoidc.alg_info import get_signing_algs
+ from idpyoidc.client.client_auth import get_client_authn_methods
+ from idpyoidc.client.exception import ParameterError
+ from idpyoidc.client.oauth2 import access_token
+@@ -9,7 +10,6 @@ from idpyoidc.client.oidc import IDT2REG
+ from idpyoidc.message import Message
+ from idpyoidc.message import oidc
+ from idpyoidc.message.oidc import verified_claim_name
+-from idpyoidc.metadata import get_signing_algs
+ from idpyoidc.time_util import time_sans_frac
+
+ __author__ = "Roland Hedberg"
+@@ -34,7 +34,8 @@ class AccessToken(access_token.AccessToken):
+         access_token.AccessToken.__init__(self, upstream_get, conf=conf)
+
+     def gather_verify_arguments(
+-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
++            self, response: Optional[Union[dict, Message]] = None,
++            behaviour_args: Optional[dict] = None
+     ):
+         """
+         Need to add some information before running verify()
+diff --git a/src/idpyoidc/client/oidc/authorization.py b/src/idpyoidc/client/oidc/authorization.py
+index 03cde13..e13da13 100644
+--- a/src/idpyoidc/client/oidc/authorization.py
++++ b/src/idpyoidc/client/oidc/authorization.py
+@@ -3,22 +3,20 @@ from typing import List
+ from typing import Optional
+ from typing import Union
+
+-from idpyoidc import metadata
++from idpyoidc import alg_info
+ from idpyoidc.client.oauth2 import authorization
+ from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
+ from idpyoidc.client.oidc import IDT2REG
+-from idpyoidc.client.oidc.utils import construct_request_uri
+-from idpyoidc.client.oidc.utils import request_object_encryption
++from idpyoidc.client.request_object import construct_request_parameter
++from idpyoidc.client.request_object import construct_request_uri
+ from idpyoidc.client.service_context import ServiceContext
+ from idpyoidc.client.util import implicit_response_types
+ from idpyoidc.exception import MissingRequiredAttribute
+ from idpyoidc.message import Message
+ from idpyoidc.message import oauth2
+ from idpyoidc.message import oidc
+-from idpyoidc.message.oidc import make_openid_request
+ from idpyoidc.message.oidc import verified_claim_name
+ from idpyoidc.time_util import time_sans_frac
+-from idpyoidc.time_util import utc_time_sans_frac
+ from idpyoidc.util import rndstr
+
+ __author__ = "Roland Hedberg"
+@@ -32,11 +30,11 @@ class Authorization(authorization.Authorization):
+     error_msg = oidc.ResponseMessage
+
+     _supports = {
+-        "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
+-        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
+-        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
++        "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),
++        "request_object_encryption_alg_values_supported": alg_info.get_encryption_algs(),
++        "request_object_encryption_enc_values_supported": alg_info.get_encryption_encs(),
+         "response_types_supported": ["code", "id_token", "code id_token"],
+-        "request_parameter_supported": None,
++        "request_parameter_supported": True,
+         "request_uri_parameter_supported": None,
+         "request_uris": None,
+         "request_parameter": None,
+@@ -212,63 +210,6 @@ class Authorization(authorization.Authorization):
+         fid.close()
+         return _webname
+
+-    def construct_request_parameter(
+-        self, req, request_param, audience=None, expires_in=0, **kwargs
+-    ):
+-        """Construct a request parameter"""
+-        alg = self.get_request_object_signing_alg(**kwargs)
+-        kwargs["request_object_signing_alg"] = alg
+-
+-        _context = self.upstream_get("context")
+-        if "keys" not in kwargs and alg and alg != "none":
+-            kwargs["keys"] = self.upstream_get("attribute", "keyjar")
+-
+-        if alg == "none":
+-            kwargs["keys"] = []
+-
+-        # This is the issuer of the JWT, that is me !
+-        _issuer = kwargs.get("issuer")
+-        if _issuer is None:
+-            kwargs["issuer"] = _context.get_client_id()
+-
+-        if kwargs.get("recv") is None:
+-            try:
+-                kwargs["recv"] = _context.provider_info["issuer"]
+-            except KeyError:
+-                kwargs["recv"] = _context.issuer
+-
+-        try:
+-            del kwargs["service"]
+-        except KeyError:
+-            pass
+-
+-        if expires_in:
+-            req["exp"] = utc_time_sans_frac() + int(expires_in)
+-
+-        _mor_args = {
+-            k: kwargs[k]
+-            for k in [
+-                "keys",
+-                "issuer",
+-                "request_object_signing_alg",
+-                "recv",
+-                "with_jti",
+-                "lifetime",
+-            ]
+-            if k in kwargs
+-        }
+-
+-        _req_jwt = make_openid_request(req, **_mor_args)
+-
+-        if "target" not in kwargs:
+-            kwargs["target"] = _context.provider_info.get("issuer", _context.issuer)
+-
+-        # Should the request be encrypted
+-        _req_jwte = request_object_encryption(
+-            _req_jwt, _context, self.upstream_get("attribute", "keyjar"), **kwargs
+-        )
+-        return _req_jwte
+-
+     def oidc_post_construct(self, req, **kwargs):
+         """
+         Modify the request arguments.
+@@ -303,10 +244,21 @@ class Authorization(authorization.Authorization):
+         if _request_param == "request_uri":
+             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
+             kwargs["local_dir"] = _context.get_usage("requests_dir", "./requests")
+-            _req = self.construct_request_parameter(req, _request_param, **kwargs)
++            service = kwargs.get("service")
++            if service:
++                del kwargs["service"]
++            else:
++                service = self
++
++            _req = construct_request_parameter(service, req, _request_param, **kwargs)
+             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+         elif _request_param == "request":
+-            _req = self.construct_request_parameter(req, _request_param, **kwargs)
++            service = kwargs.get("service")
++            if service:
++                del kwargs["service"]
++            else:
++                service = self
++            _req = construct_request_parameter(service, req, _request_param, **kwargs)
+             req["request"] = _req
+
+         if _req:
+@@ -319,7 +271,8 @@ class Authorization(authorization.Authorization):
+         return req
+
+     def gather_verify_arguments(
+-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
++            self, response: Optional[Union[dict, Message]] = None,
++            behaviour_args: Optional[dict] = None
+     ):
+         """
+         Need to add some information before running verify()
+@@ -379,12 +332,12 @@ class Authorization(authorization.Authorization):
+         return ""
+
+     def construct_uris(
+-        self,
+-        base_url: str,
+-        hex: bytes,
+-        context: ServiceContext,
+-        targets: Optional[List[str]] = None,
+-        response_types: Optional[List[str]] = None,
++            self,
++            base_url: str,
++            hex: bytes,
++            context: ServiceContext,
++            targets: Optional[List[str]] = None,
++            response_types: Optional[List[str]] = None,
+     ):
+         _callback_uris = context.get_preference("callback_uris", {})
+
+diff --git a/src/idpyoidc/client/oidc/registration.py b/src/idpyoidc/client/oidc/registration.py
+index 4933905..5c4fef9 100644
+--- a/src/idpyoidc/client/oidc/registration.py
++++ b/src/idpyoidc/client/oidc/registration.py
+@@ -4,6 +4,7 @@ from cryptojwt import KeyJar
+
+ from idpyoidc.client.entity import response_types_to_grant_types
+ from idpyoidc.client.service import Service
++from idpyoidc.key_import import import_jwks
+ from idpyoidc.message import oidc
+ from idpyoidc.message.oauth2 import ResponseMessage
+
+@@ -75,7 +76,7 @@ class Registration(Service):
+             _keyjar = self.upstream_get("attribute", "keyjar")
+             if _keyjar:
+                 if _client_id not in _keyjar:
+-                    _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
++                    _keyjar= import_jwks(_keyjar, _keyjar.export_jwks(True, ""), _client_id)
+             _client_secret = _context.get_usage("client_secret")
+             if _client_secret:
+                 if not _keyjar:
+@@ -102,7 +103,8 @@ class Registration(Service):
+         @return:
+         """
+         _context = self.upstream_get("context")
+-        req_args = _context.claims.create_registration_request()
++        req_args = _context.claims.get_client_metadata(metadata_schema=self.msg_type,
++                                                       supported=_context.supports())
+         if "request_args" in self.conf:
+             req_args.update(self.conf["request_args"])
+
+diff --git a/src/idpyoidc/client/oidc/userinfo.py b/src/idpyoidc/client/oidc/userinfo.py
+index 05fce76..b92410d 100644
+--- a/src/idpyoidc/client/oidc/userinfo.py
++++ b/src/idpyoidc/client/oidc/userinfo.py
+@@ -8,9 +8,9 @@ from idpyoidc.client.service import Service
+ from idpyoidc.exception import MissingSigningKey
+ from idpyoidc.message import Message
+ from idpyoidc.message import oidc
+-from idpyoidc.metadata import get_encryption_algs
+-from idpyoidc.metadata import get_encryption_encs
+-from idpyoidc.metadata import get_signing_algs
++from idpyoidc.alg_info import get_encryption_algs
++from idpyoidc.alg_info import get_encryption_encs
++from idpyoidc.alg_info import get_signing_algs
+
+ logger = logging.getLogger(__name__)
+
+diff --git a/src/idpyoidc/client/oidc/utils.py b/src/idpyoidc/client/oidc/utils.py
+index 2b428fe..e69de29 100644
+--- a/src/idpyoidc/client/oidc/utils.py
++++ b/src/idpyoidc/client/oidc/utils.py
+@@ -1,85 +0,0 @@
+-import os
+-
+-from cryptojwt.jwe.jwe import JWE
+-from cryptojwt.jwe.utils import alg2keytype
+-
+-from idpyoidc.exception import MissingRequiredAttribute
+-from idpyoidc.util import rndstr
+-
+-
+-def request_object_encryption(msg, service_context, keyjar, **kwargs):
+-    """
+-    Created an encrypted JSON Web token with *msg* as body.
+-
+-    :param msg: The mesaqg
+-    :param service_context:
+-    :param kwargs:
+-    :return:
+-    """
+-    try:
+-        encalg = kwargs["request_object_encryption_alg"]
+-    except KeyError:
+-        try:
+-            encalg = service_context.get_usage("request_object_encryption_alg")
+-        except KeyError:
+-            return msg
+-
+-    if not encalg:
+-        return msg
+-
+-    try:
+-        encenc = kwargs["request_object_encryption_enc"]
+-    except KeyError:
+-        try:
+-            encenc = service_context.get_usage("request_object_encryption_enc")
+-        except KeyError:
+-            raise MissingRequiredAttribute("No request_object_encryption_enc specified")
+-
+-    if not encenc:
+-        raise MissingRequiredAttribute("No request_object_encryption_enc specified")
+-
+-    _jwe = JWE(msg, alg=encalg, enc=encenc)
+-    _kty = alg2keytype(encalg)
+-
+-    try:
+-        _kid = kwargs["enc_kid"]
+-    except KeyError:
+-        _kid = ""
+-
+-    _target = kwargs.get("target", kwargs.get("recv", None))
+-    if _target is None:
+-        raise MissingRequiredAttribute("No target specified")
+-
+-    if _kid:
+-        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target, kid=_kid)
+-        _jwe["kid"] = _kid
+-    else:
+-        _keys = keyjar.get_encrypt_key(_kty, issuer_id=_target)
+-
+-    return _jwe.encrypt(_keys)
+-
+-
+-def construct_request_uri(local_dir, base_path, **kwargs):
+-    """
+-    Constructs a special redirect_uri to be used when communicating with
+-    one OP. Each OP should get their own redirect_uris.
+-
+-    :param local_dir: Local directory in which to place the file
+-    :param base_path: Base URL to start with
+-    :param kwargs:
+-    :return: 2-tuple with (filename, url)
+-    """
+-    _filedir = local_dir
+-    if not os.path.isdir(_filedir):
+-        os.makedirs(_filedir)
+-    _webpath = base_path
+-    _name = rndstr(10) + ".jwt"
+-    filename = os.path.join(_filedir, _name)
+-    while os.path.exists(filename):
+-        _name = rndstr(10)
+-        filename = os.path.join(_filedir, _name)
+-    if _webpath.endswith("/"):
+-        _webname = f"{_webpath}{_name}"
+-    else:
+-        _webname = f"{_webpath}/{_name}"
+-    return filename, _webname
+
+diff --git a/src/idpyoidc/server/oidc/authorization.py b/src/idpyoidc/server/oidc/authorization.py
+index e6daad3..fc4852e 100644
+--- a/src/idpyoidc/server/oidc/authorization.py
++++ b/src/idpyoidc/server/oidc/authorization.py
+@@ -2,7 +2,7 @@ import logging
+ from typing import Callable
+ from urllib.parse import urlsplit
+
+-from idpyoidc import metadata
++from idpyoidc import alg_info
+ from idpyoidc.message import oidc
+ from idpyoidc.message.oidc import Claims
+ from idpyoidc.message.oidc import verified_claim_name
+@@ -82,11 +82,11 @@ class Authorization(authorization.Authorization):
+         **{
+             "claims_parameter_supported": True,
+             "encrypt_request_object_supported": False,
+-            "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
+-            "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
+-            "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
++            "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),
++            "request_object_encryption_alg_values_supported": [],
++            "request_object_encryption_enc_values_supported": [],
+             "request_parameter_supported": True,
+-            "request_uri_parameter_supported": True,
++            "request_uri_parameter_supported": False,
+             "require_request_uri_registration": False,
+             "response_types_supported": ["code", "id_token", "code id_token"],
+             "response_modes_supported": ["query", "fragment", "form_post"],
+diff --git a/src/idpyoidc/server/oidc/backchannel_authentication.py b/src/idpyoidc/server/oidc/backchannel_authentication.py
+index b193e22..c45a980 100644
+--- a/src/idpyoidc/server/oidc/backchannel_authentication.py
++++ b/src/idpyoidc/server/oidc/backchannel_authentication.py
+@@ -86,10 +86,10 @@ class BackChannelAuthentication(Endpoint):
+         return set(res)
+
+     def process_request(
+-        self,
+-        request: Optional[Union[Message, dict]] = None,
+-        http_info: Optional[dict] = None,
+-        **kwargs,
++            self,
++            request: Optional[Union[Message, dict]] = None,
++            http_info: Optional[dict] = None,
++            **kwargs,
+     ):
+         try:
+             request_user = self.do_request_user(request)
+@@ -125,6 +125,7 @@ class BackChannelAuthentication(Endpoint):
+
+
+ class CIBATokenHelper(AccessTokenHelper):
++
+     def _get_session_info(self, request, session_manager):
+         _path = request["_session_path"]
+         _grant = session_manager.get(_path)
+@@ -137,7 +138,7 @@ class CIBATokenHelper(AccessTokenHelper):
+         return session_info, _grant
+
+     def post_parse_request(
+-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
++            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+     ) -> Union[Message, dict]:
+         _context = self.endpoint.upstream_get("context")
+         _mngr = _context.session_manager
+@@ -303,10 +304,10 @@ class ClientNotification(Endpoint):
+         Endpoint.__init__(self, upstream_get, **kwargs)
+
+     def process_request(
+-        self,
+-        request: Optional[Union[Message, dict]] = None,
+-        http_info: Optional[dict] = None,
+-        **kwargs,
++            self,
++            request: Optional[Union[Message, dict]] = None,
++            http_info: Optional[dict] = None,
++            **kwargs,
+     ) -> Union[Message, dict]:
+         return {}
+
+@@ -316,17 +317,18 @@ class ClientNotificationAuthn(ClientSecretBasic):
+
+     tag = "client_notification_authn"
+
+-    def is_usable(self, request=None, authorization_token=None):
++    def is_usable(self, request=None, authorization_token=None, http_info=None):
+         if authorization_token is not None and authorization_token.startswith("Bearer "):
+             return True
+         return False
+
+     def _verify(
+-        self,
+-        authorization_token: Optional[str] = None,
+-        endpoint=None,  # Optional[Endpoint]
+-        get_client_id_from_token: Optional[Callable] = None,
+-        **kwargs,
++            self,
++            authorization_token: Optional[str] = None,
++            endpoint=None,  # Optional[Endpoint]
++            get_client_id_from_token: Optional[Callable] = None,
++            http_info: Optional[dict] = None,
++            **kwargs,
+     ):
+         ttype, token = authorization_token.split(" ", 1)
+         if ttype != "Bearer":
+diff --git a/src/idpyoidc/server/oidc/provider_config.py b/src/idpyoidc/server/oidc/provider_config.py
+index 819a699..374ebde 100755
+--- a/src/idpyoidc/server/oidc/provider_config.py
++++ b/src/idpyoidc/server/oidc/provider_config.py
+@@ -33,4 +33,14 @@ class ProviderConfiguration(Endpoint):
+         return request
+
+     def process_request(self, request=None, **kwargs):
+-        return {"response_args": self.upstream_get("context").provider_info}
++        # return {"response_args": self.upstream_get("context").provider_info}
++        _schema = self.upstream_get("attribute", "metadata_schema")
++        _args = self.upstream_get("context").claims.get_server_metadata(metadata_schema=_schema)
++        # add issuer
++        _args["issuer"] = self.upstream_get("attribute", "entity_id")
++        # add endpoints
++        for name, endpoint in self.upstream_get("unit").endpoint.items():
++            if endpoint.endpoint_name:
++                _args[endpoint.endpoint_name] = endpoint.full_path
++
++        return {"response_args": _args}
+diff --git a/src/idpyoidc/server/oidc/registration.py b/src/idpyoidc/server/oidc/registration.py
+index a363ebe..2ae23cb 100644
+--- a/src/idpyoidc/server/oidc/registration.py
++++ b/src/idpyoidc/server/oidc/registration.py
+@@ -12,6 +12,8 @@ from cryptojwt.jws.utils import alg2keytype
+ from cryptojwt.utils import as_bytes
+
+ from idpyoidc.exception import MessageException
++from idpyoidc.key_import import import_jwks
++from idpyoidc.key_import import import_jwks_as_json
+ from idpyoidc.message.oauth2 import ResponseMessage
+ from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
+ from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+@@ -143,7 +145,7 @@ class Registration(Endpoint):
+         # Use my defaults
+         _my_key = _context.claims.register2preferred.get(claim, claim)
+         try:
+-            _val = _context.provider_info[_my_key]
++            _val = _context.claims.get_preference(_my_key)
+         except KeyError:
+             return val
+
+@@ -279,14 +281,23 @@ class Registration(Endpoint):
+
+         t = {"jwks_uri": "", "jwks": None}
+
+-        for item in ["jwks_uri", "jwks"]:
+-            if item in request:
+-                t[item] = request[item]
++        _jwks_uri = request.get("jwks_uri")
++        if _jwks_uri:
++            # if it can't load keys because the URL is false it will
++            # just silently fail. Waiting for better times.
++            _keyjar.add_url(issuer_id=client_id, url=_jwks_uri)
++        else:
++            _jwks = request.get("jwks", None)
++            if _jwks:
++                if isinstance(_jwks, str):
++                    _keyjar = import_jwks_as_json(_keyjar, _jwks, client_id)
++                else:
++                    _keyjar = import_jwks(_keyjar, _jwks, client_id)
+
+-        # if it can't load keys because the URL is false it will
+-        # just silently fail. Waiting for better times.
+-        _keyjar.load_keys(client_id, jwks_uri=t["jwks_uri"], jwks=t["jwks"])
+-        logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
++        if client_id in _keyjar:
++            logger.debug(f"Keys for {client_id}: {_keyjar.key_summary(client_id)}")
++        else:
++            logger.debug(f"No keys for {client_id}")
+
+         return _cinfo
+
+@@ -437,7 +448,13 @@ class Registration(Endpoint):
+             if not reserved_client_id:
+                 reserved_client_id = _context.cdb.keys()
+             client_id = cid_generator(reserved=reserved_client_id, **cid_gen_kwargs)
+-            if "client_id" in request:
++            _entity_id = request.get("client_id", None)
++            if _entity_id:
++                # Already registered
++                _old_id = _context.client_known_as.get(request["client_id"], None)
++                if _old_id:
++                    del _context.cdb[_old_id]
++                _context.client_known_as[_entity_id] = client_id
+                 del request["client_id"]
+         else:
+             client_id = request.get("client_id")
+@@ -456,7 +473,7 @@ class Registration(Endpoint):
+         if set_secret:
+             client_secret = self.add_client_secret(_cinfo, client_id, _context)
+
+-        logger.debug("Stored client info in CDB under cid={}".format(client_id))
++        logger.debug(f"Stored client info in CDB under cid={client_id}")
+
+         _context.cdb[client_id] = _cinfo
+         _cinfo = self.do_client_registration(
+@@ -469,6 +486,12 @@ class Registration(Endpoint):
+
+         args = dict([(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param])
+
++        # Don't echo keys back
++        try:
++            del args["jwks"]
++        except KeyError:
++            pass
++
+         comb_uri(args)
+         response = self.response_cls(**args)
+
+@@ -495,7 +518,7 @@ class Registration(Endpoint):
+             reg_resp = self.client_registration_setup(request, new_id, set_secret,
+                                                       reserved_client_id)
+         except Exception as err:
+-            logger.error("client_registration_setup: %s", request)
++            logger.exception(f"client_registration_setup: {request}")
+             return ResponseMessage(
+                 error="invalid_configuration_request", error_description="%s" % err
+             )
+diff --git a/src/idpyoidc/server/oidc/session.py b/src/idpyoidc/server/oidc/session.py
+index 03ddfd2..f38e011 100644
+--- a/src/idpyoidc/server/oidc/session.py
++++ b/src/idpyoidc/server/oidc/session.py
+@@ -135,7 +135,11 @@ class Session(Endpoint):
+         try:
+             alg = cinfo["id_token_signed_response_alg"]
+         except KeyError:
+-            alg = _context.provider_info["id_token_signing_alg_values_supported"][0]
++            _algs = _context.provider_info.get("id_token_signing_alg_values_supported")
++            if _algs:
++                alg = _algs[0]
++            else:
++                alg = _context.provider_info.get("id_token_signed_response_alg", "RS256")
+
+         _jws = JWT(
+             self.upstream_get("attribute", "keyjar"),
+diff --git a/src/idpyoidc/server/oidc/token.py b/src/idpyoidc/server/oidc/token.py
+index 3436df3..804fa59 100755
+--- a/src/idpyoidc/server/oidc/token.py
++++ b/src/idpyoidc/server/oidc/token.py
+@@ -1,6 +1,6 @@
+ import logging
+
+-from idpyoidc import metadata
++from idpyoidc import alg_info
+ from idpyoidc.message import Message
+ from idpyoidc.message import oidc
+ from idpyoidc.message.oidc import TokenErrorResponse
+@@ -40,7 +40,7 @@ class Token(token.Token):
+             "client_secret_jwt",
+             "private_key_jwt",
+         ],
+-        "token_endpoint_auth_signing_alg_values_supported": metadata.get_signing_algs(),
++        "token_endpoint_auth_signing_alg_values_supported": alg_info.get_signing_algs(),
+         "grant_types_supported": list(helper_by_grant_type.keys()),
+     }
+
+diff --git a/src/idpyoidc/server/oidc/token_helper/access_token.py b/src/idpyoidc/server/oidc/token_helper/access_token.py
+index 2594748..eefc4e2 100755
+--- a/src/idpyoidc/server/oidc/token_helper/access_token.py
++++ b/src/idpyoidc/server/oidc/token_helper/access_token.py
+@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
+
+
+ class AccessTokenHelper(TokenEndpointHelper):
++
+     def _get_session_info(self, request, session_manager):
+         if request["grant_type"] != "authorization_code":
+             return self.error_cls(error="invalid_request", error_description="Unknown grant_type")
+@@ -56,7 +57,7 @@ class AccessTokenHelper(TokenEndpointHelper):
+         if "grant_types_supported" in _context.cdb[client_id]:
+             grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+         else:
+-            grant_types_supported = _context.provider_info["grant_types_supported"]
++            grant_types_supported = _context.provider_info.get("grant_types", [])
+         grant = _session_info["grant"]
+
+         token_type = "Bearer"
+@@ -166,7 +167,7 @@ class AccessTokenHelper(TokenEndpointHelper):
+         return _response
+
+     def post_parse_request(
+-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
++            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+     ) -> Union[Message, dict]:
+         """
+         This is where clients come to get their access tokens
+diff --git a/src/idpyoidc/server/oidc/userinfo.py b/src/idpyoidc/server/oidc/userinfo.py
+index 281b669..6754f37 100755
+--- a/src/idpyoidc/server/oidc/userinfo.py
++++ b/src/idpyoidc/server/oidc/userinfo.py
+@@ -9,7 +9,7 @@ from cryptojwt.exception import MissingValue
+ from cryptojwt.jwt import JWT
+ from cryptojwt.jwt import utc_time_sans_frac
+
+-from idpyoidc import metadata
++from idpyoidc import alg_info
+ from idpyoidc.exception import ImproperlyConfigured
+ from idpyoidc.message import Message
+ from idpyoidc.message import oidc
+@@ -35,9 +35,9 @@ class UserInfo(Endpoint):
+     _supports = {
+         "claim_types_supported": ["normal", "aggregated", "distributed"],
+         "encrypt_userinfo_supported": True,
+-        "userinfo_signing_alg_values_supported": metadata.get_signing_algs(),
+-        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs(),
+-        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs(),
++        "userinfo_signing_alg_values_supported": alg_info.get_signing_algs(),
++        "userinfo_encryption_alg_values_supported": alg_info.get_encryption_algs(),
++        "userinfo_encryption_enc_values_supported": alg_info.get_encryption_encs(),
+     }
+
+     def __init__(
+
