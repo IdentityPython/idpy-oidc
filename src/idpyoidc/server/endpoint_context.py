@@ -240,7 +240,7 @@ class EndpointContext(OidcContext):
             conf = conf.conf
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
-        self.provider_info = self.claims.provider_info(_supports)
+        self.provider_info = self.claims.metadata(_supports)
         self.provider_info["issuer"] = self.issuer
         self.provider_info.update(self._get_endpoint_info())
 

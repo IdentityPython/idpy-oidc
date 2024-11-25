@@ -1,5 +1,6 @@
 from typing import Optional
 
+from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ASConfigurationResponse
 from idpyoidc.server import claims
 
@@ -38,9 +39,12 @@ class Claims(claims.Claims):
     def __init__(self, prefer: Optional[dict] = None, callback_path: Optional[dict] = None):
         claims.Claims.__init__(self, prefer=prefer, callback_path=callback_path)
 
-    def provider_info(self, supports):
+    def metadata(self, supports, schema: Optional[Message] = None):
         _info = {}
-        for key in ASConfigurationResponse.c_param.keys():
+        if schema is None:
+            schema = ASConfigurationResponse
+
+        for key in schema.c_param.keys():
             _val = self.get_preference(key, supports.get(key, None))
             if _val and _val != []:
                 _info[key] = _val

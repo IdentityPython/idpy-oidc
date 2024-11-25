@@ -181,11 +181,11 @@ class Endpoint(Node):
         return None
 
     def parse_request(
-        self,
-        request: Union[Message, dict, str],
-        http_info: Optional[dict] = None,
-        verify_args: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Union[Message, dict, str],
+            http_info: Optional[dict] = None,
+            verify_args: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -195,8 +195,8 @@ class Endpoint(Node):
         :param kwargs: extra keyword arguments
         :return:
         """
-        LOGGER.debug("- {} -".format(self.endpoint_name))
-        LOGGER.info("Request: %s" % sanitize(request))
+        LOGGER.debug(f"- {self.endpoint_name} -")
+        LOGGER.info(f"Request: {sanitize(request)}")
 
         _context = self.upstream_get("context")
         _keyjar = self.upstream_get("attribute", "keyjar")
@@ -228,7 +228,6 @@ class Endpoint(Node):
 
         # Verify that the client is allowed to do this
         auth_info = self.client_authentication(req, http_info, endpoint=self, **kwargs)
-        LOGGER.debug(f"parse_request:auth_info:{auth_info}")
 
         _client_id = auth_info.get("client_id", "")
         if _client_id:
@@ -274,17 +273,18 @@ class Endpoint(Node):
 
         authn_info = verify_client(request=request, http_info=http_info, **kwargs)
 
-        LOGGER.debug("authn_info: %s", authn_info)
+        LOGGER.debug(f"authn_info: {authn_info}")
         if authn_info == {}:
             if self.client_authn_method and len(self.client_authn_method):
-                LOGGER.debug("client_authn_method: %s", self.client_authn_method)
+                LOGGER.debug(f"client_authn_method: {self.client_authn_method}")
                 raise UnAuthorizedClient("Authorization failed")
         elif "client_id" not in authn_info and authn_info.get("method") != "none":
+            LOGGER.debug(f"No client ID")
             raise UnAuthorizedClient("Authorization failed")
         return authn_info
 
     def do_post_parse_request(
-        self, request: Message, client_id: Optional[str] = "", **kwargs
+            self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
         _context = self.upstream_get("context")
         for meth in self.post_parse_request:
@@ -294,7 +294,7 @@ class Endpoint(Node):
         return request
 
     def do_pre_construct(
-        self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.pre_construct:
@@ -303,10 +303,10 @@ class Endpoint(Node):
         return response_args
 
     def do_post_construct(
-        self,
-        response_args: Union[Message, dict],
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Union[Message, dict],
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         _context = self.upstream_get("context")
         for meth in self.post_construct:
@@ -315,10 +315,10 @@ class Endpoint(Node):
         return response_args
 
     def process_request(
-        self,
-        request: Optional[Union[Message, dict]] = None,
-        http_info: Optional[dict] = None,
-        **kwargs
+            self,
+            request: Optional[Union[Message, dict]] = None,
+            http_info: Optional[dict] = None,
+            **kwargs
     ) -> Union[Message, dict]:
         """
 
@@ -329,10 +329,10 @@ class Endpoint(Node):
         return {}
 
     def construct(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ):
         """
         Construct the response
@@ -350,19 +350,34 @@ class Endpoint(Node):
         return self.do_post_construct(response, request, **kwargs)
 
     def response_info(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            **kwargs
     ) -> dict:
         return self.construct(response_args, request, **kwargs)
 
+    def _get_content_type(self, **kwargs):
+        content_type = kwargs.get("content_type", None)
+
+        if content_type is None:
+            if self.response_content_type:
+                content_type = self.response_content_type
+            elif self.response_format == "json":
+                content_type = "application/json"
+            elif self.response_format in ["jws", "jwe", "jose"]:
+                content_type = "application/jose"
+            elif self.response_format == "text":
+                content_type = "text/plain"
+            else:
+                content_type = "application/x-www-form-urlencoded"
+        return content_type
     def do_response(
-        self,
-        response_args: Optional[dict] = None,
-        request: Optional[Union[Message, dict]] = None,
-        error: Optional[str] = "",
-        **kwargs
+            self,
+            response_args: Optional[dict] = None,
+            request: Optional[Union[Message, dict]] = None,
+            error: Optional[str] = "",
+            **kwargs
     ) -> dict:
         """
         :param response_args: Information to use when constructing the response
@@ -380,6 +395,7 @@ class Endpoint(Node):
 
         resp = None
         if error:
+            content_type = "text/html"
             _response = ResponseMessage(error=error)
             for attr in ["error_description", "error_uri", "state"]:
                 if attr in kwargs:
@@ -389,58 +405,46 @@ class Endpoint(Node):
             _response_placement = kwargs.get("response_placement")
             do_placement = False
             _response = ""
-            content_type = kwargs.get("content_type")
-            if content_type is None:
-                if self.response_content_type:
-                    content_type = self.response_content_type
-                elif self.response_format == "json":
-                    content_type = "application/json"
-                elif self.response_format in ["jws", "jwe", "jose"]:
-                    content_type = "application/jose"
-                elif self.response_format == "text":
-                    content_type = "text/plain"
-                else:
-                    content_type = "application/x-www-form-urlencoded"
+            content_type = self._get_content_type(**kwargs)
         else:
+            content_type = ""
             _response = self.response_info(response_args, request, **kwargs)
 
         if do_placement:
-            content_type = kwargs.get("content_type")
-            if content_type is None:
-                if self.response_placement == "body":
-                    if self.response_format == "json":
+            if not content_type:
+                content_type = self._get_content_type(**kwargs)
+            if self.response_placement == "body":
+                if self.response_format == "json":
+                    if not content_type:
                         content_type = "application/json; charset=utf-8"
-                        if isinstance(_response, Message):
-                            resp = _response.to_json()
-                        else:
-                            resp = json.dumps(_response)
-                    elif self.response_format in ["jws", "jwe", "jose"]:
-                        if self.response_content_type:
-                            content_type = self.response_content_type
-                        else:
-                            content_type = "application/jose; charset=utf-8"
-                        resp = _response
+                    if isinstance(_response, Message):
+                        resp = _response.to_json()
                     else:
-                        content_type = "application/x-www-form-urlencoded"
-                        resp = _response.to_urlencoded()
-                elif self.response_placement == "url":
-                    content_type = "application/x-www-form-urlencoded"
-                    fragment_enc = kwargs.get("fragment_enc")
-                    if not fragment_enc:
-                        _ret_type = kwargs.get("return_type")
-                        if _ret_type:
-                            fragment_enc = fragment_encoding(_ret_type)
-                        else:
-                            fragment_enc = False
-
-                    if fragment_enc:
-                        resp = _response.request(kwargs["return_uri"], True)
-                    else:
-                        resp = _response.request(kwargs["return_uri"])
+                        resp = json.dumps(_response)
+                elif self.response_format in ["jws", "jwe", "jose"]:
+                    if not content_type:
+                        content_type = "application/jose; charset=utf-8"
+                    resp = _response
                 else:
-                    raise ValueError(
-                        "Don't know where that is: '{}".format(self.response_placement)
-                    )
+                    if not content_type:
+                        content_type = "application/x-www-form-urlencoded"
+                    resp = _response.to_urlencoded()
+            elif self.response_placement == "url":
+                if not content_type:
+                    content_type = "application/x-www-form-urlencoded"
+
+                fragment_enc = kwargs.get("fragment_enc")
+                if not fragment_enc:
+                    _ret_type = kwargs.get("return_type")
+                    if _ret_type:
+                        fragment_enc = fragment_encoding(_ret_type)
+                    else:
+                        fragment_enc = False
+
+                if fragment_enc:
+                    resp = _response.request(kwargs["return_uri"], True)
+                else:
+                    raise ValueError(f"Don't know where that is: '{self.response_placement}'")
 
         if content_type:
             try:

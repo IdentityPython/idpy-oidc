@@ -13,6 +13,8 @@ def get_client_authn_methods():
 
 
 class Claims(claims.Claims):
+    _supports = {}
+
     def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         _base = configuration.get("base_url")
         if not _base:
@@ -54,9 +56,10 @@ class Claims(claims.Claims):
             # if only one key under the id == "", that key being a SYMKey I assume it's
             # and I have a client_secret then don't publish a JWKS
             if (
-                len(_own_keys) == 1
-                and isinstance(_own_keys[0], SYMKey)
-                and self.prefer["client_secret"]
+                    len(_own_keys) == 1
+                    and isinstance(_own_keys[0], SYMKey)
+                    and self.prefer["client_secret"]
+                    and self.prefer.get("client_secret", None)
             ):
                 pass
             else:
