@@ -915,8 +915,8 @@ class ProviderConfigurationResponse(ResponseMessage):
         "token_endpoint_auth_methods_supported": ["client_secret_basic"],
         "claims_parameter_supported": False,
         "request_parameter_supported": False,
-        "request_uri_parameter_supported": True,
-        "require_request_uri_registration": True,
+        "request_uri_parameter_supported": None,
+        "require_request_uri_registration": None,
         "grant_types_supported": ["authorization_code"],
     }
 

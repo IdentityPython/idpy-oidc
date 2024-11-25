@@ -8,8 +8,8 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -21,13 +21,12 @@ from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
+from idpyoidc.transform import preferred_to_registered
+from idpyoidc.transform import supported_to_preferred
 from idpyoidc.util import rndstr
-
-from ..impexp import ImpExp
-from .claims.transform import preferred_to_registered
-from .claims.transform import supported_to_preferred
 from .configure import get_configuration
 from .current import Current
+from ..impexp import ImpExp
 
 logger = logging.getLogger(__name__)
 
@@ -116,14 +115,14 @@ class ServiceContext(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-        self,
-        upstream_get: Optional[Callable] = None,
-        base_url: Optional[str] = "",
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        cstate: Optional[Current] = None,
-        client_type: Optional[str] = "oauth2",
-        **kwargs,
+            self,
+            upstream_get: Optional[Callable] = None,
+            base_url: Optional[str] = "",
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            cstate: Optional[Current] = None,
+            client_type: Optional[str] = "oauth2",
+            **kwargs,
     ):
         ImpExp.__init__(self)
         config = get_configuration(config)
@@ -212,7 +211,7 @@ class ServiceContext(ImpExp):
         if not webname.startswith(self.base_url):
             raise ValueError("Webname doesn't match base_url")
 
-        _name = webname[len(self.base_url) :]
+        _name = webname[len(self.base_url):]
         if _name.startswith("/"):
             return _name[1:]
 
@@ -294,14 +293,14 @@ class ServiceContext(ImpExp):
     def set(self, key, value):
         setattr(self, key, value)
 
-    def get_client_id(self):
-        res = self.claims.get_usage("client_id")
-        if not res:
-            res = self.entity_id
-            if not res and self.upstream_get:
-                res = self.upstream_get("unit").entity_id
-
+    def get_entity_id(self):
+        res = self.entity_id
+        if not res and self.upstream_get:
+            res = self.upstream_get("unit").entity_id
         return res
+
+    def get_client_id(self):
+        return self.claims.get_usage("client_id")
 
     def collect_usage(self):
         return self.claims.use

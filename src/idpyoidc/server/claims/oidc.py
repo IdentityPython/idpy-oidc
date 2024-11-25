@@ -1,6 +1,6 @@
 from typing import Optional
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
@@ -48,9 +48,9 @@ class Claims(server_claims.Claims):
         "display_values_supported": None,
         "encrypt_id_token_supported": None,
         # "grant_types_supported": ["authorization_code", "implicit", "refresh_token"],
-        "id_token_signing_alg_values_supported": metadata.get_signing_algs(),
-        "id_token_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "id_token_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "id_token_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "id_token_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "id_token_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         "initiate_login_uri": None,
         "jwks": None,
         "jwks_uri": None,
