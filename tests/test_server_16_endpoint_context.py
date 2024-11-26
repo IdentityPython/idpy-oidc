@@ -4,6 +4,7 @@ import os
 import pytest
 from cryptojwt.key_jar import build_keyjar
 
+from idpyoidc import alg_info
 from idpyoidc import metadata
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
@@ -28,9 +29,9 @@ class Endpoint_1(Endpoint):
     name = "userinfo"
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
-        "userinfo_signing_alg_values_supported": metadata.get_signing_algs(),
-        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "userinfo_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "userinfo_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "userinfo_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         "client_authn_method": ["bearer_header", "bearer_body"],
         "encrypt_userinfo_supported": False,
     }

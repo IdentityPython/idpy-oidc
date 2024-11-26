@@ -1,15 +1,13 @@
 import json
 import logging
-from datetime import datetime
 from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
-from cryptojwt.jwt import utc_time_sans_frac
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
@@ -35,13 +33,13 @@ class UserInfo(Endpoint):
     _supports = {
         "claim_types_supported": ["normal", "aggregated", "distributed"],
         "encrypt_userinfo_supported": True,
-        "userinfo_signing_alg_values_supported": metadata.get_signing_algs(),
-        "userinfo_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "userinfo_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "userinfo_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "userinfo_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "userinfo_encryption_enc_values_supported": alg_info.get_encryption_encs(),
     }
 
     def __init__(
-        self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
+            self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
     ):
         Endpoint.__init__(
             self,
@@ -58,11 +56,11 @@ class UserInfo(Endpoint):
         return _info["client_id"]
 
     def do_response(
-        self,
-        response_args: Optional[Union[Message, dict]] = None,
-        request: Optional[Union[Message, dict]] = None,
-        client_id: Optional[str] = "",
-        **kwargs,
+            self,
+            response_args: Optional[Union[Message, dict]] = None,
+            request: Optional[Union[Message, dict]] = None,
+            client_id: Optional[str] = "",
+            **kwargs,
     ) -> dict:
         if "error" in kwargs and kwargs["error"]:
             return Endpoint.do_response(self, response_args, request, **kwargs)

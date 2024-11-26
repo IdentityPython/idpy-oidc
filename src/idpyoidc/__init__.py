@@ -1,5 +1,5 @@
 __author__ = "Roland Hedberg"
-__version__ = "4.3.0"
+__version__ = "5.0.0"
 
 VERIFIED_CLAIM_PREFIX = "__verified"
 
@@ -10,7 +10,7 @@ def verified_claim_name(claim):
 
 def proper_path(path):
     """
-    Clean up the path specification so it looks like something I could use.
+    Clean up the path specification such that it looks like something I could use.
     "./" <path> "/"
     """
     if path.startswith("./"):

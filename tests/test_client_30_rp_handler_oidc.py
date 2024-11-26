@@ -4,12 +4,13 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
-from cryptojwt.key_jar import init_key_jar
 import pytest
 import responses
+from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.rp_handler import RPHandler
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
@@ -151,8 +152,6 @@ CLIENT_CONFIG = {
             "authorization_endpoint": "https://github.com/login/oauth/authorize",
             "token_endpoint": "https://github.com/login/oauth/access_token",
             "userinfo_endpoint": "https://api.github.com/user",
-            "request_parameter_supported": True,
-            "request_uri_parameter_supported": True,
         },
         "services": {
             "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
@@ -217,6 +216,7 @@ def iss_id(iss):
 
 
 class TestRPHandler(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(
@@ -279,13 +279,13 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         # The key jar should only contain a symmetric key that is the clients
         # secret. 2 because one is marked for encryption and the other signing
         # usage.
 
-        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
+        assert set(_keyjar.owners()) == {"", _context.claims.prefer["client_id"], _github_id, self.rph.entity_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3
 
@@ -329,9 +329,9 @@ class TestRPHandler(object):
         assert _context.issuer == _github_id
 
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
+        assert set(_keyjar.owners()) == {"", _context.claims.prefer["client_id"], _github_id, self.rph.entity_id}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3
 
@@ -347,7 +347,7 @@ class TestRPHandler(object):
         cb = _context.get_preference("callback_uris")
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
-        assert set(cb["redirect_uris"].keys()) == {"query", "fragment"}
+        assert set(cb["redirect_uris"].keys()) == {"query", "fragment", "form_post"}
         _hash = _context.iss_hash
 
         assert cb["redirect_uris"]["query"] == [f"https://example.com/rp/authz_cb/{_hash}"]
@@ -449,7 +449,7 @@ class TestRPHandler(object):
         _github_id = iss_id("github")
         _context = client.get_context()
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         _nonce = _session["nonce"]
         _iss = _session["iss"]
@@ -524,7 +524,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -571,7 +571,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -618,7 +618,7 @@ class TestRPHandler(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -697,6 +697,7 @@ def test_get_provider_specific_service():
 
 
 class TestRPHandlerTier2(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rph = RPHandler(BASE_URL, CLIENT_CONFIG, keyjar=CLI_KEY)
@@ -712,7 +713,7 @@ class TestRPHandlerTier2(object):
 
         _github_id = iss_id("github")
         _keyjar = _context.upstream_get("attribute", "keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
@@ -818,6 +819,7 @@ class TestRPHandlerTier2(object):
 
 
 class MockResponse:
+
     def __init__(self, status_code, text, headers=None):
         self.status_code = status_code
         self.text = text
@@ -825,6 +827,7 @@ class MockResponse:
 
 
 class MockOP(object):
+
     def __init__(self, issuer, keyjar=None):
         self.keyjar = keyjar
         self.issuer = issuer
@@ -913,6 +916,7 @@ def test_rphandler_request():
 
 
 class TestRPHandlerWithMockOP(object):
+
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.issuer = "https://github.com/login/oauth/authorize"
@@ -956,7 +960,7 @@ class TestRPHandlerWithMockOP(object):
         )
         _github_id = iss_id("github")
         _keyjar = client.get_attribute("keyjar")
-        _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
+        _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
         with responses.RequestsMock() as rsps:
             rsps.add(
                 "POST",

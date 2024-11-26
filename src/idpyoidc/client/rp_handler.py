@@ -3,19 +3,25 @@ import sys
 import traceback
 from typing import List
 from typing import Optional
+from typing import Union
 
 from cryptojwt import KeyJar
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import importer
 
+from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.defaults import DEFAULT_CLIENT_CONFIGS
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.defaults import DEFAULT_RP_KEY_DEFS
 from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
+from idpyoidc.configure import Base
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
+from .defaults import DEFAULT_KEY_DEFS
 from .oauth2 import Client
+from ..key_import import import_jwks
+from ..key_import import store_under_other_id
 from ..message import Message
 
 logger = logging.getLogger(__name__)
@@ -34,50 +40,51 @@ class RPHandler(object):
             state_db=None,
             httpc=None,
             httpc_params=None,
-            config=None,
+            config: Optional[Union[dict, Base]] = None,
             **kwargs,
     ):
-        self.base_url = base_url
+        if config is None:
+            config = RPHConfiguration({})
+        elif isinstance(config, dict):
+            config = RPHConfiguration(config)
 
-        if keyjar is None:
-            keyjar_defs = {}
-            if config:
-                keyjar_defs = getattr(config, "key_conf", None)
+        self.base_url = base_url or config.get("base_url", config.get("entity_id", ""))
+        self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
+        self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
+        self.client_type = config.get("client_type", config.conf.get("client_type", ""))
+        self.client_configs = client_configs or {}
 
-            if not keyjar_defs:
-                keyjar_defs = kwargs.get("key_conf", DEFAULT_RP_KEY_DEFS)
-
-            _jwks_path = kwargs.get("jwks_path", keyjar_defs.get("uri_path", keyjar_defs.get("public_path", "")))
-            if "uri_path" in keyjar_defs:
-                del keyjar_defs["uri_path"]
-            self.keyjar = init_key_jar(**keyjar_defs, issuer_id="")
-            self.keyjar.import_jwks_as_json(self.keyjar.export_jwks_as_json(True, ""), base_url)
-        else:
+        if keyjar:
             self.keyjar = keyjar
             _jwks_path = kwargs.get("jwks_path", "")
-
-        if _jwks_path:
-            self.jwks_uri = add_path(base_url, _jwks_path)
-        else:
-            self.jwks_uri = ""
-            if len(self.keyjar):
-                self.jwks = self.keyjar.export_jwks()
+            if _jwks_path:
+                self.jwks_uri = add_path(base_url, _jwks_path)
             else:
-                self.jwks = {}
+                self.jwks_uri = ""
+                if len(self.keyjar):
+                    self.jwks = self.keyjar.export_jwks()
+                else:
+                    self.jwks = {}
 
         if config:
             if not hash_seed:
                 self.hash_seed = config.hash_seed
-            if not keyjar:
-                self.keyjar = init_key_jar(**config.key_conf, issuer_id="")
-            if not client_configs:
-                self.client_configs = config.clients
 
-            if "client_class" in config:
-                if isinstance(config["client_class"], str):
-                    self.client_cls = importer(config["client_class"])
+            if not keyjar and config.key_conf:
+                _conf = {k: v for k, v in config.key_conf.items() if k != "uri_path"}
+                self.keyjar = init_key_jar(**_conf, issuer_id="")
+                _jwks_path = kwargs.get("jwks_path",
+                                        config.key_conf.get("uri_path",
+                                                            config.key_conf.get("public_path", "")))
+                if _jwks_path:
+                    self.jwks_uri = add_path(self.base_url, _jwks_path)
+
+            _c_class = config.get("client_class", config.conf.get("client_class"))
+            if _c_class:
+                if isinstance(_c_class, str):
+                    self.client_cls = importer(_c_class)
                 else:  # assume it's a class
-                    self.client_cls = config["client_class"]
+                    self.client_cls = _c_class
             else:
                 self.client_cls = StandAloneClient
         else:
@@ -86,23 +93,22 @@ class RPHandler(object):
             else:
                 self.hash_seed = as_bytes(rndstr(32))
 
-            if client_configs is None:
-                self.client_configs = DEFAULT_CLIENT_CONFIGS
-                for param in ["client_type", "preference", "add_ons"]:
-                    val = kwargs.get(param, None)
-                    if val:
-                        self.client_configs[""][param] = val
-            else:
-                self.client_configs = client_configs
-
             _cc = kwargs.get("client_class", None)
             if _cc:
                 if isinstance(_cc, str):
                     _cc = importer(_cc)
-                self.client_cls =_cc
+                self.client_cls = _cc
             else:
                 self.client_cls = StandAloneClient
 
+        if client_configs is None:
+            self.client_configs = DEFAULT_CLIENT_CONFIGS
+            for param in ["client_type", "preference", "add_ons"]:
+                val = kwargs.get(param, None)
+                if val:
+                    self.client_configs[""][param] = val
+        else:
+            self.client_configs = client_configs
 
         if state_db:
             self.state_db = state_db
@@ -110,6 +116,9 @@ class RPHandler(object):
             self.state_db = {}
 
         self.extra = kwargs
+
+        if services is None:
+            services = config.get("services", config.conf.get("services", None))
 
         if services is None:
             self.services = DEFAULT_OIDC_SERVICES
@@ -122,14 +131,19 @@ class RPHandler(object):
         self.httpc = httpc
 
         if not httpc_params:
-            self.httpc_params = {"verify": verify_ssl}
+            self.httpc_params = config.get("httpc_params", {"verify": verify_ssl})
         else:
             self.httpc_params = httpc_params
 
-        if not self.keyjar.httpc_params:
-            self.keyjar.httpc_params = self.httpc_params
-
         self.upstream_get = kwargs.get("upstream_get", None)
+
+        _keyjar = getattr(self, "keyjar", None)
+        if _keyjar is not None:
+            if not _keyjar.httpc_params:
+                _keyjar.httpc_params = getattr(self, "httpc_params", {})
+        else:
+            self.keyjar = build_keyjar(DEFAULT_KEY_DEFS)
+            self.keyjar.httpc_params = getattr(self, "httpc_params", {})
 
     def state2issuer(self, state):
         """
@@ -159,7 +173,13 @@ class RPHandler(object):
         :param issuer: Issuer ID
         :return: A client configuration
         """
-        return self.client_configs[issuer]
+        _cnf = self.client_configs[issuer].copy()
+        for param in ["entity_id", "client_id", "base_url", "services", "jwks_uri", "entity_type",
+                      "client_type"]:
+            if param not in _cnf and getattr(self, param, None):
+                _cnf[param] = getattr(self, param)
+
+        return _cnf
 
     def get_session_information(self, key, client=None):
         """
@@ -192,16 +212,7 @@ class RPHandler(object):
             _cnf = self.pick_config("")
             _cnf["issuer"] = issuer
 
-        try:
-            _services = _cnf["services"]
-        except KeyError:
-            _services = self.services
-
-        if "base_url" not in _cnf:
-            _cnf["base_url"] = self.base_url
-
-        if self.jwks_uri:
-            _cnf["jwks_uri"] = self.jwks_uri
+        _services = _cnf["services"]
 
         logger.debug(f"config: {_cnf}")
         try:
@@ -221,20 +232,32 @@ class RPHandler(object):
         _context = client.get_context()
         if _context.iss_hash:
             self.hash2issuer[_context.iss_hash] = issuer
+
         # If non persistent
         _keyjar = client.keyjar
-        if not _keyjar:
+        if _keyjar is None:
             _keyjar = KeyJar()
             _keyjar.httpc_params.update(self.httpc_params)
 
-        for iss in self.keyjar.owners():
-            _keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
+        if self.upstream_get:
+            _srv_keyjar = self.upstream_get("attribute", "keyjar")
+        else:
+            _srv_keyjar = getattr(self, "keyjar", None)
+
+        if _srv_keyjar:
+            for iss in _srv_keyjar.owners():
+                _keyjar = import_jwks(_keyjar, self.keyjar.export_jwks(issuer_id=iss, private=True), iss)
+
+        if self.entity_id not in _keyjar:
+            _keyjar = store_under_other_id(_keyjar,"", self.entity_id, True)
 
         client.keyjar = _keyjar
         # If persistent nothing has to be copied
 
-        _context.base_url = self.base_url
-        _context.jwks_uri = self.jwks_uri
+        for item in ["jwks_uri", "base_url"]:
+            _val = getattr(self, item, None)
+            if _val:
+                setattr(_context, item, _val)
         return client
 
     def do_provider_info(
@@ -639,7 +662,8 @@ class RPHandler(object):
         return client.logout(state, post_logout_redirect_uri=post_logout_redirect_uri)
 
     def close(
-            self, state: str, issuer: Optional[str] = "", post_logout_redirect_uri: Optional[str] = ""
+            self, state: str, issuer: Optional[str] = "",
+            post_logout_redirect_uri: Optional[str] = ""
     ) -> dict:
 
         if issuer:

@@ -60,7 +60,10 @@ CAPABILITIES = {
         "implicit",
         "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "refresh_token",
-    ]
+    ],
+    "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
+    "response_modes_supported": ["query", "fragment", "form_post"],
+    "claims_parameter_supported": True
 }
 
 AUTH_REQ = AuthorizationRequest(
@@ -165,7 +168,7 @@ class TestEndpoint(object):
             "issuer": "https://example.com/",
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
-            "capabilities": CAPABILITIES,
+            "preference": CAPABILITIES,
             "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_def": {
@@ -203,13 +206,6 @@ class TestEndpoint(object):
                 "authorization": {
                     "path": "{}/authorization",
                     "class": Authorization,
-                    "kwargs": {
-                        "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
-                        "response_modes_supported": ["query", "fragment", "form_post"],
-                        "claims_parameter_supported": True,
-                        "request_parameter_supported": True,
-                        "request_uri_parameter_supported": True,
-                    },
                 }
             },
             "authentication": {

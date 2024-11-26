@@ -191,6 +191,6 @@ class TestClient2(object):
 
     def test_keyjar(self):
         _keyjar = self.client.get_attribute("keyjar")
-        assert len(_keyjar) == 2  # one issuer
-        assert len(_keyjar[""]) == 3
-        assert len(_keyjar.get("sig")) == 3
+        assert len(_keyjar) == 2  # "", and client_id
+        assert len(_keyjar[""]) == 2
+        assert len(_keyjar.get("sig")) == 2

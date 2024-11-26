@@ -4,9 +4,9 @@ from typing import List
 from typing import Optional
 from typing import TypeVar
 from typing import Union
+from urllib.parse import parse_qs
 from urllib.parse import ParseResult
 from urllib.parse import SplitResult
-from urllib.parse import parse_qs
 from urllib.parse import unquote
 from urllib.parse import urlencode
 from urllib.parse import urlparse
@@ -18,7 +18,7 @@ from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -47,7 +47,6 @@ from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
-
 
 ParsedURI = TypeVar('ParsedURI', ParseResult, SplitResult)
 
@@ -392,13 +391,13 @@ class Authorization(Endpoint):
 
     _supports = {
         "claims_parameter_supported": True,
-        "request_parameter_supported": True,
-        "request_uri_parameter_supported": True,
+        "request_parameter_supported": None,
+        "request_uri_parameter_supported": None,
         "response_types_supported": ["code"],
         "response_modes_supported": ["query", "fragment", "form_post"],
-        "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
-        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "request_object_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "request_object_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         # "grant_types_supported": ["authorization_code", "implicit"],
         "code_challenge_methods_supported": ["S256"],
         "scopes_supported": [],
@@ -911,7 +910,7 @@ class Authorization(Endpoint):
 
             if isinstance(request["response_type"], list):
                 rtype = set(request["response_type"][:])
-            else: # assume it's a string
+            else:  # assume it's a string
                 rtype = set()
                 rtype.add(request["response_type"])
 

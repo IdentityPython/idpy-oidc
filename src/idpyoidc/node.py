@@ -7,14 +7,17 @@ from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
+from idpyoidc.key_import import import_jwks
+from idpyoidc.key_import import import_jwks_as_json
+from idpyoidc.key_import import store_under_other_id
 from idpyoidc.util import instantiate
 
 
 def create_keyjar(
-    keyjar: Optional[KeyJar] = None,
-    conf: Optional[Union[dict, Configuration]] = None,
-    key_conf: Optional[dict] = None,
-    id: Optional[str] = "",
+        keyjar: Optional[KeyJar] = None,
+        conf: Optional[Union[dict, Configuration]] = None,
+        key_conf: Optional[dict] = None,
+        id: Optional[str] = "",
 ):
     if keyjar is None:
         if key_conf:
@@ -30,13 +33,13 @@ def create_keyjar(
             else:
                 _keyjar = KeyJar()
                 if "jwks" in conf:
-                    _keyjar.import_jwks(conf["jwks"], "")
+                    _keyjar = import_jwks(_keyjar, conf["jwks"], "")
         else:
             _keyjar = None
 
         if _keyjar and "" in _keyjar and id:
             # make sure I have the keys under my own name too (if I know it)
-            _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), id)
+            _keyjar = store_under_other_id(_keyjar, "", id, True)
 
         return _keyjar
     else:
@@ -60,7 +63,7 @@ def make_keyjar(
         keyjar = KeyJar()
         _jwks = config.get("jwks")
         if _jwks:
-            keyjar.import_jwks_as_json(_jwks, client_id)
+            keyjar = import_jwks_as_json(keyjar, _jwks, client_id)
 
     if keyjar or key_conf:
         # Should be either one
@@ -78,15 +81,12 @@ def make_keyjar(
                 keyjar = KeyJar()
                 keyjar.add_symmetric(client_id, _key)
                 keyjar.add_symmetric("", _key)
-        # else:
-        #     keyjar = build_keyjar(DEFAULT_KEY_DEFS)
-        #     if issuer_id:
-        #         keyjar.import_jwks(keyjar.export_jwks(private=True), issuer_id)
 
     return keyjar
 
 
 class Node:
+
     def __init__(self, upstream_get: Callable = None):
         self.upstream_get = upstream_get
 
@@ -123,19 +123,20 @@ class Unit(ImpExp):
     init_args = ["upstream_get"]
 
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        keyjar: Optional[Union[KeyJar, bool]] = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        key_conf: Optional[dict] = None,
-        issuer_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+            self,
+            upstream_get: Callable = None,
+            keyjar: Optional[Union[KeyJar, bool]] = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            key_conf: Optional[dict] = None,
+            issuer_id: Optional[str] = "",
+            client_id: Optional[str] = "",
     ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
         self.httpc = httpc
+        self.client_id = client_id
 
         if config is None:
             config = {}
@@ -192,16 +193,16 @@ class ClientUnit(Unit):
     name = ""
 
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        keyjar: Optional[KeyJar] = None,
-        context: Optional[ImpExp] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        # jwks_uri: Optional[str] = "",
-        entity_id: Optional[str] = "",
-        key_conf: Optional[dict] = None,
+            self,
+            upstream_get: Callable = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            keyjar: Optional[KeyJar] = None,
+            context: Optional[ImpExp] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            # jwks_uri: Optional[str] = "",
+            entity_id: Optional[str] = "",
+            key_conf: Optional[dict] = None,
     ):
         if config is None:
             config = {}
@@ -232,17 +233,18 @@ class ClientUnit(Unit):
 
 # Neither client nor Server
 class Collection(Unit):
+
     def __init__(
-        self,
-        upstream_get: Callable = None,
-        keyjar: Optional[KeyJar] = None,
-        httpc: Optional[object] = None,
-        httpc_params: Optional[dict] = None,
-        config: Optional[Union[Configuration, dict]] = None,
-        entity_id: Optional[str] = "",
-        key_conf: Optional[dict] = None,
-        functions: Optional[dict] = None,
-        claims: Optional[dict] = None,
+            self,
+            upstream_get: Callable = None,
+            keyjar: Optional[KeyJar] = None,
+            httpc: Optional[object] = None,
+            httpc_params: Optional[dict] = None,
+            config: Optional[Union[Configuration, dict]] = None,
+            entity_id: Optional[str] = "",
+            key_conf: Optional[dict] = None,
+            functions: Optional[dict] = None,
+            claims: Optional[dict] = None,
     ):
         if config is None:
             config = {}

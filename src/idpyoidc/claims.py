@@ -1,4 +1,6 @@
+import logging
 from typing import Callable
+from typing import List
 from typing import Optional
 
 from cryptojwt import KeyJar
@@ -7,9 +9,14 @@ from cryptojwt.utils import importer
 
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
+from idpyoidc.key_import import import_jwks
+from idpyoidc.key_import import store_under_other_id
+from idpyoidc.message import Message
+from idpyoidc.transform import preferred_to_registered
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
+logger = logging.getLogger(__name__)
 
 def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
@@ -85,7 +92,17 @@ class Claims(ImpExp):
         self.callback = callbacks
 
     def verify_rules(self, supports):
-        return True
+        if self.get_preference("encrypt_userinfo_supported", False) is True:
+            self.set_preference("userinfo_encryption_alg_values_supported", [])
+            self.set_preference("userinfo_encryption_enc_values_supported", [])
+
+        if self.get_preference("encrypt_request_object_supported", False) is True:
+            self.set_preference("request_object_encryption_alg_values_supported", [])
+            self.set_preference("request_object_encryption_enc_values_supported", [])
+
+        if self.get_preference("encrypt_id_token_supported", False) is True:
+            self.set_preference("id_token_encryption_alg_values_supported", [])
+            self.set_preference("id_token_encryption_enc_values_supported", [])
 
     def locals(self, info):
         pass
@@ -104,11 +121,11 @@ class Claims(ImpExp):
             else:
                 _keyjar = KeyJar()
                 if "jwks" in conf:
-                    _keyjar.import_jwks(conf["jwks"], "")
+                    _keyjar = import_jwks(_keyjar, conf["jwks"], "")
 
             if "" in _keyjar and entity_id:
                 # make sure I have the keys under my own name too (if I know it)
-                _keyjar.import_jwks_as_json(_keyjar.export_jwks_as_json(True, ""), entity_id)
+                _keyjar = store_under_other_id(_keyjar, "", entity_id, True)
 
             _httpc_params = conf.get("httpc_params")
             if _httpc_params:
@@ -122,7 +139,7 @@ class Claims(ImpExp):
 
         return keyjar, _uri_path
 
-    def get_base_url(self, configuration: dict, entity_id: Optional[str]=""):
+    def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         raise NotImplementedError()
 
     def get_id(self, configuration: dict):
@@ -138,6 +155,7 @@ class Claims(ImpExp):
                     configuration: dict,
                     keyjar: Optional[KeyJar] = None,
                     entity_id: Optional[str] = ""):
+        logger.debug(f"configuration: {configuration}")
         _jwks = _jwks_uri = None
         _id = self.get_id(configuration)
         keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
@@ -180,6 +198,10 @@ class Claims(ImpExp):
             elif val:
                 self.set_preference(key, val)
 
+        for attr, val in supports.items():
+            if attr not in self.prefer and val is not None:
+                self.set_preference(attr, val)
+
         self.verify_rules(supports)
         return keyjar
 
@@ -195,14 +217,20 @@ class Claims(ImpExp):
     def construct_uris(self, *args):
         pass
 
-    def supports(self):
+    def _expand(self, dictionary):
         res = {}
-        for key, val in self._supports.items():
+        for key, val in dictionary.items():
             if isinstance(val, Callable):
                 res[key] = val()
             else:
-                res[key] = val
+                if isinstance(val, dict):
+                    res[key] = self._expand(val)
+                else:
+                    res[key] = val
         return res
+
+    def supports(self):
+        return self._expand(self._supports)
 
     def supported(self, claim):
         return claim in self._supports
@@ -219,3 +247,77 @@ class Claims(ImpExp):
             return default
         else:
             return _val
+
+    def get_endpoint_claims(self, endpoints):
+        _info = {}
+        for endp in endpoints:
+            if endp.endpoint_name:
+                _info[endp.endpoint_name] = endp.full_path
+                for arg, claim in [("client_authn_method", "auth_methods"),
+                                   ("auth_signing_alg_values", "auth_signing_alg_values")]:
+                    _val = getattr(endp, arg, None)
+                    if _val:
+                        # trust_mark_status_endpoint_auth_methods_supported
+                        md_param = f"{endp.endpoint_name}_{claim}"
+                        _info[md_param] = _val
+        return _info
+
+    def get_server_metadata(self,
+                            entity_type: Optional[str] = "",
+                            endpoints: Optional[list] = None,
+                            metadata_schema: Optional[Message] = None,
+                            extra_claims: Optional[List[str]] = None,
+                            **kwargs):
+
+        metadata = self.prefer
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr and v != []}
+
+        # collect endpoints
+        if endpoints:
+            metadata.update(self.get_endpoint_claims(endpoints))
+
+        if entity_type:
+            return {entity_type: metadata}
+        else:
+            return metadata
+
+    def get_client_metadata(self,
+                            entity_type: Optional[str] = "",
+                            metadata_schema: Optional[Message] = None,
+                            extra_claims: Optional[List[str]] = None,
+                            supported: Optional[dict] = None,
+                            **kwargs):
+
+        if supported is None:
+            supported = self.supports()
+
+        if not self.use:
+            self.use = preferred_to_registered(self.prefer, supported=supported)
+
+        metadata = self.use
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr}
+
+        if entity_type:
+            return {entity_type: metadata}
+        else:
+            return metadata

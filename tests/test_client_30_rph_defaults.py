@@ -45,7 +45,6 @@ class TestRPHandler(object):
             'id_token_encryption_alg_values_supported',
             'id_token_encryption_enc_values_supported',
             'id_token_signing_alg_values_supported',
-            'jwks_uri',
             'redirect_uris',
             'request_object_encryption_alg_values_supported',
             'request_object_encryption_enc_values_supported',
@@ -61,7 +60,7 @@ class TestRPHandler(object):
             'userinfo_signing_alg_values_supported'}
 
         _keyjar = client.get_attribute("keyjar")
-        assert list(_keyjar.owners()) == ["", BASE_URL]
+        assert list(_keyjar.owners()) == ["", "https://example.com"]
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 2
 
@@ -116,7 +115,6 @@ class TestRPHandler(object):
             "encrypt_request_object_supported",
             "grant_types",
             "id_token_signed_response_alg",
-            "jwks_uri",
             "redirect_uris",
             "request_object_signing_alg",
             "response_modes",
@@ -180,4 +178,4 @@ class TestRPHandler(object):
             rsps.add("POST", request_uri, body=_jws, status=200)
             self.rph.do_client_registration(client, ISS_ID)
 
-        assert "jwks_uri" in _context.get("registration_response")
+        assert "jwks_uri" not in _context.get("registration_response")

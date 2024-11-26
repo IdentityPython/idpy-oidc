@@ -1,12 +1,12 @@
+from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.client.oauth2 import access_token
 from idpyoidc.client.oidc import userinfo
+from idpyoidc.message import Message
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
 from idpyoidc.message import SINGLE_REQUIRED_STRING
-from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
-from idpyoidc.metadata import get_signing_algs
 
 
 class AccessTokenResponse(Message):

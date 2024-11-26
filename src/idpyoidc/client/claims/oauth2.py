@@ -1,7 +1,7 @@
 from typing import Optional
 
 from idpyoidc.client import claims
-from idpyoidc.client.claims.transform import create_registration_request
+from idpyoidc.transform import create_registration_request
 
 
 class Claims(claims.Claims):
