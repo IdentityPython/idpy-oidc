@@ -11,6 +11,7 @@ from jinja2 import FileSystemLoader
 from requests import request
 
 from idpyoidc.context import OidcContext
+from idpyoidc.message import Message
 from idpyoidc.server import authz
 from idpyoidc.server.claims import Claims
 from idpyoidc.server.claims.oauth2 import Claims as OAUTH2_Claims
@@ -173,6 +174,7 @@ class EndpointContext(OidcContext):
         self.token_args_methods = []
         self.userinfo = None
         self.client_authn_method = {}
+        self.client_known_as = {}
 
         for param in [
             "issuer",
@@ -185,8 +187,6 @@ class EndpointContext(OidcContext):
                 setattr(self, param, conf[param])
             except KeyError:
                 pass
-
-        self.token_handler_args = get_token_handler_args(conf)
 
         # session db
         self._sub_func = {}
@@ -240,9 +240,6 @@ class EndpointContext(OidcContext):
             conf = conf.conf
         _supports = self.supports()
         self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
-        self.provider_info = self.claims.metadata(_supports)
-        self.provider_info["issuer"] = self.issuer
-        self.provider_info.update(self._get_endpoint_info())
 
         # INTERFACES
 
@@ -256,17 +253,34 @@ class EndpointContext(OidcContext):
             conf=conf,
             upstream_get=self.unit_get)
 
+        # default is to have session management
+        if self.conf.get("session_management", self.conf["conf"].get("session_management", True)):
+            self.token_handler_args = get_token_handler_args(self.conf)
+
+            self.session_manager = SessionManager(
+                self.token_handler_args,
+                sub_func = self._sub_func,
+                conf = conf,
+                upstream_get = self.unit_get)
+        else:
+            self.session_manager = None
+
         self.do_userinfo()
 
         # Must be done after userinfo
         self.setup_login_hint_lookup()
-        self.set_remember_token()
+        if self.session_manager:
+            self.set_remember_token()
 
         self.setup_client_authn_methods()
 
-        # _id_token_handler = self.session_manager.token_handler.handler.get("id_token")
-        # if _id_token_handler:
-        #     self.provider_info.update(_id_token_handler.provider_info)
+    def get_metadata(self, supports: Optional[dict] = None, schema: Optional[Message] = None):
+        if supports is None:
+            supports = self.supports()
+
+        _metadata = self.claims.metadata(supports, schema)
+        _metadata.update(self._get_endpoint_info())
+        return _metadata
 
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
