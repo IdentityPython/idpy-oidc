@@ -1,3 +1,4 @@
+import logging
 from typing import Callable
 from typing import Optional
 from typing import Union
@@ -16,6 +17,7 @@ from . import is_expired
 from .exception import UnknownToken
 from .exception import WrongTokenClass
 
+logger = logging.getLogger(__name__)
 
 class JWTToken(Token):
     def __init__(
@@ -89,8 +91,12 @@ class JWTToken(Token):
             lifetime = usage_rules.get("expires_in")
         else:
             lifetime = self.lifetime
+
+        _keyjar = self.upstream_get("attribute", "keyjar")
+        logger.info(f"Key owners in the keyjar: {_keyjar.owners()}")
+
         signer = JWT(
-            key_jar=self.upstream_get("attribute", "keyjar"),
+            key_jar=_keyjar,
             iss=self.issuer,
             lifetime=lifetime,
             sign_alg=self.alg,

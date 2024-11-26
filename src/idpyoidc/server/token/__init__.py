@@ -105,23 +105,40 @@ class DefaultToken(Token):
         else:
             token_class = "authorization_code"
 
+        logger.debug(f"Mint {token_class}")
+        logger.debug(f"crypt.key: {self.crypt.key}")
+        _jwks = self.crypt_config.get('jwks', None)
+        logger.debug(f"crypt.jwks: {_jwks}")
+
         if self.lifetime >= 0:
             exp = str(utc_time_sans_frac() + self.lifetime)
         else:
-            exp = "-1"  # Live for ever
+            exp = "-1"  # Live forever
 
         tmp = ""
         rnd = ""
         while rnd == tmp:  # Don't use the same random value again
             rnd = rndstr(32)  # Ultimate length multiple of 16
 
-        return base64.b64encode(
+        _args = {
+            "rnd": rnd,
+            "token_class": token_class,
+            "session_id": session_id,
+            "exp": exp
+        }
+        logger.debug(f"Encrypt arguments: {_args}")
+        _value = base64.urlsafe_b64encode(
             self.crypt.encrypt(lv_pack(rnd, token_class, session_id, exp).encode())
         ).decode("utf-8")
 
+        logger.debug(f"Token: {_value}")
+        return _value
+
     def split_token(self, token):
+        logger.debug(f"split_token: {token}")
+        logger.debug(f"crypt key: {self.crypt.key}")
         try:
-            plain = self.crypt.decrypt(base64.b64decode(token))
+            plain = self.crypt.decrypt(base64.urlsafe_b64decode(token))
         except Exception as err:
             raise UnknownToken(err)
         # order: rnd, type, sid
