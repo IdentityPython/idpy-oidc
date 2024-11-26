@@ -407,7 +407,7 @@ class EndpointContext(OidcContext):
         return res
 
     def set_provider_info(self):
-        _info = self.claims.provider_info(self.supports())
+        _info = self.claims.metadata(self.supports())
         _info.update({"issuer": self.issuer, "version": "3.0"})
 
         for endp in self.upstream_get("endpoints").values():

@@ -416,14 +416,14 @@ class Endpoint(Node):
             if self.response_placement == "body":
                 if self.response_format == "json":
                     if not content_type:
-                        content_type = "application/json; charset=utf-8"
+                        content_type = "application/json"
                     if isinstance(_response, Message):
                         resp = _response.to_json()
                     else:
                         resp = json.dumps(_response)
                 elif self.response_format in ["jws", "jwe", "jose"]:
                     if not content_type:
-                        content_type = "application/jose; charset=utf-8"
+                        content_type = "application/jose"
                     resp = _response
                 else:
                     if not content_type:
@@ -441,10 +441,10 @@ class Endpoint(Node):
                     else:
                         fragment_enc = False
 
-                if fragment_enc:
-                    resp = _response.request(kwargs["return_uri"], True)
-                else:
-                    raise ValueError(f"Don't know where that is: '{self.response_placement}'")
+                resp = _response.request(kwargs["return_uri"], fragment_enc=fragment_enc)
+            else:
+                raise ValueError(
+                    f"Don't know how to handle response_placement='{self.response_placement}'")
 
         if content_type:
             try:

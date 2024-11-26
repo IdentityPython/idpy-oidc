@@ -4,9 +4,9 @@ import pytest
 from cryptojwt.utils import importer
 
 from idpyoidc.client.claims.oidc import Claims as OIDC_Claims
-from idpyoidc.client.claims.transform import create_registration_request
-from idpyoidc.client.claims.transform import preferred_to_registered
-from idpyoidc.client.claims.transform import supported_to_preferred
+from idpyoidc.transform import create_registration_request
+from idpyoidc.transform import preferred_to_registered
+from idpyoidc.transform import supported_to_preferred
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationRequest
@@ -248,8 +248,8 @@ class TestTransform:
         assert set(claims.prefer.keys()) == {
             "application_type",
             "default_max_age",
-            "encrypt_request_object_supported",
-            "encrypt_userinfo_supported",
+            # "encrypt_request_object_supported",
+            # "encrypt_userinfo_supported",
             "id_token_encryption_alg_values_supported",
             "id_token_encryption_enc_values_supported",
             "id_token_signing_alg_values_supported",
@@ -362,6 +362,8 @@ class TestTransform2:
             "client_name",
             "contacts",
             "default_max_age",
+            "encrypt_request_object_supported",
+            "encrypt_userinfo_supported",
             "id_token_signed_response_alg",
             "logo_uri",
             "redirect_uris",

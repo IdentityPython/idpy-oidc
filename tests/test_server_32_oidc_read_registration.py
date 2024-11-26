@@ -160,4 +160,4 @@ class TestEndpoint(object):
 
         _endp_response = self.registration_api_endpoint.do_response(_info)
         assert set(_endp_response.keys()) == {"response", "http_headers"}
-        assert ("Content-type", "application/json; charset=utf-8") in _endp_response["http_headers"]
+        assert ("Content-type", "application/json") in _endp_response["http_headers"]

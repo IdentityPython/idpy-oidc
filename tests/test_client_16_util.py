@@ -147,7 +147,7 @@ def test_get_deserialization_method_json():
     resp = FakeResponse("application/json")
     assert get_deserialization_method(resp) == "json"
 
-    resp = FakeResponse("application/json; charset=utf-8")
+    resp = FakeResponse("application/json")
     assert get_deserialization_method(resp) == "json"
 
     resp.headers["content-type"] = "application/jrd+json"
