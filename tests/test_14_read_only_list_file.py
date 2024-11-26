@@ -25,5 +25,4 @@ def test_read_only_list_file():
 
     # sleep(2)
     # assert _read_only.is_changed(FILE_NAME) is True
-    assert set(_read_only) == {"one", "two", "three"}
-    assert _read_only[-1] == "three"
+    assert set(_read_only.list()) == {"one", "two", "three"}

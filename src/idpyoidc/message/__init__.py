@@ -388,7 +388,7 @@ class Message(MutableMapping):
                 else:
                     self._dict[skey] = val
             else:
-                raise DecodeError(ERRTXT % (key, "type != %s" % vtype))
+                raise DecodeError(ERRTXT % (key, f"type != {vtype}, val:{val}, type:{type(val)}"))
         else:
             if val is None:
                 self._dict[skey] = None
