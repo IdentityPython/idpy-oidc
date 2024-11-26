@@ -247,12 +247,6 @@ class EndpointContext(OidcContext):
 
         self.setup_authentication()
 
-        self.session_manager = SessionManager(
-            self.token_handler_args,
-            sub_func=self._sub_func,
-            conf=conf,
-            upstream_get=self.unit_get)
-
         # default is to have session management
         if self.conf.get("session_management", self.conf["conf"].get("session_management", True)):
             self.token_handler_args = get_token_handler_args(self.conf)
