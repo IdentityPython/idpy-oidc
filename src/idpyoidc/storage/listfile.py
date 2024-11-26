@@ -113,6 +113,49 @@ class ReadOnlyListFile(object):
 
     def __len__(self):
         _lst = self._read_info(self.file_name)
+
+        if _lst is None or _lst == []:
+            return 0
+        return len(set(_lst))
+
+    def _read_info(self, fname):
+        if os.path.isfile(fname):
+            try:
+                lock = FileLock(f"{fname}.lock")
+
+                with lock:
+                    fp = open(fname, "r")
+                    info = [x.strip() for x in fp.readlines()]
+                    lock.release()
+                return list(set(info))
+            except Exception as err:
+                logger.error(err)
+                raise
+        else:
+            _msg = f"No such file: '{fname}'"
+            logger.error(_msg)
+        return None
+
+    def __call__(self):
+        return self._read_info(self.file_name)
+
+    def list(self):
+        return self._read_info(self.file_name)
+
+class ReadWriteListFile(object):
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+        if not os.path.exists(file_name):
+            fp = open(file_name, "x")
+            fp.close()
+
+    def __contains__(self, item):
+        _lst = self._read_info(self.file_name)
+        return item in _lst
+
+    def __len__(self):
+        _lst = self._read_info(self.file_name)
         if _lst is None or _lst == []:
             return 0
 
