@@ -10,6 +10,7 @@ from cryptojwt.jws.jws import SIGNER_ALGS
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import importer
 
+from idpyoidc.client.request_object import construct_request_parameter
 from idpyoidc.defaults import DEF_SIGN_ALG
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.message import Message
@@ -31,6 +32,7 @@ __author__ = "roland hedberg"
 
 DEFAULT_ACCESS_TOKEN_TYPE = "Bearer"
 
+
 class AuthnFailure(Exception):
     """Unspecified Authentication failure"""
 
@@ -46,7 +48,7 @@ def assertion_jwt(client_id, keys, audience, algorithm, lifetime=600):
 
     :param client_id: The Client ID
     :param keys: Signing keys
-    :param audience: Who is the receivers for this assertion
+    :param audience: Who's the receivers for this assertion
     :param algorithm: Signing algorithm
     :param lifetime: The lifetime of the signed Json Web Token
     :return: A Signed Json Web Token
@@ -628,6 +630,12 @@ class PrivateKeyJWT(JWSAuthnMethod):
         return keyjar.get_signing_key(alg2keytype(algorithm), "", alg=algorithm)
 
 
+class RequestParam(ClientAuthnMethod):
+    def construct(self, request, service=None, http_args=None, **kwargs):
+        request_object = construct_request_parameter(service, request, **kwargs)
+        request["request"] = request_object
+
+
 # Map from client authentication identifiers to corresponding class
 CLIENT_AUTHN_METHOD = {
     "client_secret_basic": ClientSecretBasic,
@@ -637,6 +645,7 @@ CLIENT_AUTHN_METHOD = {
     "client_secret_jwt": ClientSecretJWT,
     "private_key_jwt": PrivateKeyJWT,
     #    "client_notification_authn": ClientNotificationAuthn
+    "request_param": RequestParam
 }
 
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
