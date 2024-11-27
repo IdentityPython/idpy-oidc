@@ -1,5 +1,6 @@
 """Utilities"""
 import logging
+import os
 import secrets
 from http.cookiejar import Cookie
 from http.cookiejar import http2time
@@ -14,9 +15,9 @@ from idpyoidc.constant import URL_ENCODED
 from idpyoidc.defaults import BASECHR
 from idpyoidc.exception import UnSupported
 from idpyoidc.util import importer
-
 from .exception import TimeFormatError
 from .exception import WrongContentType
+from ..util import rndstr
 
 logger = logging.getLogger(__name__)
 
@@ -330,3 +331,29 @@ def implicit_response_types(a):
 
 def get_uri(base_url, path, hex):
     return f"{base_url}/{path}/{hex}"
+
+
+def construct_request_uri(local_dir, base_path, **kwargs):
+    """
+    Constructs a special redirect_uri to be used when communicating with
+    one OP. Each OP should get their own redirect_uris.
+
+    :param local_dir: Local directory in which to place the file
+    :param base_path: Base URL to start with
+    :param kwargs:
+    :return: 2-tuple with (filename, url)
+    """
+    _filedir = local_dir
+    if not os.path.isdir(_filedir):
+        os.makedirs(_filedir)
+    _webpath = base_path
+    _name = rndstr(10) + ".jwt"
+    filename = os.path.join(_filedir, _name)
+    while os.path.exists(filename):
+        _name = rndstr(10)
+        filename = os.path.join(_filedir, _name)
+    if _webpath.endswith("/"):
+        _webname = f"{_webpath}{_name}"
+    else:
+        _webname = f"{_webpath}/{_name}"
+    return filename, _webname

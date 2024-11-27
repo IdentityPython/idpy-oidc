@@ -5,17 +5,13 @@ import pytest
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc import alg_info
-from idpyoidc import metadata
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.endpoint import Endpoint
-from idpyoidc.server.exception import OidcEndpointError
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from idpyoidc.server.util import allow_refresh_token
-
 from . import CRYPT_CONFIG
-from . import SESSION_PARAMS
 from . import full_path
+from . import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -83,6 +79,7 @@ conf = {
 
 
 class TestEndpointContext:
+
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self):
         server = Server(conf)

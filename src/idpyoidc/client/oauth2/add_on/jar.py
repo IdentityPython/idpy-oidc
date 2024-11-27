@@ -4,7 +4,7 @@ from typing import Optional
 from idpyoidc.client.request_object import construct_request_parameter
 
 from idpyoidc import alg_info
-from idpyoidc.client.oidc.utils import construct_request_uri
+from idpyoidc.client.util import construct_request_uri
 
 logger = logging.getLogger(__name__)
 

@@ -1200,7 +1200,9 @@ def make_openid_request(
         _jwt.with_jti = True
     if lifetime:
         _jwt.lifetime = lifetime
-    return _jwt.pack(arq.to_dict(), owner=issuer, recv=recv)
+    if isinstance(arq, Message):
+        arq = arq.to_dict()
+    return _jwt.pack(arq, owner=issuer, recv=recv)
 
 
 def claims_match(value, claimspec):

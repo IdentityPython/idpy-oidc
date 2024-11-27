@@ -7,18 +7,16 @@ from idpyoidc import alg_info
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
-from idpyoidc.client.oidc.utils import construct_request_uri
-from idpyoidc.client.oidc.utils import request_object_encryption
+from idpyoidc.client.request_object import construct_request_parameter
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.client.util import construct_request_uri
 from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message import oidc
-from idpyoidc.message.oidc import make_openid_request
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.time_util import time_sans_frac
-from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import rndstr
 
 __author__ = "Roland Hedberg"
@@ -142,7 +140,7 @@ class Authorization(authorization.Authorization):
         elif "openid" not in request_args["scope"]:
             request_args["scope"].append("openid")
 
-        # 'code' and/or 'id_token' in response_type means an ID Roken
+        # 'code' and/or 'id_token' in response_type means an ID Token
         # will eventually be returned, hence the need for a nonce
         if "code" in _response_types or "id_token" in _response_types:
             if "nonce" not in request_args:
@@ -173,24 +171,6 @@ class Authorization(authorization.Authorization):
 
         return request_args, post_args
 
-    def get_request_object_signing_alg(self, **kwargs):
-        alg = ""
-        for arg in ["request_object_signing_alg", "algorithm"]:
-            try:  # Trumps everything
-                alg = kwargs[arg]
-            except KeyError:
-                pass
-            else:
-                break
-
-        if not alg:
-            _context = self.upstream_get("context")
-            try:
-                alg = _context.claims.get_usage("request_object_signing_alg")
-            except KeyError:  # Use default
-                alg = "RS256"
-        return alg
-
     def store_request_on_file(self, req, **kwargs):
         """
         Stores the request parameter in a file.
@@ -211,63 +191,6 @@ class Authorization(authorization.Authorization):
         fid.write(req)
         fid.close()
         return _webname
-
-    def construct_request_parameter(
-            self, req, request_param, audience=None, expires_in=0, **kwargs
-    ):
-        """Construct a request parameter"""
-        alg = self.get_request_object_signing_alg(**kwargs)
-        kwargs["request_object_signing_alg"] = alg
-
-        _context = self.upstream_get("context")
-        if "keys" not in kwargs and alg and alg != "none":
-            kwargs["keys"] = self.upstream_get("attribute", "keyjar")
-
-        if alg == "none":
-            kwargs["keys"] = []
-
-        # This is the issuer of the JWT, that is me !
-        _issuer = kwargs.get("issuer")
-        if _issuer is None:
-            kwargs["issuer"] = _context.get_client_id()
-
-        if kwargs.get("recv") is None:
-            try:
-                kwargs["recv"] = _context.provider_info["issuer"]
-            except KeyError:
-                kwargs["recv"] = _context.issuer
-
-        try:
-            del kwargs["service"]
-        except KeyError:
-            pass
-
-        if expires_in:
-            req["exp"] = utc_time_sans_frac() + int(expires_in)
-
-        _mor_args = {
-            k: kwargs[k]
-            for k in [
-                "keys",
-                "issuer",
-                "request_object_signing_alg",
-                "recv",
-                "with_jti",
-                "lifetime",
-            ]
-            if k in kwargs
-        }
-
-        _req_jwt = make_openid_request(req, **_mor_args)
-
-        if "target" not in kwargs:
-            kwargs["target"] = _context.provider_info.get("issuer", _context.issuer)
-
-        # Should the request be encrypted
-        _req_jwte = request_object_encryption(
-            _req_jwt, _context, self.upstream_get("attribute", "keyjar"), **kwargs
-        )
-        return _req_jwte
 
     def oidc_post_construct(self, req, **kwargs):
         """
@@ -300,13 +223,15 @@ class Authorization(authorization.Authorization):
                 _request_param = "request"
 
         _req = None  # just a flag
+        kwargs["req"] = req
         if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
             kwargs["local_dir"] = _context.get_usage("requests_dir", "./requests")
-            _req = self.construct_request_parameter(req, _request_param, **kwargs)
+            _req = construct_request_parameter(**kwargs)
+            del kwargs["req"]
             req["request_uri"] = self.store_request_on_file(_req, **kwargs)
         elif _request_param == "request":
-            _req = self.construct_request_parameter(req, _request_param, **kwargs)
+            _req = construct_request_parameter(**kwargs)
             req["request"] = _req
 
         if _req:

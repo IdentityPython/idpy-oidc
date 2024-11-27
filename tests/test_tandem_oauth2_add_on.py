@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from cryptojwt.key_jar import build_keyjar
+from idpyoidc.key_import import store_under_other_id
 
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.message.oauth2 import is_error_message
@@ -324,10 +325,13 @@ def test_jar():
         },
     }
 
+    _keyjar = build_keyjar(KEYDEFS)
+    _keyjar = store_under_other_id(_keyjar, "", client_config["client_id"], True)
+
     client = Client(
         client_type="oauth2",
         config=client_config,
-        keyjar=build_keyjar(KEYDEFS),
+        keyjar=_keyjar,
         services=_OAUTH2_SERVICES,
     )
 
