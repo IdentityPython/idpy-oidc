@@ -1,8 +1,10 @@
+import base64
 import logging
 import uuid
 from hashlib import sha256
 from typing import Optional
 
+from cryptojwt import as_unicode
 from cryptojwt.jwk.jwk import key_from_jwk_dict
 from cryptojwt.jws.jws import factory
 from cryptojwt.jws.jws import JWS
@@ -149,7 +151,7 @@ def dpop_header(
     }
 
     if token:
-        header_dict["ath"] = sha256(token.encode("utf8")).hexdigest()
+        header_dict["ath"] = as_unicode(base64.urlsafe_b64encode(sha256(token.encode("utf8")).digest()))
 
     if nonce:
         header_dict["nonce"] = nonce
@@ -168,14 +170,19 @@ def dpop_header(
 
 def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=None):
     """
-    Add the necessary pieces to make pushed authorization happen.
+    Add the necessary pieces to make DPoP happen.
 
     :param services: A dictionary with all the services the client has access to.
     :param signing_algorithms: Allowed signing algorithms, there is no default algorithms
+    :param dpop_signing_alg_values_supported: Allowed signing algorithms, there is no default algorithms
+    :param with_dpop_header: If a services should add a DPoP header to a request
     """
 
-    # Access token request should use DPoP header
     _service = services["accesstoken"]
+    if with_dpop_header is None:
+        with_dpop_header = ["accesstoken", "userinfo"]
+    _service = services[with_dpop_header[0]]
+    # Add to Context
     _context = _service.upstream_get("context")
     _algs_supported = [
         alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()
@@ -186,20 +193,8 @@ def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=No
     }
     _context.set_preference("dpop_signing_alg_values_supported", _algs_supported)
 
-    _service.construct_extra_headers.append(dpop_header)
-
-    # The same for userinfo requests
-    _userinfo_service = services.get("userinfo")
-    if _userinfo_service:
-        _userinfo_service.construct_extra_headers.append(dpop_header)
-    # To be backward compatible
-    if with_dpop_header is None:
-        with_dpop_header = ["userinfo"]
-
-    # Add dpop HTTP header to these
+    # Add dpop HTTP header to requests by these services
     for _srv in with_dpop_header:
-        if _srv == "accesstoken":
-            continue
         _service = services.get(_srv)
         if _service:
             _service.construct_extra_headers.append(dpop_header)

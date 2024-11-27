@@ -3,6 +3,8 @@ import logging
 from cryptojwt.utils import importer
 
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
+from idpyoidc.client.oauth2.utils import set_request_object
+from idpyoidc.client.service import Service
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import JWTSecuredAuthorizationRequest
 from idpyoidc.server.util import execute
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 HTTP_METHOD = "POST"
 
 
-def push_authorization(request_args, service, **kwargs):
+def push_authorization(request_args: Message, service: Service, **kwargs):
     """
     :param request_args: All the request arguments as a AuthorizationRequest instance
     :param service: The service to which this post construct method is applied.
@@ -50,17 +52,31 @@ def push_authorization(request_args, service, **kwargs):
 
     # construct the message body
     _body = request_args.to_urlencoded()
+    if isinstance(request_args, Message):
+        _required_params = request_args.to_dict()
+    else:
+        _required_params = request_args
+
+    _add_request_object = kwargs.get("add_request_object", False)
+    if _add_request_object:
+        _required_params["request"] = set_request_object(service, request_args)
+
+    _req = service.msg_type(**_required_params)
+    _body = _req.to_urlencoded()
 
     _http_client = method_args.get("http_client", None)
     if not _http_client:
         _http_client = service.upstream_get("unit").httpc
 
     _httpc_params = service.upstream_get("unit").httpc_params
+    _par_endpoint = kwargs.get("pushed_authorization_request_endpoint", None)
+    if not _par_endpoint:
+        _par_endpoint = _context.provider_info["pushed_authorization_request_endpoint"]
 
     # Send it to the Pushed Authorization Request Endpoint using POST
     resp = _http_client(
         method=HTTP_METHOD,
-        url=_context.provider_info["pushed_authorization_request_endpoint"],
+        url=_par_endpoint,
         data=_body,
         headers=_headers,
         **_httpc_params
@@ -73,10 +89,7 @@ def push_authorization(request_args, service, **kwargs):
             _req[param] = request_args.get(param)
         request_args = _req
     else:
-        raise ConnectionError(
-            f"Could not connect to "
-            f'{_context.provider_info["pushed_authorization_request_endpoint"]}'
-        )
+        raise ConnectionError(f"Could not connect to {_par_endpoint}")
 
     return request_args
 

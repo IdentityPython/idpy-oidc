@@ -6,6 +6,7 @@ from typing import Union
 
 from cryptojwt.key_jar import KeyJar
 
+
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
@@ -254,12 +255,13 @@ class Client(Entity):
 
         if reqresp.status_code in SUCCESSFUL:
             logger.debug('response_body_type: "{}"'.format(response_body_type))
+            _content_type = reqresp.headers.get("content-type")
             _deser_method = get_deserialization_method(reqresp)
 
-            if _deser_method != response_body_type:
+            if _content_type != response_body_type:
                 logger.warning(
                     "Not the body type I expected: {} != {}".format(
-                        _deser_method, response_body_type
+                        _content_type, response_body_type
                     )
                 )
             if _deser_method in ["json", "jwt", "urlencoded"]:
