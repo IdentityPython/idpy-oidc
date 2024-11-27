@@ -2,6 +2,8 @@ import logging
 from typing import Optional
 from typing import Union
 
+from cryptojwt import JWT
+
 from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingParameter
@@ -99,3 +101,19 @@ def set_state_parameter(request_args=None, **kwargs):
     """Assigned a state value."""
     request_args["state"] = get_state_parameter(request_args, kwargs)
     return request_args, {"state": request_args["state"]}
+
+def set_request_object(service, request_args):
+    # construct a signed request object
+    _context = service.upstream_get("context")
+    if _context.keyjar:
+        _jwt = JWT(key_jar=_context.keyjar)
+    else:
+        _jwt = JWT(key_jar=service.upstream_get("attribute", "keyjar"))
+
+    if isinstance(request_args, Message):
+        _request_object = _jwt.pack(request_args.to_dict())
+    else:
+        _request_object = _jwt.pack(request_args)
+
+    # construct the message body
+    return _request_object
