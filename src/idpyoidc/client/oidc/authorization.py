@@ -224,6 +224,10 @@ class Authorization(authorization.Authorization):
 
         _req = None  # just a flag
         kwargs["req"] = req
+        _service = kwargs.get("service", None)
+        if _service is None:
+            kwargs["service"] = self
+
         if _request_param == "request_uri":
             kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
             kwargs["local_dir"] = _context.get_usage("requests_dir", "./requests")

@@ -4,6 +4,7 @@ from cryptojwt import KeyJar
 
 from idpyoidc.client.entity import response_types_to_grant_types
 from idpyoidc.client.service import Service
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message import oidc
 from idpyoidc.message.oauth2 import ResponseMessage
 
@@ -75,7 +76,7 @@ class Registration(Service):
             _keyjar = self.upstream_get("attribute", "keyjar")
             if _keyjar:
                 if _client_id not in _keyjar:
-                    _keyjar.import_jwks(_keyjar.export_jwks(True, ""), issuer_id=_client_id)
+                    _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(True, ""), _client_id)
             _client_secret = _context.get_usage("client_secret")
             if _client_secret:
                 if not _keyjar:
@@ -102,7 +103,8 @@ class Registration(Service):
         @return:
         """
         _context = self.upstream_get("context")
-        req_args = _context.claims.create_registration_request()
+        req_args = _context.claims.get_client_metadata(metadata_schema=self.msg_type,
+                                                       supported=_context.supports())
         if "request_args" in self.conf:
             req_args.update(self.conf["request_args"])
 
