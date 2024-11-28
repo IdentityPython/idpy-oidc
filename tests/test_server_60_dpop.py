@@ -115,7 +115,10 @@ class TestEndpoint(object):
             "add_on": {
                 "dpop": {
                     "function": "idpyoidc.server.oauth2.add_on.dpop.add_support",
-                    "kwargs": {"dpop_signing_alg_values_supported": ["ES256"]},
+                    "kwargs": {
+                        "dpop_signing_alg_values_supported": ["ES256"],
+                        "dpop_endpoints": ["token"]
+                    },
                 },
             },
             "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
