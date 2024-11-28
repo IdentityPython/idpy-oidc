@@ -10,6 +10,9 @@ from urllib.parse import urlparse
 
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
+from idpyoidc.key_import import import_jwks
+
+from idpyoidc.key_import import import_jwks_as_json
 
 from idpyoidc.exception import MessageException
 from idpyoidc.message.oauth2 import ResponseMessage
@@ -143,7 +146,7 @@ class Registration(Endpoint):
         # Use my defaults
         _my_key = _context.claims.register2preferred.get(claim, claim)
         try:
-            _val = _context.provider_info[_my_key]
+            _val = _context.claims.get_preference(_my_key)
         except KeyError:
             return val
 
@@ -279,9 +282,18 @@ class Registration(Endpoint):
 
         t = {"jwks_uri": "", "jwks": None}
 
-        for item in ["jwks_uri", "jwks"]:
-            if item in request:
-                t[item] = request[item]
+        _jwks_uri = request.get("jwks_uri")
+        if _jwks_uri:
+            # if it can't load keys because the URL is false it will
+            # just silently fail. Waiting for better times.
+            _keyjar.add_url(issuer_id=client_id, url=_jwks_uri)
+        else:
+            _jwks = request.get("jwks", None)
+            if _jwks:
+                if isinstance(_jwks, str):
+                    _keyjar = import_jwks_as_json(_keyjar, _jwks, client_id)
+                else:
+                    _keyjar = import_jwks(_keyjar, _jwks, client_id)
 
         # if it can't load keys because the URL is false it will
         # just silently fail. Waiting for better times.
@@ -437,7 +449,13 @@ class Registration(Endpoint):
             if not reserved_client_id:
                 reserved_client_id = _context.cdb.keys()
             client_id = cid_generator(reserved=reserved_client_id, **cid_gen_kwargs)
-            if "client_id" in request:
+            _entity_id = request.get("client_id", None)
+            if _entity_id:
+                # Already registered
+                _old_id = _context.client_known_as.get(request["client_id"], None)
+                if _old_id:
+                    del _context.cdb[_old_id]
+                _context.client_known_as[_entity_id] = client_id
                 del request["client_id"]
         else:
             client_id = request.get("client_id")
@@ -456,7 +474,7 @@ class Registration(Endpoint):
         if set_secret:
             client_secret = self.add_client_secret(_cinfo, client_id, _context)
 
-        logger.debug("Stored client info in CDB under cid={}".format(client_id))
+        logger.debug(f"Stored client info in CDB under cid={client_id}")
 
         _context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
@@ -468,6 +486,12 @@ class Registration(Endpoint):
             return _cinfo
 
         args = dict([(k, v) for k, v in _cinfo.items() if k in self.response_cls.c_param])
+
+        # Don't echo keys back
+        try:
+            del args["jwks"]
+        except KeyError:
+            pass
 
         comb_uri(args)
         response = self.response_cls(**args)
@@ -495,7 +519,7 @@ class Registration(Endpoint):
             reg_resp = self.client_registration_setup(request, new_id, set_secret,
                                                       reserved_client_id)
         except Exception as err:
-            logger.error("client_registration_setup: %s", request)
+            logger.exception(f"client_registration_setup: {request}")
             return ResponseMessage(
                 error="invalid_configuration_request", error_description="%s" % err
             )
