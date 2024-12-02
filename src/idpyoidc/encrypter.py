@@ -2,6 +2,7 @@ import os
 from typing import Optional
 
 from cryptojwt.key_jar import init_key_jar
+from cryptojwt.utils import as_bytes
 
 from idpyoidc.util import instantiate
 
@@ -98,6 +99,16 @@ def init_encrypter(conf: Optional[dict] = None):
                 if attr == "keys":
                     continue
                 _kwargs[attr] = val
+
+    _key = _kwargs.get("key")
+    if _key:
+        if isinstance(_key, bytes):
+            pass
+        elif isinstance(_key, str):
+            _kwargs["key"] = as_bytes(_key)
+        else:
+            raise ValueError("Raw key most be of type bytes")
+
     return {
         "encrypter": instantiate(_class, **_kwargs),
         "conf": {"class": _class, "kwargs": _kwargs},

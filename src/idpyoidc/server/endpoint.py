@@ -372,6 +372,7 @@ class Endpoint(Node):
             else:
                 content_type = "application/x-www-form-urlencoded"
         return content_type
+
     def do_response(
             self,
             response_args: Optional[dict] = None,
