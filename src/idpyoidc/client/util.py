@@ -275,7 +275,7 @@ def get_deserialization_method(reqresp):
         deser_method = "jose"
     elif match_to_(URL_ENCODED, _ctype):
         deser_method = "urlencoded"
-    elif match_to_("text/plain", _ctype) or match_to_("test/html", _ctype):
+    elif match_to_("text/plain", _ctype) or match_to_("text/html", _ctype):
         deser_method = ""
     else:
         deser_method = ""  # reasonable default ??
