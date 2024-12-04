@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc.message import Message
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -204,9 +205,10 @@ def preferred_to_registered(
     return registered
 
 
-def create_registration_request(prefers: dict, supported: dict) -> dict:
+def create_registration_request(prefers: dict, supported: dict,
+                                registration_class: Optional[Message] = RegistrationRequest) -> dict:
     _request = {}
-    for key, spec in RegistrationRequest.c_param.items():
+    for key, spec in registration_class.c_param.items():
         _pref_key = REGISTER2PREFERRED.get(key, key)
         if _pref_key in prefers:
             value = prefers[_pref_key]
@@ -221,7 +223,7 @@ def create_registration_request(prefers: dict, supported: dict) -> dict:
         _request[key] = array_or_singleton(spec, value)
 
     for key, val in prefers.items():
-        if key not in RegistrationRequest.c_param.keys():
+        if key not in registration_class.c_param.keys():
             if key not in REGISTER2PREFERRED.values():
                 _request[key] = val
 

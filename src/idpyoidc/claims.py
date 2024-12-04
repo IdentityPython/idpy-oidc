@@ -18,6 +18,7 @@ from idpyoidc.util import qualified_name
 
 logger = logging.getLogger(__name__)
 
+
 def claims_dump(info, exclude_attributes):
     return {qualified_name(info.__class__): info.dump(exclude_attributes=exclude_attributes)}
 
@@ -305,6 +306,32 @@ class Claims(ImpExp):
             self.use = preferred_to_registered(self.prefer, supported=supported)
 
         metadata = self.use
+        # the claims that can appear in the metadata
+        if metadata_schema:
+            attr = list(metadata_schema.c_param.keys())
+        else:
+            attr = []
+
+        if extra_claims:
+            attr.extend(extra_claims)
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr}
+
+        if entity_type:
+            return {entity_type: metadata}
+        else:
+            return metadata
+
+    def get_registration_metadata(self,
+                                  entity_type: Optional[str] = "",
+                                  metadata_schema: Optional[Message] = None,
+                                  extra_claims: Optional[List[str]] = None,
+                                  supported: Optional[dict] = None,
+                                  **kwargs):
+
+        metadata = self.prefer
+
         # the claims that can appear in the metadata
         if metadata_schema:
             attr = list(metadata_schema.c_param.keys())

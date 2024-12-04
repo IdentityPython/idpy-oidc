@@ -386,6 +386,8 @@ class ServiceContext(ImpExp):
         return None
 
     def map_supported_to_preferred(self, info: Optional[dict] = None):
+        # goes from what the entity can do to something the opponent could handle
+        # info is metadata for the opponent if known
         self.claims.prefer = supported_to_preferred(
             self.supports(), self.claims.prefer, base_url=self.base_url, info=info
         )

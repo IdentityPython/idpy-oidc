@@ -430,8 +430,10 @@ class Authorization(Endpoint):
         # Checking response types
         _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types_supported", [])]
         if not _registered:
-            # If no response_type is registered by the client then we'll use code.
-            _registered = [{"code"}]
+            _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
+            if not _registered:
+                # If no response_type is registered by the client then we'll use code.
+                _registered = [{"code"}]
 
         # Is the asked for response_type among those that are permitted
         return set(request["response_type"]) in _registered

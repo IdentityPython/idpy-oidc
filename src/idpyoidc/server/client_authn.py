@@ -99,7 +99,7 @@ def basic_authn(authorization_token: str):
     _tok = as_bytes(authorization_token[6:])
     # Will raise ValueError type exception if not base64 encoded
     _tok = base64.b64decode(_tok)
-    part = as_unicode(_tok).split(":", 1)
+    part = as_unicode(_tok).rsplit(":", 1)
     if len(part) != 2:
         raise ValueError("Illegal token")
 
