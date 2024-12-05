@@ -427,6 +427,30 @@ class RequestParam(ClientAuthnMethod):
         return {"client_id": client_id, "jwt": _jwt}
 
 
+class PushedAuthorization(ClientAuthnMethod):
+    # The premise here is that there has been a client authentication at the
+    # pushed authorization endpoint
+    tag = "pushed_authz"
+
+    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
+        _request_uri = request.get("request_uri", None)
+        if _request_uri:
+            _context = self.upstream_get("context")
+            if _request_uri.startswith("urn:uuid:") and _request_uri in _context.par_db:
+                return True
+
+    def _verify(
+            self,
+            request: Optional[Union[dict, Message]] = None,
+            authorization_token: Optional[str] = None,
+            endpoint=None,  # Optional[Endpoint]
+            http_info: Optional[dict] = None,
+            **kwargs,
+    ):
+        client_id = request["client_id"]
+        return {"client_id": client_id}
+
+
 CLIENT_AUTHN_METHOD = dict(
     client_secret_basic=ClientSecretBasic,
     client_secret_post=ClientSecretPost,
@@ -437,6 +461,7 @@ CLIENT_AUTHN_METHOD = dict(
     request_param=RequestParam,
     public=PublicAuthn,
     none=NoneAuthn,
+    pushed_authz=PushedAuthorization
 )
 
 TYPE_METHOD = [(JWT_BEARER, JWSAuthnMethod)]
