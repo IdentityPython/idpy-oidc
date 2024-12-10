@@ -280,12 +280,12 @@ class Claims(ImpExp):
         if extra_claims:
             attr.extend(extra_claims)
 
-        if attr:
-            metadata = {k: v for k, v in metadata.items() if k in attr and v != []}
-
         # collect endpoints
         if endpoints:
             metadata.update(self.get_endpoint_claims(endpoints))
+
+        if attr:
+            metadata = {k: v for k, v in metadata.items() if k in attr and v != []}
 
         if entity_type:
             return {entity_type: metadata}

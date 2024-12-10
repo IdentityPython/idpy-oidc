@@ -393,7 +393,7 @@ class Registration(Endpoint):
 
         context.registration_access_token[_rat] = client_id
 
-    def client_secret_expiration_time(self):
+    def client_secret_expiration_time(self, now):
         """
         Returns client_secret expiration time.
         """
@@ -401,15 +401,16 @@ class Registration(Endpoint):
             return 0
 
         _expiration_time = self.kwargs.get("client_secret_expires_in", 2592000)
-        return utc_time_sans_frac() + _expiration_time
+        return now + _expiration_time
 
     def add_client_secret(self, cinfo, client_id, context):
         client_secret = secret(self.seed, client_id)
         cinfo["client_secret"] = client_secret
-        _eat = self.client_secret_expiration_time()
+        _now = utc_time_sans_frac()
+        _eat = self.client_secret_expiration_time(_now)
         if _eat:
             cinfo["client_secret_expires_at"] = _eat
-
+        cinfo["client_id_issued_at"] = _now
         return client_secret
 
     def client_registration_setup(self, request,
