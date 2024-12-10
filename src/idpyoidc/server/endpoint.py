@@ -195,7 +195,7 @@ class Endpoint(Node):
         :param kwargs: extra keyword arguments
         :return:
         """
-        LOGGER.debug("- {} -".format(self.endpoint_name))
+        LOGGER.debug(20 * "*" + f" {self.endpoint_name} " + 20 * "*")
         LOGGER.info(f"Request: {sanitize(request)}")
         if http_info:
             LOGGER.info(f"HTTP info: {http_info}")

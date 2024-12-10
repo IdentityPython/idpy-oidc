@@ -151,6 +151,9 @@ def test_get_deserialization_method_json():
     ctype = get_content_type(resp)
     assert get_deserialization_method(ctype) == "json"
 
+    resp.headers["content-type"] = "application/entity-statement+json"
+    ctype = get_content_type(resp)
+    assert get_deserialization_method(ctype) == "json"
 
 def test_get_deserialization_method_jwt():
     resp = FakeResponse("application/jwt")

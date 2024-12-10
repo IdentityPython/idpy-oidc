@@ -1,4 +1,5 @@
 """Utilities"""
+import re
 from http.cookiejar import Cookie
 from http.cookiejar import http2time
 import logging
@@ -280,27 +281,19 @@ def get_content_type(reqresp) -> str:
 def get_deserialization_method(ctype):
     """
 
-    :param reqresp: Class instance with attributes: ['status', 'text',
-        'headers', 'url']
+    :param reqresp: Class instance with attributes: ['status', 'text', 'headers', 'url']
     :return: Verified body content type
     """
 
-    if match_to_("application/json", ctype) or match_to_("application/jrd+json", ctype):
-        deser_method = "json"
-    elif match_to_("application/jwt", ctype):
-        deser_method = "jwt"
-    elif match_to_("application/jose", ctype):
-        deser_method = "jose"
-    elif match_to_(URL_ENCODED, ctype):
-        deser_method = "urlencoded"
-    elif match_to_("text/plain", ctype) or match_to_("test/html", ctype):
-        deser_method = ""
-    elif ctype.startswith("application/") and ctype.endswith("+jwt"):
-        deser_method = "jwt"
-    else:
-        deser_method = ""  # reasonable default ??
+    for pat, typ in [(r'application/([a-zA-Z0-9_\-]*)\+?json', "json"),
+                     (r'application/([a-zA-Z0-9_\-]*)\+?jwt', "jwt"),
+                     (r'application/([a-zA-Z0-9_\-]*)\+?jose', "jose"),
+                     (URL_ENCODED, "urlencoded"),
+                     (r'text/\w+', "")]:
+        if re.match(pat, ctype):
+            return typ
 
-    return deser_method
+    return ""
 
 
 def get_value_type(http_response, body_type):

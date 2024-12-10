@@ -62,8 +62,11 @@ class ImpExp:
                             val[k] = fully_qualified_name(v)
                     else:
                         val[k] = self.dump_attr(type2cls(v), v, exclude_attributes)
-        elif cls == [] and isinstance(item, list):
-            val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
+        elif cls == []:
+            if isinstance(item, list):
+                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
+            else:
+                val = [item]
         elif cls == "DICT_TYPE":
             if isinstance(item, dict):
                 val = item
@@ -79,7 +82,10 @@ class ImpExp:
         elif cls == object:
             val = qualified_name(item)
         elif isinstance(cls, list):
-            val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
+            if len(cls) != 0:
+                val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
+            else:
+                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
         elif inspect.isclass(cls):
             if VERBOSE:
                 logger.debug(f"class instance: {cls}")

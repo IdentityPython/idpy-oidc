@@ -125,6 +125,8 @@ def verify_uri(
     if not client_info:
         logger.error("No client info found")
         raise UnknownClient("No client info found")
+    else:
+        logger.info(f"Client info: {client_info}")
 
     req_redirect_uri_quoted = request.get(uri_type)
     if req_redirect_uri_quoted is None:
@@ -835,7 +837,10 @@ class Authorization(Endpoint):
             fragment_enc: Optional[bool] = None,
             **kwargs,
     ) -> dict:
-        resp_mode = request["response_mode"]
+        resp_mode = request.get("response_mode", "")
+        if resp_mode == "":
+            resp_mode = "query"
+
         if resp_mode == "form_post":
             if isinstance(response_args, AuthorizationRequest):
                 _args = response_args.to_dict()
@@ -900,12 +905,19 @@ class Authorization(Endpoint):
         if request.get("state"):
             aresp["state"] = request["state"]
 
+        if isinstance(request, Message):
+            logger.debug(f"create_authn_response: {request.to_dict()}")
+        else:
+            logger.debug(f"create_authn_response: {request}")
+
         if "response_type" in request and request["response_type"] == ["none"]:
             fragment_enc = False
         else:
             _context = self.upstream_get("context")
             _mngr = _context.session_manager
             _sinfo = _mngr.get_session_info(sid, grant=True)
+
+            logger.debug(f"session info: {_sinfo}")
 
             scope = []
             resource_scopes = []
@@ -919,9 +931,14 @@ class Authorization(Endpoint):
                 ]
                 resource_scopes = [item for sublist in resource_scopes for item in sublist]
 
-            aresp["scope"] = _context.scopes_handler.filter_scopes(
-                list(set(scope + resource_scopes)), _sinfo["client_id"]
-            )
+            if resource_scopes:
+                aresp["scope"] = _context.scopes_handler.filter_scopes(
+                    list(set(scope + resource_scopes)), _sinfo["client_id"]
+                )
+            else:
+                aresp["scope"] = scope
+
+            logger.debug(f"response scope: {aresp['scope']}")
 
             if isinstance(request["response_type"], list):
                 rtype = set(request["response_type"][:])
@@ -956,6 +973,8 @@ class Authorization(Endpoint):
                 handled_response_type.append("code")
             else:
                 _code = None
+
+            logger.debug(f"code = {_code}")
 
             if "token" in rtype:
                 _access_token = self.mint_token(
@@ -1047,12 +1066,12 @@ class Authorization(Endpoint):
                 response_info, request, "server_error", "{}".format(err.args)
             )
 
-        logger.debug("response type: %s" % request["response_type"])
+        logger.debug(f"response type: {request['response_type']}")
 
         response_info = self.create_authn_response(request, session_id)
         response_info["session_id"] = session_id
 
-        logger.debug("Known clients: {}".format(list(_context.cdb.keys())))
+        logger.debug(f"Known clients: {_context.cdb.keys()}")
 
         try:
             redirect_uri = get_uri(_context, request, "redirect_uri", self.endpoint_type)
