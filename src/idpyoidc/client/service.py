@@ -475,7 +475,7 @@ class Service(ImpExp):
             # How should it be serialized
             if request_body_type == "urlencoded":
                 content_type = URL_ENCODED
-            elif request_body_type in ["jws", "jwe", "jose"]:
+            elif request_body_type in ["jws", "jwe", "jose", "jwt"]:
                 content_type = JOSE_ENCODED
             else:  # request_body_type == 'json'
                 content_type = JSON_ENCODED
