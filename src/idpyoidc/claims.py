@@ -183,11 +183,14 @@ class Claims(ImpExp):
             keyjar: Optional[KeyJar] = None,
             entity_id: Optional[str] = ""
     ) -> KeyJar:
+        unsupported = []
         for attr, val in configuration.items():
             if attr in ["preference", "capabilities"]:
                 for k, v in val.items():
                     if k in supports:
                         self.set_preference(k, v)
+                    else:
+                        unsupported.append(k)
             elif attr in supports:
                 self.set_preference(attr, val)
 

@@ -51,7 +51,7 @@ class RPHandler(object):
         self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
         self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
         self.client_type = config.get("client_type", config.conf.get("client_type", ""))
-        self.client_configs = client_configs or {}
+        self.client_configs = client_configs or config.get("client_configs", config.conf.get("client_configs", ""))
 
         if keyjar:
             self.keyjar = keyjar
@@ -100,14 +100,12 @@ class RPHandler(object):
             else:
                 self.client_cls = StandAloneClient
 
-        if client_configs is None:
+        if self.client_configs is None:
             self.client_configs = DEFAULT_CLIENT_CONFIGS
             for param in ["client_type", "preference", "add_ons"]:
                 val = kwargs.get(param, None)
                 if val:
                     self.client_configs[""][param] = val
-        else:
-            self.client_configs = client_configs
 
         if state_db:
             self.state_db = state_db

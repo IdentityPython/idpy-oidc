@@ -547,6 +547,8 @@ class JWSAuthnMethod(ClientAuthnMethod):
             _args = {}
 
         _client_id = kwargs.get("client_id", _entity.client_id)
+        if not _client_id:
+            _client_id = kwargs.get("entity_id", _entity.entity_id)
 
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request
