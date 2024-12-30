@@ -8,6 +8,8 @@ from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.configure import create_from_config_file
 from idpyoidc.ssl_context import create_context
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 try:
     from . import application
 except ImportError:
@@ -25,6 +27,10 @@ if __name__ == "__main__":
                                       filename=conf)
 
     app = application.oidc_provider_init_app(_config.rp, name, template_folder=template_dir)
+    
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
+    
     _web_conf = _config.web_conf
     context = create_context(dir_path, _web_conf)
 
