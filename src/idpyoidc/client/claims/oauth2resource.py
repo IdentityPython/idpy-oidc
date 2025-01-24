@@ -2,7 +2,7 @@ from typing import Optional
 
 from idpyoidc.client import claims
 from idpyoidc.message.oauth2 import OAuthProtectedResourceRequest
-from idpyoidc.client.claims.transform import array_or_singleton
+from idpyoidc.transform import array_or_singleton
 
 class Claims(claims.Claims):
     _supports = {

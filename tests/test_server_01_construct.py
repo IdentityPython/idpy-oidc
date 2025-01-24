@@ -7,7 +7,6 @@ def test_construct():
     default_capabilities = {
         "claims_parameter_supported": True,
         "request_parameter_supported": True,
-        "request_uri_parameter_supported": True,
         "response_types_supported": ["code", "token", "code token"],
         "response_modes_supported": ["query", "fragment", "form_post"],
         "request_object_signing_alg_values_supported": None,

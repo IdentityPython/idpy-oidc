@@ -176,6 +176,7 @@ def get_state_from_url(url):
 
 
 class TestRPHandler(object):
+
     def test_pick_config(self):
         rph_1 = RPHandler(
             BASE_URL, client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"]
@@ -251,7 +252,7 @@ class TestRPHandler(object):
         _keyjar = _context.upstream_get("attribute", "keyjar")
         _keyjar.import_jwks(GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
 
-        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id}
+        assert set(_keyjar.owners()) == {"", "eeeeeeeee", _github_id, 'https://example.com/rp'}
         keys = _keyjar.get_issuer_keys("")
         assert len(keys) == 3  # one symmetric, one RSA and one EC
 

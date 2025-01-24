@@ -4,9 +4,9 @@ import pytest as pytest
 from cryptojwt.utils import importer
 
 from idpyoidc.client.claims.oidc import Claims
-from idpyoidc.client.claims.transform import create_registration_request
-from idpyoidc.client.claims.transform import preferred_to_registered
-from idpyoidc.client.claims.transform import supported_to_preferred
+from idpyoidc.transform import create_registration_request
+from idpyoidc.transform import preferred_to_registered
+from idpyoidc.transform import supported_to_preferred
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYSPEC = [
@@ -179,6 +179,10 @@ class TestWorkEnvironment:
 
         assert set(registration_request.keys()) == {
             "application_type",
+            'encrypt_request_object_supported',
+            'encrypt_userinfo_supported',
+            'client_id',
+            'client_secret',
             "client_name",
             "contacts",
             "default_max_age",
@@ -320,6 +324,10 @@ class TestWorkEnvironment:
             "client_name",
             "contacts",
             "default_max_age",
+            'encrypt_request_object_supported',
+            'client_secret',
+            'client_id',
+            'encrypt_userinfo_supported',
             "id_token_signed_response_alg",
             "jwks",
             "logo_uri",

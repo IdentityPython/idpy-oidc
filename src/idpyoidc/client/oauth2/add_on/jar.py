@@ -1,8 +1,7 @@
 import logging
 from typing import Optional
 
-from idpyoidc import claims
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.client.oidc.utils import construct_request_uri
 from idpyoidc.client.oidc.utils import request_object_encryption
 from idpyoidc.message.oidc import make_openid_request
@@ -175,14 +174,14 @@ def jar_post_construct(request_args, service, **kwargs):
 
 
 def add_support(
-    service,
-    request_type: Optional[str] = "request_parameter",
-    request_dir: Optional[str] = "",
-    request_object_signing_alg: Optional[str] = "RS256",
-    expires_in: Optional[int] = DEFAULT_EXPIRES_IN,
-    with_jti: Optional[bool] = False,
-    request_object_encryption_alg: Optional[str] = "",
-    request_object_encryption_enc: Optional[str] = "",
+        service,
+        request_type: Optional[str] = "request_parameter",
+        request_dir: Optional[str] = "",
+        request_object_signing_alg: Optional[str] = "RS256",
+        expires_in: Optional[int] = DEFAULT_EXPIRES_IN,
+        with_jti: Optional[bool] = False,
+        request_object_encryption_alg: Optional[str] = "",
+        request_object_encryption_enc: Optional[str] = "",
 ):
     """
     JAR support can only be considered if this client can access an authorization service.
@@ -208,8 +207,8 @@ def add_support(
                 args["request_dir"] = request_dir
 
         if request_object_encryption_enc and request_object_encryption_alg:
-            if request_object_encryption_enc in metadata.get_encryption_encs():
-                if request_object_encryption_alg in metadata.get_encryption_algs():
+            if request_object_encryption_enc in alg_info.get_encryption_encs():
+                if request_object_encryption_alg in alg_info.get_encryption_algs():
                     args["request_object_encryption_enc"] = request_object_encryption_enc
                     args["request_object_encryption_alg"] = request_object_encryption_alg
                 else:

@@ -3,7 +3,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from idpyoidc import metadata
+from idpyoidc import alg_info
 from idpyoidc.client.oauth2 import authorization
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
@@ -32,9 +32,9 @@ class Authorization(authorization.Authorization):
     error_msg = oidc.ResponseMessage
 
     _supports = {
-        "request_object_signing_alg_values_supported": metadata.get_signing_algs(),
-        "request_object_encryption_alg_values_supported": metadata.get_encryption_algs(),
-        "request_object_encryption_enc_values_supported": metadata.get_encryption_encs(),
+        "request_object_signing_alg_values_supported": alg_info.get_signing_algs(),
+        "request_object_encryption_alg_values_supported": alg_info.get_encryption_algs(),
+        "request_object_encryption_enc_values_supported": alg_info.get_encryption_encs(),
         "response_types_supported": ["code", "id_token", "code id_token"],
         "request_parameter_supported": None,
         "request_uri_parameter_supported": None,
@@ -213,7 +213,7 @@ class Authorization(authorization.Authorization):
         return _webname
 
     def construct_request_parameter(
-        self, req, request_param, audience=None, expires_in=0, **kwargs
+            self, req, request_param, audience=None, expires_in=0, **kwargs
     ):
         """Construct a request parameter"""
         alg = self.get_request_object_signing_alg(**kwargs)
@@ -319,7 +319,7 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
@@ -379,12 +379,12 @@ class Authorization(authorization.Authorization):
         return ""
 
     def construct_uris(
-        self,
-        base_url: str,
-        hex: bytes,
-        context: ServiceContext,
-        targets: Optional[List[str]] = None,
-        response_types: Optional[List[str]] = None,
+            self,
+            base_url: str,
+            hex: bytes,
+            context: ServiceContext,
+            targets: Optional[List[str]] = None,
+            response_types: Optional[List[str]] = None,
     ):
         _callback_uris = context.get_preference("callback_uris", {})
 
