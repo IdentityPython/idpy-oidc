@@ -283,10 +283,10 @@ class IDToken(Token):
     ) -> str:
         _context = self.upstream_get("context")
 
-        try:
-            del kwargs["client_id"]
-        except KeyError:
-            pass
+        # try:
+        #     del kwargs["client_id"]
+        # except KeyError:
+        #     pass
 
         user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
 
