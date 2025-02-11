@@ -275,11 +275,10 @@ class Endpoint(Node):
         authn_info = verify_client(request=request, http_info=http_info, **kwargs)
 
         LOGGER.debug("authn_info: %s", authn_info)
-        if authn_info == {}:
-            if self.client_authn_method and len(self.client_authn_method):
-                LOGGER.debug("client_authn_method: %s", self.client_authn_method)
-                raise UnAuthorizedClient("Authorization failed")
-        elif "client_id" not in authn_info and authn_info.get("method") != "none":
+        if authn_info == {} and self.client_authn_method and len(self.client_authn_method):
+            LOGGER.debug("client_authn_method: %s", self.client_authn_method)
+            raise UnAuthorizedClient("Authorization failed")
+        if "client_id" not in authn_info and authn_info.get("method") != "none":
             raise UnAuthorizedClient("Authorization failed")
         return authn_info
 
