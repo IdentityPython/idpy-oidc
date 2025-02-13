@@ -303,6 +303,7 @@ class CCAccessTokenRequest(Message):
         "client_secret": SINGLE_OPTIONAL_STRING,
         "grant_type": SINGLE_REQUIRED_STRING,
         "scope": OPTIONAL_LIST_OF_SP_SEP_STRINGS,
+        "resource": OPTIONAL_LIST_OF_STRINGS,
     }
 
     def verify(self, **kwargs):
