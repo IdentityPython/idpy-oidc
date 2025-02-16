@@ -86,15 +86,12 @@ class TokenEndpointHelper(object):
 
 def validate_resource_indicators_policy(request, context, **kwargs):
     if "resource" not in request:
-        return TokenErrorResponse(
-            error="invalid_target",
-            error_description="Missing resource parameter",
-        )
+        return request
 
     client_id = request["client_id"]
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", [])
-
+    
     if (
         isinstance(resource_servers_per_client, dict)
         and client_id not in resource_servers_per_client
@@ -103,44 +100,58 @@ def validate_resource_indicators_policy(request, context, **kwargs):
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
         )
+    # Check if request["resource"] is a string
+    if isinstance(request["resource"], str):
+        # If it's a string, convert it to a list
+        request["resource"] = [request["resource"]]
+      
+    permitted_resources = [res for res in resource_servers_per_client]
+    if client_id not in permitted_resources:
+        permitted_resources.append(client_id)
+    requested_resources = set(request["resource"])
+    # Check if all requested resources are in permitted resources
+    if not requested_resources.issubset(permitted_resources):
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description=f"One or more invalid resources requested by client {client_id}",
+        )
 
-    if isinstance(resource_servers_per_client, dict):
-        permitted_resources = [res for res in resource_servers_per_client[client_id]]
-    else:
-        permitted_resources = [res for res in resource_servers_per_client]
+    # Find the common resources between the request and permitted resources
+    common_resources_intersect = list(requested_resources.intersection(permitted_resources))
 
-    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
-    if not common_resources:
+    # Further filter common resources based on whether they exist in the context's CDB
+    common_resources = [r for r in common_resources_intersect if r in context.cdb.keys()]
+
+    if set(common_resources) != set(common_resources_intersect):
         return TokenErrorResponse(
             error="invalid_target",
             error_description=f"Invalid resource requested by client {client_id}",
         )
 
-    common_resources = [r for r in common_resources if r in context.cdb.keys()]
-    if not common_resources:
-        return TokenErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    if client_id not in common_resources:
+    if client_id not in common_resources and client_id in requested_resources:
         common_resources.append(client_id)
 
     request["resource"] = common_resources
-
-    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
-    permitted_scopes = [r for res in permitted_scopes for r in res]
+    permitted_scopes = []
+    for r in common_resources:
+        try:
+            # Only proceed if r exists in context.cdb and is a dictionary
+            if isinstance(context.cdb.get(r), dict):
+                permitted_scopes.append(context.cdb[r]["allowed_scopes"])
+        except KeyError:
+            # Handle the case where "allowed_scopes" is missing
+            logger.warning(f"'allowed_scopes' missing for resource {r}")
+        except Exception as e:
+            # Handle other unexpected exceptions
+            logger.error(f"Unexpected error for resource {r}: {e}")
+    if permitted_scopes:
+        permitted_scopes = [r for res in permitted_scopes for r in res]
     scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
     request["scope"] = scopes
     return request
 
 
 def validate_token_exchange_policy(request, context, subject_token, **kwargs):
-    if "resource" in request:
-        resource = kwargs.get("resource", [])
-        if not set(request["resource"]).issubset(set(resource)):
-            return TokenErrorResponse(error="invalid_target", error_description="Unknown resource")
-
     if "audience" in request:
         if request["subject_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token":
             return TokenErrorResponse(

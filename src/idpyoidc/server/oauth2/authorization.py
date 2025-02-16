@@ -27,7 +27,7 @@ from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
-from idpyoidc.message.oidc import AuthorizationResponse
+from idpyoidc.message.oidc import AuthorizationResponse, TokenErrorResponse
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.cookie_handler import compute_session_state
@@ -41,6 +41,7 @@ from idpyoidc.server.exception import TamperAllert
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.exception import UnknownClient
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
@@ -337,54 +338,6 @@ def check_unknown_scopes_policy(request_info, client_id, context):
         logger.warning(f"{client_id} requested unauthorized scopes: {diff}")
         raise UnAuthorizedClientScope()
 
-
-def validate_resource_indicators_policy(request, context, **kwargs):
-    if "resource" not in request:
-        return request
-
-    resource_servers_per_client = kwargs["resource_servers_per_client"]
-    client_id = request["client_id"]
-
-    if (
-            isinstance(resource_servers_per_client, dict)
-            and client_id not in resource_servers_per_client
-    ):
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Resources for client {client_id} not found",
-        )
-
-    if isinstance(resource_servers_per_client, dict):
-        permitted_resources = [res for res in resource_servers_per_client[client_id]]
-    else:
-        permitted_resources = [res for res in resource_servers_per_client]
-
-    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
-    if not common_resources:
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    common_resources = [r for r in common_resources if r in context.cdb.keys()]
-    if not common_resources:
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    if client_id not in common_resources:
-        common_resources.append(client_id)
-
-    request["resource"] = common_resources
-
-    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
-    permitted_scopes = [r for res in permitted_scopes for r in res]
-    scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
-    request["scope"] = scopes
-    return request
-
-
 class Authorization(Endpoint):
     request_cls = oauth2.AuthorizationRequest
     response_cls = oauth2.AuthorizationResponse
@@ -574,19 +527,51 @@ class Authorization(Endpoint):
         else:
             request["redirect_uri"] = redirect_uri
 
-        if (
-                "resource_indicators" in _cinfo
-                and "authorization_code" in _cinfo["resource_indicators"]
-        ):
-            resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
-        else:
-            resource_indicators_config = self.resource_indicators_config
+        resource_indicators_config = None
+        # check if enable_resource_indicators is enabled and resource parameter exists
+        if request.get("resource") is not None and context.conf.endpoint.get("authorization").get("kwargs").get("enable_resource_indicators"):
+            if "resource_indicators" in _cinfo:
+                resource_indicators_config = _cinfo["resource_indicators"]
+            if client_id in request.get("resource"):
+                if resource_indicators_config == None:
+                    resource_indicators_config = {
+                        "policy": {
+                            "function": validate_resource_indicators_policy,
+                            "kwargs": {
+                                "resource_servers_per_client": [
+                                    client_id
+                                ]
+                            }
+                        }
+                    }
+                else:
+                  # Ensure the structure exists
+                  if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                      resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                  else:
+                      # If the structure is somehow not complete, initialize it
+                      resource_indicators_config["policy"] = {
+                          "function": validate_resource_indicators_policy,
+                          "kwargs": {
+                              "resource_servers_per_client": [
+                                  client_id
+                              ]
+                          }
+                      }
 
         if resource_indicators_config is not None:
             if "policy" not in resource_indicators_config:
                 policy = {"policy": {"function": validate_resource_indicators_policy}}
                 resource_indicators_config.update(policy)
+           
             request = self._enforce_resource_indicators_policy(request, resource_indicators_config)
+            
+            if "error" in request:
+                return self.authentication_error_response(
+                    request,
+                    error=request["error"],
+                    error_description=request["error_description"],
+                )
 
         return request
 
@@ -596,9 +581,6 @@ class Authorization(Endpoint):
         policy = config["policy"]
         function = policy["function"]
         kwargs = policy.get("kwargs", {})
-
-        if kwargs.get("resource_servers_per_client", None) is None:
-            kwargs["resource_servers_per_client"] = {request["client_id"]: request["client_id"]}
 
         if isinstance(function, str):
             try:

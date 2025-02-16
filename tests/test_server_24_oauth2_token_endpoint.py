@@ -16,6 +16,7 @@ from idpyoidc.message import SINGLE_REQUIRED_STRING
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import JWTAccessToken
 from idpyoidc.message.oauth2 import ROPCAccessTokenRequest
+from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
@@ -27,6 +28,7 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.exception import InvalidToken
 from idpyoidc.server.oauth2.authorization import Authorization
+from idpyoidc.server.oauth2.authorization import validate_resource_indicators_policy
 from idpyoidc.server.oauth2.token import Token
 from idpyoidc.server.token import handler
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
@@ -129,6 +131,7 @@ def conf():
                         "client_secret_post",
                         "client_secret_jwt",
                         "private_key_jwt",
+                        
                     ]
                 },
             },
@@ -184,6 +187,7 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
+
         server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
@@ -932,10 +936,21 @@ class TestClientCredentialsFlow(object):
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
             "grant_types_supported": ["client_credentials", "password"],
         }
+        context.cdb["client_2"] = {
+            "client_secret": "hemligt",
+            "redirect_uris": [("https://example.com/cb", None)],
+            "client_salt": "salted",
+            "endpoint_auth_method": "client_secret_post",
+            "response_types": ["code", "token", "code id_token", "id_token"],
+            "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
+            "grant_types_supported": ["client_credentials", "password"],
+        }
+        server.keyjar.import_jwks(CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
         self.context = context
+        self.keyjar = server.keyjar
 
     def test_client_credentials(self):
         request = CCAccessTokenRequest(
@@ -953,6 +968,145 @@ class TestClientCredentialsFlow(object):
             "scope",
             "expires_in",
         }
+        
+    @pytest.mark.parametrize("resource", ["client2", ["client2", "client3"]])    
+    def test_client_credentials_resource_indicator_disabled(self, resource):
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+            resource=resource
+        )
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+        assert set(response.keys()) == {"response_args", "cookie", "http_headers"}
+        assert set(response["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+        }
+
+    def test_client_credentials_resource_indicator_enabled(self):    
+        self.token_endpoint.kwargs["enable_resource_indicators"] = True
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+            resource="client_2"
+        )
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+        assert set(response.keys()) == {"response_args", "cookie", "http_headers"}
+        assert set(response["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+        }
+    
+    @pytest.mark.parametrize("resource", ["client2", ["client2", "client3"],["client1", "client2"],["client2", "client4"]])  
+    def test_client_credentials_resource_indicator_enabled_client_conf(self, resource):
+        self.token_endpoint.kwargs["enable_resource_indicators"] = True
+        self.context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        if "client_4" in resource:
+             self.context.cdb["client_4"] = {
+                "client_secret": "hemligt",
+                "redirect_uris": [("https://example.com/cb", None)],
+                "client_salt": "salted",
+                "endpoint_auth_method": "client_secret_post",
+                "response_types": ["code", "token", "code id_token", "id_token"],
+                "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
+                "grant_types_supported": ["client_credentials", "password"],
+            }
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+            resource=["client_2"]
+        )
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+
+        assert set(response.keys()) == {"response_args", "cookie", "http_headers"}
+        assert set(response["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "scope",
+            "expires_in",
+        }
+        
+        # Access Token
+        access_token = AuthorizationResponse().from_jwt(
+            response["response_args"]["access_token"], self.keyjar, sender=""
+        )
+
+        assert "aud" in access_token
+        assert "client_2" in access_token["aud"]
+        if "client_1" in resource:
+            assert "client_1" in access_token["aud"]
+        if "client_4" in resource:
+            assert "client_4" in access_token["aud"]  
+    
+    @pytest.mark.parametrize("resource", ["client4", ["client3", "client4"]])   
+    def test_client_credentials_resource_indicator_enabled_client_conf_unknown_resource(self, resource):
+        self.token_endpoint.kwargs["enable_resource_indicators"] = True
+        self.context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+       
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+            resource=resource
+        )
+        client_id = request["client_id"]
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+
+        assert response["error"] == "invalid_target"
+        assert response["error_description"] == f"Invalid resource requested by client {client_id}"
+
+    @pytest.mark.parametrize("resource", ["client_1", ["client_1", "client_3"]])   
+    def test_client_credentials_resource_indicator_enabled_client_conf_itself_resource(self, resource):
+        self.token_endpoint.kwargs["enable_resource_indicators"] = True
+        self.context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+       
+        request = CCAccessTokenRequest(
+            client_id="client_1",
+            client_secret="hemligt",
+            grant_type="client_credentials",
+            scope="whatever",
+            resource=resource
+        )
+
+        request = self.token_endpoint.parse_request(request)
+        response = self.token_endpoint.process_request(request)
+        # Access Token
+        access_token = AuthorizationResponse().from_jwt(
+            response["response_args"]["access_token"], self.keyjar, sender=""
+        )
+
+        assert "aud" in access_token
+        assert "client_1" in access_token["aud"]
 
 
 class TestResourceOwnerPasswordCredentialsFlow(object):

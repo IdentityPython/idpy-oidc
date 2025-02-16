@@ -59,6 +59,7 @@ class Token(Endpoint):
         #                                         list(self.grant_type_helper.keys()))
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
         self.resource_indicators_config = kwargs.get("resource_indicators", None)
+        self.enable_resource_indicators = kwargs.get("enable_resource_indicators", False)
 
     def configure_types(self, helpers, default_helpers):
         if helpers is None:

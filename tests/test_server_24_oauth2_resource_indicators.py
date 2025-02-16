@@ -331,36 +331,20 @@ RESOURCE_INDICATORS_ENABLED = {
                 "claims_parameter_supported": True,
                 "request_parameter_supported": True,
                 "request_uri_parameter_supported": True,
-                "resource_indicators": {
-                    "policy": {
-                        "function": validate_authorization_resource_indicators_policy,
-                        "kwargs": {
-                            "resource_servers_per_client": {
-                                "client_1": ["client_1", "client_2"],
-                            },
-                        },
-                    }
-                },
+                "resource_indicators_supported": True,
             },
         },
         "token": {
             "path": "token",
             "class": Token,
             "kwargs": {
+                "enable_resource_indicators": True,
                 "client_authn_method": [
                     "client_secret_basic",
                     "client_secret_post",
                     "client_secret_jwt",
                     "private_key_jwt",
                 ],
-                "resource_indicators": {
-                    "policy": {
-                        "function": validate_token_resource_indicators_policy,
-                        "kwargs": {
-                            "resource_servers_per_client": {"client_1": ["client_2", "client_3"]},
-                        },
-                    }
-                },
             },
         },
     },
@@ -553,48 +537,26 @@ class TestEndpoint(object):
 
     def test_authorization_code_req_per_client(self, create_endpoint_ri_disabled):
         """
-        Test that appropriate error message is returned when resource indicators is enabled per client
-        for the authorization endpoint and requested resource is not permitted for client.
+        Test that no error message is returned when resource indicators is disabled
+        and resource exists at the request.
         """
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
-            "authorization_code": {
-                "policy": {
-                    "function": validate_authorization_resource_indicators_policy,
-                    "kwargs": {"resource_servers_per_client": ["client_3"]},
-                },
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_3"]},
             },
         }
         request = AUTH_REQ.copy()
-        client_id = request["client_id"]
-
         msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
-        assert "error" in msg
-        assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
+        assert "error" not in msg
 
-    def test_authorization_code_req_no_resource_client(self, create_endpoint_ri_enabled):
+    def test_authorization_code_req_no_resource_clients(self, create_endpoint_ri_enabled):
         """
         Test that appropriate error message is returned when resource indicators is enabled
-        for the authorization endpoint and permitted resources are not configured for client.
+        and permitted resources are not configured for client.
         """
-        request = AUTH_REQ.copy()
-        client_id = request["client_id"]
         endpoint_context = self.endpoint.upstream_get("context")
-        self.endpoint.kwargs["resource_indicators"]["policy"]["kwargs"][
-            "resource_servers_per_client"
-        ] = {"client_2": ["client_1"]}
-
-        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
-
-        assert "error" in msg
-        assert msg["error"] == "invalid_target"
-        assert msg["error_description"] == f"Resources for client {client_id} not found"
-
-    def test_authorization_code_req_invalid_resource_client(self, create_endpoint_ri_enabled):
-        """
-        Test that appropriate error message is returned when resource indicators is enabled
-        for the authorization endpoint and requested resource is not permitted for client.
-        """
         request = AUTH_REQ.copy()
         request["resource"] = "client_3"
         client_id = request["client_id"]
@@ -602,20 +564,140 @@ class TestEndpoint(object):
 
         msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
 
+        assert "error" not in msg
+
+    def test_authorization_code_resource_indicators_enabled_resource_exists(self, create_endpoint_ri_enabled):
+        """
+        Test that no error message is returned when resource indicators is enabled
+        and requested resource is permitted for client.
+        """
+        request = AUTH_REQ.copy()
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        endpoint_context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" not in msg
+        
+    def test_authorization_code_resource_indicators_enabled_resource_itself(self, create_endpoint_ri_enabled):
+        """
+        Test that no error message is returned when resource indicators is enabled
+        and requested resource is the client itself.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = "client_1"
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        endpoint_context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" not in msg
+        
+    def test_authorization_code_resource_indicators_enabled_resource_itself_no_client_conf(self, create_endpoint_ri_enabled):
+        """
+        Test that no error message is returned when resource indicators is enabled,
+        there is no client configuration for resource_indicators
+        and requested resource is the client itself.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = "client_1"
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" not in msg
+        
+    def test_authorization_code_resource_indicators_enabled_resource_unknown(self, create_endpoint_ri_enabled):
+        """
+        Test that appropriate error message is returned when resource indicators is enabled
+        there is client configuration for resource_indicators
+        and requested resource is unknown for the client.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = "client_3"
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        endpoint_context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
         assert "error" in msg
-        assert msg["error"] == "invalid_target"
+        assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
+        
+    def test_authorization_code_resource_indicators_disabled_resource_multiple(self, create_endpoint_ri_disabled):
+        """
+        Test that no error message is returned when resource indicators is disabled
+        there is client configuration for resource_indicators
+        and requested resource contains multiple clients.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = ["client2","client_3"]
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        endpoint_context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" not in msg
+        
+    def test_authorization_code_resource_indicators_enabled_resource_multiple_with_itself(self, create_endpoint_ri_enabled):
+        """
+        Test that no error message is returned when resource indicators is enabled
+        there is no client configuration for resource_indicators
+        and requested resource contains the client itself, among others that are unknown.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = ["client_1", "client_3"]
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" not in msg
+
+    def test_authorization_code_resource_indicators_enabled_resource_multiple_unknown(self, create_endpoint_ri_enabled):
+        """
+        Test that appropriate error message is returned when resource indicators is enabled
+        there is client configuration for resource_indicators
+        and requested resource contains multiple unknown clients.
+        """
+        request = AUTH_REQ.copy()
+        request["resource"] = ["client_3", "client_4"]
+        client_id = request["client_id"]
+        endpoint_context = self.endpoint.upstream_get("context")
+        endpoint_context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        assert "error" in msg
         assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
 
-    def test_access_token_req(self, create_endpoint_ri_enabled):
+    def test_access_token_req_disabled_resource_multiple_resource_no_client_conf(self, create_endpoint_ri_enabled):
         """
-        Test successful access_token request when resource indicators is enabled.
+        Test that no error message is returned (neither "aud" claim) 
+        when resource indicators is enabled 
+        for the token endpoint, without client configuration for resource_indicators 
+        and there is a requested resource.
         """
-        self.endpoint.upstream_get("context").cdb["client_3"] = {
-            "client_id": "client_3",
-            "redirect_uris": [("https://rp.example.com/cb", {})],
-            "id_token_signed_response_alg": "ES256",
-            "allowed_scopes": ["openid"],
-        }
+        
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, AUTH_REQ["client_id"])
@@ -623,6 +705,8 @@ class TestEndpoint(object):
         assert code.resources != []
 
         _token_request = TOKEN_REQ_DICT.copy()
+        client_id = _token_request["client_id"]
+        _token_request["resource"] = ["client_3"]
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
@@ -633,14 +717,22 @@ class TestEndpoint(object):
             self.endpoint_context.keyjar,
             sender="",
         )
-
-        assert set(access_token["aud"]) == set(["client_3", "client_1"])
-
-    def test_access_token_req_invalid_resource_client(self, create_endpoint_ri_enabled):
+        
+        assert "aud" not in access_token
+        
+    def test_access_token_req_disabled_resource_multiple_resource_client_conf(self, create_endpoint_ri_disabled):
         """
-        Test that appropriate error message is returned when resource indicators is enabled
-        for the token endpoint and requested resource is not permitted for client.
+        Test that no error message is returned (neither "aud" claim) 
+        when resource indicators is disabled
+        for the token endpoint and there is requested resource.
         """
+        
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, AUTH_REQ["client_id"])
@@ -649,7 +741,152 @@ class TestEndpoint(object):
 
         _token_request = TOKEN_REQ_DICT.copy()
         client_id = _token_request["client_id"]
-        _token_request["resource"] = "client_2"
+        _token_request["resource"] = ["client_3", "client_4"]
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = TokenErrorResponse().from_jwt(
+            _resp["response_args"]["access_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+        
+        assert "aud" not in access_token
+        
+    def test_access_token_req_resource_known(self, create_endpoint_ri_enabled):
+        """
+        Test successful access_token request when resource indicators is enabled
+        containing also an aud claim with the appropriate client.
+        """
+        self.endpoint.upstream_get("context").cdb["client_3"] = {
+            "client_id": "client_3",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid"],
+        }
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _token_request["resource"] = ["client_2"]
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = TokenErrorResponse().from_jwt(
+            _resp["response_args"]["access_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert "client_2" in access_token["aud"]
+    
+    def test_access_token_req_resource_itself(self, create_endpoint_ri_enabled):
+        """
+        Test successful access_token request when resource indicators is enabled
+        requesting for resource about itself.
+        """
+        self.endpoint.upstream_get("context").cdb["client_3"] = {
+            "client_id": "client_3",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid"],
+        }
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _token_request["resource"] = ["client_1"]
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = TokenErrorResponse().from_jwt(
+            _resp["response_args"]["access_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert access_token["aud"] == ["client_1"]
+        
+
+    def test_access_token_req_resource_itself_no_client_conf(self, create_endpoint_ri_enabled):
+          """
+          Test successful access_token request when resource indicators is enabled
+          no client configuration exists for resource indicators
+          and the requested resource is the client itself.
+          """
+          self.endpoint.upstream_get("context").cdb["client_3"] = {
+              "client_id": "client_3",
+              "redirect_uris": [("https://rp.example.com/cb", {})],
+              "id_token_signed_response_alg": "ES256",
+              "allowed_scopes": ["openid"],
+          }
+          
+          session_id = self._create_session(AUTH_REQ)
+          grant = self.session_manager[session_id]
+          code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+          assert code.resources != []
+
+          _token_request = TOKEN_REQ_DICT.copy()
+          _token_request["code"] = code.value
+          _token_request["resource"] = ["client_1"]
+          _req = self.token_endpoint.parse_request(_token_request)
+
+          _resp = self.token_endpoint.process_request(request=_req)
+
+          access_token = TokenErrorResponse().from_jwt(
+              _resp["response_args"]["access_token"],
+              self.endpoint_context.keyjar,
+              sender="",
+          )
+
+          assert access_token["aud"] == ["client_1"]
+             
+    def test_access_token_req_invalid_multiple_resource_client_conf(self, create_endpoint_ri_enabled):
+        """
+        Test that appropriate error message is returned when resource indicators is enabled
+        for the token endpoint and requested resource is not permitted for client.
+        """
+        
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        client_id = _token_request["client_id"]
+        _token_request["resource"] = ["client_3", "client_4"]
         _token_request["code"] = code.value
         _req = self.token_endpoint.parse_request(_token_request)
 
@@ -658,6 +895,226 @@ class TestEndpoint(object):
         assert "error" in _resp
         assert _resp["error"] == "invalid_target"
         assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"
+        
+    def test_access_token_req_disabled_ri_multiple_resource_client_conf(self, create_endpoint_ri_disabled):
+        """
+        Test that no error message is returned (neither an "aud" claim) 
+        when resource indicators is disabled
+        for the token endpoint and requested resource contains multiple clients.
+        """
+        
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        client_id = _token_request["client_id"]
+        _token_request["resource"] = ["client_3", "client_4"]
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = TokenErrorResponse().from_jwt(
+              _resp["response_args"]["access_token"],
+              self.endpoint_context.keyjar,
+              sender="",
+        )
+        assert "aud" not in access_token
+
+    def test_access_token_req_resource_itself_multiple_resource_one_known(self, create_endpoint_ri_enabled):
+          """
+          Test successful access_token request when resource indicators is enabled
+          and the resource parameter contains at least one known resource.
+          """
+          
+          self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+              "policy": {
+                  "function": validate_authorization_resource_indicators_policy,
+                  "kwargs": {"resource_servers_per_client": ["client_2"]},
+              },
+          }
+           
+          self.endpoint.upstream_get("context").cdb["client_3"] = {
+              "client_id": "client_3",
+              "redirect_uris": [("https://rp.example.com/cb", {})],
+              "id_token_signed_response_alg": "ES256",
+              "allowed_scopes": ["openid"],
+          }
+          
+          session_id = self._create_session(AUTH_REQ)
+          grant = self.session_manager[session_id]
+          code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+          assert code.resources != []
+
+          _token_request = TOKEN_REQ_DICT.copy()
+          _token_request["code"] = code.value
+          _token_request["resource"] = ["client_2", "client_3"]
+          _req = self.token_endpoint.parse_request(_token_request)
+
+          _resp = self.token_endpoint.process_request(request=_req)
+
+          access_token = TokenErrorResponse().from_jwt(
+              _resp["response_args"]["access_token"],
+              self.endpoint_context.keyjar,
+              sender="",
+          )
+
+          assert "client_2" in access_token["aud"]
+          
+    def test_access_token_req_multiple_resource_itself(self, create_endpoint_ri_enabled):
+          """
+          Test successful access_token request when resource indicators is enabled.
+          and the request contains a resource about client itself, among other unknown clients
+          """
+          
+          self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+              "policy": {
+                  "function": validate_authorization_resource_indicators_policy,
+                  "kwargs": {"resource_servers_per_client": ["client_2"]},
+              },
+          }
+           
+          self.endpoint.upstream_get("context").cdb["client_3"] = {
+              "client_id": "client_3",
+              "redirect_uris": [("https://rp.example.com/cb", {})],
+              "id_token_signed_response_alg": "ES256",
+              "allowed_scopes": ["openid"],
+          }
+          
+          session_id = self._create_session(AUTH_REQ)
+          grant = self.session_manager[session_id]
+          code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+          assert code.resources != []
+
+          _token_request = TOKEN_REQ_DICT.copy()
+          _token_request["code"] = code.value
+          _token_request["resource"] = ["client_1", "client_3"]
+          _req = self.token_endpoint.parse_request(_token_request)
+
+          _resp = self.token_endpoint.process_request(request=_req)
+
+          access_token = TokenErrorResponse().from_jwt(
+              _resp["response_args"]["access_token"],
+              self.endpoint_context.keyjar,
+              sender="",
+          )
+
+          assert "client_1" in access_token["aud"]
+          
+    def test_access_token_req_multiple_resource_itself_no_client_conf(self, create_endpoint_ri_enabled):
+          """
+          Test successful access_token request when resource indicators is enabled,
+          there is no client configuration for resource indicators
+          and the request contains a resource about client itself, among other unknown clients
+          """
+
+          self.endpoint.upstream_get("context").cdb["client_3"] = {
+              "client_id": "client_3",
+              "redirect_uris": [("https://rp.example.com/cb", {})],
+              "id_token_signed_response_alg": "ES256",
+              "allowed_scopes": ["openid"],
+          }
+          
+          session_id = self._create_session(AUTH_REQ)
+          grant = self.session_manager[session_id]
+          code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+          assert code.resources != []
+
+          _token_request = TOKEN_REQ_DICT.copy()
+          _token_request["code"] = code.value
+          _token_request["resource"] = ["client_1", "client_3"]
+          _req = self.token_endpoint.parse_request(_token_request)
+
+          _resp = self.token_endpoint.process_request(request=_req)
+
+          access_token = TokenErrorResponse().from_jwt(
+              _resp["response_args"]["access_token"],
+              self.endpoint_context.keyjar,
+              sender="",
+          )
+
+          assert "client_1" in access_token["aud"]
+                  
+    def test_access_token_req_multiple_resource_known(self, create_endpoint_ri_enabled):
+        """
+        Test successful access_token request when resource indicators is enabled
+        and the resource contains multiple known clients
+        """
+        self.endpoint.upstream_get("context").cdb["client_3"] = {
+            "client_id": "client_3",
+            "redirect_uris": [("https://rp.example.com/cb", {})],
+            "id_token_signed_response_alg": "ES256",
+            "allowed_scopes": ["openid"],
+        }
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2","client_3"]},
+            },
+        }
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _token_request["resource"] = ["client_2", "client_3"]
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        access_token = TokenErrorResponse().from_jwt(
+            _resp["response_args"]["access_token"],
+            self.endpoint_context.keyjar,
+            sender="",
+        )
+
+        assert "client_2" in access_token["aud"]
+        assert "client_3" in access_token["aud"]
+
+    def test_access_token_req_invalid_multiple_resource_unknown(self, create_endpoint_ri_enabled):
+        """
+        Test that appropriate error message is returned when resource indicators is enabled
+        and requested resources are not permitted for client.
+        """
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_authorization_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        
+        session_id = self._create_session(AUTH_REQ)
+        grant = self.session_manager[session_id]
+        code = self._mint_code(grant, AUTH_REQ["client_id"])
+
+        assert code.resources != []
+
+        _token_request = TOKEN_REQ_DICT.copy()
+        client_id = _token_request["client_id"]
+        _token_request["resource"] = ["client_3","client_4"]
+        _token_request["code"] = code.value
+        _req = self.token_endpoint.parse_request(_token_request)
+
+        _resp = self.token_endpoint.process_request(request=_req)
+
+        assert "error" in _resp
+        assert _resp["error"] == "invalid_target"
+        assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"     
 
     def test_create_authn_response(self, create_endpoint_ri_enabled):
         """

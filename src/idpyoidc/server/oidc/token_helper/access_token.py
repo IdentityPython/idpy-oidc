@@ -5,13 +5,19 @@ from typing import Union
 from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.utils import importer
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
+from idpyoidc.message.oauth2 import TokenErrorResponse
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.util import sanitize
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +110,52 @@ class AccessTokenHelper(TokenEndpointHelper):
         }
 
         if "access_token" in _supports_minting:
+            # check if enable_resource_indicators is enabled and resource parameter exists
+            _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
+            resource_indicators_config = None        
+            if req.get("resource") is not None and self.endpoint.kwargs.get("enable_resource_indicators"):
+                if "resource_indicators" in _cinfo:
+                    resource_indicators_config = _cinfo["resource_indicators"]
+                if client_id in req.get("resource"):
+                    if resource_indicators_config == None:
+                        resource_indicators_config = {
+                            "policy": {
+                                "function": validate_resource_indicators_policy,
+                                "kwargs": {
+                                    "resource_servers_per_client": [
+                                        client_id
+                                    ]
+                                }
+                            }
+                        }
+                    else:
+                      # Ensure the structure exists
+                      if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                          resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                      else:
+                          # If the structure is somehow not complete, initialize it
+                          resource_indicators_config["policy"] = {
+                              "function": validate_resource_indicators_policy,
+                              "kwargs": {
+                                  "resource_servers_per_client": [client_id]
+                              }
+                          }
+
+                if resource_indicators_config is not None:
+                    if "policy" not in resource_indicators_config:
+                        policy = {"policy": {"function": validate_resource_indicators_policy}}
+                        resource_indicators_config.update(policy)
+
+                    req = self._enforce_resource_indicators_policy(req, resource_indicators_config)
+
+                    if isinstance(req, TokenErrorResponse):
+                        return req
+
+            # Maybe there is a different resource at the request from auth code.
+            # We must take it into account
+            token_args = {}
+            if(req.get("resource") is not None and grant.resources != req.get("resource")):
+                token_args["resources"] = req["resource"]
             try:
                 token = self._mint_token(
                     token_class="access_token",
@@ -112,6 +164,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                     client_id=_session_info["client_id"],
                     based_on=_based_on,
                     token_type=token_type,
+                    token_args=token_args,
                 )
             except MintingNotAllowed as err:
                 logger.warning(err)
@@ -206,3 +259,23 @@ class AccessTokenHelper(TokenEndpointHelper):
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
 
         return request
+      
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.endpoint.upstream_get("context")
+
+        policy = config["policy"]
+        function = policy["function"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
+        else:
+            fn = function
+        try:
+            return fn(request, context=_context, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy function: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")

@@ -14,7 +14,7 @@ from ...session import MintingNotAllowed
 from ...session.token import AuthorizationCode
 from ...token import UnknownToken
 from . import TokenEndpointHelper
-from . import validate_resource_indicators_policy
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +49,36 @@ class AccessTokenHelper(TokenEndpointHelper):
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
         _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
+        resource_indicators_config = None
 
-        if "resource_indicators" in _cinfo and "access_token" in _cinfo["resource_indicators"]:
-            resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
-        else:
-            resource_indicators_config = self.endpoint.kwargs.get("resource_indicators", None)
+        # check if enable_resource_indicators is enabled and resource parameter exists
+        if req.get("resource") is not None and self.endpoint.kwargs.get("enable_resource_indicators"):
+            if "resource_indicators" in _cinfo:
+                resource_indicators_config = _cinfo["resource_indicators"]
+            if client_id in req.get("resource"):
+                if resource_indicators_config == None:
+                    resource_indicators_config = {
+                        "policy": {
+                            "function": validate_resource_indicators_policy,
+                            "kwargs": {
+                                "resource_servers_per_client": [
+                                    client_id
+                                ]
+                            }
+                        }
+                    }
+                else:
+                  # Ensure the structure exists
+                  if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                      resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                  else:
+                      # If the structure is somehow not complete, initialize it
+                      resource_indicators_config["policy"] = {
+                          "function": validate_resource_indicators_policy,
+                          "kwargs": {
+                              "resource_servers_per_client": [client_id]
+                          }
+                      }
 
         if resource_indicators_config is not None:
             if "policy" not in resource_indicators_config:
@@ -110,17 +135,17 @@ class AccessTokenHelper(TokenEndpointHelper):
             "scope": scope,
         }
 
-        if "access_token" in _supports_minting:
-
+        if "access_token" in _supports_minting:   
             resources = req.get("resource", None)
-            if resources:
+            if resources and resource_indicators_config is not None:
                 token_args = {"resources": resources}
             else:
-                token_args = {}
+                # have to set it to blank, otherwise resources' token will have the value coming from the request
+                token_args = {"resources": [""]}
 
             _aud = grant.authorization_request.get("audience")
             if _aud:
-                token_args["aud"] = _aud
+                token_args = {"aud": _aud}
 
             try:
                 token = self._mint_token(

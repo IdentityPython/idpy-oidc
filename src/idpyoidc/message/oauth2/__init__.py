@@ -108,6 +108,7 @@ class AccessTokenRequest(Message):
         "client_id": SINGLE_OPTIONAL_STRING,
         "client_secret": SINGLE_OPTIONAL_STRING,
         "state": SINGLE_OPTIONAL_STRING,
+        "resource": OPTIONAL_LIST_OF_STRINGS,
     }
     c_default = {"grant_type": "authorization_code"}
 

@@ -8,6 +8,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.message.oauth2 import TokenExchangeRequest
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
+from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authn_event import create_authn_event
@@ -15,6 +16,7 @@ from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
+from idpyoidc.server.oauth2.authorization import validate_resource_indicators_policy
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from tests import CRYPT_CONFIG
@@ -204,6 +206,7 @@ class TestEndpoint(object):
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.session_manager = self.context.session_manager
         self.user_id = "diana"
+        self.keyjar = server.keyjar
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -275,7 +278,7 @@ class TestEndpoint(object):
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzI6aGVtbGlndA==")}},
         )
         _resp = self.endpoint.process_request(request=_req)
-        print(_resp["response_args"])
+
         assert set(_resp["response_args"].keys()) == {
             "access_token",
             "token_type",
@@ -650,24 +653,30 @@ class TestEndpoint(object):
             == "Unsupported grant_type: urn:ietf:params:oauth:grant-type:token-exchange"
         )
 
-    def test_wrong_resource(self):
+    @pytest.mark.parametrize("resource", ["client_3", ["client_3", "client_4"]])
+    def test_wrong_resource(self, resource):
         """
         Test that requesting a token for an unknown resource fails.
         """
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
         conf = self.endpoint.grant_type_helper[
             "urn:ietf:params:oauth:grant-type:token-exchange"
         ].config
-        conf["policy"][""]["kwargs"] = {}
-        conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
         areq = AUTH_REQ.copy()
-
+        areq["resource"] = resource
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
         code = self._mint_code(grant, areq["client_id"])
-
+        
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.endpoint.parse_request(_token_request)
+        client_id = _req["client_id"]
         _resp = self.endpoint.process_request(request=_req)
 
         _token_value = _resp["response_args"]["access_token"]
@@ -676,17 +685,75 @@ class TestEndpoint(object):
             grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
             subject_token=_token_value,
             subject_token_type="urn:ietf:params:oauth:token-type:access_token",
-            resource=["https://unknown-resource.com/api"],
+            resource=resource,
         )
-
         _req = self.endpoint.parse_request(
-            token_exchange_req.to_urlencoded(),
+            token_exchange_req.to_urlencoded(doseq=True),
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
         )
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
         assert _resp["error"] == "invalid_target"
-        assert _resp["error_description"] == "Unknown resource"
+        assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"
+    
+    @pytest.mark.parametrize("resource", ["client_2", ["client_2", "client_3"]])
+    def test_token_exchange_req_resource(self, resource):
+        """
+        Test that requesting a token for an known resource succeeds with the respective aud.
+        """
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_2"]},
+            },
+        }
+        conf = self.endpoint.grant_type_helper[
+            "urn:ietf:params:oauth:grant-type:token-exchange"
+        ].config
+        areq = AUTH_REQ.copy()
+        
+        areq["resource"] = resource
+        session_id = self._create_session(areq)
+        grant = self.context.authz(session_id, areq)
+        code = self._mint_code(grant, areq["client_id"])
+        
+        _token_request = TOKEN_REQ_DICT.copy()
+        _token_request["code"] = code.value
+        _req = self.endpoint.parse_request(_token_request)
+        _resp = self.endpoint.process_request(request=_req)
+
+        _token_value = _resp["response_args"]["access_token"]
+        
+        token_exchange_req = TokenExchangeRequest(
+            grant_type="urn:ietf:params:oauth:grant-type:token-exchange",
+            subject_token=_token_value,
+            subject_token_type="urn:ietf:params:oauth:token-type:access_token",
+            resource=resource,
+        )
+
+        _req = self.endpoint.parse_request(
+            token_exchange_req,
+            {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
+        )
+        _resp = self.endpoint.process_request(request=_req)
+
+        assert set(_resp["response_args"].keys()) == {
+            "access_token",
+            "token_type",
+            "expires_in",
+            "issued_token_type",
+            "scope",
+        }
+        msg = self.endpoint.do_response(request=_req, **_resp)
+        assert isinstance(msg, dict)
+        
+        id_token = AuthorizationResponse().from_jwt(
+            _resp["response_args"]["access_token"], self.keyjar, sender=""
+        )
+        
+        assert "client_2" in id_token["aud"]
+        assert "client_3" not in id_token["aud"]
+
 
     def test_refresh_token_audience(self):
         """

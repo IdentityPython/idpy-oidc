@@ -14,6 +14,7 @@ from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
+from idpyoidc.server.oauth2.authorization import validate_resource_indicators_policy 
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.util import rndstr
@@ -455,10 +456,12 @@ class TestEndpoint(object):
         """
         endpoint = self.server.get_endpoint("token")
 
-        conf = endpoint.grant_type_helper["urn:ietf:params:oauth:grant-type:token-exchange"].config
-        conf["policy"][""]["kwargs"] = {}
-        conf["policy"][""]["kwargs"]["resource"] = ["https://example.com"]
-
+        self.context.cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["https://example.com"]},
+            },
+        }
         resp, _state, _scope = self.process_setup()
 
         # ****** Token Exchange Request **********
@@ -474,7 +477,7 @@ class TestEndpoint(object):
 
         assert set(_te_resp.keys()) == {"error", "error_description"}
         assert _te_resp["error"] == "invalid_target"
-        assert _te_resp["error_description"] == "Unknown resource"
+        assert _te_resp["error_description"] == "Invalid resource requested by client client_1"
 
     def test_refresh_token_audience(self):
         """

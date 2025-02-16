@@ -20,6 +20,7 @@ from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
 
 from . import TokenEndpointHelper
+from . import validate_resource_indicators_policy
 from . import validate_token_exchange_policy
 
 logger = logging.getLogger(__name__)
@@ -89,11 +90,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
             return self.error_cls(
                 error="invalid_request", error_description="Subject token inactive"
             )
-
+        
         resp = self._enforce_policy(request, token, config)
         if isinstance(resp, TokenErrorResponse):
             return resp
-
+          
         scopes = resp.get("scope", [])
         scopes = _context.scopes_handler.filter_scopes(scopes, client_id=resp["client_id"])
 
@@ -113,6 +114,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 error_description="Exchanging this subject token to refresh token forbidden",
             )
 
+      
         return resp
 
     def _enforce_policy(self, request, token, config):
@@ -167,6 +169,26 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         try:
             return fn(request, context=_context, subject_token=token, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy function: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.endpoint.upstream_get("context")
+
+        policy = config["policy"]
+        function = policy["function"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
+        else:
+            fn = function
+        try:
+            return fn(request, context=_context, **kwargs)
         except Exception as e:
             logger.error(f"Error while executing the {fn} policy function: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
@@ -243,15 +265,55 @@ class TokenExchangeHelper(TokenEndpointHelper):
                     error="server_error", error_description="Internal server error"
                 )
 
-        resources = request.get("resource")
-        if resources and request.get("audience"):
-            resources = list(set(resources + request.get("audience")))
-        else:
-            resources = request.get("audience")
-
+        client_id = request["client_id"]
+        _cinfo = _context.cdb.get(client_id)
+        resource_indicators_config = None
         _token_args = None
-        if resources:
-            _token_args = {"resources": resources}
+        # check if resource parameter exists
+        if request.get("resource") is not None:
+            if "resource_indicators" in _cinfo:
+                resource_indicators_config = _cinfo["resource_indicators"]
+            if client_id in request.get("resource"):
+                if resource_indicators_config == None:
+                    resource_indicators_config = {
+                        "policy": {
+                            "function": validate_resource_indicators_policy,
+                            "kwargs": {
+                                "resource_servers_per_client": [
+                                    client_id
+                                ]
+                            }
+                        }
+                    }
+                else:
+                  # Ensure the structure exists
+                  if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                      resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                  else:
+                      # If the structure is somehow not complete, initialize it
+                      resource_indicators_config["policy"] = {
+                          "function": validate_resource_indicators_policy,
+                          "kwargs": {
+                              "resource_servers_per_client": [client_id]
+                          }
+                      }
+                  
+
+        if resource_indicators_config is not None:
+            if "policy" not in resource_indicators_config:
+                policy = {"policy": {"function": validate_resource_indicators_policy}}
+                resource_indicators_config.update(policy)
+            request = self._enforce_resource_indicators_policy(request, resource_indicators_config)
+            if isinstance(request, TokenErrorResponse):
+                return request
+              
+            resources = request.get("resource", None)
+            if resources:
+                _token_args = {"resources": resources}
+          
+        requested_resources = request.get("resource") or []
+        requested_aud = request.get("audience") or []
+        resources = list(set(requested_resources + requested_aud))
 
         try:
             new_token = self._mint_token(
