@@ -8,6 +8,7 @@ from cryptojwt.utils import importer
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import TokenErrorResponse
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.util import sanitize
 
 from ...session import MintingNotAllowed
@@ -135,7 +136,12 @@ class AccessTokenHelper(TokenEndpointHelper):
             "scope": scope,
         }
 
-        if "access_token" in _supports_minting:   
+        apply_audience_policies(req, _context, _cinfo, req.get("resource", None), grant, self.endpoint.kwargs)
+        if "error" in req:
+            return TokenErrorResponse(error=req["error"], error_description=req["error_description"])
+
+        if "access_token" in _supports_minting:
+
             resources = req.get("resource", None)
             if resources and resource_indicators_config is not None:
                 token_args = {"resources": resources}

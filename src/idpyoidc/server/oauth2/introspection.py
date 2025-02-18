@@ -5,6 +5,7 @@ from typing import Optional
 from idpyoidc.message import oauth2
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ToOld
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.token.exception import WrongTokenClass
 
@@ -34,6 +35,8 @@ class Introspection(Endpoint):
         Endpoint.__init__(self, upstream_get, **kwargs)
         self.offset = kwargs.get("offset", 0)
         self.enforce_aud_restriction = kwargs.get("enforce_audience_restriction", True)
+        self.audience_policies_config = kwargs.get("audience_policies", None)
+        self.enable_audience_policies = kwargs.get("enable_audience_policies", False)
 
     def _introspect(self, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
@@ -117,6 +120,11 @@ class Introspection(Endpoint):
             aud = grant.resources
 
         client_id = request["client_id"]
+        
+        apply_audience_policies(request, _context, _context.cdb[client_id], aud, _session_info["grant"], self.kwargs)
+        if "error" in request:
+            return {"response_args": _resp}
+
         try:
             _cinfo = _context.cdb[client_id]
             enforce_aud_restriction = _cinfo.get(

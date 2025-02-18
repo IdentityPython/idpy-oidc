@@ -10,6 +10,7 @@ from cryptojwt.utils import importer
 from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import TokenErrorResponse
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
 from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.session.token import AuthorizationCode
@@ -150,6 +151,12 @@ class AccessTokenHelper(TokenEndpointHelper):
 
                     if isinstance(req, TokenErrorResponse):
                         return req
+            _cinfo = self.endpoint.upstream_get("context").cdb.get(client_id)
+            apply_audience_policies(req, _context, _cinfo, req.get("resource", None), grant, self.endpoint.kwargs)
+            if "error" in req:
+                return self.error_cls(
+                    error=req["error"], error_description=req["error_description"]
+                )
 
             # Maybe there is a different resource at the request from auth code.
             # We must take it into account

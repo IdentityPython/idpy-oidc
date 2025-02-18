@@ -60,6 +60,8 @@ class Token(Endpoint):
         self.revoke_refresh_on_issue = kwargs.get("revoke_refresh_on_issue", False)
         self.resource_indicators_config = kwargs.get("resource_indicators", None)
         self.enable_resource_indicators = kwargs.get("enable_resource_indicators", False)
+        self.audience_policies_config = kwargs.get("audience_policies", None)
+        self.enable_audience_policies = kwargs.get("enable_audience_policies", False)
 
     def configure_types(self, helpers, default_helpers):
         if helpers is None:

@@ -41,6 +41,7 @@ from idpyoidc.server.exception import TamperAllert
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.exception import UnknownClient
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
@@ -921,6 +922,15 @@ class Authorization(Endpoint):
             else:
                 _aud_arg = {}
 
+            client_id = request["client_id"]
+            _cinfo = _context.cdb.get(client_id)
+            apply_audience_policies(request, _context, _cinfo, request.get("resource", None), grant, _context.conf.endpoint.get("authorization").get("kwargs"))
+            if "error" in request:
+                return self.authentication_error_response(
+                    request,
+                    error=request["error"],
+                    error_description=request["error_description"],
+                )
             if "code" in rtype:
                 _code = self.mint_token(
                     token_class="authorization_code",

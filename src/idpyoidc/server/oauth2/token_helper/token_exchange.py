@@ -13,6 +13,7 @@ from idpyoidc.server.constant import DEFAULT_REQUESTED_TOKEN_TYPE
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.oauth2.authorization import check_unknown_scopes_policy
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.token.exception import UnknownToken
@@ -314,6 +315,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
         requested_resources = request.get("resource") or []
         requested_aud = request.get("audience") or []
         resources = list(set(requested_resources + requested_aud))
+        apply_audience_policies(request, _context, _cinfo, request.get("resource", None), grant, self.endpoint.kwargs, **kwargs)
+        if "error" in request:
+            return TokenErrorResponse(error=request["error"], error_description=request["error_description"])  
+            
+        resources = request.get("resource", None)
+        if resources:
+            _token_args = {"resources": resources}
 
         try:
             new_token = self._mint_token(

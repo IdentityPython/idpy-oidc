@@ -6,6 +6,7 @@ from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import TokenErrorResponse, AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.util import importer
 from idpyoidc.util import sanitize
@@ -97,19 +98,33 @@ class ClientCredentials(TokenEndpointHelper):
             if resources:
                 token_args = {"resources": resources}
 
+        apply_audience_policies(req, _context, _cinfo,  req.get("resource", None), _session_info["grant"], self.endpoint.kwargs)
+        if "error" in req:
+            return self.error_cls(error=req["error"], error_description=req["error_description"])
+        resources = req.get("resource", None)
+        if resources:
+            token_args = {"resources": resources}
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
+        scopes_allowed_cfg = _context.cdb[client_id].get("allowed_scopes", [])
+        scopes_req = req.get("scope") or []
+        scopes = [
+            scope
+            for scope in scopes_req
+            if scope in scopes_allowed_cfg
+        ]
+
         self._apply_client_credentials_filter_policy(req, _grant)
+
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
             session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=None,
-            scope=_allowed,
+            scope=scopes,
             token_type=token_type,
             token_args=token_args,
         )
@@ -117,7 +132,7 @@ class ClientCredentials(TokenEndpointHelper):
         _resp = {
             "access_token": access_token.value,
             "token_type": access_token.token_class,
-            "scope": _allowed,
+            "scope": scopes,
         }
 
         if access_token.expires_at:

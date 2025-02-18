@@ -2,12 +2,14 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.session.grant import Grant
 from idpyoidc.server.session.token import SessionToken
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -187,3 +189,31 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         del request["scope"]
 
     return request
+
+def apply_audience_policies(request, context, client_info, audience, grant, configuration):
+    client_id = request["client_id"]
+    audience_policies_config = configuration.get("enable_audience_policies", None)
+    if audience_policies_config is None:
+        return
+    audience_policies = configuration.get("audience_policies", None)
+    if client_id in audience_policies:
+        applied_audience_policies = audience_policies[client_id]
+    elif "" in audience_policies:
+        applied_audience_policies = audience_policies[""]
+    for audience_policy in applied_audience_policies:
+        function = audience_policy["function"]
+        kwargs = audience_policy.get("kwargs", {})
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} audience function")
+        else:
+            fn = function
+        try:
+            fn(request, context, client_info, audience, grant, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} audience function: {e}")
+            request["error"] = "server_error"
+            request["error_description"] = "Internal server error"
+            return
