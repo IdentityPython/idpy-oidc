@@ -477,7 +477,7 @@ class TestEndpoint(object):
 
         assert set(_te_resp.keys()) == {"error", "error_description"}
         assert _te_resp["error"] == "invalid_target"
-        assert _te_resp["error_description"] == "Invalid resource requested by client client_1"
+        assert _te_resp["error_description"] == "One or more invalid resources requested by client client_1"
 
     def test_refresh_token_audience(self):
         """

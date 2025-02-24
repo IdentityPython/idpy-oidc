@@ -1078,7 +1078,7 @@ class TestClientCredentialsFlow(object):
         response = self.token_endpoint.process_request(request)
 
         assert response["error"] == "invalid_target"
-        assert response["error_description"] == f"Invalid resource requested by client {client_id}"
+        assert response["error_description"] == f"One or more invalid resources requested by client {client_id}"
 
     @pytest.mark.parametrize("resource", ["client_1", ["client_1", "client_3"]])   
     def test_client_credentials_resource_indicator_enabled_client_conf_itself_resource(self, resource):
@@ -1097,17 +1097,19 @@ class TestClientCredentialsFlow(object):
             scope="whatever",
             resource=resource
         )
-
+        client_id = request["client_id"]
         request = self.token_endpoint.parse_request(request)
         response = self.token_endpoint.process_request(request)
-        # Access Token
-        access_token = AuthorizationResponse().from_jwt(
-            response["response_args"]["access_token"], self.keyjar, sender=""
-        )
-
-        assert "aud" in access_token
-        assert "client_1" in access_token["aud"]
-
+        if resource == "client_1":
+            # Access Token
+            access_token = AuthorizationResponse().from_jwt(
+                response["response_args"]["access_token"], self.keyjar, sender=""
+            )
+            assert "aud" in access_token
+            assert "client_1" in access_token["aud"]
+        else:
+            assert response["error"] == "invalid_target"
+            assert response["error_description"] == f"One or more invalid resources requested by client {client_id}"
 
 class TestResourceOwnerPasswordCredentialsFlow(object):
     @pytest.fixture(autouse=True)

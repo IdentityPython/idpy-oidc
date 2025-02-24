@@ -16,7 +16,7 @@ from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
-from idpyoidc.server.oauth2.authorization import validate_resource_indicators_policy
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from tests import CRYPT_CONFIG
@@ -694,7 +694,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(request=_req)
         assert set(_resp.keys()) == {"error", "error_description"}
         assert _resp["error"] == "invalid_target"
-        assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"
+        assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"
     
     @pytest.mark.parametrize("resource", ["client_2", ["client_2", "client_3"]])
     def test_token_exchange_req_resource(self, resource):
@@ -720,8 +720,9 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
         _req = self.endpoint.parse_request(_token_request)
+        client_id = _req["client_id"]
         _resp = self.endpoint.process_request(request=_req)
-
+        
         _token_value = _resp["response_args"]["access_token"]
         
         token_exchange_req = TokenExchangeRequest(
@@ -734,25 +735,27 @@ class TestEndpoint(object):
         _req = self.endpoint.parse_request(
             token_exchange_req,
             {"headers": {"authorization": "Basic {}".format("Y2xpZW50XzE6aGVtbGlndA==")}},
-        )
+        )    
         _resp = self.endpoint.process_request(request=_req)
-
-        assert set(_resp["response_args"].keys()) == {
-            "access_token",
-            "token_type",
-            "expires_in",
-            "issued_token_type",
-            "scope",
-        }
-        msg = self.endpoint.do_response(request=_req, **_resp)
-        assert isinstance(msg, dict)
-        
-        id_token = AuthorizationResponse().from_jwt(
-            _resp["response_args"]["access_token"], self.keyjar, sender=""
-        )
-        
-        assert "client_2" in id_token["aud"]
-        assert "client_3" not in id_token["aud"]
+        if resource == "client_2":
+            assert set(_resp["response_args"].keys()) == {
+                "access_token",
+                "token_type",
+                "expires_in",
+                "issued_token_type",
+                "scope",
+            }
+            msg = self.endpoint.do_response(request=_req, **_resp)
+            assert isinstance(msg, dict)
+            
+            id_token = AuthorizationResponse().from_jwt(
+                _resp["response_args"]["access_token"], self.keyjar, sender=""
+            )
+            
+            assert "client_2" in id_token["aud"]
+        else:
+            assert _resp["error"] == "invalid_target"
+            assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}" 
 
 
     def test_refresh_token_audience(self):
@@ -1336,6 +1339,7 @@ class TestEndpoint(object):
         assert _resp["response_args"]["scope"] == ["profile"]
 
         token_exchange_req["scope"] = "offline_access"
+        token_exchange_req["resource"] = "client_1"
 
         _req = self.endpoint.parse_request(
             token_exchange_req.to_urlencoded(),

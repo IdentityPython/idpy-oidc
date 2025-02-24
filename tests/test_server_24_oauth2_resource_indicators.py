@@ -37,14 +37,9 @@ from idpyoidc.server.oauth2.authorization import Authorization
 from idpyoidc.server.oauth2.authorization import get_uri
 from idpyoidc.server.oauth2.authorization import inputs
 from idpyoidc.server.oauth2.authorization import join_query
-from idpyoidc.server.oauth2.authorization import (
-    validate_resource_indicators_policy as validate_authorization_resource_indicators_policy,
-)
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.server.oauth2.token import Token
-from idpyoidc.server.oauth2.token_helper import (
-    validate_resource_indicators_policy as validate_token_resource_indicators_policy,
-)
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import in_a_while
 from tests import CRYPT_CONFIG
@@ -326,12 +321,12 @@ RESOURCE_INDICATORS_ENABLED = {
             "path": "{}/authorization",
             "class": Authorization,
             "kwargs": {
+                "enable_resource_indicators": True,
                 "response_types_supported": [" ".join(x) for x in RESPONSE_TYPES_SUPPORTED],
                 "response_modes_supported": ["query", "fragment", "form_post"],
                 "claims_parameter_supported": True,
                 "request_parameter_supported": True,
                 "request_uri_parameter_supported": True,
-                "resource_indicators_supported": True,
             },
         },
         "token": {
@@ -543,7 +538,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_3"]},
             },
         }
@@ -576,7 +571,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -595,7 +590,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -629,13 +624,13 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
         msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
         assert "error" in msg
-        assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
+        assert msg["error_description"] == f"One or more invalid resources requested by client {client_id}"
         
     def test_authorization_code_resource_indicators_disabled_resource_multiple(self, create_endpoint_ri_disabled):
         """
@@ -649,7 +644,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -658,7 +653,7 @@ class TestEndpoint(object):
         
     def test_authorization_code_resource_indicators_enabled_resource_multiple_with_itself(self, create_endpoint_ri_enabled):
         """
-        Test that no error message is returned when resource indicators is enabled
+        Test that error message is returned when resource indicators is enabled
         there is no client configuration for resource_indicators
         and requested resource contains the client itself, among others that are unknown.
         """
@@ -668,7 +663,8 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         
         msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
-        assert "error" not in msg
+        assert "error" in msg
+        assert msg["error_description"] == f"One or more invalid resources requested by client {client_id}"
 
     def test_authorization_code_resource_indicators_enabled_resource_multiple_unknown(self, create_endpoint_ri_enabled):
         """
@@ -682,13 +678,13 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         endpoint_context.cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
         msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
         assert "error" in msg
-        assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
+        assert msg["error_description"] == f"One or more invalid resources requested by client {client_id}"
 
     def test_access_token_req_disabled_resource_multiple_resource_no_client_conf(self, create_endpoint_ri_enabled):
         """
@@ -729,7 +725,7 @@ class TestEndpoint(object):
         
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -768,7 +764,7 @@ class TestEndpoint(object):
         }
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -806,7 +802,7 @@ class TestEndpoint(object):
         }
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -874,7 +870,7 @@ class TestEndpoint(object):
         
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -894,8 +890,8 @@ class TestEndpoint(object):
 
         assert "error" in _resp
         assert _resp["error"] == "invalid_target"
-        assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"
-        
+        assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"
+
     def test_access_token_req_disabled_ri_multiple_resource_client_conf(self, create_endpoint_ri_disabled):
         """
         Test that no error message is returned (neither an "aud" claim) 
@@ -905,7 +901,7 @@ class TestEndpoint(object):
         
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -938,7 +934,7 @@ class TestEndpoint(object):
           
           self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
               "policy": {
-                  "function": validate_authorization_resource_indicators_policy,
+                  "function": validate_resource_indicators_policy,
                   "kwargs": {"resource_servers_per_client": ["client_2"]},
               },
           }
@@ -957,29 +953,27 @@ class TestEndpoint(object):
           assert code.resources != []
 
           _token_request = TOKEN_REQ_DICT.copy()
+          client_id = _token_request["client_id"]
           _token_request["code"] = code.value
           _token_request["resource"] = ["client_2", "client_3"]
           _req = self.token_endpoint.parse_request(_token_request)
 
           _resp = self.token_endpoint.process_request(request=_req)
 
-          access_token = TokenErrorResponse().from_jwt(
-              _resp["response_args"]["access_token"],
-              self.endpoint_context.keyjar,
-              sender="",
-          )
-
-          assert "client_2" in access_token["aud"]
+          assert "error" in _resp
+          assert _resp["error"] == "invalid_target"
+          assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"
           
     def test_access_token_req_multiple_resource_itself(self, create_endpoint_ri_enabled):
           """
-          Test successful access_token request when resource indicators is enabled.
-          and the request contains a resource about client itself, among other unknown clients
+          Test that error message is returned
+          when resource indicators is enabled
+          and the request contains at least one unknown client
           """
           
           self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
               "policy": {
-                  "function": validate_authorization_resource_indicators_policy,
+                  "function": validate_resource_indicators_policy,
                   "kwargs": {"resource_servers_per_client": ["client_2"]},
               },
           }
@@ -998,25 +992,22 @@ class TestEndpoint(object):
           assert code.resources != []
 
           _token_request = TOKEN_REQ_DICT.copy()
+          client_id = _token_request["client_id"]
           _token_request["code"] = code.value
           _token_request["resource"] = ["client_1", "client_3"]
           _req = self.token_endpoint.parse_request(_token_request)
 
           _resp = self.token_endpoint.process_request(request=_req)
 
-          access_token = TokenErrorResponse().from_jwt(
-              _resp["response_args"]["access_token"],
-              self.endpoint_context.keyjar,
-              sender="",
-          )
-
-          assert "client_1" in access_token["aud"]
+          assert "error" in _resp
+          assert _resp["error"] == "invalid_target"
+          assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"
           
     def test_access_token_req_multiple_resource_itself_no_client_conf(self, create_endpoint_ri_enabled):
           """
-          Test successful access_token request when resource indicators is enabled,
+          Test error message is returned when resource indicators is enabled,
           there is no client configuration for resource indicators
-          and the request contains a resource about client itself, among other unknown clients
+          and the request contains a resource
           """
 
           self.endpoint.upstream_get("context").cdb["client_3"] = {
@@ -1033,19 +1024,16 @@ class TestEndpoint(object):
           assert code.resources != []
 
           _token_request = TOKEN_REQ_DICT.copy()
+          client_id = _token_request["client_id"]
           _token_request["code"] = code.value
           _token_request["resource"] = ["client_1", "client_3"]
           _req = self.token_endpoint.parse_request(_token_request)
 
           _resp = self.token_endpoint.process_request(request=_req)
 
-          access_token = TokenErrorResponse().from_jwt(
-              _resp["response_args"]["access_token"],
-              self.endpoint_context.keyjar,
-              sender="",
-          )
-
-          assert "client_1" in access_token["aud"]
+          assert "error" in _resp
+          assert _resp["error"] == "invalid_target"
+          assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"
                   
     def test_access_token_req_multiple_resource_known(self, create_endpoint_ri_enabled):
         """
@@ -1060,7 +1048,7 @@ class TestEndpoint(object):
         }
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2","client_3"]},
             },
         }
@@ -1093,7 +1081,7 @@ class TestEndpoint(object):
         """
         self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
             "policy": {
-                "function": validate_authorization_resource_indicators_policy,
+                "function": validate_resource_indicators_policy,
                 "kwargs": {"resource_servers_per_client": ["client_2"]},
             },
         }
@@ -1114,13 +1102,20 @@ class TestEndpoint(object):
 
         assert "error" in _resp
         assert _resp["error"] == "invalid_target"
-        assert _resp["error_description"] == f"Invalid resource requested by client {client_id}"     
+        assert _resp["error_description"] == f"One or more invalid resources requested by client {client_id}"     
 
     def test_create_authn_response(self, create_endpoint_ri_enabled):
         """
         Test that the requested access_token has the correct scopes based on the allowed scopes of
         the requested resources
         """
+        self.endpoint.upstream_get("context").cdb["client_1"]["resource_indicators"] = {
+            "policy": {
+                "function": validate_resource_indicators_policy,
+                "kwargs": {"resource_servers_per_client": ["client_3"]},
+            },
+        }
+        
         self.endpoint.upstream_get("context").cdb["client_3"] = {
             "client_id": "client_3",
             "redirect_uris": [("https://rp.example.com/cb", {})],
@@ -1141,4 +1136,4 @@ class TestEndpoint(object):
 
         _resp = self.token_endpoint.process_request(request=_req)
         assert "response_args" in _resp
-        assert set(_resp["response_args"]["scope"]) == set(["openid", "profile"])
+        assert set(_resp["response_args"]["scope"]) == set(["openid"])
