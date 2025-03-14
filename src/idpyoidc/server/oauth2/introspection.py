@@ -132,13 +132,13 @@ class Introspection(Endpoint):
             )
         except:
             enforce_aud_restriction = self.enforce_aud_restriction
-        if enforce_aud_restriction:
-            if request["client_id"] not in aud:
-                return {"response_args": _resp}
-
+        
         _info = self._introspect(_token, _session_info["client_id"], grant)
         if _info is None:
             return {"response_args": _resp}
+        if enforce_aud_restriction:
+            if request["client_id"] not in aud and request["client_id"] not in _info["client_id"]:
+                return {"response_args": _resp}
 
         if release:
             if "username" in release:
