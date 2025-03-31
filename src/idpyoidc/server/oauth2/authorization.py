@@ -339,6 +339,7 @@ def check_unknown_scopes_policy(request_info, client_id, context):
         logger.warning(f"{client_id} requested unauthorized scopes: {diff}")
         raise UnAuthorizedClientScope()
 
+
 class Authorization(Endpoint):
     request_cls = oauth2.AuthorizationRequest
     response_cls = oauth2.AuthorizationResponse
@@ -564,7 +565,6 @@ class Authorization(Endpoint):
             if "policy" not in resource_indicators_config:
                 policy = {"policy": {"function": validate_resource_indicators_policy}}
                 resource_indicators_config.update(policy)
-           
             request = self._enforce_resource_indicators_policy(request, resource_indicators_config)
             
             if "error" in request:

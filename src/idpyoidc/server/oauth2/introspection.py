@@ -120,7 +120,7 @@ class Introspection(Endpoint):
             aud = grant.resources
 
         client_id = request["client_id"]
-        
+
         apply_audience_policies(request, _context, _context.cdb[client_id], aud, _session_info["grant"], self.kwargs)
         if "error" in request:
             return {"response_args": _resp}
@@ -132,7 +132,7 @@ class Introspection(Endpoint):
             )
         except:
             enforce_aud_restriction = self.enforce_aud_restriction
-        
+
         _info = self._introspect(_token, _session_info["client_id"], grant)
         if _info is None:
             return {"response_args": _resp}

@@ -70,7 +70,6 @@ AUTH_REQ = AuthorizationRequest(
     scope=["openid"],
     state="STATE",
     response_type="code id_token",
-    resource="client_1",
 )
 
 TOKEN_REQ = AccessTokenRequest(
@@ -243,10 +242,7 @@ class TestEndpoint:
     def _get_access_token(self, areq):
         session_id = self._create_session(areq)
         # Consent handling
-        print("*************authz**************")
         grant = self.token_endpoint.upstream_get("context").authz(session_id, areq)
-        print("*************end authz**************")
-        print(grant.resources)
         self.session_manager[session_id] = grant
         # grant = self.session_manager[session_id]
         code = self._mint_token("authorization_code", grant, session_id)
@@ -497,6 +493,7 @@ class TestEndpoint:
 
     def test_wrong_aud(self):
         auth_req = AUTH_REQ.copy()
+        auth_req["client_id"] = "client_3"
         auth_req["resource"] = "client_2"
         access_token = self._get_access_token(auth_req)
         _context = self.introspection_endpoint.upstream_get("endpoint_context")

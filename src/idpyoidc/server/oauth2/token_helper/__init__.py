@@ -93,7 +93,6 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     client_id = request["client_id"]
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", [])
-    
     if (
         isinstance(resource_servers_per_client, dict)
         and client_id not in resource_servers_per_client
@@ -202,7 +201,7 @@ def apply_audience_policies(request, context, client_info, audience, grant, conf
     """
 
     client_id = request["client_id"]
-    audience_policies_config = configuration.get("enable_audience_policies", None)
+    audience_policies_config = configuration.get("enable_audience_policies", None) if configuration else None
     if audience_policies_config is None:
         return
 
