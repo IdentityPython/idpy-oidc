@@ -106,7 +106,7 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     if isinstance(request["resource"], str):
         # If it's a string, convert it to a list
         request["resource"] = [request["resource"]]
-      
+
     permitted_resources = [res for res in resource_servers_per_client]
     if client_id not in permitted_resources:
         permitted_resources.append(client_id)
@@ -159,7 +159,7 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
             return TokenErrorResponse(
                 error="invalid_target", error_description="Refresh token has single owner"
             )
-        audience = kwargs.get("audience", [])
+        audience = kwargs.get("audience") or []
         if audience and not set(request["audience"]).issubset(set(audience)):
             return TokenErrorResponse(error="invalid_target", error_description="Unknown audience")
 
@@ -191,18 +191,31 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
     return request
 
 def apply_audience_policies(request, context, client_info, audience, grant, configuration):
+    """
+    request (Message): the request being processed
+    context (dict): context
+    client_id (str): the id of the client making the request
+    client_info (dict): more information about the client
+    audience (list): the intended audience of the token; if the request is ClientCredentials or AuthorizationCode then this is the requested resources through Resource Indicators RFC
+    grant: the associated grant with the token
+    configuration (dict): extra configuration for the policy
+    """
+
     client_id = request["client_id"]
     audience_policies_config = configuration.get("enable_audience_policies", None)
     if audience_policies_config is None:
         return
-    audience_policies = configuration.get("audience_policies", None)
-    if client_id in audience_policies:
-        applied_audience_policies = audience_policies[client_id]
-    elif "" in audience_policies:
-        applied_audience_policies = audience_policies[""]
+
+    audience_policies = configuration.get("audience_policies") or {}
+    applied_audience_policies = (
+        audience_policies.get(client_id)
+        or audience_policies.get("")
+        or []
+    )
     for audience_policy in applied_audience_policies:
         function = audience_policy["function"]
         kwargs = audience_policy.get("kwargs", {})
+
         if isinstance(function, str):
             try:
                 fn = importer(function)
@@ -210,8 +223,9 @@ def apply_audience_policies(request, context, client_info, audience, grant, conf
                 raise ImproperlyConfigured(f"Error importing {function} audience function")
         else:
             fn = function
+
         try:
-            fn(request, context, client_info, audience, grant, **kwargs)
+            fn(request, context, client_id, client_info, audience, grant, **kwargs)
         except Exception as e:
             logger.error(f"Error while executing the {fn} audience function: {e}")
             request["error"] = "server_error"
