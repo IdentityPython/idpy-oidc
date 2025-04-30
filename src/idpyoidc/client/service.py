@@ -58,6 +58,7 @@ class Service(ImpExp):
     http_method = "GET"
     request_body_type = "urlencoded"
     response_body_type = "json"
+    content_type = ""
 
     parameter = {
         "default_authn_method": None,
@@ -472,15 +473,20 @@ class Service(ImpExp):
 
         # If there is to be a body part
         if method == "POST":
-            # How should it be serialized
+            # Guess
             if request_body_type == "urlencoded":
-                content_type = URL_ENCODED
+                c_type = URL_ENCODED
             elif request_body_type in ["jws", "jwe", "jose", "jwt"]:
-                content_type = JOSE_ENCODED
+                c_type = JOSE_ENCODED
             else:  # request_body_type == 'json'
-                content_type = JSON_ENCODED
+                c_type = JSON_ENCODED
 
-            _info["body"] = get_http_body(request, content_type)
+            _info["body"] = get_http_body(request, c_type)
+
+            if self.content_type:
+                content_type = self.content_type
+            else:
+                content_type = c_type
 
             _headers.update({"Content-Type": content_type})
 
