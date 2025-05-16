@@ -9,8 +9,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
@@ -410,11 +410,14 @@ class ServiceContext(ImpExp):
         for item in remove:
             del self.upstream_get("services")[item]
 
-    def map_preferred_to_registered(self, registration_response: Optional[dict] = None):
+    def map_preferred_to_registered(self,
+                                    registration_response: Optional[dict] = None,
+                                    uri_claims: Optional[list] = None):
         self.claims.use = preferred_to_registered(
             self.claims.prefer,
             supported=self.supports(),
             registration_response=registration_response,
+            uri_claims=uri_claims,
         )
 
         return self.claims.use

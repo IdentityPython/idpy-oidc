@@ -49,6 +49,10 @@ REQUEST2REGISTER = {
     "post_logout_redirect_uri": "post_logout_redirect_uris",
 }
 
+RP_URI_CLAIMS = ["policy_uri", "logo_uri", "tos_uri", "initiate_login_uri",
+                 "post_logout_redirect_uri", "frontchannel_logout_uri",
+                 "backchannel_logout_uri", "client_uri"]
+
 
 def supported_to_preferred(
         supported: dict,
@@ -148,7 +152,10 @@ def _intersection(a, b):
 
 
 def preferred_to_registered(
-        prefers: dict, supported: dict, registration_response: Optional[dict] = None
+        prefers: dict,
+        supported: dict,
+        registration_response: Optional[dict] = None,
+        uri_claims: Optional[list] = None
 ):
     """
     The claims with values that are returned from the OP is what goes unless (!!)
@@ -162,17 +169,26 @@ def preferred_to_registered(
 
     if registration_response:
         for key, val in registration_response.items():
+            if uri_claims and key in uri_claims:
+                registered[key] = val
+                continue
+
             if key in REGISTER2PREFERRED:
+                _sp_key = REGISTER2PREFERRED[key]
+                _allow = prefers.get(_sp_key)
+                if not _allow:
+                    _allow = supported.get(_sp_key)
+                    if not _allow:
+                        continue
+
                 # Is the response value with in what this instance supports
-                _supports = supported.get(REGISTER2PREFERRED[key])
-                if _is_subset(val, _supports):
+                if _is_subset(val, _allow):
                     registered[key] = val
                 else:
                     logger.warning(
-                        f"OP tells me to do something I do not support: {key} = {val} not within "
-                        f"{_supports}"
+                        f"OP tells me to do something I do not allow: '{key}' value '{val}' not within '{_allow}'"
                     )
-                    _val = _intersection(val, _supports)
+                    _val = _intersection(val, _allow)
                     if _val:
                         registered[key] = _val
                     else:

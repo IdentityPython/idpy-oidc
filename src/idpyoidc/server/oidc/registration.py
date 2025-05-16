@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from cryptojwt.jws.utils import alg2keytype
 from cryptojwt.utils import as_bytes
 
+from idpyoidc.client.claims.oidc import PREFERRED2REGISTER
 from idpyoidc.exception import MessageException
 from idpyoidc.key_import import import_jwks
 from idpyoidc.key_import import import_jwks_as_json
@@ -25,6 +26,7 @@ from idpyoidc.server.exception import CapabilitiesMisMatch
 from idpyoidc.server.exception import InvalidRedirectURIError
 from idpyoidc.server.exception import InvalidSectorIdentifier
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.transform import RP_URI_CLAIMS
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import sanitize
@@ -60,6 +62,14 @@ def match_sp_sep(first, second):
 
 
 def verify_url(url: str, urlset: List[list]) -> bool:
+    """
+    Verifies that an url in the registration request uses the same scheme and netloc as
+    at least one of the redirect_uris.
+
+    @param url:
+    @param urlset: list of 2-tuples
+    @return:
+    """
     part = urlparse(url)
 
     for reg, qp in urlset:
@@ -77,6 +87,12 @@ def secret(seed: str, sid: str):
 
 
 def comb_uri(args):
+    """
+    URIs are represented as lists of 2-tuples: base_url and a query dict.
+    This method rebuilds the uris from that format to simple strings.
+
+    @param args: Client information
+    """
     redirect_uris = args.get("redirect_uris")
     if redirect_uris:
         val = []
@@ -89,15 +105,15 @@ def comb_uri(args):
 
         args["redirect_uris"] = val
 
-    post_logout_redirect_uri = args.get("post_logout_redirect_uri")
-    if post_logout_redirect_uri:
-        base, query_dict = post_logout_redirect_uri
-        if query_dict:
-            query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
-            val = f"{base}?{query_string}"
-        else:
-            val = base
-        args["post_logout_redirect_uri"] = val
+    # post_logout_redirect_uri = args.get("post_logout_redirect_uri")
+    # if post_logout_redirect_uri:
+    #     base, query_dict = post_logout_redirect_uri
+    #     if query_dict:
+    #         query_string = urlencode([(key, v) for key in query_dict for v in query_dict[key]])
+    #         val = f"{base}?{query_string}"
+    #     else:
+    #         val = base
+    #     args["post_logout_redirect_uri"] = val
 
     request_uris = args.get("request_uris")
     if request_uris:
@@ -131,13 +147,34 @@ class Registration(Endpoint):
     name = "registration"
     endpoint_type = "oidc"
 
+    pass_thru = ["application_type", "jwks", "contacts", "client_name",
+                 "default_max_age", "require_auth_time", "default_acr_values",
+                 "frontchannel_logout_session_required",
+                 "backchannel_logout_session_required", "response_modes", "subject_type",
+                 # All the uris
+                 "redirect_uris", "jwks_uri", "policy_uri", "logo_uri", "tos_uri", "client_uri",
+                 "sector_identifier_uri", "initiate_login_uri", "request_uris", "post_logout_redirect_uri",
+                 "frontchannel_logout_uri", "backchannel_logout_uri",
+                 # It's up to the RP to define these claims which means I should not touch them
+                 "id_token_signed_response_alg",
+                 "id_token_encrypted_response_alg",
+                 "id_token_encrypted_response_enc",
+                 "userinfo_signed_response_alg",
+                 "userinfo_encrypted_response_alg",
+                 "userinfo_encrypted_response_enc",
+                 "request_object_signing_alg",
+                 "request_object_encryption_alg",
+                 "request_object_encryption_enc",
+                 ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Those that use seed wants bytes but I can only store str.
+        # Those that use seed wants bytes, but I can only store str.
         # seed
         _seed = kwargs.get("seed") or rndstr(32)
         self.seed = as_bytes(_seed)
+        self.match_uris = kwargs.get("match_uris", False)
 
     def match_claim(self, claim, val):
         _context = self.upstream_get("context")
@@ -189,6 +226,49 @@ class Registration(Endpoint):
                 logger.error(f"Capabilities mismatch: {key}={val} not supported")
         return _args
 
+    def _modify_client_info(self, request: dict, client_info: dict, context) -> dict:
+
+        for key, val in request.items():
+            if key in self.pass_thru:  # Claims that the OP should not modify
+                client_info[key] = val
+
+        # Add claims that are not in the request
+        cls = self.response_cls
+        for claim, val in context.claims.prefer.items():
+            rp_claim_name = PREFERRED2REGISTER.get(claim)
+            if rp_claim_name:
+                if rp_claim_name in self.pass_thru:
+                    continue
+
+                if rp_claim_name in request:
+                    if rp_claim_name not in client_info:
+                        client_info[rp_claim_name] = request[rp_claim_name]
+                        continue
+
+                _claims_spec = cls.c_param.get(rp_claim_name)
+                if not _claims_spec:
+                    continue
+
+                if isinstance(_claims_spec[0], list):
+                    if isinstance(val, list):
+                        client_info[rp_claim_name] = val
+                    else:
+                        client_info[rp_claim_name] = [val]
+                else:
+                    if isinstance(val, list):
+                        if val == []:
+                            continue
+                        # Need a reason for picking one value before another
+                        if rp_claim_name in cls.c_default:
+                            pass
+                        else:
+                            # Worst case scenario, pick the first
+                            client_info[rp_claim_name] = val[0]
+                    else:
+                        client_info[rp_claim_name] = val
+
+        return client_info
+
     def do_client_registration(self, request, client_id, ignore=None):
         if ignore is None:
             ignore = []
@@ -196,19 +276,7 @@ class Registration(Endpoint):
         _cinfo = _context.cdb[client_id].copy()
         logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
-        for key, val in request.items():
-            if key not in ignore:
-                _cinfo[key] = val
-
-        _uri = request.get("post_logout_redirect_uri")
-        if _uri:
-            if urlparse(_uri).fragment:
-                err = self.error_cls(
-                    error="invalid_configuration_parameter",
-                    error_description="post_logout_redirect_uri contains fragment",
-                )
-                return err
-            _cinfo["post_logout_redirect_uri"] = split_uri(_uri)
+        _cinfo = self._modify_client_info(request, _cinfo, _context)
 
         if "redirect_uris" in request:
             try:
@@ -245,15 +313,16 @@ class Registration(Endpoint):
                     error="invalid_configuration_parameter", error_description=str(err)
                 )
 
-        for item in ["policy_uri", "logo_uri", "tos_uri"]:
-            if item in request:
-                if verify_url(request[item], _cinfo["redirect_uris"]):
-                    _cinfo[item] = request[item]
-                else:
-                    return ResponseMessage(
-                        error="invalid_configuration_parameter",
-                        error_description="%s pointed to illegal URL" % item,
-                    )
+        if self.match_uris:
+            for item in RP_URI_CLAIMS:
+                if item in request:
+                    if verify_url(request[item], _cinfo["redirect_uris"]):
+                        _cinfo[item] = request[item]
+                    else:
+                        return ResponseMessage(
+                            error="invalid_configuration_parameter",
+                            error_description="%s pointed to illegal URL" % item,
+                        )
 
         _keyjar = self.upstream_get("attribute", "keyjar")
         # Do I have the necessary keys
@@ -279,7 +348,7 @@ class Registration(Endpoint):
                             logger.warning('Lacking support for "{}"'.format(request[item]))
                             del _cinfo[item]
 
-        t = {"jwks_uri": "", "jwks": None}
+        # t = {"jwks_uri": "", "jwks": None}
 
         _jwks_uri = request.get("jwks_uri")
         if _jwks_uri:
