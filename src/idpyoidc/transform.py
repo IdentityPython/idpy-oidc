@@ -49,9 +49,12 @@ REQUEST2REGISTER = {
     "post_logout_redirect_uri": "post_logout_redirect_uris",
 }
 
+# OIDC
 RP_URI_CLAIMS = ["policy_uri", "logo_uri", "tos_uri", "initiate_login_uri",
                  "post_logout_redirect_uri", "frontchannel_logout_uri",
                  "backchannel_logout_uri", "client_uri"]
+# OAUTH2
+CLIENT_URI_CLAIMS = ["jwks_uri", "client_uri", "logo_uri", "tos_uri", "policy_uri"]
 
 
 def supported_to_preferred(
