@@ -2,6 +2,7 @@ import base64
 from typing import Callable
 from typing import Optional
 from unittest.mock import MagicMock
+from urllib.parse import quote
 
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
@@ -162,6 +163,15 @@ class TestClientSecretBasic:
         with pytest.raises(ClientAuthenticationError):
             self.method.verify(authorization_token=authz_token)
 
+    def test_url_userid(self):
+        user = "https://entity.example.org"
+        passwd = "client_secret"
+
+        credentials = f"{quote(user)}:{quote(passwd)}"
+        token = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+        authz_token = "Basic {}".format(token)
+        res = basic_authn(authz_token)
+        assert res == {'id': 'https://entity.example.org', 'secret': 'client_secret'}
 
 class TestClientSecretPost:
 

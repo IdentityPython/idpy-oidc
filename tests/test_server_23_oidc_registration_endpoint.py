@@ -322,7 +322,8 @@ class TestEndpoint(object):
         _req["policy_uri"] = "https://client.example.org/policy.html"
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
         assert "error" not in _resp
-        # This not so much
+        # This not so much. Match_uri means check that they all belong to the same domain.
+        self.endpoint.match_uris = True
         _req["policy_uri"] = "https://example.com/policy.html"
         _resp = self.endpoint.process_request(request=RegistrationRequest(**_req))
         assert "error" in _resp

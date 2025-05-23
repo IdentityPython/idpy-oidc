@@ -3,6 +3,7 @@ import base64
 import logging
 from typing import Optional
 from typing import Union
+from urllib.parse import quote
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -127,7 +128,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         passwd = self._get_passwd(request, service, **kwargs)
         user = self._get_user(service, **kwargs)
 
-        credentials = f"{user}:{passwd}"
+        credentials = f"{quote(user)}:{quote(passwd)}"
         return base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
 
     @staticmethod
@@ -633,6 +634,7 @@ class PrivateKeyJWT(JWSAuthnMethod):
 
 
 class RequestParam(ClientAuthnMethod):
+
     def construct(self, request, service=None, http_args=None, **kwargs):
         request_object = construct_request_parameter(service, request, **kwargs)
         request["request"] = request_object

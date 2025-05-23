@@ -91,7 +91,7 @@ def test_quote():
 
     assert (
             http_args["headers"]["Authorization"] == "Basic "
-                                                     "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRait5cGNhbkZPQ2IwL0ZBNWg="
+                                                     "Nzk2ZDhmYWUtYTQyZi00ZTRmLWFiMjUtZDYyMDViNmQ0ZmEyOk1LRU0vQTdQa243SnVVMExBY3h5SFZLdndkY3pzdWdhUFUwQmllTGI0Q2JRQWdRaiUyQnlwY2FuRk9DYjAvRkE1aA=="
     )
 
 
@@ -109,7 +109,7 @@ class TestClientSecretBasic(object):
         _authz = http_args["headers"]["Authorization"]
         assert _authz.startswith("Basic ")
         _token = _authz.split(" ", 1)[1]
-        assert base64.urlsafe_b64decode(_token) == b"A:white boarding pass"
+        assert base64.urlsafe_b64decode(_token) == b"A:white%20boarding%20pass"
 
     def test_does_not_remove_padding(self):
         request = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
@@ -127,6 +127,17 @@ class TestClientSecretBasic(object):
         http_args = csb.construct(request, user="service1", password="secret")
 
         assert http_args["headers"]["Authorization"].startswith("Basic ")
+
+    def test_http_id(self):
+        request = AccessTokenRequest(code="foo", redirect_uri="http://example.com")
+
+        csb = ClientSecretBasic()
+        http_args = csb.construct(request, user="https://entity.example.org", password="client_secret")
+
+        _authz = http_args["headers"]["Authorization"]
+        assert _authz.startswith("Basic ")
+        _token = _authz.split(" ", 1)[1]
+        assert base64.urlsafe_b64decode(_token) == b'https%3A//entity.example.org:client_secret'
 
 
 class TestBearerHeader(object):

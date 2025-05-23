@@ -25,6 +25,24 @@ from ..message import Message
 
 logger = logging.getLogger(__name__)
 
+def conf_get(config, attr, default=None):
+    _res = config.get(attr, None)
+    if _res is None:
+        _conf = getattr(config, "conf")
+        if _conf:
+            _res = _conf.get(attr, None)
+            if _res is None:
+                _conf = getattr(_conf, "conf")
+                if _conf:
+                    _res = _conf.get(attr, None)
+                    if _res is None:
+                        return default
+            else:
+                return _res
+
+    else:
+        return _res
+
 
 class RPHandler(object):
 
@@ -51,7 +69,7 @@ class RPHandler(object):
         self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
         self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
         self.client_type = config.get("client_type", config.conf.get("client_type", ""))
-        self.client_configs = client_configs or config.get("client_configs", config.conf.get("client_configs", ""))
+        self.client_configs = client_configs or conf_get(config, "client_configs")
 
         if keyjar:
             self.keyjar = keyjar

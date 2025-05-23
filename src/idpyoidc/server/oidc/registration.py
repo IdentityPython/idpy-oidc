@@ -313,6 +313,12 @@ class Registration(Endpoint):
                     error="invalid_configuration_parameter", error_description=str(err)
                 )
 
+        _uri = request.get("post_logout_redirect_uri")
+        if _uri:
+            _up = urlparse(_uri)
+            if _up.fragment:
+                return self.error_cls(error="invalid_configuration_parameter", error_description="URI with fragment")
+
         if self.match_uris:
             for item in RP_URI_CLAIMS:
                 if item in request:

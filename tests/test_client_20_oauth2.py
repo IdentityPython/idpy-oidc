@@ -176,7 +176,7 @@ class TestClient2(object):
                 # this will create the jwks files if they are absent
                 "read_only": False,
             },
-            "clients": {
+            "client_configs": {
                 "service_1": {
                     "client_id": "client_1",
                     "client_secret": "abcdefghijklmnop",

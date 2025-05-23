@@ -422,7 +422,7 @@ class ServiceContext(ImpExp):
 
         return self.claims.use
 
-    def get_metadata_claim(self, claim, entity_type: Optional[List[str]] = ""):
+    def get_metadata_claim(self, claim, entity_type: Optional[List[str]] = "") -> Optional[dict]:
         if entity_type:
             for _type in entity_type:
                 _ent = self.server_metadata.get(_type, None)
@@ -436,4 +436,4 @@ class ServiceContext(ImpExp):
                 if _val:
                     return _val
 
-        return KeyError(f"{claim} not in {entity_type} metadata")
+        return None

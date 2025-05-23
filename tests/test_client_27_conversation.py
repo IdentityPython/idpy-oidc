@@ -125,7 +125,7 @@ def test_conversation():
         "scopes_supported": ["openid", "profile", "email", "address", "phone"],
         "request_object_signing_alg": "ES256",
         "request_uris": [f"{RP_BASEURL}/requests"],
-        "token_endpoint_auth_methods_supported": ["private_key_jwt"],
+        "token_endpoint_auth_methods_supported": ["private_key_jwt", "client_secret_basic"],
         "token_endpoint_auth_signing_alg_values_supported": ["ES256"],
         "userinfo_signing_alg_values_supported": ["ES256"],
         "post_logout_redirect_uri": "https://rp.example.com/post",
