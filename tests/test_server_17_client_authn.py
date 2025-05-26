@@ -2,7 +2,7 @@ import base64
 from typing import Callable
 from typing import Optional
 from unittest.mock import MagicMock
-from urllib.parse import quote
+from urllib.parse import quote_plus
 
 import pytest
 from cryptojwt.jws.exception import NoSuitableSigningKeys
@@ -167,11 +167,12 @@ class TestClientSecretBasic:
         user = "https://entity.example.org"
         passwd = "client_secret"
 
-        credentials = f"{quote(user)}:{quote(passwd)}"
+        credentials = f"{quote_plus(user)}:{quote_plus(passwd)}"
         token = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
         authz_token = "Basic {}".format(token)
         res = basic_authn(authz_token)
         assert res == {'id': 'https://entity.example.org', 'secret': 'client_secret'}
+
 
 class TestClientSecretPost:
 
@@ -384,7 +385,7 @@ class TestJWSAuthnMethod:
 
     def test_jws_authn_method_aud_iss(self):
         client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar,KEYJAR.export_jwks(private=True), CONF["issuer"])
+        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
         # The only own key the client has a this point
         client_keyjar.add_symmetric("", client_secret, ["sig"])
 

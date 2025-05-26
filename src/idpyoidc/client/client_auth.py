@@ -3,7 +3,7 @@ import base64
 import logging
 from typing import Optional
 from typing import Union
-from urllib.parse import quote
+from urllib.parse import quote_plus
 
 from cryptojwt.exception import MissingKey
 from cryptojwt.exception import UnsupportedAlgorithm
@@ -128,7 +128,7 @@ class ClientSecretBasic(ClientAuthnMethod):
         passwd = self._get_passwd(request, service, **kwargs)
         user = self._get_user(service, **kwargs)
 
-        credentials = f"{quote(user)}:{quote(passwd)}"
+        credentials = f"{quote_plus(user)}:{quote_plus(passwd)}"
         return base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
 
     @staticmethod
