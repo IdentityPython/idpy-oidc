@@ -4,7 +4,7 @@ from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Union
-from urllib.parse import unquote
+from urllib.parse import unquote_plus
 
 from cryptojwt.exception import BadSignature
 from cryptojwt.exception import Invalid
@@ -102,7 +102,7 @@ def basic_authn(authorization_token: str):
     # Will raise ValueError type exception if not base64 encoded
     _tok = base64.b64decode(_tok)
     # The hostname part may be an url
-    part = [unquote(p) for p in as_unicode(_tok).rsplit(":", 1)]
+    part = [unquote_plus(p) for p in as_unicode(_tok).rsplit(":", 1)]
     if len(part) != 2:
         raise ValueError("Illegal token")
 
