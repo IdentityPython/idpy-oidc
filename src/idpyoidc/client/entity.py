@@ -8,6 +8,7 @@ from cryptojwt import KeyJar
 from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_jar import init_key_jar
+from idpyoidc.util import conf_get
 
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.client_auth import method_to_item
@@ -48,7 +49,7 @@ def response_types_to_grant_types(response_types):
 
 
 def _set_jwks(service_context, config: Configuration, keyjar: Optional[KeyJar]):
-    _key_conf = config.get("key_conf") or config.conf.get("key_conf")
+    _key_conf = conf_get(config, "key_conf")
 
     if _key_conf:
         keys_args = {k: v for k, v in _key_conf.items() if k != "uri_path"}

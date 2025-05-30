@@ -14,6 +14,7 @@ from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
+from idpyoidc.util import conf_get
 
 from idpyoidc.claims import Claims
 from idpyoidc.claims import claims_dump
@@ -143,16 +144,16 @@ class ServiceContext(ImpExp):
 
         self.entity_id = kwargs.get("entity_id", kwargs.get("client_id", ""))
         if not self.entity_id:
-            self.entity_id = config.conf.get("entity_id", config.conf.get("client_id"))
+            self.entity_id = conf_get(config, "entity_id", conf_get(config, "client_id"))
 
         self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.allow = config.conf.get("allow", {})
-        self.base_url = base_url or config.conf.get("base_url", self.entity_id)
-        self.provider_info = config.conf.get("provider_info", {})
-        self.server_metadata = config.conf.get("server_metadata", EntityMetadata())
+        self.allow = conf_get(config, "allow", {})
+        self.base_url = base_url or conf_get(config, "base_url", self.entity_id)
+        self.provider_info = conf_get(config, "provider_info", {})
+        self.server_metadata = conf_get(config, "server_metadata", EntityMetadata())
 
         # Below so my IDE won't complain
         self.args = {}

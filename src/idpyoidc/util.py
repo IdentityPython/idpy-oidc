@@ -12,8 +12,8 @@ from urllib.parse import unquote_plus
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-from cryptojwt.utils import importer
 import yaml
+from cryptojwt.utils import importer
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,7 @@ def split_uri(uri: str) -> [str, Union[dict, None]]:
 
 
 class QPKey:
+
     def serialize(self, str):
         return quote_plus(str)
 
@@ -93,6 +94,7 @@ class QPKey:
 
 
 class JSON:
+
     def serialize(self, str):
         return json.dumps(str)
 
@@ -101,6 +103,7 @@ class JSON:
 
 
 class PassThru:
+
     def serialize(self, str):
         return str
 
@@ -109,6 +112,7 @@ class PassThru:
 
 
 class Base64(object):
+
     @staticmethod
     def serialize(str):
         return base64.b64encode(str.encode("utf-8")).decode("utf-8")
@@ -162,3 +166,25 @@ def qualified_name(cls):
         return cls.__module__ + "." + cls.name
     except AttributeError:
         return cls.__module__ + "." + cls.__name__
+
+
+def conf_get(config, attr, default=None):
+    _res = config.get(attr, None)
+    if _res is None:
+        _conf = getattr(config, "conf", None)
+        if _conf:
+            _res = _conf.get(attr, None)
+            if _res is None:
+                _conf = getattr(_conf, "conf", None)
+                if _conf:
+                    _res = _conf.get(attr, None)
+                    if _res is None:
+                        return default
+                else:
+                    return default
+            else:
+                return _res
+        else:
+            return default
+    else:
+        return _res

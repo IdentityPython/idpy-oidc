@@ -22,26 +22,9 @@ from .defaults import DEFAULT_KEY_DEFS
 from .oauth2 import Client
 from ..key_import import import_jwks
 from ..message import Message
+from ..util import conf_get
 
 logger = logging.getLogger(__name__)
-
-def conf_get(config, attr, default=None):
-    _res = config.get(attr, None)
-    if _res is None:
-        _conf = getattr(config, "conf")
-        if _conf:
-            _res = _conf.get(attr, None)
-            if _res is None:
-                _conf = getattr(_conf, "conf")
-                if _conf:
-                    _res = _conf.get(attr, None)
-                    if _res is None:
-                        return default
-            else:
-                return _res
-
-    else:
-        return _res
 
 
 class RPHandler(object):
@@ -66,9 +49,9 @@ class RPHandler(object):
             config = RPHConfiguration(config)
 
         self.base_url = base_url or config.get("base_url", config.get("entity_id", ""))
-        self.entity_id = config.get("entity_id", config.conf.get("entity_id", self.base_url))
-        self.entity_type = config.get("entity_type", config.conf.get("entity_type", ""))
-        self.client_type = config.get("client_type", config.conf.get("client_type", ""))
+        self.entity_id = conf_get(config, "entity_id", self.base_url)
+        self.entity_type = conf_get(config, "entity_type", "")
+        self.client_type = conf_get(config, "client_type", "")
         self.client_configs = client_configs or conf_get(config, "client_configs")
 
         if keyjar:
@@ -96,7 +79,7 @@ class RPHandler(object):
                 if _jwks_path:
                     self.jwks_uri = add_path(self.base_url, _jwks_path)
 
-            _c_class = config.get("client_class", config.conf.get("client_class"))
+            _c_class = conf_get(config, "client_class")
             if _c_class:
                 if isinstance(_c_class, str):
                     self.client_cls = importer(_c_class)
@@ -133,7 +116,7 @@ class RPHandler(object):
         self.extra = kwargs
 
         if services is None:
-            services = config.get("services", config.conf.get("services", None))
+            services = conf_get(config, "services", None)
 
         if services is None:
             self.services = DEFAULT_OIDC_SERVICES

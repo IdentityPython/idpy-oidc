@@ -3,6 +3,8 @@ import logging
 from typing import List
 from typing import Optional
 
+from idpyoidc.util import conf_get
+
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
@@ -105,7 +107,7 @@ class Authorization(Service):
         elif flow_type == "form_post":
             rm = context.get_preference("response_modes_supported")
             if rm and "form_post" in rm:
-                if context.config.conf.get("separate_form_post_cb", True):
+                if conf_get(context.config, "separate_form_post_cb", True):
                     return "form_post"
                 else:
                     return "query"

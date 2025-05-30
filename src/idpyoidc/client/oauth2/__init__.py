@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 
 from cryptojwt.key_jar import KeyJar
+from idpyoidc.util import conf_get
 
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import ConfigurationError
@@ -105,10 +106,7 @@ class Client(Entity):
 
         self.httpc = httpc or request
 
-        if isinstance(config, Configuration):
-            _add_ons = config.conf.get("add_ons")
-        else:
-            _add_ons = config.get("add_ons")
+        _add_ons = conf_get(config, "add_ons")
 
         if _add_ons:
             do_add_ons(_add_ons, self._service)
