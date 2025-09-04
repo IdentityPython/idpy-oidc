@@ -82,7 +82,7 @@ class ClaimsInterface:
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
 
-        add_claims_always = _cdb[client_id].get("add_claims", {}).get("always", {})
+        add_claims_always = add_claims.get("always") or {}
         _always_add = add_claims_always.get(claims_release_point, [])
         if secondary_identifier:
             _always_2 = add_claims_always.get(secondary_identifier, [])
