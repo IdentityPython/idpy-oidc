@@ -193,6 +193,7 @@ class TestTransform:
             "post_logout_redirect_uri",
             "grant_types",
             "response_modes",  # Extra item
+            'token_endpoint_auth_signing_alg'
         }
 
         # Which ones are list -> singletons

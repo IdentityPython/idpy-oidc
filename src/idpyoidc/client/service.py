@@ -9,6 +9,7 @@ from typing import Union
 from urllib.parse import urlparse
 
 from cryptojwt.jwe.jwe import factory as jwe_factory
+from cryptojwt.jws.jws import factory
 from cryptojwt.jws.jws import factory as jws_factory
 from cryptojwt.jwt import JWT
 
@@ -59,6 +60,7 @@ class Service(ImpExp):
     request_body_type = "urlencoded"
     response_body_type = "json"
     content_type = ""
+    payload_type = ""
 
     parameter = {
         "default_authn_method": None,
@@ -558,16 +560,24 @@ class Service(ImpExp):
 
         _jwt = JWT(key_jar=self.upstream_get("attribute", "keyjar"), **args)
         _jwt.iss = _context.get_client_id()
+        if self.payload_type:
+            _jws = factory(info)
+            if _jws.jwt.headers['typ'] != self.payload_type:
+                raise ValueError(f"Payload type not matching: {self.payload_type} != {_jws.jwt.headers['typ']}")
         return _jwt.unpack(info)
 
     def _do_response(self, info, sformat, **kwargs):
-        _context = self.upstream_get("context")
-
         if isinstance(info, list):  # Don't have support for sformat=list
             return info
 
+        _context = self.upstream_get("context")
         try:
-            resp = self.response_cls().deserialize(info, sformat, iss=_context.issuer, **kwargs)
+            _iss = _context.issuer
+        except AttributeError:
+            _iss = info["iss"]
+
+        try:
+            resp = self.response_cls().deserialize(info, sformat, iss=_iss, **kwargs)
         except Exception as err:
             LOGGER.error("Error while deserializing: %s (1 pass)", err)
             resp = None

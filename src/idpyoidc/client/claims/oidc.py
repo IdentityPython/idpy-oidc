@@ -29,7 +29,7 @@ REGISTER2PREFERRED = {
     "grant_types": "grant_types_supported",
     # In OAuth2 but not in OIDC
     "scope": "scopes_supported",
-    "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
+    # "token_endpoint_auth_signing_alg": "token_endpoint_auth_signing_alg_values_supported",
     # "display": "display_values_supported",
     # "claims": "claims_supported",
     # "request": "request_parameter_supported",
