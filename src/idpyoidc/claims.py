@@ -181,13 +181,16 @@ class Claims(ImpExp):
             configuration: dict,
             supports: dict,
             keyjar: Optional[KeyJar] = None,
-            entity_id: Optional[str] = ""
+            entity_id: Optional[str] = "",
+            metadata_class: Optional[type(Message)] = None
     ) -> KeyJar:
         unsupported = []
         for attr, val in configuration.items():
             if attr in ["preference", "capabilities"]:
                 for k, v in val.items():
                     if k in supports:
+                        self.set_preference(k, v)
+                    elif metadata_class and k in metadata_class.c_param:
                         self.set_preference(k, v)
                     else:
                         unsupported.append(k)

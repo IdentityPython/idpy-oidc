@@ -117,6 +117,7 @@ class EndpointContext(OidcContext):
             entity_id: Optional[str] = "",
             keyjar: Optional[KeyJar] = None,
             claims_class: Optional[Claims] = None,
+            metadata_class: Optional[Message] = None
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -239,7 +240,7 @@ class EndpointContext(OidcContext):
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
         _supports = self.supports()
-        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar)
+        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
 
         # INTERFACES
 

@@ -182,7 +182,8 @@ class ServiceContext(ImpExp):
             setattr(self, key, val)
 
         self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar,
-                                            entity_id=self.entity_id)
+                                            entity_id=self.entity_id,
+                                            metadata_class=kwargs.get("metadata_class",None))
 
         _jwks_uri = self.provider_info.get("jwks_uri")
         if _jwks_uri:

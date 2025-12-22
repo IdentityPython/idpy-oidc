@@ -315,7 +315,7 @@ class TestTransform2:
             "contacts": ["ve7jtb@example.org", "mary@example.org"],
         }
 
-        self.claims.load_conf(preference, self.supported)
+        self.claims.load_conf(preference, self.supported, metadata_class=RegistrationRequest)
 
     def test_registration_response(self):
         OP_BASEURL = "https://example.com"

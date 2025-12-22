@@ -374,7 +374,7 @@ class RPHandler(object):
         issuer = client.do_provider_info(behaviour_args=behaviour_args)
 
         logger.debug("Do client registration")
-        client.do_client_registration(behaviour_args=behaviour_args)
+        client.do_client_registration(behaviour_args=behaviour_args, issuer=iss_id)
 
         self.issuer2rp[issuer] = client
         return client

@@ -21,8 +21,8 @@ from idpyoidc.exception import NotForMe
 from idpyoidc.key_import import add_kb
 from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Claims
@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class StandAloneClient(Client):
+
     def get_session_information(self, key):
         """
         This is the second of the methods users of this class should know about.
@@ -49,8 +50,8 @@ class StandAloneClient(Client):
         return self.get_context().cstate.get(key)
 
     def do_provider_info(
-        self,
-        behaviour_args: Optional[dict] = None,
+            self,
+            behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Either get the provider info from configuration or through dynamic
@@ -107,18 +108,17 @@ class StandAloneClient(Client):
             return _context.issuer
 
     def do_client_registration(
-        self,
-        request_args: Optional[dict] = None,
-        behaviour_args: Optional[dict] = None,
+            self,
+            request_args: Optional[dict] = None,
+            behaviour_args: Optional[dict] = None,
+            issuer: Optional[str] = ""
     ):
         """
         Prepare for and do client registration if configured to do so
 
-        :param iss_id: Issuer ID
+        :param issuer: Issuer ID
         :param behaviour_args: To fine tune behaviour
-        :param client: A Client instance
-        :param state: A key by which the state of the session can be
-            retrieved
+        :param request_args: Client registration request arguments
         """
 
         logger.debug(20 * "*" + " do_client_registration " + 20 * "*")
@@ -176,9 +176,9 @@ class StandAloneClient(Client):
             return None
 
     def init_authorization(
-        self,
-        req_args: Optional[dict] = None,
-        behaviour_args: Optional[dict] = None,
+            self,
+            req_args: Optional[dict] = None,
+            behaviour_args: Optional[dict] = None,
     ) -> str:
         """
         Constructs the URL that will redirect the user to the authorization
@@ -443,10 +443,10 @@ class StandAloneClient(Client):
         return authorization_response
 
     def get_access_and_id_token(
-        self,
-        authorization_response: Optional[Message] = None,
-        state: Optional[str] = "",
-        behaviour_args: Optional[dict] = None,
+            self,
+            authorization_response: Optional[Message] = None,
+            state: Optional[str] = "",
+            behaviour_args: Optional[dict] = None,
     ):
         """
         There are a number of services where access tokens and ID tokens can
@@ -649,9 +649,9 @@ class StandAloneClient(Client):
                 raise OidcServiceError("No valid access token")
 
     def logout(
-        self,
-        state: str,
-        post_logout_redirect_uri: Optional[str] = "",
+            self,
+            state: str,
+            post_logout_redirect_uri: Optional[str] = "",
     ) -> dict:
         """
         Does an RP initiated logout from an OP. After logout the user will be
