@@ -133,14 +133,15 @@ class ServiceContext(ImpExp):
         self.config = config
         self.upstream_get = upstream_get
 
-        if not client_type or client_type == "oidc":
+        self.client_type = client_type or "oidc"
+        if self.client_type == "oidc":
             self.claims = OIDC_Specs()
-        elif client_type == "oauth2":
+        elif self.client_type == "oauth2":
             self.claims = OAUTH2_Specs()
-        elif client_type == "oauth2resource":
+        elif self.client_type == "oauth2resource":
             self.claims = OAUTH2RESOURCE_Specs()
         else:
-            raise ValueError(f"Unknown client type: {client_type}")
+            raise ValueError(f"Unknown client type: {self.client_type}")
 
         self.entity_id = kwargs.get("entity_id", kwargs.get("client_id", ""))
         if not self.entity_id:
