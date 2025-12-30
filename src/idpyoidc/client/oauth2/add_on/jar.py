@@ -10,21 +10,20 @@ logger = logging.getLogger(__name__)
 DEFAULT_EXPIRES_IN = 3600
 
 
-def store_request_on_file(service, req, **kwargs):
+def store_request_on_file(context, service, req, **kwargs):
     """
     Stores the request parameter in a file.
     :param req: The request
     :param kwargs: Extra keyword arguments
     :return: The URL the OP should use to access the file
     """
-    _context = service.upstream_get("context")
-    _webname = _context.get_usage("request_uris")
+    _webname = context.get_usage("request_uris")
     if _webname is None:
         filename, _webname = construct_request_uri(**kwargs)
     else:
         # webname should be a list
         _webname = _webname[0]
-        filename = _context.filename_from_webname(_webname)
+        filename = context.filename_from_webname(_webname)
 
     fid = open(filename, mode="w")
     fid.write(req)
@@ -32,7 +31,7 @@ def store_request_on_file(service, req, **kwargs):
     return _webname
 
 
-def jar_post_construct(request_args, service, **kwargs):
+def jar_post_construct(context, request_args, service, **kwargs):
     """
     Modify the request arguments.
 
@@ -41,7 +40,6 @@ def jar_post_construct(request_args, service, **kwargs):
     :param kwargs: Extra keyword arguments
     :return: A possibly modified request.
     """
-    _context = service.upstream_get("context")
 
     # Overrides what's in the configuration
     _request_param = kwargs.get("request_param")
@@ -49,8 +47,8 @@ def jar_post_construct(request_args, service, **kwargs):
     if _request_param:
         del kwargs["request_param"]
     else:
-        _jar_config = _context.add_on["jar"]
-        if "request_uri" in _context.add_on["jar"]:
+        _jar_config = context.add_on["jar"]
+        if "request_uri" in context.add_on["jar"]:
             _request_param = "request_uri"
             _local_dir = _jar_config.get("requests_dir", "./requests")
         elif "request_parameter" in _jar_config:
@@ -59,14 +57,14 @@ def jar_post_construct(request_args, service, **kwargs):
     _req = None  # just a flag
     _state = request_args["state"]
     if _request_param == "request_uri":
-        kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
+        kwargs["base_path"] = context.get("base_url") + "/" + "requests"
         if _local_dir:
             kwargs["local_dir"] = _local_dir
         else:
             kwargs["local_dir"] = kwargs.get("requests_dir", "./requests")
 
         _req = construct_request_parameter(service, request_args, _request_param, **kwargs)
-        request_args["request_uri"] = store_request_on_file(service, _req, **kwargs)
+        request_args["request_uri"] = store_request_on_file(context, service, _req, **kwargs)
     elif _request_param == "request":
         _req = construct_request_parameter(service, request_args, **kwargs)
         request_args["request"] = _req
@@ -78,12 +76,13 @@ def jar_post_construct(request_args, service, **kwargs):
         for k in _keys:
             del request_args[k]
 
-    _context.cstate.update(_state, request_args)
+    context.cstate.update(_state, request_args)
 
     return request_args
 
 
 def add_support(
+        context,
         service,
         request_type: Optional[str] = "request_parameter",
         request_dir: Optional[str] = "",
@@ -101,7 +100,6 @@ def add_support(
     """
     if "authorization" in service:
         _service = service["authorization"]
-        _context = _service.upstream_get("context")
 
         _service.post_construct.append(jar_post_construct)
         args = {
@@ -131,6 +129,6 @@ def add_support(
                     f"An encryption enc {request_object_encryption_enc} there is no support for"
                 )
 
-        _context.add_on["jar"] = args
+        context.add_on["jar"] = args
     else:
         logger.warning("JAR support could NOT be added")

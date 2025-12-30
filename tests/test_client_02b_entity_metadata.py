@@ -55,7 +55,8 @@ KEY_CONF = {
 
 def test_create_client():
     client = Entity(config=CLIENT_CONFIG, client_type="oidc")
-    _context = client.get_context()
+    # issuer == '' is the default context. The bases for all the others
+    _context = client.context[""]
     _context.map_supported_to_preferred()
     _pref = _context.prefers()
     _pref_with_values = [k for k, v in _pref.items() if v]
@@ -85,7 +86,7 @@ def test_create_client():
     }
 
     # What's in service configuration has higher priority then what's just supported.
-    _context = client.get_service_context()
+    # _context = client.get_service_context()
     assert _context.get_preference("contacts") == "support@example.com"
     #
     assert _context.get_preference("userinfo_signing_alg_values_supported") == ["ES256"]
@@ -130,7 +131,7 @@ def test_create_client_key_conf():
     client_config.update({"key_conf": KEY_CONF, "jwks_uri": "https://example.com/keys/jwks.json"})
 
     client = Entity(config=client_config, client_type="oidc")
-    assert client.get_service_context().get_preference("jwks_uri")
+    assert client.context[''].get_preference("jwks_uri")
 
 
 def test_create_client_keyjar():
@@ -138,7 +139,7 @@ def test_create_client_keyjar():
     client_config = CLIENT_CONFIG.copy()
 
     client = Entity(config=client_config, keyjar=_keyjar, client_type="oidc")
-    _jwks = client.get_service_context().get_preference("jwks")
+    _jwks = client.context[''].get_preference("jwks")
     assert _jwks
 
 
@@ -146,17 +147,17 @@ def test_create_client_jwks_uri():
     client_config = CLIENT_CONFIG.copy()
     client_config["jwks_uri"] = "https://rp.example.com/jwks_uri.json"
     client = Entity(config=client_config)
-    assert client.get_service_context().get_preference("jwks_uri")
+    assert client.context[''].get_preference("jwks_uri")
 
 
 def test_metadata():
     client = Entity(config=CLIENT_CONFIG, client_type="oidc")
     # With entity type
-    metadata = client.context.claims.get_client_metadata("openid_relying_party",
+    metadata = client.context[''].claims.get_client_metadata("openid_relying_party",
                                                   metadata_schema=RegistrationRequest)
     assert set(metadata.keys()) == {"openid_relying_party"}
     # Without entity type, no endpoints. Typical client
-    metadata = client.context.claims.get_client_metadata(metadata_schema=RegistrationRequest)
+    metadata = client.context[''].claims.get_client_metadata(metadata_schema=RegistrationRequest)
     assert set(metadata.keys()) == {'application_type',
                                     'backchannel_logout_session_required',
                                     'backchannel_logout_uri',

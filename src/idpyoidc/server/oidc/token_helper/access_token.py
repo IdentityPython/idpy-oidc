@@ -33,17 +33,17 @@ class AccessTokenHelper(TokenEndpointHelper):
         logger.debug(f"Session info: {_session_info}")
         return _session_info, _access_code
 
-    def process_request(self, req: Union[Message, dict], **kwargs):
+    def process_request(self, context, req: Union[Message, dict], **kwargs):
         """
 
         :param req:
         :param kwargs:
         :return:
         """
-        _context = self.endpoint.upstream_get("context")
 
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         logger.debug("OIDC Access Token")
+        token = None
 
         _session_info, _access_code = self._get_session_info(req, _mngr)
         logger.debug(f"Session info: {_session_info}")
@@ -54,17 +54,17 @@ class AccessTokenHelper(TokenEndpointHelper):
             logger.warning("{} using token it was not given".format(req["client_id"]))
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        if "grant_types_supported" in _context.cdb[client_id]:
-            grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        if "grant_types_supported" in context.cdb[client_id]:
+            grant_types_supported = context.cdb[client_id].get("grant_types_supported")
         else:
-            grant_types_supported = _context.provider_info.get("grant_types", [])
+            grant_types_supported = context.provider_info.get("grant_types", [])
         grant = _session_info["grant"]
 
         token_type = "Bearer"
 
         # Is DPOP supported
         _dpop_enabled = False
-        _dpop_args = _context.add_on.get("dpop")
+        _dpop_args = context.add_on.get("dpop")
         if _dpop_args:
             _dpop_enabled = True
 
@@ -79,7 +79,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         _authn_req = grant.authorization_request
 
-        # Check if refresh_token is at the client's grant_types_supported 
+        # Check if refresh_token is at the client's grant_types_supported
         # but not in global configuration then we should grant it
         if "refresh_token" in grant_types_supported and "refresh_token" not in _supports_minting:
             _supports_minting.append("refresh_token")
@@ -107,6 +107,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "access_token" in _supports_minting:
             try:
                 token = self._mint_token(
+                    context,
                     token_class="access_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -126,6 +127,7 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _based_on.used -= 1
             try:
                 refresh_token = self._mint_token(
+                    context,
                     token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -167,7 +169,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens
@@ -177,7 +179,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = self.endpoint.upstream_get("context").session_manager
+        _mngr = context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"

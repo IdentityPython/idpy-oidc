@@ -55,17 +55,16 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
     def __init__(self, upstream_get, conf=None):
         server_metadata.ServerMetadata.__init__(self, upstream_get, conf=conf)
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
-        _context = self.upstream_get("context")
-        self._update_service_context(resp)
-        _context.map_supported_to_preferred(resp)
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
+        self._update_service_context(context, resp)
+        context.map_supported_to_preferred(resp)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
             _jwks = self.upstream_get("attribute", "keyjar").export_jwks_as_json(
                 issuer=resp["issuer"]
             )
             logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))
 
-    def match_preferences(self, pcr=None, issuer=None):
+    def match_preferences(self, context, pcr=None, issuer=None):
         """
         Match the clients supports against what the provider can do.
         This is to prepare for later client registration and/or what
@@ -78,10 +77,9 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
         :param pcr: Provider configuration response if available
         :param issuer: The issuer identifier
         """
-        _context = self.upstream_get("context")
         if not pcr:
-            pcr = _context.provider_info
+            pcr = context.provider_info
 
-        prefers = _context.map_supported_to_preferred(pcr)
+        prefers = context.map_supported_to_preferred(pcr)
 
         logger.debug("Entity prefers: {}".format(prefers))

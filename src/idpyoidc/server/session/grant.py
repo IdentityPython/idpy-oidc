@@ -12,13 +12,12 @@ from idpyoidc.server.authn_event import AuthnEvent
 from idpyoidc.server.session.token import TOKEN_MAP
 from idpyoidc.server.token import Token as TokenHandler
 from idpyoidc.util import importer
-
-from ...message.oauth2 import TokenExchangeRequest
-from ...util import qualified_name
 from . import MintingNotAllowed
 from .claims import claims_match
 from .token import Item
 from .token import SessionToken
+from ...message.oauth2 import TokenExchangeRequest
+from ...util import qualified_name
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +31,11 @@ class GrantMessage(ImpExp):
     }
 
     def __init__(
-        self,
-        scope: Optional[str] = "",
-        authorization_details: Optional[dict] = None,
-        claims: Optional[list] = None,
-        resources: Optional[list] = None,
+            self,
+            scope: Optional[str] = "",
+            authorization_details: Optional[dict] = None,
+            claims: Optional[list] = None,
+            resources: Optional[list] = None,
     ):
         ImpExp.__init__(self)
         self.scope = scope
@@ -105,24 +104,24 @@ class Grant(Item):
     }
 
     def __init__(
-        self,
-        scope: Optional[list] = None,
-        claims: Optional[dict] = None,
-        resources: Optional[list] = None,
-        authorization_details: Optional[dict] = None,
-        authorization_request: Optional[Message] = None,
-        authentication_event: Optional[AuthnEvent] = None,
-        issued_token: Optional[list] = None,
-        usage_rules: Optional[dict] = None,
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        revoked: bool = False,
-        token_map: Optional[dict] = None,
-        sub: Optional[str] = "",
-        extra: Optional[Dict[str, str]] = None,
-        remember_token: Optional[Callable] = None,
-        remove_inactive_token: Optional[bool] = False,
+            self,
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            authorization_details: Optional[dict] = None,
+            authorization_request: Optional[Message] = None,
+            authentication_event: Optional[AuthnEvent] = None,
+            issued_token: Optional[list] = None,
+            usage_rules: Optional[dict] = None,
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            revoked: bool = False,
+            token_map: Optional[dict] = None,
+            sub: Optional[str] = "",
+            extra: Optional[Dict[str, str]] = None,
+            remember_token: Optional[Callable] = None,
+            remove_inactive_token: Optional[bool] = False,
     ):
         Item.__init__(
             self,
@@ -183,14 +182,14 @@ class Grant(Item):
         return False
 
     def payload_arguments(
-        self,
-        session_id: str,
-        context: object,
-        item: SessionToken,
-        claims_release_point: str,
-        scope: Optional[dict] = None,
-        extra_payload: Optional[dict] = None,
-        secondary_identifier: str = "",
+            self,
+            context,
+            session_id: str,
+            item: SessionToken,
+            claims_release_point: str,
+            scope: Optional[dict] = None,
+            extra_payload: Optional[dict] = None,
+            secondary_identifier: str = "",
     ) -> dict:
         """
 
@@ -244,7 +243,8 @@ class Grant(Item):
 
         if _claims_restriction and context.session_manager.node_type[0] == "user":
             user_id, client_id, _ = context.session_manager.decrypt_branch_id(session_id)
-            user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction, client_id=client_id)
+            user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction,
+                                                                 client_id=client_id)
             payload.update(user_info)
 
         # Should I add the acr value
@@ -256,19 +256,19 @@ class Grant(Item):
         return payload
 
     def mint_token(
-        self,
-        session_id: str,
-        context: object,
-        token_class: str,
-        token_handler: TokenHandler = None,
-        based_on: Optional[SessionToken] = None,
-        usage_rules: Optional[dict] = None,
-        scope: Optional[list] = None,
-        token_type: Optional[str] = "",
-        expires_in: Optional[int] = 0,
-        not_before: Optional[int] = 0,
-        claims: Optional[List[str]] = None,
-        **kwargs,
+            self,
+            context,
+            session_id: str,
+            token_class: str,
+            token_handler: TokenHandler = None,
+            based_on: Optional[SessionToken] = None,
+            usage_rules: Optional[dict] = None,
+            scope: Optional[list] = None,
+            token_type: Optional[str] = "",
+            expires_in: Optional[int] = 0,
+            not_before: Optional[int] = 0,
+            claims: Optional[List[str]] = None,
+            **kwargs,
     ) -> Optional[SessionToken]:
         """
 
@@ -367,8 +367,8 @@ class Grant(Item):
                 item.session_id = session_id
 
             token_payload = self.payload_arguments(
-                session_id,
                 context,
+                session_id,
                 item=item,
                 claims_release_point=claims_release_point,
                 scope=scope,
@@ -397,7 +397,7 @@ class Grant(Item):
         return None
 
     def revoke_token(
-        self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True
+            self, value: Optional[str] = "", based_on: Optional[str] = "", recursive: bool = True
     ):
         remain = []
         for t in self.issued_token:
@@ -463,13 +463,13 @@ DEFAULT_USAGE = {
 }
 
 
-def get_usage_rules(token_type, context, grant, client_id):
+def get_usage_rules(context, token_type, grant, client_id):
     """
     The order of importance:
     Grant, Client, EndPointContext, Default
 
-    :param token_type: The type of token
     :param context: An EndpointContext instance
+    :param token_type: The type of token
     :param grant: A Grant instance
     :param client_id: The client identifier
     :return: Usage specification
@@ -492,24 +492,24 @@ class ExchangeGrant(Grant):
     type = "exchange_grant"
 
     def __init__(
-        self,
-        scope: Optional[list] = None,
-        claims: Optional[dict] = None,
-        resources: Optional[list] = None,
-        authorization_details: Optional[dict] = None,
-        authorization_request: Optional[Message] = None,
-        authentication_event: Optional[AuthnEvent] = None,
-        issued_token: Optional[list] = None,
-        usage_rules: Optional[dict] = None,
-        exchange_request: Optional[TokenExchangeRequest] = None,
-        original_branch_id: str = "",
-        issued_at: int = 0,
-        expires_in: int = 0,
-        expires_at: int = 0,
-        revoked: bool = False,
-        token_map: Optional[dict] = None,
-        users: list = None,
-        sub: Optional[str] = "",
+            self,
+            scope: Optional[list] = None,
+            claims: Optional[dict] = None,
+            resources: Optional[list] = None,
+            authorization_details: Optional[dict] = None,
+            authorization_request: Optional[Message] = None,
+            authentication_event: Optional[AuthnEvent] = None,
+            issued_token: Optional[list] = None,
+            usage_rules: Optional[dict] = None,
+            exchange_request: Optional[TokenExchangeRequest] = None,
+            original_branch_id: str = "",
+            issued_at: int = 0,
+            expires_in: int = 0,
+            expires_at: int = 0,
+            revoked: bool = False,
+            token_map: Optional[dict] = None,
+            users: list = None,
+            sub: Optional[str] = "",
     ):
         Grant.__init__(
             self,
@@ -537,14 +537,14 @@ class ExchangeGrant(Grant):
         self.original_branch_id = original_branch_id
 
     def payload_arguments(
-        self,
-        session_id: str,
-        endpoint_context,
-        item: SessionToken,
-        claims_release_point: str,
-        scope: Optional[dict] = None,
-        extra_payload: Optional[dict] = None,
-        secondary_identifier: str = "",
+            self,
+            endpoint_context,
+            session_id: str,
+            item: SessionToken,
+            claims_release_point: str,
+            scope: Optional[dict] = None,
+            extra_payload: Optional[dict] = None,
+            secondary_identifier: str = "",
     ) -> dict:
         """
         :param session_id: Session ID
@@ -598,7 +598,8 @@ class ExchangeGrant(Grant):
             )
 
         user_id, client_id, _ = endpoint_context.session_manager.decrypt_session_id(session_id)
-        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction, client_id)
+        user_info = endpoint_context.claims_interface.get_user_claims(user_id, _claims_restriction,
+                                                                      client_id)
         payload.update(user_info)
 
         # Should I add the acr value

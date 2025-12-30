@@ -38,13 +38,13 @@ class AccessToken(Service):
         Service.__init__(self, upstream_get, conf=conf, **kwargs)
         self.pre_construct.append(self.oauth_pre_construct)
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
+    def update_service_context(self, resp, context, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
         if key:
-            self.upstream_get("context").cstate.update(key, resp)
+            context.cstate.update(key, resp)
 
-    def oauth_pre_construct(self, request_args=None, post_args=None, **kwargs):
+    def oauth_pre_construct(self, context, request_args=None, post_args=None, **kwargs):
         """
 
         :param request_args: Initial set of request arguments
@@ -54,8 +54,7 @@ class AccessToken(Service):
         _state = get_state_parameter(request_args, kwargs)
         parameters = list(self.msg_type.c_param.keys())
 
-        _context = self.upstream_get("context")
-        _args = _context.cstate.get_set(_state, claim=parameters)
+        _args = context.cstate.get_set(_state, claim=parameters)
 
         if "grant_type" not in _args:
             _args["grant_type"] = "authorization_code"

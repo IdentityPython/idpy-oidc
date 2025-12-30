@@ -47,12 +47,11 @@ class TokenExchangeHelper(TokenEndpointHelper):
         else:
             self.config = config
 
-    def post_parse_request(self, request, client_id="", **kwargs):
+    def post_parse_request(self, context, request, client_id="", **kwargs):
         request = TokenExchangeRequest(**request.to_dict())
 
-        _context = self.endpoint.upstream_get("context")
-        if "token_exchange" in _context.cdb[request["client_id"]]:
-            config = _context.cdb[request["client_id"]]["token_exchange"]
+        if "token_exchange" in context.cdb[request["client_id"]]:
+            config = context.cdb[request["client_id"]]["token_exchange"]
         else:
             config = self.config
 
@@ -70,7 +69,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         self._validate_configuration(config)
 
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         try:
             # token exchange is about minting one token based on another
             _handler_key = self.token_types_mapping[request["subject_token_type"]]
@@ -95,7 +94,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
             return resp
 
         scopes = resp.get("scope", [])
-        scopes = _context.scopes_handler.filter_scopes(scopes, client_id=resp["client_id"])
+        scopes = context.scopes_handler.filter_scopes(scopes, client_id=resp["client_id"])
 
         if not scopes:
             logger.error("All requested scopes have been filtered out.")
@@ -115,8 +114,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         return resp
 
-    def _enforce_policy(self, request, token, config):
-        _context = self.endpoint.upstream_get("context")
+    def _enforce_policy(self, context, request, token, config):
         subject_token_types_supported = config.get(
             "subject_token_types_supported", self.token_types_mapping.keys()
         )
@@ -143,7 +141,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         request_info = dict(scope=request.get("scope", token.scope))
         try:
-            check_unknown_scopes_policy(request_info, request["client_id"], _context)
+            check_unknown_scopes_policy(request_info, request["client_id"], context)
         except UnAuthorizedClientScope:
             return self.error_cls(
                 error="invalid_grant",
@@ -186,9 +184,8 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         return TokenExchangeResponse(**response_args)
 
-    def process_request(self, request, **kwargs):
-        _context = self.endpoint.upstream_get("context")
-        _mngr = _context.session_manager
+    def process_request(self, context, request, **kwargs):
+        _mngr = context.session_manager
         try:
             _handler_key = self.token_types_mapping[request["subject_token_type"]]
             _session_info = _mngr.get_session_info_by_token(
@@ -217,13 +214,13 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         _token_type = "Bearer"
         # Is DPOP supported
-        if "dpop_signing_alg_values_supported" in _context.provider_info:
+        if "dpop_signing_alg_values_supported" in context.provider_info:
             if request.get("dpop_jkt"):
                 _token_type = "DPoP"
         scopes = request.get("scope", [])
 
         if request["client_id"] != _session_info["client_id"]:
-            _token_usage_rules = _context.authz.usage_rules(request["client_id"])
+            _token_usage_rules = context.authz.usage_rules(request["client_id"])
 
             sid = _mngr.create_exchange_session(
                 exchange_request=request,
@@ -255,6 +252,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         try:
             new_token = self._mint_token(
+                context,
                 token_class=_token_class,
                 grant=_session_info["grant"],
                 session_id=sid,

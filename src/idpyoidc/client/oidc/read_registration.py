@@ -17,13 +17,13 @@ class RegistrationRead(Service):
     http_method = "GET"
     default_authn_method = "client_secret_basic"
 
-    def get_endpoint(self):
+    def get_endpoint(self, context, server_entity_id=''):
         try:
-            return self.upstream_get("context").registration_response["registration_client_uri"]
+            return context.registration_response["registration_client_uri"]
         except KeyError:
             return ""
 
-    def get_authn_header(self, request, authn_method, **kwargs):
+    def get_authn_header(self, context, request, authn_method, **kwargs):
         """
         Construct an authorization specification to be sent in the
         HTTP header.
@@ -38,7 +38,7 @@ class RegistrationRead(Service):
         if authn_method == "client_secret_basic":
             LOGGER.debug("Client authn method: %s", authn_method)
             headers["Authorization"] = "Bearer {}".format(
-                self.upstream_get("context").registration_response["registration_access_token"]
+                context.registration_response["registration_access_token"]
             )
 
         return headers

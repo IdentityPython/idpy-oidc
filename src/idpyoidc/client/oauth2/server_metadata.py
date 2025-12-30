@@ -31,23 +31,20 @@ class ServerMetadata(Service):
     def __init__(self, upstream_get, conf=None):
         Service.__init__(self, upstream_get, conf=conf)
 
-    def get_endpoint(self):
+    def get_endpoint(self, context):
         """
         Find the issuer ID and from it construct the service endpoint
 
         :return: Service endpoint
         """
-        try:
-            _iss = self.upstream_get("attribute","issuer")
-        except AttributeError:
-            _iss = self.endpoint
 
-        if _iss.endswith("/"):
-            return self.url_pattern.format(_iss[:-1])
 
-        return self.url_pattern.format(_iss)
+        if context.issuer.endswith("/"):
+            return self.url_pattern.format(context.issuer[:-1])
 
-    def get_request_parameters(self, method="GET", **kwargs):
+        return self.url_pattern.format(context.issuer)
+
+    def get_request_parameters(self, context, method="GET", **kwargs):
         """
         The Provider info discovery version of get_request_parameters()
 
@@ -55,7 +52,7 @@ class ServerMetadata(Service):
         :param kwargs:
         :return:
         """
-        return {"url": self.get_endpoint(), "method": method}
+        return {"url": self.get_endpoint(context), "method": method}
 
     def _verify_issuer(self, resp, issuer):
         _pcr_issuer = resp["issuer"]
@@ -97,7 +94,7 @@ class ServerMetadata(Service):
                 if _srv:
                     _srv.endpoint = val
 
-    def _update_service_context(self, resp):
+    def _update_service_context(self, context, resp):
         """
         Deal with Provider Config Response. Based on the provider info
         response a set of parameters in different places needs to be set.
@@ -106,16 +103,15 @@ class ServerMetadata(Service):
         :param service_context: Information collected/used by services
         """
 
-        _context = self.upstream_get("context")
         # Verify that the issuer value received is the same as the
         # url that was used as service endpoint (without the .well-known part)
         if "issuer" in resp:
-            _pcr_issuer = self._verify_issuer(resp, _context.issuer)
+            _pcr_issuer = self._verify_issuer(resp, context.issuer)
         else:  # No prior knowledge
-            _pcr_issuer = _context.issuer
+            _pcr_issuer = context.issuer
 
-        _context.issuer = _pcr_issuer
-        _context.provider_info = resp
+        context.issuer = _pcr_issuer
+        context.provider_info = resp
 
         self._set_endpoints(resp)
 
@@ -159,7 +155,7 @@ class ServerMetadata(Service):
             _info = resp.to_dict()
         else:
             _info = resp
-        _context.map_service_against_endpoint(_info)
+        context.map_service_against_endpoint(_info)
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
-        return self._update_service_context(resp)
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
+        return self._update_service_context(context, resp)

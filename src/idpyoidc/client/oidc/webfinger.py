@@ -40,7 +40,7 @@ class WebFinger(Service):
 
         self.rel = rel or OIC_ISSUER
 
-    def update_service_context(self, resp, key="", **kwargs):
+    def update_service_context(self, context, resp, key="", **kwargs):
         try:
             links = resp["links"]
         except KeyError:
@@ -49,13 +49,12 @@ class WebFinger(Service):
             for link in links:
                 if link["rel"] == self.rel:
                     _href = link["href"]
-                    _context = self.upstream_get("service_context")
-                    _http_allowed = "http_links" in _context.get("allow", default={})
+                    _http_allowed = "http_links" in context.get("allow", default={})
 
                     if _href.startswith("http://") and not _http_allowed:
                         raise ValueError("http link not allowed ({})".format(_href))
 
-                    self.upstream_get("context").issuer = link["href"]
+                    context.issuer = link["href"]
                     break
         return resp
 
@@ -138,7 +137,7 @@ class WebFinger(Service):
         location = WF_URL.format(authority)
         return oidc.WebFingerRequest(resource=resource, rel=OIC_ISSUER).request(location)
 
-    def get_request_parameters(self, request_args=None, **kwargs):
+    def get_request_parameters(self, context, request_args=None, **kwargs):
 
         if request_args is None:
             request_args = {}
@@ -150,7 +149,7 @@ class WebFinger(Service):
                 _resource = kwargs["resource"]
             except KeyError:
                 try:
-                    _resource = self.upstream_get("context").config["resource"]
+                    _resource = context.config["resource"]
                 except KeyError:
                     raise MissingRequiredAttribute("resource")
 

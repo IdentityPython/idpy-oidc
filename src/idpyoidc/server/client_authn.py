@@ -43,6 +43,7 @@ class ClientAuthnMethod(object):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
@@ -172,6 +173,7 @@ class ClientSecretBasic(ClientAuthnMethod):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
@@ -179,8 +181,7 @@ class ClientSecretBasic(ClientAuthnMethod):
             **kwargs,
     ):
         client_info = basic_authn(authorization_token)
-        _context = self.upstream_get("context")
-        if _context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
+        if context.cdb[client_info["id"]]["client_secret"] == client_info["secret"]:
             return {"client_id": client_info["id"]}
         else:
             raise ClientAuthenticationError()
@@ -205,14 +206,14 @@ class ClientSecretPost(ClientSecretBasic):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             http_info: Optional[dict] = None,
             **kwargs,
     ):
-        _context = self.upstream_get("context")
-        if _context.cdb[request["client_id"]]["client_secret"] == request["client_secret"]:
+        if context.cdb[request["client_id"]]["client_secret"] == request["client_secret"]:
             return {"client_id": request["client_id"]}
         else:
             raise ClientAuthenticationError("secrets doesn't match")
@@ -230,6 +231,7 @@ class BearerHeader(ClientSecretBasic):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
@@ -239,11 +241,10 @@ class BearerHeader(ClientSecretBasic):
     ):
         logger.debug(f"Client Auth method: {self.tag}")
         token = authorization_token.split(" ", 1)[1]
-        _context = self.upstream_get("context")
         client_id = ""
         if get_client_id_from_token:
             try:
-                client_id = get_client_id_from_token(_context, token, request)
+                client_id = get_client_id_from_token(context, token, request)
             except ToOld:
                 raise BearerTokenAuthenticationError("Expired token")
             except KeyError:
@@ -268,6 +269,7 @@ class BearerBody(ClientSecretPost):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
@@ -280,8 +282,7 @@ class BearerBody(ClientSecretPost):
             raise ClientAuthenticationError("No access token")
 
         res = {"token": _token}
-        _context = self.upstream_get("context")
-        _client_id = get_client_id_from_token(_context, _token, request)
+        _client_id = get_client_id_from_token(context, _token, request)
         if _client_id:
             res["client_id"] = _client_id
         return res
@@ -298,6 +299,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
@@ -305,7 +307,6 @@ class JWSAuthnMethod(ClientAuthnMethod):
             http_info: Optional[dict] = None,
             **kwargs,
     ):
-        _context = self.upstream_get("context")
         _keyjar = self.upstream_get("attribute", "keyjar")
         _jwt = JWT(_keyjar, msg_cls=JsonWebToken)
         try:
@@ -319,7 +320,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             if key_type == "private_key":
                 raise AttributeError("Wrong key type")
             keys = _keyjar.get("sig", "oct", ca_jwt["iss"], ca_jwt.jws_header.get("kid"))
-            _secret = _context.cdb[ca_jwt["iss"]].get("client_secret")
+            _secret = context.cdb[ca_jwt["iss"]].get("client_secret")
             if _secret and keys[0].key != as_bytes(_secret):
                 raise AttributeError("Oct key used for signing not client_secret")
         else:
@@ -330,7 +331,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         logger.debug("authntoken: {}".format(authtoken))
 
         if endpoint is None or not endpoint:
-            if _context.issuer in ca_jwt["aud"]:
+            if context.issuer in ca_jwt["aud"]:
                 pass
             else:
                 raise InvalidToken("Not for me!")
@@ -344,10 +345,10 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _jti = ca_jwt.get("jti")
         if _jti:
             _key = "{}:{}".format(ca_jwt["iss"], _jti)
-            if _key in _context.jti_db:
+            if _key in context.jti_db:
                 raise InvalidToken("Have seen this token once before")
             else:
-                _context.jti_db[_key] = utc_time_sans_frac()
+                context.jti_db[_key] = utc_time_sans_frac()
 
         request[verified_claim_name("client_assertion")] = ca_jwt
         client_id = kwargs.get("client_id") or ca_jwt["iss"]
@@ -415,13 +416,13 @@ class RequestParam(ClientAuthnMethod):
 
     def _verify(
             self,
+            context,
             request: Optional[Union[dict, Message]] = None,
             authorization_token: Optional[str] = None,
             endpoint=None,  # Optional[Endpoint]
             http_info: Optional[dict] = None,
             **kwargs,
     ):
-        _context = self.upstream_get("context")
         _jwt = JWT(self.upstream_get("attribute", "keyjar"), msg_cls=JsonWebToken)
         try:
             _jwt = _jwt.unpack(request["request"])
@@ -433,10 +434,10 @@ class RequestParam(ClientAuthnMethod):
         _jti = _jwt.get("jti")
         if _jti:
             _key = "{}:{}".format(_jwt["iss"], _jti)
-            if _key in _context.jti_db:
+            if _key in context.jti_db:
                 raise InvalidToken("Have seen this token once before")
             else:
-                _context.jti_db[_key] = utc_time_sans_frac()
+                context.jti_db[_key] = utc_time_sans_frac()
 
         request[verified_claim_name("client_assertion")] = _jwt
         client_id = kwargs.get("client_id") or _jwt["iss"]
@@ -449,11 +450,11 @@ class PushedAuthorization(ClientAuthnMethod):
     # pushed authorization endpoint
     tag = "pushed_authz"
 
-    def is_usable(self, request=None, authorization_token=None, http_info: Optional[dict] = None):
+    def is_usable(self, context, request=None, authorization_token=None,
+                  http_info: Optional[dict] = None):
         _request_uri = request.get("request_uri", None)
         if _request_uri:
-            _context = self.upstream_get("context")
-            if _request_uri.startswith("urn:uuid:") and _request_uri in _context.par_db:
+            if _request_uri.startswith("urn:uuid:") and _request_uri in context.par_db:
                 return True
 
     def _verify(
@@ -493,6 +494,7 @@ def valid_client_secret(cinfo):
 
 
 def verify_client(
+        context,
         request: Union[dict, Message],
         http_info: Optional[dict] = None,
         get_client_id_from_token: Optional[Callable] = None,
@@ -522,8 +524,7 @@ def verify_client(
 
     auth_info = {}
 
-    _context = endpoint.upstream_get("context")
-    methods = getattr(_context, "client_authn_methods", None)
+    methods = getattr(context, "client_authn_methods", None)
 
     client_id = None
     allowed_methods = getattr(endpoint, "client_authn_method")
@@ -536,7 +537,8 @@ def verify_client(
     _cdb = _cinfo = None
     _tested = []
     for _method in (methods[meth] for meth in allowed_methods):
-        if not _method.is_usable(request=request, authorization_token=authorization_token, http_info=http_info):
+        if not _method.is_usable(request=request, authorization_token=authorization_token,
+                                 http_info=http_info):
             logger.debug(f"'{_method.tag}' not usable")
             continue
         try:
@@ -573,7 +575,7 @@ def verify_client(
         if _get_client_info:
             _cinfo = _get_client_info(client_id, endpoint)
         else:
-            _cdb = getattr(_context, "cdb", None)
+            _cdb = getattr(context, "cdb", None)
             try:
                 _cinfo = _cdb[client_id]
             except KeyError:

@@ -1,8 +1,11 @@
 import logging
+from typing import List
 from typing import Optional
 from typing import Union
 
 from cryptojwt import JWT
+from cryptojwt import KeyJar
+from cryptojwt.jwk.asym import AsymmetricKey
 
 from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.service import Service
@@ -27,10 +30,10 @@ def get_state_parameter(request_args, kwargs):
 
 
 def pick_redirect_uri(
-    context,
-    request_args: Optional[Union[Message, dict]] = None,
-    response_type: Optional[str] = "",
-    response_mode: Optional[str] = "",
+        context,
+        request_args: Optional[Union[Message, dict]] = None,
+        response_type: Optional[str] = "",
+        response_mode: Optional[str] = "",
 ):
     if request_args is None:
         request_args = {}
@@ -89,24 +92,25 @@ def pick_redirect_uri(
 
 
 def pre_construct_pick_redirect_uri(
-    request_args: Optional[Union[Message, dict]] = None, service: Optional[Service] = None, **kwargs
+        context,
+        request_args: Optional[Union[Message, dict]] = None,
+        service: Optional[Service] = None,
+        **kwargs
 ):
-    request_args["redirect_uri"] = pick_redirect_uri(
-        service.upstream_get("context"), request_args=request_args
-    )
+    request_args["redirect_uri"] = pick_redirect_uri(context, request_args=request_args)
     return request_args, {}
 
 
-def set_state_parameter(request_args=None, **kwargs):
+def set_state_parameter(context, request_args=None, **kwargs):
     """Assigned a state value."""
     request_args["state"] = get_state_parameter(request_args, kwargs)
     return request_args, {"state": request_args["state"]}
 
-def set_request_object(service, request_args):
+
+def set_request_object(context, service, request_args):
     # construct a signed request object
-    _context = service.upstream_get("context")
-    if _context.keyjar:
-        _jwt = JWT(key_jar=_context.keyjar)
+    if context.keyjar:
+        _jwt = JWT(key_jar=context.keyjar)
     else:
         _jwt = JWT(key_jar=service.upstream_get("attribute", "keyjar"))
 
@@ -117,3 +121,40 @@ def set_request_object(service, request_args):
 
     # construct the message body
     return _request_object
+
+
+def get_keyjar_chain(item) -> list:
+    """
+    Returns a list of Key Jars.
+
+    :param item: An item, can be a service, a context, a client or ...
+    """
+    res = []
+    if item.upstream_get:
+        _thing = item.upstream_get('unit')
+        if _thing:
+            _partial_res = get_keyjar_chain(_thing)
+            if _partial_res:
+                res.extend(_partial_res)
+
+    _keyjar = getattr(item, "keyjar")
+    if _keyjar:
+        res.append(_keyjar)
+    return res
+
+
+def get_asymetric_keys_from_keyjar_chain(keyjar_chain: List[KeyJar],
+                                         key_usages: List[str],
+                                         owner: Optional[str] = '',
+                                         key_type: Optional[str] = '',
+                                         kid: Optional[str] = None) -> list:
+    keys = []
+    for keyjar in keyjar_chain:
+        for usage in key_usages:
+            _keys = keyjar.get(key_use=usage, key_type=key_type, issuer_id=owner, kid=kid)
+            if _keys:
+                _async_keys = [k for k in _keys if isinstance(k, AsymmetricKey)]
+                if _async_keys: # May have to check if the key is already in the list of keys
+                    keys.extend(_async_keys)
+
+    return keys

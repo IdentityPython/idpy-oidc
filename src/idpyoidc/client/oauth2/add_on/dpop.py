@@ -168,7 +168,7 @@ def dpop_header(
     return headers
 
 
-def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=None):
+def add_support(context, services, dpop_signing_alg_values_supported, with_dpop_header=None):
     """
     Add the necessary pieces to make DPoP happen.
 
@@ -182,15 +182,14 @@ def add_support(services, dpop_signing_alg_values_supported, with_dpop_header=No
 
     _service = services[with_dpop_header[0]]
     # Add to Context
-    _context = _service.upstream_get("context")
     _algs_supported = [
         alg for alg in dpop_signing_alg_values_supported if alg in get_signing_algs()
     ]
-    _context.add_on["dpop"] = {
+    context.add_on["dpop"] = {
         # "key": key_by_alg(signing_algorithm),
         "algs_supported": _algs_supported
     }
-    _context.set_preference("dpop_signing_alg_values_supported", _algs_supported)
+    context.set_preference("dpop_signing_alg_values_supported", _algs_supported)
 
     # Add dpop HTTP header to requests by these services
     for _srv in with_dpop_header:

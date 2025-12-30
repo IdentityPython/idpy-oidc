@@ -6,12 +6,11 @@ from cryptojwt.jws.exception import JWSException
 from cryptojwt.jws.jws import factory
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
-from idpyoidc.message import Message
 
+from idpyoidc.message import Message
 from idpyoidc.server.construct import construct_provider_info
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.session.claims import claims_match
-
 from . import Token
 from . import UnknownToken
 from . import is_expired
@@ -117,11 +116,11 @@ class IDToken(Token):
     }
 
     def __init__(
-        self,
-        token_class: Optional[str] = "id_token",
-        lifetime: Optional[int] = 300,
-        upstream_get: Callable = None,
-        **kwargs,
+            self,
+            token_class: Optional[str] = "id_token",
+            lifetime: Optional[int] = 300,
+            upstream_get: Callable = None,
+            **kwargs,
     ):
         Token.__init__(self, token_class, **kwargs)
         self.lifetime = lifetime
@@ -131,13 +130,14 @@ class IDToken(Token):
         self.provider_info = construct_provider_info(self._supports, **kwargs)
 
     def payload(
-        self,
-        session_id,
-        alg="RS256",
-        code=None,
-        access_token=None,
-        extra_claims=None,
-        user_info=None,
+            self,
+            context,
+            session_id,
+            alg="RS256",
+            code=None,
+            access_token=None,
+            extra_claims=None,
+            user_info=None,
     ):
         """
         Collect payload for the ID Token.
@@ -150,8 +150,7 @@ class IDToken(Token):
         :return: IDToken instance
         """
 
-        _context = self.upstream_get("context")
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         session_information = _mngr.get_session_info(session_id, grant=True)
         grant = session_information["grant"]
         _args = {"sub": grant.sub, "sid": session_id}
@@ -166,7 +165,7 @@ class IDToken(Token):
             if _claims_restriction == {}:
                 user_info = None
             else:
-                user_info = _context.claims_interface.get_user_claims(
+                user_info = context.claims_interface.get_user_claims(
                     user_id=session_information["user_id"],
                     claims_restriction=_claims_restriction,
                     client_id=session_information["client_id"]
@@ -211,16 +210,17 @@ class IDToken(Token):
         return _args
 
     def sign_encrypt(
-        self,
-        session_id,
-        client_id,
-        code=None,
-        access_token=None,
-        sign=True,
-        encrypt=False,
-        lifetime=None,
-        extra_claims=None,
-        user_info=None,
+            self,
+            context,
+            session_id,
+            client_id,
+            code=None,
+            access_token=None,
+            sign=True,
+            encrypt=False,
+            lifetime=None,
+            extra_claims=None,
+            user_info=None,
     ) -> str:
         """
         Signed and or encrypt a IDToken
@@ -236,11 +236,9 @@ class IDToken(Token):
         :return: IDToken as a signed and/or encrypted JWT
         """
 
-        _context = self.upstream_get("context")
-
-        client_info = _context.cdb[client_id]
+        client_info = context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(
-            _context, client_info, "id_token", sign=sign, encrypt=encrypt
+            context, client_info, "id_token", sign=sign, encrypt=encrypt
         )
 
         pack_args = {}
@@ -251,6 +249,7 @@ class IDToken(Token):
                 pack_args = {"aud": _aud}
 
         _payload = self.payload(
+            context,
             session_id=session_id,
             alg=alg_dict["sign_alg"],
             code=code,
@@ -264,7 +263,7 @@ class IDToken(Token):
 
         _jwt = JWT(
             self.upstream_get("attribute", "keyjar"),
-            iss=_context.issuer,
+            iss=context.issuer,
             lifetime=lifetime,
             **alg_dict,
         )
@@ -272,27 +271,27 @@ class IDToken(Token):
         return _jwt.pack(_payload, recv=client_id, **pack_args)
 
     def __call__(
-        self,
-        session_id: Optional[str] = "",
-        ttype: Optional[str] = "",
-        encrypt=False,
-        code=None,
-        access_token=None,
-        usage_rules: Optional[dict] = None,
-        **kwargs,
+            self,
+            context,
+            session_id: Optional[str] = "",
+            ttype: Optional[str] = "",
+            encrypt=False,
+            code=None,
+            access_token=None,
+            usage_rules: Optional[dict] = None,
+            **kwargs,
     ) -> str:
-        _context = self.upstream_get("context")
 
         try:
             del kwargs["client_id"]
         except KeyError:
             pass
 
-        user_id, client_id, grant_id = _context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = context.session_manager.decrypt_session_id(session_id)
 
         # Should I add session ID ? This is about Single Logout.
-        if include_session_id(_context, client_id, "back") or include_session_id(
-            _context, client_id, "front"
+        if include_session_id(context, client_id, "back") or include_session_id(
+                context, client_id, "front"
         ):
 
             xargs = {"sid": session_id}
@@ -305,6 +304,7 @@ class IDToken(Token):
             lifetime = self.lifetime
 
         id_token = self.sign_encrypt(
+            context,
             session_id,
             client_id,
             sign=True,
@@ -318,7 +318,7 @@ class IDToken(Token):
 
         return id_token
 
-    def info(self, token):
+    def info(self, context, token):
         """
         Return type of Token (A=Access code, T=Token, R=Refresh token) and
         the session id.
@@ -327,16 +327,14 @@ class IDToken(Token):
         :return: tuple of token type and session id
         """
 
-        _context = self.upstream_get("context")
-
         _jwt = factory(token)
         if not _jwt:
             raise InvalidToken("Not valid token")
 
         _payload = _jwt.jwt.payload()
         client_id = _payload["aud"][0]
-        client_info = _context.cdb[client_id]
-        alg_dict = get_sign_and_encrypt_algorithms(_context, client_info, "id_token", sign=True)
+        client_info = context.cdb[client_id]
+        alg_dict = get_sign_and_encrypt_algorithms(context, client_info, "id_token", sign=True)
 
         verifier = JWT(
             key_jar=self.upstream_get("attribute", "keyjar"), allowed_sign_algs=alg_dict["sign_alg"]

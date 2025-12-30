@@ -22,9 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
-    def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.upstream_get("context")
-        _mngr = _context.session_manager
+    def process_request(self, context, req: Union[Message, dict], **kwargs):
+        _mngr = context.session_manager
 
         if req["grant_type"] != "refresh_token":
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
@@ -129,7 +128,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -140,7 +139,6 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.upstream_get("context")
 
         try:
             request.verify(
@@ -149,7 +147,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         except MissingRequiredAttribute as e:
             return self.error_cls(error="invalid_grant", error_description=str(e))
 
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["refresh_token"], handler_key="refresh_token", grant=True

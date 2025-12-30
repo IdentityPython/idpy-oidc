@@ -34,7 +34,7 @@ class AccessToken(access_token.AccessToken):
         access_token.AccessToken.__init__(self, upstream_get, conf=conf)
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
+            self, context, response: Optional[Union[dict, Message]] = None,
             behaviour_args: Optional[dict] = None
     ):
         """
@@ -42,22 +42,21 @@ class AccessToken(access_token.AccessToken):
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.upstream_get("context")
         _entity = self.upstream_get("unit")
 
-        _client_id = _entity.get_client_id()
+        _client_id = _entity.get_client_id(context)
         if not _client_id:
-            _client_id = _context.get_client_id()
+            _client_id = context.get_client_id()
 
         kwargs = {
             "client_id": _client_id,
-            "iss": _context.issuer,
+            "iss": context.issuer,
             "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
-            "skew": _context.clock_skew,
+            "skew": context.clock_skew,
         }
 
-        _reg_resp = _context.registration_response
+        _reg_resp = context.registration_response
         if _reg_resp:
             for attr, param in IDT2REG.items():
                 try:
@@ -66,19 +65,19 @@ class AccessToken(access_token.AccessToken):
                     pass
 
         try:
-            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
+            kwargs["allow_missing_kid"] = context.allow["missing_kid"]
         except KeyError:
             pass
 
-        _verify_args = _context.claims.get_usage("verify_args")
+        _verify_args = context.claims.get_usage("verify_args")
         if _verify_args:
             if _verify_args:
                 kwargs.update(_verify_args)
 
         return kwargs
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
-        _cstate = self.upstream_get("context").cstate
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
+        _cstate = context.cstate
         try:
             _idt = resp[verified_claim_name("id_token")]
         except KeyError:

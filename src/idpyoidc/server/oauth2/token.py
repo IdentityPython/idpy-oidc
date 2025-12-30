@@ -94,16 +94,16 @@ class Token(Endpoint):
         return _helper
 
     def _get_helper(
-        self, request: Union[Message, dict], client_id: Optional[str] = ""
+        self, context, request: Union[Message, dict], client_id: Optional[str] = ""
     ) -> Optional[Union[Message, TokenEndpointHelper]]:
         grant_type = request.get("grant_type")
         if grant_type:
             _client_id = client_id or request.get("client_id")
             if client_id:
-                client = self.upstream_get("context").cdb[client_id]
+                client = context.cdb[client_id]
                 _grant_types_supported = client.get(
                     "grant_types_supported",
-                    self.upstream_get("context").claims.get_claim("grant_types_supported", []),
+                    context.claims.get_claim("grant_types_supported", []),
                 )
                 if grant_type not in _grant_types_supported:
                     return self.error_cls(
@@ -119,9 +119,9 @@ class Token(Endpoint):
             )
 
     def _post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
-        _resp = self._get_helper(request, client_id)
+        _resp = self._get_helper(context, request, client_id)
         if isinstance(_resp, TokenEndpointHelper):
             return _resp.post_parse_request(request, client_id, **kwargs)
         elif _resp:
@@ -132,7 +132,7 @@ class Token(Endpoint):
                 error_description=f"Do not know how to handle this type of request",
             )
 
-    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
+    def process_request(self, context, request: Optional[Union[Message, dict]] = None, **kwargs):
         """
 
         :param request:
@@ -146,7 +146,7 @@ class Token(Endpoint):
             return self.error_cls(error="invalid_request")
 
         try:
-            _helper = self._get_helper(request)
+            _helper = self._get_helper(context, request)
             if _helper:
                 response_args = _helper.process_request(request, **kwargs)
             else:
@@ -163,21 +163,20 @@ class Token(Endpoint):
             return response_args
 
         _access_token = response_args["access_token"]
-        _context = self.upstream_get("context")
 
         if isinstance(_helper, self.token_exchange_helper):
-            _handler_key = _helper.get_handler_key(request, _context)
+            _handler_key = _helper.get_handler_key(context, request)
         else:
             _handler_key = "access_token"
 
-        _session_info = _context.session_manager.get_session_info_by_token(
+        _session_info = context.session_manager.get_session_info_by_token(
             _access_token, grant=True, handler_key=_handler_key
         )
 
-        _cookie = _context.new_cookie(
-            name=_context.cookie_handler.name["session"],
+        _cookie = context.new_cookie(
+            name=context.cookie_handler.name["session"],
             sub=_session_info["grant"].sub,
-            sid=_context.session_manager.session_key(
+            sid=context.session_manager.session_key(
                 _session_info["user_id"],
                 _session_info["client_id"],
                 _session_info["grant"].id,

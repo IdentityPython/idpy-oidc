@@ -32,10 +32,9 @@ class ProviderConfiguration(Endpoint):
 
         return request
 
-    def process_request(self, request=None, **kwargs):
-        # return {"response_args": self.upstream_get("context").provider_info}
+    def process_request(self, context, request=None, **kwargs):
         _schema = self.upstream_get("attribute", "metadata_schema")
-        _args = self.upstream_get("context").claims.get_server_metadata(metadata_schema=_schema)
+        _args = context.claims.get_server_metadata(metadata_schema=_schema)
         # add issuer
         _args["issuer"] = self.upstream_get("attribute", "entity_id")
         # add endpoints

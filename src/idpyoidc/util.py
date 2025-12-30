@@ -174,17 +174,9 @@ def conf_get(config, attr, default=None):
         _conf = getattr(config, "conf", None)
         if _conf:
             _res = _conf.get(attr, None)
-            if _res is None:
-                _conf = getattr(_conf, "conf", None)
-                if _conf:
-                    _res = _conf.get(attr, None)
-                    if _res is None:
-                        return default
-                else:
-                    return default
-            else:
+            if _res:
                 return _res
-        else:
-            return default
+
+        return default
     else:
         return _res

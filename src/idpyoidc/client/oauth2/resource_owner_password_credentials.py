@@ -25,7 +25,7 @@ class ROPCAccessTokenRequest(Service):
         self.pre_construct.append(self.ropc_pre_construct)
 
     def ropc_pre_construct(
-        self, request: Union[Message, dict], service: Service, post_args: Optional[dict], **_args
+        self, context, request: Union[Message, dict], service: Service, post_args: Optional[dict], **_args
     ):
         _grant_type = request.get("grant_type")
         if not _grant_type:
@@ -35,7 +35,7 @@ class ROPCAccessTokenRequest(Service):
 
         return request, post_args
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.upstream_get("context").cstate.update(key, resp)
+        context.cstate.update(key, resp)

@@ -32,5 +32,5 @@ class ServerMetadata(Endpoint):
 
         return request
 
-    def process_request(self, request=None, **kwargs):
-        return {"response_args": self.upstream_get("context").provider_info}
+    def process_request(self, context, request=None, **kwargs):
+        return {"response_args": context.provider_info}

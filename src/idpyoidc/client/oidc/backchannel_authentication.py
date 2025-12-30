@@ -46,7 +46,7 @@ class ClientNotification(Service):
 class ClientNotificationAuthn(ClientAuthnMethod):
     """The bearer header authentication method."""
 
-    def construct(self, request=None, service=None, http_args=None, **kwargs):
+    def construct(self, context, request=None, service=None, http_args=None, **kwargs):
         """
         Constructing the Authorization header. The value of
         the Authorization header is "Bearer <access_token>".

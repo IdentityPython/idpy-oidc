@@ -37,7 +37,7 @@ class TestService:
         )
 
         self.service = self.entity.get_service("authorization")
-        self.service_context = self.entity.get_service_context()
+        self.service_context = self.entity.context['']
         self.service_context.map_supported_to_preferred()
 
     def upstream_get(self, *args):
@@ -71,7 +71,7 @@ class TestService:
 
     def test_gather_request_args(self):
         self.service.conf["request_args"] = {"response_type": "code"}
-        args = self.service.gather_request_args(state="state")
+        args = self.service.gather_request_args(issuer='', state="state")
         assert args == {
             "response_type": "code",
             "state": "state",
@@ -81,7 +81,7 @@ class TestService:
         }
 
         self.service_context.set_usage("client_id", "client")
-        args = self.service.gather_request_args(state="state")
+        args = self.service.gather_request_args(issuer='', state="state")
         assert args == {
             "client_id": "client",
             "response_type": "code",
@@ -91,7 +91,7 @@ class TestService:
         }
 
         self.service_context.set_usage("scope", ["openid", "foo"])
-        args = self.service.gather_request_args(state="state")
+        args = self.service.gather_request_args(issuer='', state="state")
         assert args == {
             "client_id": "client",
             "response_type": "code",
@@ -101,7 +101,7 @@ class TestService:
         }
 
         self.service_context.set_usage("redirect_uri", "https://rp.example.com")
-        args = self.service.gather_request_args(state="state")
+        args = self.service.gather_request_args(issuer='', state="state")
         assert args == {
             "client_id": "client",
             "redirect_uri": "https://rp.example.com",
@@ -198,9 +198,9 @@ class TestAuthorization(object):
         _info = self.service.get_request_parameters(request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = Message().from_urlencoded(self.service.get_urlinfo(_info["url"]))
-        self.service.upstream_get("service_context").cstate.set(_state, msg)
+        self.service.upstream_get("context").cstate.set(_state, msg)
 
         resp1 = AuthorizationResponse(code="auth_grant", state=_state)
         response = self.service.parse_response(resp1.to_urlencoded(), "urlencoded", state=_state)
         self.service.update_service_context(response, key=_state)
-        assert self.service.upstream_get("service_context").cstate.get(_state)
+        assert self.service.upstream_get("context").cstate.get(_state)

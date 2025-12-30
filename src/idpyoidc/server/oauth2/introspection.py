@@ -35,7 +35,7 @@ class Introspection(Endpoint):
         self.offset = kwargs.get("offset", 0)
         self.enforce_aud_restriction = kwargs.get("enforce_audience_restriction", True)
 
-    def _introspect(self, token, client_id, grant):
+    def _introspect(self, context, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
         if token.token_class not in ["access_token", "refresh_token"]:
             return None
@@ -54,7 +54,6 @@ class Introspection(Endpoint):
         if not aud:
             aud = grant.resources
 
-        _context = self.upstream_get("context")
         ret = {
             "active": True,
             "scope": " ".join(scope),
@@ -63,7 +62,7 @@ class Introspection(Endpoint):
             "exp": token.expires_at,
             "iat": token.issued_at,
             "sub": grant.sub,
-            "iss": _context.issuer,
+            "iss": context.issuer,
         }
 
         try:
@@ -78,15 +77,15 @@ class Introspection(Endpoint):
             ret["aud"] = aud
 
         token_args = {}
-        for meth in _context.token_args_methods:
-            token_args = meth(_context, client_id, token_args)
+        for meth in context.token_args_methods:
+            token_args = meth(context, client_id, token_args)
 
         if token_args:
             ret.update(token_args)
 
         return ret
 
-    def process_request(self, request=None, release: Optional[list] = None, **kwargs):
+    def process_request(self, context, request=None, release: Optional[list] = None, **kwargs):
         """
 
         :param request: The authorization request as a dictionary
@@ -100,10 +99,9 @@ class Introspection(Endpoint):
 
         request_token = _introspect_request["token"]
         _resp = self.response_cls(active=False)
-        _context = self.upstream_get("context")
 
         try:
-            _session_info = _context.session_manager.get_session_info_by_token(
+            _session_info = context.session_manager.get_session_info_by_token(
                 request_token, grant=True
             )
         except (UnknownToken, WrongTokenClass, ToOld):
@@ -118,7 +116,7 @@ class Introspection(Endpoint):
 
         client_id = request["client_id"]
         try:
-            _cinfo = _context.cdb[client_id]
+            _cinfo = context.cdb[client_id]
             enforce_aud_restriction = _cinfo.get(
                 "enforce_audience_restriction", self.enforce_aud_restriction
             )
@@ -128,7 +126,8 @@ class Introspection(Endpoint):
             if request["client_id"] not in aud:
                 return {"response_args": _resp}
 
-        _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
+        _info = self._introspect(context, _token, _session_info["client_id"],
+                                 _session_info["grant"])
         if _info is None:
             return {"response_args": _resp}
 
@@ -142,11 +141,11 @@ class Introspection(Endpoint):
         _resp.update(_info)
         _resp.weed()
 
-        _claims_restriction = _context.claims_interface.get_claims(
+        _claims_restriction = context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"
         )
         if _claims_restriction:
-            user_info = _context.claims_interface.get_user_claims(
+            user_info = context.claims_interface.get_user_claims(
                 _session_info["user_id"], _claims_restriction, client_id=_session_info["client_id"]
             )
             if user_info:

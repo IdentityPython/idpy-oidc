@@ -157,24 +157,17 @@ class Claims(ImpExp):
                     keyjar: Optional[KeyJar] = None,
                     entity_id: Optional[str] = ""):
         logger.debug(f"configuration: {configuration}")
-        _jwks = _jwks_uri = None
+
+        keyjar = KeyJar()
+
         _id = self.get_id(configuration)
-        keyjar, uri_path = self._keyjar(keyjar, configuration, entity_id=_id)
+        _key = configuration.get("client_secret")
+        if _key:
+            keyjar.add_symmetric(issuer="", key=_key)
+            if _id:
+                keyjar.add_symmetric(issuer=_id, key=_key)
 
-        _kj = self.add_extra_keys(keyjar, _id)
-        if keyjar is None and _kj:
-            keyjar = _kj
-
-        # now that keys are in the Key Jar, now for how to publish it
-        if "jwks_uri" in configuration:  # simple
-            _jwks_uri = configuration.get("jwks_uri")
-        elif uri_path:
-            _base_url = self.get_base_url(configuration, entity_id=entity_id)
-            _jwks_uri = add_path(_base_url, uri_path)
-        else:  # jwks or nothing
-            _jwks = self.get_jwks(keyjar)
-
-        return {"keyjar": keyjar, "jwks": _jwks, "jwks_uri": _jwks_uri}
+        return keyjar
 
     def load_conf(
             self,
@@ -199,11 +192,7 @@ class Claims(ImpExp):
 
         self.locals(configuration)
 
-        for key, val in self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id).items():
-            if key == "keyjar":
-                keyjar = val
-            elif val:
-                self.set_preference(key, val)
+        keyjar = self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id)
 
         for attr, val in supports.items():
             if attr not in self.prefer and val is not None:

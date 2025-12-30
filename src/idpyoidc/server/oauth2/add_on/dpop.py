@@ -223,11 +223,10 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
     return token_args
 
 
-def _add_to_context(endpoint, algs_supported):
-    _context = endpoint.upstream_get("context")
-    _context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
-    _context.add_on["dpop"] = {"algs_supported": algs_supported}
-    _context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
+def _add_to_context(context, endpoint, algs_supported):
+    context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
+    context.add_on["dpop"] = {"algs_supported": algs_supported}
+    context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
 
 
 def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None,

@@ -23,6 +23,7 @@ class JWTToken(Token):
 
     def __init__(
             self,
+            context,
             token_class,
             # keyjar: KeyJar = None,
             issuer: str = None,
@@ -40,10 +41,9 @@ class JWTToken(Token):
         self.lifetime = lifetime
 
         self.kwargs = kwargs
-        _context = upstream_get("context")
         # self.key_jar = keyjar or upstream_get('attribute','keyjar')
-        self.issuer = issuer or _context.issuer
-        self.cdb = _context.cdb
+        self.issuer = issuer or context.issuer
+        self.cdb = context.cdb
         self.upstream_get = upstream_get
 
         self.def_aud = aud or []

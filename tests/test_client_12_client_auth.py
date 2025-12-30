@@ -50,8 +50,8 @@ def entity():
     entity = Entity(config=CLIENT_CONF, client_type="oidc")
     # The following two lines is necessary since they replace provider info collection and
     # client registration.
-    entity.get_service_context().map_supported_to_preferred()
-    entity.get_service_context().map_preferred_to_registered()
+    entity.context[''].map_supported_to_preferred()
+    entity.context[''].map_preferred_to_registered()
     return entity
 
 
@@ -72,7 +72,7 @@ def test_quote():
 class TestClientSecretBasic(object):
 
     def test_construct(self, entity):
-        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
+        entity.context[''].cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(
@@ -240,7 +240,7 @@ class TestBearerBody(object):
 class TestClientSecretPost(object):
 
     def test_construct(self, entity):
-        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
+        entity.default_context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         _token_service = entity.get_service("accesstoken")
         request = _token_service.construct(redirect_uri="http://example.com", state="ABCDE")
@@ -258,7 +258,7 @@ class TestClientSecretPost(object):
         assert http_args is None
 
     def test_modify_1(self, entity):
-        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
+        entity.default_context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")
@@ -269,7 +269,7 @@ class TestClientSecretPost(object):
         assert "client_secret" in request
 
     def test_modify_2(self, entity):
-        entity.context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
+        entity.default_context.cstate.update("ABCDE", {"code": "abcdefghijklmnopqrst"})
 
         token_service = entity.get_service("accesstoken")
         request = token_service.construct(redirect_uri="http://example.com", state="ABCDE")

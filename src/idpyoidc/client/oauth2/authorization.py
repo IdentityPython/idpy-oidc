@@ -49,29 +49,29 @@ class Authorization(Service):
         self.pre_construct.extend([pre_construct_pick_redirect_uri, set_state_parameter])
         self.post_construct.append(self.store_auth_request)
 
-    def update_service_context(self, resp, key="", **kwargs):
+    def update_service_context(self, context, resp, key="", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.upstream_get("context").cstate.update(key, resp)
+        context.cstate.update(key, resp)
 
-    def store_auth_request(self, request_args=None, **kwargs):
+    def store_auth_request(self, context, request_args=None, **kwargs):
         """Store the authorization request in the state DB."""
         _key = get_state_parameter(request_args, kwargs)
-        self.upstream_get("context").cstate.update(_key, request_args)
+        context.cstate.update(_key, request_args)
         return request_args
 
-    def gather_request_args(self, **kwargs):
-        ar_args = Service.gather_request_args(self, **kwargs)
+    def gather_request_args(self, context: ServiceContext, issuer='', **kwargs):
+        ar_args = Service.gather_request_args(self, context, **kwargs)
 
         if "redirect_uri" not in ar_args:
             try:
-                ar_args["redirect_uri"] = self.upstream_get("context").get_usage("redirect_uris")[0]
+                ar_args["redirect_uri"] = context.get_usage("redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")
 
         return ar_args
 
-    def post_parse_response(self, response, **kwargs):
+    def post_parse_response(self, context, response, **kwargs):
         """
         Add scope claim to response, from the request, if not present in the
         response
@@ -88,7 +88,7 @@ class Authorization(Service):
                 pass
             else:
                 if _key:
-                    item = self.upstream_get("context").cstate.get_set(
+                    item = context.cstate.get_set(
                         _key, message=oauth2.AuthorizationRequest
                     )
                     try:
@@ -97,7 +97,7 @@ class Authorization(Service):
                         pass
         return response
 
-    def _do_flow(self, flow_type, response_types, context) -> str:
+    def _do_flow(self, context, flow_type, response_types) -> str:
         if flow_type == "query":
             if "code" in response_types:
                 return "query"
@@ -113,14 +113,14 @@ class Authorization(Service):
                     return "query"
         return ""
 
-    def _do_redirect_uris(self, base_url, hex, context, callback_uris, response_types):
+    def _do_redirect_uris(self, context, base_url, hex, callback_uris, response_types):
         _redirect_uris = context.get_preference("redirect_uris", [])
         if _redirect_uris:
             if not callback_uris or "redirect_uris" not in callback_uris:
                 # the same redirect_uris for all flow types
                 callback_uris["redirect_uris"] = {}
                 for flow_type in self._callback_path["redirect_uris"].keys():
-                    if self._do_flow(flow_type, response_types, context):
+                    if self._do_flow(context, flow_type, response_types):
                         callback_uris["redirect_uris"][flow_type] = _redirect_uris
         elif callback_uris:
             if "redirect_uris" in callback_uris:
@@ -128,7 +128,7 @@ class Authorization(Service):
             else:
                 callback_uris["redirect_uris"] = {}
                 for flow_type in self._callback_path["redirect_uris"].keys():
-                    _var = self._do_flow(flow_type, response_types, context)
+                    _var = self._do_flow(context, flow_type, response_types)
                     if _var:
                         _path = self._callback_path["redirect_uris"][_var]
                         callback_uris["redirect_uris"][flow_type] = [
@@ -137,7 +137,7 @@ class Authorization(Service):
         else:
             callback_uris["redirect_uris"] = {}
             for flow_type in self._callback_path["redirect_uris"].keys():
-                _var = self._do_flow(flow_type, response_types, context)
+                _var = self._do_flow(context, flow_type, response_types)
                 if _var:
                     _path = self._callback_path["redirect_uris"][_var]
                     callback_uris["redirect_uris"][flow_type] = [self.get_uri(base_url, _path, hex)]
@@ -145,9 +145,9 @@ class Authorization(Service):
 
     def construct_uris(
         self,
+        context: ServiceContext,
         base_url: str,
         hex: bytes,
-        context: ServiceContext,
         targets: Optional[List[str]] = None,
         response_types: Optional[List[str]] = None,
     ):
@@ -156,7 +156,7 @@ class Authorization(Service):
         for uri_name in self._callback_path.keys():
             if uri_name == "redirect_uris":
                 _callback_uris = self._do_redirect_uris(
-                    base_url, hex, context, _callback_uris, response_types
+                    context, base_url, hex,_callback_uris, response_types
                 )
                 _redirect_uris = set()
                 for flow, _uris in _callback_uris["redirect_uris"].items():
@@ -164,7 +164,7 @@ class Authorization(Service):
                 context.set_preference("redirect_uris", list(_redirect_uris))
             else:
                 _callback_uris[uri_name] = self.get_uri(
-                    base_url, self._callback_path[uri_name], hex
+                    context, base_url, self._callback_path[uri_name], hex
                 )
 
         return _callback_uris

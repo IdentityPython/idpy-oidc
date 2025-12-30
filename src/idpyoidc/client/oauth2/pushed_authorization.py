@@ -40,29 +40,29 @@ class PushedAuthorization(Service):
         if _add_request_object:
             request_args["request"] = set_request_object(self, request_args)
 
-    def update_service_context(self, resp, key="", **kwargs):
+    def update_service_context(self, context, resp, key="", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.upstream_get("context").cstate.update(key, resp)
+        context.cstate.update(key, resp)
 
-    def store_auth_request(self, request_args=None, **kwargs):
+    def store_auth_request(self, context, request_args=None, **kwargs):
         """Store the authorization request in the state DB."""
         _key = get_state_parameter(request_args, kwargs)
-        self.upstream_get("context").cstate.update(_key, request_args)
+        context.cstate.update(_key, request_args)
         return request_args
 
-    def gather_request_args(self, **kwargs):
-        ar_args = Service.gather_request_args(self, **kwargs)
+    def gather_request_args(self, context, **kwargs):
+        ar_args = Service.gather_request_args(self, context, **kwargs)
 
         if "redirect_uri" not in ar_args:
             try:
-                ar_args["redirect_uri"] = self.upstream_get("context").get_usage("redirect_uris")[0]
+                ar_args["redirect_uri"] = context.get_usage("redirect_uris")[0]
             except (KeyError, AttributeError):
                 raise MissingParameter("redirect_uri")
 
         return ar_args
 
-    def post_parse_response(self, response, **kwargs):
+    def post_parse_response(self, context, response, **kwargs):
         """
         Add scope claim to response, from the request, if not present in the
         response
@@ -79,7 +79,7 @@ class PushedAuthorization(Service):
                 pass
             else:
                 if _key:
-                    item = self.upstream_get("context").cstate.get_set(
+                    item = context.cstate.get_set(
                         _key, message=oauth2.AuthorizationRequest
                     )
                     try:

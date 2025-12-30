@@ -1,28 +1,25 @@
-import logging
 from json import JSONDecodeError
+import logging
 from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt.key_jar import KeyJar
-from idpyoidc.util import conf_get
+from requests import request
 
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
+from idpyoidc.client.oauth2.utils import pick_redirect_uri
 from idpyoidc.client.service import REQUEST_INFO
 from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
-from idpyoidc.client.util import do_add_ons
 from idpyoidc.client.util import get_content_type
 from idpyoidc.client.util import get_deserialization_method
 from idpyoidc.configure import Configuration
 from idpyoidc.context import OidcContext
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
-from requests import request
 
 __author__ = "Roland Hedberg"
 
@@ -40,20 +37,21 @@ class Client(Entity):
     client_type = "oauth2"
 
     def __init__(
-        self,
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        services: Optional[dict] = None,
-        httpc: Optional[Callable] = None,
-        httpc_params: Optional[dict] = None,
-        context: Optional[OidcContext] = None,
-        upstream_get: Optional[Callable] = None,
-        key_conf: Optional[dict] = None,
-        entity_id: Optional[str] = "",
-        verify_ssl: Optional[bool] = True,
-        jwks_uri: Optional[str] = "",
-        client_type: Optional[str] = "",
-        **kwargs
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            context: Optional[OidcContext] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = "",
+            verify_ssl: Optional[bool] = True,
+            jwks_uri: Optional[str] = "",
+            client_type: Optional[str] = "",
+            client_configs: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -102,26 +100,23 @@ class Client(Entity):
             upstream_get=upstream_get,
             key_conf=key_conf,
             entity_id=entity_id,
+            client_configs=client_configs
         )
 
         self.httpc = httpc or request
 
-        _add_ons = conf_get(config, "add_ons")
-
-        if _add_ons:
-            do_add_ons(_add_ons, self._service)
-
     def do_request(
-        self,
-        request_type: str,
-        response_body_type: Optional[str] = "",
-        request_args: Optional[dict] = None,
-        behaviour_args: Optional[dict] = None,
-        **kwargs
+            self,
+            context,
+            request_type: str,
+            response_body_type: Optional[str] = "",
+            request_args: Optional[dict] = None,
+            behaviour_args: Optional[dict] = None,
+            **kwargs
     ):
-        _srv = self._service[request_type]
+        _srv = context.service[request_type]
 
-        _info = _srv.get_request_parameters(request_args=request_args, **kwargs)
+        _info = _srv.get_request_parameters(context, request_args=request_args, **kwargs)
 
         if not response_body_type:
             response_body_type = _srv.response_body_type
@@ -132,22 +127,22 @@ class Client(Entity):
             _state = kwargs["state"]
         except Exception:
             _state = ""
-        return self.service_request(
-            _srv, response_body_type=response_body_type, state=_state, **_info
-        )
+        return self.service_request(context, _srv, response_body_type=response_body_type,
+                                    state=_state, **_info)
 
-    def set_client_id(self, client_id):
-        self.get_context().set("client_id", client_id)
+    def set_client_id(self, context, client_id):
+        context.set("client_id", client_id)
 
     def get_response(
-        self,
-        service: Service,
-        url: str,
-        method: Optional[str] = "GET",
-        body: Optional[dict] = None,
-        response_body_type: Optional[str] = "",
-        headers: Optional[dict] = None,
-        **kwargs
+            self,
+            context,
+            service: Service,
+            url: str,
+            method: Optional[str] = "GET",
+            body: Optional[dict] = None,
+            response_body_type: Optional[str] = "",
+            headers: Optional[dict] = None,
+            **kwargs
     ):
         """
 
@@ -186,17 +181,18 @@ class Client(Entity):
             if body:
                 kwargs["request_body"] = body
 
-        return self.parse_request_response(service, resp, response_body_type, **kwargs)
+        return self.parse_request_response(context, service, resp, response_body_type, **kwargs)
 
     def service_request(
-        self,
-        service: Service,
-        url: str,
-        method: Optional[str] = "GET",
-        body: Optional[dict] = None,
-        response_body_type: Optional[str] = "",
-        headers: Optional[dict] = None,
-        **kwargs
+            self,
+            context,
+            service: Service,
+            url: str,
+            method: Optional[str] = "GET",
+            body: Optional[dict] = None,
+            response_body_type: Optional[str] = "",
+            headers: Optional[dict] = None,
+            **kwargs
     ) -> Message:
         """
         The method that sends the request and handles the response returned.
@@ -220,16 +216,17 @@ class Client(Entity):
 
         _get_response_func = getattr(self, "get_response_ext", getattr(self, "get_response"))
         response = _get_response_func(
-            service, url, method, body, response_body_type, headers, **kwargs
+            context, service, url, method, body, response_body_type, headers, **kwargs
         )
 
         if "error" in response:
             pass
         else:
-            service.update_service_context(response, key=kwargs.get("state"), **kwargs)
+            service.update_service_context(context, response, key=kwargs.get("state"), **kwargs)
         return response
 
-    def parse_request_response(self, service, reqresp, response_body_type="", state="", **kwargs):
+    def parse_request_response(self, context, service, reqresp, response_body_type="", state="",
+                               **kwargs):
         """
         Deal with a self.httpc response. The response are expected to
         follow a special pattern, having the attributes:
@@ -270,7 +267,7 @@ class Client(Entity):
             logger.debug("Successful response: {}".format(reqresp.text))
 
             try:
-                return service.parse_response(reqresp.text, value_type, state, **kwargs)
+                return service.parse_response(context, reqresp.text, value_type, state, **kwargs)
             except Exception as err:
                 logger.error(err)
                 raise
@@ -289,11 +286,11 @@ class Client(Entity):
                 _deser_method = "json"
 
             try:
-                err_resp = service.parse_response(reqresp.text, _deser_method)
+                err_resp = service.parse_response(context, reqresp.text, _deser_method)
             except (FormatError, ValueError):
                 if _deser_method != response_body_type:
                     try:
-                        err_resp = service.parse_response(reqresp.text, response_body_type)
+                        err_resp = service.parse_response(context, reqresp.text, response_body_type)
                     except (OidcServiceError, FormatError, ValueError):
                         raise OidcServiceError(
                             "HTTP ERROR: %s [%s] on %s"
@@ -314,30 +311,3 @@ class Client(Entity):
             raise OidcServiceError(
                 "HTTP ERROR: %s [%s] on %s" % (reqresp.text, reqresp.status_code, reqresp.url)
             )
-
-
-def dynamic_provider_info_discovery(client: Client, behaviour_args: Optional[dict] = None):
-    """
-    This is about performing dynamic Provider Info discovery
-
-    :param behaviour_args:
-    :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
-    """
-
-    if client.client_type == "oidc" and client.get_service("provider_info"):
-        service = "provider_info"
-    elif client.client_type == "oauth2" and client.get_service("server_metadata"):
-        service = "server_metadata"
-    else:
-        raise ConfigurationError("Can not do dynamic provider info discovery")
-
-    _context = client.get_context()
-    try:
-        _context.set("issuer", _context.config["srv_discovery_url"])
-    except KeyError:
-        pass
-
-    logger.debug(f"{service}")
-    response = client.do_request(service, behaviour_args=behaviour_args)
-    if is_error_message(response):
-        raise OidcServiceError(response["error"])

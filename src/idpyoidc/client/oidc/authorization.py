@@ -9,7 +9,6 @@ from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oidc import IDT2REG
 from idpyoidc.client.request_object import construct_request_parameter
 from idpyoidc.client.request_object import construct_request_uri
-from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
@@ -66,42 +65,37 @@ class Authorization(authorization.Authorization):
         if "scope" not in self.default_request_args:
             self.default_request_args["scope"] = ["openid"]
 
-    def set_state(self, request_args, **kwargs):
-        _context = self.upstream_get("context")
+    def set_state(self, context, request_args, **kwargs):
         try:
             _state = kwargs["state"]
         except KeyError:
             try:
                 _state = request_args["state"]
             except KeyError:
-                _state = _context.cstate.create_key()
+                _state = context.cstate.create_key()
 
         request_args["state"] = _state
-        _context.cstate.set(_state, {"iss": _context.issuer})
+        context.cstate.set(_state, {"iss": context.issuer})
         return request_args, {}
 
-    def update_service_context(self, resp, key="", **kwargs):
-        _context = self.upstream_get("context")
-
+    def update_service_context(self, context, resp, key="", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        _context.cstate.update(key, resp)
+        context.cstate.update(key, resp)
 
-    def get_request_from_response(self, response):
-        _context = self.upstream_get("context")
-        return _context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
+    def get_request_from_response(self, context, response):
+        return context.cstate.get_set(response["state"], message=oauth2.AuthorizationRequest)
 
-    def post_parse_response(self, response, **kwargs):
-        response = authorization.Authorization.post_parse_response(self, response, **kwargs)
+    def post_parse_response(self, context, response, **kwargs):
+        response = authorization.Authorization.post_parse_response(self, context,
+                                                                   response, **kwargs)
 
         _idt = response.get(verified_claim_name("id_token"))
         if _idt:
             # If there is a verified ID Token then we have to do nonce
             # verification.
             _req_nonce = (
-                self.upstream_get("context")
-                .cstate.get_set(response["state"], claim=["nonce"])
-                .get("nonce")
+                context.cstate.get_set(response["state"], claim=["nonce"]).get("nonce")
             )
             if _req_nonce:
                 _id_token_nonce = _idt.get("nonce")
@@ -111,15 +105,14 @@ class Authorization(authorization.Authorization):
                     raise ValueError("Invalid nonce")
         return response
 
-    def oidc_pre_construct(self, request_args=None, post_args=None, **kwargs):
-        _context = self.upstream_get("context")
+    def oidc_pre_construct(self, context, request_args=None, post_args=None, **kwargs):
         if request_args is None:
             request_args = {}
 
         try:
             _response_types = [request_args["response_type"]]
         except KeyError:
-            _response_types = _context.get_usage("response_types")
+            _response_types = context.get_usage("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]
             else:
@@ -128,11 +121,11 @@ class Authorization(authorization.Authorization):
 
         # For OIDC 'openid' is required in scope
         if "scope" not in request_args:
-            _scope = _context.get_usage("scope")
+            _scope = context.get_usage("scope")
             if _scope:
                 request_args["scope"] = _scope
             else:
-                _scope = _context.get_preference("scopes_supported")
+                _scope = context.get_preference("scopes_supported")
                 if _scope:
                     request_args["scope"] = _scope
                 else:
@@ -164,14 +157,14 @@ class Authorization(authorization.Authorization):
                 post_args["request_param"] = "request"
             del kwargs["request_method"]
         else:
-            if _context.get_usage("request_uri"):
+            if context.get_usage("request_uri"):
                 post_args["request_param"] = "request_uri"
-            elif _context.get_usage("request_parameter"):
+            elif context.get_usage("request_parameter"):
                 post_args["request_param"] = "request"
 
         return request_args, post_args
 
-    def get_request_object_signing_alg(self, **kwargs):
+    def get_request_object_signing_alg(self, context, **kwargs):
         alg = ""
         for arg in ["request_object_signing_alg", "algorithm"]:
             try:  # Trumps everything
@@ -182,35 +175,33 @@ class Authorization(authorization.Authorization):
                 break
 
         if not alg:
-            _context = self.upstream_get("context")
             try:
-                alg = _context.claims.get_usage("request_object_signing_alg")
+                alg = context.claims.get_usage("request_object_signing_alg")
             except KeyError:  # Use default
                 alg = "RS256"
         return alg
 
-    def store_request_on_file(self, req, **kwargs):
+    def store_request_on_file(self, context, req, **kwargs):
         """
         Stores the request parameter in a file.
         :param req: The request
         :param kwargs: Extra keyword arguments
         :return: The URL the OP should use to access the file
         """
-        _context = self.upstream_get("context")
-        _webname = _context.get_usage("request_uris")
+        _webname = context.get_usage("request_uris")
         if _webname is None:
             filename, _webname = construct_request_uri(**kwargs)
         else:
             # webname should be a list
             _webname = _webname[0]
-            filename = _context.filename_from_webname(_webname)
+            filename = context.filename_from_webname(_webname)
 
         fid = open(filename, mode="w")
         fid.write(req)
         fid.close()
         return _webname
 
-    def oidc_post_construct(self, req, **kwargs):
+    def oidc_post_construct(self, context, req, **kwargs):
         """
         Modify the request arguments.
 
@@ -218,47 +209,46 @@ class Authorization(authorization.Authorization):
         :param kwargs: Extra keyword arguments
         :return: A possibly modified request.
         """
-        _context = self.upstream_get("context")
         if "openid" in req["scope"]:
             _response_type = req["response_type"][0]
             if "id_token" in _response_type or "code" in _response_type:
-                _context.cstate.bind_key(req["nonce"], req["state"])
+                context.cstate.bind_key(req["nonce"], req["state"])
 
         if "offline_access" in req["scope"]:
             if "prompt" not in req:
                 req["prompt"] = "consent"
 
-        _context.cstate.update(req["state"], req)
+        context.cstate.update(req["state"], req)
 
         # Overrides what's in the configuration
         _request_param = kwargs.get("request_param")
         if _request_param:
             del kwargs["request_param"]
         else:
-            if _context.get_usage("request_uri"):
+            if context.get_usage("request_uri"):
                 _request_param = "request_uri"
-            elif _context.get_usage("request_parameter"):
+            elif context.get_usage("request_parameter"):
                 _request_param = "request"
 
         _req = None  # just a flag
         if _request_param == "request_uri":
-            kwargs["base_path"] = _context.get("base_url") + "/" + "requests"
-            kwargs["local_dir"] = _context.get_usage("requests_dir", "./requests")
+            kwargs["base_path"] = context.get("base_url") + "/" + "requests"
+            kwargs["local_dir"] = context.get_usage("requests_dir", "./requests")
             service = kwargs.get("service")
             if service:
                 del kwargs["service"]
             else:
                 service = self
 
-            _req = construct_request_parameter(service, req, _request_param, **kwargs)
-            req["request_uri"] = self.store_request_on_file(_req, **kwargs)
+            _req = construct_request_parameter(context, service, req, _request_param, **kwargs)
+            req["request_uri"] = self.store_request_on_file(context, _req, **kwargs)
         elif _request_param == "request":
             service = kwargs.get("service")
             if service:
                 del kwargs["service"]
             else:
                 service = self
-            _req = construct_request_parameter(service, req, _request_param, **kwargs)
+            _req = construct_request_parameter(context, service, req, _request_param, **kwargs)
             req["request"] = _req
 
         if _req:
@@ -271,27 +261,28 @@ class Authorization(authorization.Authorization):
         return req
 
     def gather_verify_arguments(
-            self, response: Optional[Union[dict, Message]] = None,
-            behaviour_args: Optional[dict] = None
+            self,
+            context,
+            response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None,
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.upstream_get("context")
         kwargs = {
-            "iss": _context.issuer,
+            "iss": context.issuer,
             "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
-            "skew": _context.clock_skew,
+            "skew": context.clock_skew,
         }
 
-        _client_id = _context.get_client_id()
+        _client_id = context.get_client_id()
         if _client_id:
             kwargs["client_id"] = _client_id
 
-        _reg_res = _context.registration_response
+        _reg_res = context.registration_response
         if _reg_res:
             for attr, param in IDT2REG.items():
                 try:
@@ -299,23 +290,28 @@ class Authorization(authorization.Authorization):
                 except KeyError:
                     pass
 
-        _allow = _context.allow.get("missing_kid")
+        _allow = context.allow.get("missing_kid")
         if _allow:
             kwargs["allow_missing_kid"] = _allow
 
-        _verify_args = _context.get_usage("verify_args")
+        _verify_args = context.get_usage("verify_args")
         if _verify_args:
             kwargs.update(_verify_args)
 
         return kwargs
 
-    def _do_request_uris(self, base_url, hex, context, callback_uris):
+    def _do_request_uris(self, context, base_url, hex, callback_uris):
         _uri_name = "request_uris"
         if context.get_preference("request_parameter") == _uri_name:
             if _uri_name not in callback_uris:
-                callback_uris[_uri_name] = self.get_uri(
-                    base_url, self._callback_path[_uri_name], hex
-                )
+                _c_path = self._callback_path[_uri_name]
+                uris = []
+                if isinstance(_c_path, list):
+                    for _path in _c_path:
+                        uris.append(self.get_uri(base_url, _path, hex))
+                else:
+                    uris.append(self.get_uri(base_url, _c_path, hex))
+                callback_uris[_uri_name] = uris
         return callback_uris
 
     def _do_type(self, context, typ, response_types):
@@ -333,9 +329,9 @@ class Authorization(authorization.Authorization):
 
     def construct_uris(
             self,
+            context,
             base_url: str,
             hex: bytes,
-            context: ServiceContext,
             targets: Optional[List[str]] = None,
             response_types: Optional[List[str]] = None,
     ):
@@ -344,10 +340,10 @@ class Authorization(authorization.Authorization):
         for uri_name in self._callback_path.keys():
             if uri_name == "redirect_uris":
                 _callback_uris = self._do_redirect_uris(
-                    base_url, hex, context, _callback_uris, response_types
+                    context, base_url, hex, _callback_uris, response_types
                 )
             elif uri_name == "request_uris":
-                _callback_uris = self._do_request_uris(base_url, hex, context, _callback_uris)
+                _callback_uris = self._do_request_uris(context, base_url, hex, _callback_uris)
             else:
                 _callback_uris[uri_name] = self.get_uri(
                     base_url, self._callback_path[uri_name], hex

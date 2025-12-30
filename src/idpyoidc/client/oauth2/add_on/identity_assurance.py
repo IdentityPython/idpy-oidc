@@ -48,14 +48,15 @@ def identity_assurance_process(response, service_context, state):
 
 
 def add_support(
-    services,
-    trust_frameworks_supported: list,
-    evidence_supported: list,
-    id_documents_supported: Optional[list] = None,
-    id_documents_verification_methods_supported: Optional[list] = None,
-    claims_in_verified_claims_supported: Optional[list] = None,
-    verified_claims_request: Optional[dict] = None,
-    response_format: Optional[str] = "claims",
+        context,
+        services,
+        trust_frameworks_supported: list,
+        evidence_supported: list,
+        id_documents_supported: Optional[list] = None,
+        id_documents_verification_methods_supported: Optional[list] = None,
+        claims_in_verified_claims_supported: Optional[list] = None,
+        verified_claims_request: Optional[dict] = None,
+        response_format: Optional[str] = "claims",
 ):
     """
     Add the necessary pieces to support identity assurance.
@@ -72,8 +73,7 @@ def add_support(
 
     # Access token request should use DPoP header
     _service = services["userinfo"]
-    _context = _service.upstream_get("context")
-    _context.add_on["identity_assurance"] = {
+    context.add_on["identity_assurance"] = {
         "verified_claims_supported": True,
         "trust_frameworks_supported": trust_frameworks_supported,
         "evidence_supported": evidence_supported,

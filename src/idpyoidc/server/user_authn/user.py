@@ -89,8 +89,8 @@ class UserAuthnMethod(object):
         """
         raise NotImplementedError
 
-    def unpack_token(self, token):
-        return verify_signed_jwt(token=token, keyjar=self.upstream_get("context").keyjar)
+    def unpack_token(self, context, token):
+        return verify_signed_jwt(token=token, keyjar=context.keyjar)
 
     def done(self, areq):
         """
@@ -105,8 +105,7 @@ class UserAuthnMethod(object):
         else:
             return False
 
-    def cookie_info(self, cookie: List[dict], client_id: str) -> dict:
-        _context = self.upstream_get("context")
+    def cookie_info(self, context, cookie: List[dict], client_id: str) -> dict:
         logger.debug("Value cookies: {}".format(cookie))
 
         if cookie is None:
@@ -118,7 +117,7 @@ class UserAuthnMethod(object):
 
                 # verify session ID
                 try:
-                    _context.session_manager[_info["sid"]]
+                    context.session_manager[_info["sid"]]
                 except (
                     KeyError,
                     ValueError,
@@ -129,7 +128,7 @@ class UserAuthnMethod(object):
                     logger.info(f"Verifying session ID fail due to {err}")
                     return {}
 
-                session_id = _context.session_manager.decrypt_session_id(_info["sid"])
+                session_id = context.session_manager.decrypt_session_id(_info["sid"])
                 logger.debug("cookie_info: session id={}".format(session_id))
 
                 if session_id[1] != client_id:
@@ -187,7 +186,7 @@ class UserPassJinja2(UserAuthnMethod):
         self.kwargs.setdefault("logo_label", "")
         self.kwargs.setdefault("policy_label", "")
 
-    def __call__(self, **kwargs):
+    def __call__(self, context, **kwargs):
         warnings.warn(
             (
                 'Do not use the "UserPassJinja2" authentication method in a '
@@ -197,11 +196,11 @@ class UserPassJinja2(UserAuthnMethod):
         )
         if not self.upstream_get:
             raise Exception(f"{self.__class__.__name__} doesn't have a working upstream_get")
-        _context = self.upstream_get("context")
+
         _keyjar = self.upstream_get("attribute", "keyjar")
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
-        jws = create_signed_jwt(_context.issuer, _keyjar, **kwargs)
+        jws = create_signed_jwt(context.issuer, _keyjar, **kwargs)
         _kwargs = self.kwargs.copy()
         for attr in ["policy", "tos", "logo"]:
             _uri = "{}_uri".format(attr)

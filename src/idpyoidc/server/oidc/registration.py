@@ -153,7 +153,8 @@ class Registration(Endpoint):
                  "backchannel_logout_session_required", "response_modes", "subject_type",
                  # All the uris
                  "redirect_uris", "jwks_uri", "policy_uri", "logo_uri", "tos_uri", "client_uri",
-                 "sector_identifier_uri", "initiate_login_uri", "request_uris", "post_logout_redirect_uri",
+                 "sector_identifier_uri", "initiate_login_uri", "request_uris",
+                 "post_logout_redirect_uri",
                  "frontchannel_logout_uri", "backchannel_logout_uri",
                  # It's up to the RP to define these claims which means I should not touch them
                  "id_token_signed_response_alg",
@@ -176,18 +177,17 @@ class Registration(Endpoint):
         self.seed = as_bytes(_seed)
         self.match_uris = kwargs.get("match_uris", False)
 
-    def match_claim(self, claim, val):
-        _context = self.upstream_get("context")
+    def match_claim(self, context, claim, val):
 
         # Use my defaults
-        _my_key = _context.claims.register2preferred.get(claim, claim)
+        _my_key = context.claims.register2preferred.get(claim, claim)
         try:
-            _val = _context.claims.get_preference(_my_key)
+            _val = context.claims.get_preference(_my_key)
         except KeyError:
             return val
 
         try:
-            _claim_spec = _context.claims.registration_response.c_param[claim]
+            _claim_spec = context.claims.registration_response.c_param[claim]
         except KeyError:  # something I don't know anything about
             return None
 
@@ -211,22 +211,21 @@ class Registration(Endpoint):
 
         return None
 
-    def filter_client_request(self, request: dict) -> dict:
+    def filter_client_request(self, context, request: dict) -> dict:
         _args = {}
-        _context = self.upstream_get("context")
         for key, val in request.items():
-            if key not in _context.claims.register2preferred:
+            if key not in context.claims.register2preferred:
                 _args[key] = val
                 continue
 
-            _val = self.match_claim(key, val)
+            _val = self.match_claim(context, key, val)
             if _val:
                 _args[key] = _val
             else:
                 logger.error(f"Capabilities mismatch: {key}={val} not supported")
         return _args
 
-    def _modify_client_info(self, request: dict, client_info: dict, context) -> dict:
+    def _modify_client_info(self, context, request: dict, client_info: dict) -> dict:
 
         for key, val in request.items():
             if key in self.pass_thru:  # Claims that the OP should not modify
@@ -269,14 +268,13 @@ class Registration(Endpoint):
 
         return client_info
 
-    def do_client_registration(self, request, client_id, ignore=None):
+    def do_client_registration(self, context, request, client_id, ignore=None):
         if ignore is None:
             ignore = []
-        _context = self.upstream_get("context")
-        _cinfo = _context.cdb[client_id].copy()
+        _cinfo = context.cdb[client_id].copy()
         logger.debug("_cinfo: %s" % sanitize(_cinfo))
 
-        _cinfo = self._modify_client_info(request, _cinfo, _context)
+        _cinfo = self._modify_client_info(context, request, _cinfo)
 
         if "redirect_uris" in request:
             try:
@@ -317,7 +315,8 @@ class Registration(Endpoint):
         if _uri:
             _up = urlparse(_uri)
             if _up.fragment:
-                return self.error_cls(error="invalid_configuration_parameter", error_description="URI with fragment")
+                return self.error_cls(error="invalid_configuration_parameter",
+                                      error_description="URI with fragment")
 
         if self.match_uris:
             for item in RP_URI_CLAIMS:
@@ -334,8 +333,8 @@ class Registration(Endpoint):
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
-                _claim = _context.claims.register2preferred[item]
-                _support = _context.provider_info.get(_claim)
+                _claim = context.claims.register2preferred[item]
+                _support = context.provider_info.get(_claim)
                 if _support is None:
                     logger.warning(f'Lacking support for "{item}"')
                     del _cinfo[item]
@@ -346,7 +345,7 @@ class Registration(Endpoint):
                     # do I have this ktyp and for EC type keys the curve
                     if ktyp not in ["none", "oct"]:
                         _k = []
-                        for iss in ["", _context.issuer]:
+                        for iss in ["", context.issuer]:
                             _k.extend(
                                 _keyjar.get_signing_key(ktyp, alg=request[item], issuer_id=iss)
                             )
@@ -424,7 +423,7 @@ class Registration(Endpoint):
 
         return verified_redirect_uris
 
-    def _verify_sector_identifier(self, request):
+    def _verify_sector_identifier(self, context, request):
         """
         Verify `sector_identifier_uri` is reachable and that it contains
         `redirect_uri`s.
@@ -435,9 +434,7 @@ class Registration(Endpoint):
         """
         si_url = request["sector_identifier_uri"]
         try:
-            res = self.upstream_get("context").httpc(
-                "GET", si_url, **self.upstream_get("context").httpc_params
-            )
+            res = context.httpc("GET", si_url, **context.httpc_params)
             logger.debug("sector_identifier_uri => %s", sanitize(res.text))
         except Exception as err:
             logger.error(err)
@@ -457,7 +454,7 @@ class Registration(Endpoint):
 
         return si_redirects, si_url
 
-    def add_registration_api(self, cinfo, client_id, context):
+    def add_registration_api(self, context, cinfo, client_id):
         _rat = rndstr(32)
 
         cinfo["registration_access_token"] = _rat
@@ -478,7 +475,7 @@ class Registration(Endpoint):
         _expiration_time = self.kwargs.get("client_secret_expires_in", 2592000)
         return now + _expiration_time
 
-    def add_client_secret(self, cinfo, client_id, context):
+    def add_client_secret(self, cinfo, client_id):
         client_secret = secret(self.seed, client_id)
         cinfo["client_secret"] = client_secret
         _now = utc_time_sans_frac()
@@ -488,7 +485,9 @@ class Registration(Endpoint):
         cinfo["client_id_issued_at"] = _now
         return client_secret
 
-    def client_registration_setup(self, request,
+    def client_registration_setup(self,
+                                  context,
+                                  request,
                                   new_id: Optional[bool] = True,
                                   set_secret: Optional[bool] = True,
                                   reserved_client_id: Optional[list] = None):
@@ -504,10 +503,9 @@ class Registration(Endpoint):
             return ResponseMessage(error=_error, error_description="%s" % err)
 
         request.rm_blanks()
-        _context = self.upstream_get("context")
 
         try:
-            request = self.filter_client_request(request)
+            request = self.filter_client_request(context, request)
         except CapabilitiesMisMatch as err:
             return ResponseMessage(
                 error="invalid_request",
@@ -522,15 +520,15 @@ class Registration(Endpoint):
                 cid_generator = importer("idpyoidc.server.oidc.registration.random_client_id")
                 cid_gen_kwargs = {}
             if not reserved_client_id:
-                reserved_client_id = _context.cdb.keys()
+                reserved_client_id = context.cdb.keys()
             client_id = cid_generator(reserved=reserved_client_id, **cid_gen_kwargs)
             _entity_id = request.get("client_id", None)
             if _entity_id:
                 # Already registered
-                _old_id = _context.client_known_as.get(request["client_id"], None)
+                _old_id = context.client_known_as.get(request["client_id"], None)
                 if _old_id:
-                    del _context.cdb[_old_id]
-                _context.client_known_as[_entity_id] = client_id
+                    del context.cdb[_old_id]
+                context.client_known_as[_entity_id] = client_id
                 del request["client_id"]
         else:
             client_id = request.get("client_id")
@@ -540,19 +538,20 @@ class Registration(Endpoint):
         _cinfo = {"client_id": client_id, "client_salt": rndstr(8)}
 
         if self.upstream_get("endpoint", "registration_read"):
-            self.add_registration_api(_cinfo, client_id, _context)
+            self.add_registration_api(context, _cinfo, client_id)
 
         if new_id:
             _cinfo["client_id_issued_at"] = utc_time_sans_frac()
 
         client_secret = ""
         if set_secret:
-            client_secret = self.add_client_secret(_cinfo, client_id, _context)
+            client_secret = self.add_client_secret(context, _cinfo, client_id)
 
         logger.debug(f"Stored client info in CDB under cid={client_id}")
 
-        _context.cdb[client_id] = _cinfo
+        context.cdb[client_id] = _cinfo
         _cinfo = self.do_client_registration(
+            context,
             request,
             client_id,
             ignore=["redirect_uris", "policy_uri", "logo_uri", "tos_uri"],
@@ -577,21 +576,21 @@ class Registration(Endpoint):
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))
-        _context.cdb[client_id] = _cinfo
+        context.cdb[client_id] = _cinfo
 
         # Not all databases can be sync'ed
-        if hasattr(_context.cdb, "sync") and callable(_context.cdb.sync):
-            _context.cdb.sync()
+        if hasattr(context.cdb, "sync") and callable(context.cdb.sync):
+            context.cdb.sync()
 
         msg = "registration_response: {}"
         logger.info(msg.format(sanitize(response.to_dict())))
 
         return response
 
-    def process_request(self, request=None, new_id=True, set_secret=True, **kwargs):
+    def process_request(self, context, request=None, new_id=True, set_secret=True, **kwargs):
         try:
             reserved_client_id = kwargs.get("reserved")
-            reg_resp = self.client_registration_setup(request, new_id, set_secret,
+            reg_resp = self.client_registration_setup(context, request, new_id, set_secret,
                                                       reserved_client_id)
         except Exception as err:
             logger.exception(f"client_registration_setup: {request}")
@@ -602,9 +601,8 @@ class Registration(Endpoint):
         if "error" in reg_resp:
             return reg_resp
         else:
-            _context = self.upstream_get("context")
-            _cookie = _context.new_cookie(
-                name=_context.cookie_handler.name["register"],
+            _cookie = context.new_cookie(
+                name=context.cookie_handler.name["register"],
                 client_id=reg_resp["client_id"],
             )
 

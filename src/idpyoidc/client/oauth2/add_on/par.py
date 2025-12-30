@@ -1,6 +1,5 @@
 import logging
 
-from cryptojwt import JWT
 from cryptojwt.utils import importer
 
 from idpyoidc.client.client_auth import CLIENT_AUTHN_METHOD
@@ -16,15 +15,14 @@ logger = logging.getLogger(__name__)
 HTTP_METHOD = "POST"
 
 
-def push_authorization(request_args: Message, service: Service, **kwargs):
+def push_authorization(context, request_args: Message, service: Service, **kwargs):
     """
     :param request_args: All the request arguments as a AuthorizationRequest instance
     :param service: The service to which this post construct method is applied.
     :param kwargs: Extra keyword arguments.
     """
 
-    _context = service.upstream_get("context")
-    method_args = _context.add_on["pushed_authorization"]
+    method_args = context.add_on["pushed_authorization"]
     logger.debug(f"PAR method args: {method_args}")
     logger.debug(f"PAR kwargs: {kwargs}")
 
@@ -33,18 +31,18 @@ def push_authorization(request_args: Message, service: Service, **kwargs):
     authn_method = method_args["authn_method"]
     if authn_method:
         if isinstance(authn_method, str):
-            if authn_method not in _context.client_authn_methods:
-                _context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
+            if authn_method not in context.client_authn_methods:
+                context.client_authn_methods[authn_method] = CLIENT_AUTHN_METHOD[authn_method]()
         else:
             _name = ""
             for _name, spec in authn_method.items():
-                if _name not in _context.client_authn_methods:
-                    _context.client_authn_methods[_name] = execute(spec)
+                if _name not in context.client_authn_methods:
+                    context.client_authn_methods[_name] = execute(spec)
             authn_method = _name
 
         _args = kwargs.copy()
-        if _context.issuer:
-            _args["iss"] = _context.issuer
+        if context.issuer:
+            _args["iss"] = context.issuer
 
         _headers = service.get_headers(
             request_args, http_method=HTTP_METHOD, authn_method=authn_method, **_args
@@ -70,7 +68,7 @@ def push_authorization(request_args: Message, service: Service, **kwargs):
     _httpc_params = service.upstream_get("unit").httpc_params
     _par_endpoint = kwargs.get("pushed_authorization_request_endpoint", None)
     if not _par_endpoint:
-        _par_endpoint = _context.provider_info["pushed_authorization_request_endpoint"]
+        _par_endpoint = context.provider_info["pushed_authorization_request_endpoint"]
 
     # Send it to the Pushed Authorization Request Endpoint using POST
     resp = _http_client(
@@ -94,6 +92,7 @@ def push_authorization(request_args: Message, service: Service, **kwargs):
 
 
 def add_support(
+        context,
         services,
         http_client=None,
         authn_method="",
@@ -116,7 +115,7 @@ def add_support(
             http_client = importer(http_client)
 
     _service = services["authorization"]  # There must be such a service
-    _service.upstream_get("context").add_on["pushed_authorization"] = {
+    context.add_on["pushed_authorization"] = {
         "http_client": http_client,
         "authn_method": authn_method,
     }

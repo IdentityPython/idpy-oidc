@@ -90,7 +90,7 @@ def construct_request_uri(local_dir, base_path, **kwargs):
     return filename, _webname
 
 
-def get_request_object_signing_alg(service, **kwargs):
+def get_request_object_signing_alg(context, service, **kwargs):
     alg = ""
     for arg in ["request_object_signing_alg", "algorithm"]:
         try:  # Trumps everything
@@ -101,19 +101,17 @@ def get_request_object_signing_alg(service, **kwargs):
             break
 
     if not alg:
-        _context = service.upstream_get("context")
-        alg = _context.claims.get_usage("request_object_signing_alg", None)
+        alg = context.claims.get_usage("request_object_signing_alg", None)
         if alg is None:
             alg = "RS256"
     return alg
 
 
-def construct_request_parameter(service, req, audience=None, **kwargs):
+def construct_request_parameter(context, service, req, audience=None, **kwargs):
     """Construct a request parameter"""
-    alg = get_request_object_signing_alg(service, **kwargs)
+    alg = get_request_object_signing_alg(context, service, **kwargs)
     kwargs["request_object_signing_alg"] = alg
 
-    _context = service.upstream_get("context")
     if "keys" not in kwargs and alg and alg != "none":
         kwargs["keys"] = service.upstream_get("attribute", "keyjar")
 
@@ -123,16 +121,16 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
     # This is the issuer of the JWT, that is me !
     _issuer = kwargs.get("issuer")
     if _issuer is None:
-        kwargs["issuer"] = _context.get_client_id()
+        kwargs["issuer"] = context.get_client_id()
 
     # The receiver
     if audience:
         kwargs["recv"] = audience
     elif kwargs.get("recv") is None:
         try:
-            kwargs["recv"] = _context.provider_info["issuer"]
+            kwargs["recv"] = context.provider_info["issuer"]
         except KeyError:
-            kwargs["recv"] = _context.issuer
+            kwargs["recv"] = context.issuer
 
     try:
         del kwargs["service"]
@@ -146,10 +144,10 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
 
     _enc_enc = kwargs.get("request_object_encryption_enc", "")
     if not _enc_enc:
-        _enc_enc = _context.get_usage("request_object_encryption_enc")
+        _enc_enc = context.get_usage("request_object_encryption_enc")
         if _enc_enc:
             kwargs["request_object_encryption_enc"] = _enc_enc
-            kwargs["request_object_encryption_alg"] = _context.get_usage("request_object_encryption_alg")
+            kwargs["request_object_encryption_alg"] = context.get_usage("request_object_encryption_alg")
 
     # Filter out only the arguments I want
     _mor_args = {
@@ -171,10 +169,10 @@ def construct_request_parameter(service, req, audience=None, **kwargs):
         _req_jwt = make_openid_request(Message(**req), **_mor_args)
 
     if "target" not in kwargs:
-        kwargs["target"] = _context.provider_info.get("issuer", _context.issuer)
+        kwargs["target"] = context.provider_info.get("issuer", context.issuer)
 
     # Should the request be encrypted
     _req_jwte = request_object_encryption(
-        _req_jwt, _context, service.upstream_get("attribute", "keyjar"), **kwargs
+        _req_jwt, context, service.upstream_get("attribute", "keyjar"), **kwargs
     )
     return _req_jwte

@@ -2,6 +2,7 @@ import pytest
 
 from idpyoidc.client.client_auth import ClientAuthnMethod
 from idpyoidc.client.entity import Entity
+from idpyoidc.client.service_context import create_new_context
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYDEFS = [
@@ -70,7 +71,7 @@ def test_client_authn_default():
 
     entity = Entity(config=config, client_type="oidc")
 
-    assert entity.get_context().client_authn_methods == {}
+    assert entity.context[""].client_authn_methods == {}
 
 
 def test_client_authn_by_names():
@@ -84,7 +85,7 @@ def test_client_authn_by_names():
 
     entity = Entity(config=config, client_type="oidc")
 
-    assert set(entity.get_context().client_authn_methods.keys()) == {
+    assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",
         "client_secret_post",
     }
@@ -113,7 +114,7 @@ def test_client_authn_full():
 
     entity = Entity(config=config, client_type="oidc")
 
-    assert set(entity.get_context().client_authn_methods.keys()) == {
+    assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",
         "client_secret_post",
         "home_brew",
@@ -141,7 +142,7 @@ def test_service_specific():
     )
 
     # A specific does not change the general
-    assert set(entity.get_context().client_authn_methods.keys()) == {
+    assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",
         "client_secret_post",
     }
@@ -174,9 +175,58 @@ def test_service_specific2():
     )
 
     # A specific does not change the general
-    assert set(entity.get_context().client_authn_methods.keys()) == {
+    assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",
         "client_secret_post",
     }
 
     assert set(entity.get_service("").client_authn_methods.keys()) == {"home_brew"}
+
+
+def test_context_duplication():
+    config = {
+        "application_type": APPLICATION_TYPE_WEB,
+        "contacts": ["ops@example.org"],
+        "redirect_uris": [f"{RP_BASEURL}/authz_cb"],
+        "keys": {"key_defs": KEYSPEC, "read_only": True},
+        "client_authn_methods": ["client_secret_basic", "client_secret_post"],
+    }
+
+    entity = Entity(
+        config=config,
+        client_type="oidc",
+        services={
+            "xyz": {
+                "class": "idpyoidc.client.service.Service",
+                "kwargs": {
+                    "client_authn_methods": {
+                        "home_brew": {"class": FooBar, "kwargs": {"one": "bar"}}
+                    }
+                },
+            }
+        },
+    )
+
+    context = create_new_context(entity.context[''])
+    assert context
+
+    assert set(context.client_authn_methods.keys()) == set()
+
+    entity.context['https://client.example.com'] = context
+    entity.setup_client_authn_methods(config, server_entity_id = 'https://client.example.com')
+
+    assert set(entity.context[""].client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+    }
+
+    assert set(entity.get_service('').client_authn_methods.keys()) == {"home_brew"}
+
+    srv_id = 'https://client.example.org'
+    entity.add_new_context(srv_id)
+
+    assert set(entity.context[srv_id].client_authn_methods.keys()) == {
+        "client_secret_basic",
+        "client_secret_post",
+    }
+    assert set(entity.get_service(service_name='').client_authn_methods.keys()) == {"home_brew"}

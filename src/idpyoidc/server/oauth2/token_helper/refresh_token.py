@@ -14,9 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
-    def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.upstream_get("context")
-        _mngr = _context.session_manager
+    def process_request(self, context, req: Union[Message, dict], **kwargs):
+        _mngr = context.session_manager
         logger.debug("Refresh Token")
 
         if req["grant_type"] != "refresh_token":
@@ -38,7 +37,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token_type = "Bearer"
 
         # Is DPOP supported
-        if "dpop_signing_alg_values_supported" in _context.provider_info:
+        if "dpop_signing_alg_values_supported" in context.provider_info:
             _dpop_jkt = req.get("dpop_jkt")
             if _dpop_jkt:
                 _grant.extra["dpop_jkt"] = _dpop_jkt
@@ -49,6 +48,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         if "scope" in req:
             scope = req["scope"]
         access_token = self._mint_token(
+            context,
             token_class="access_token",
             grant=_grant,
             session_id=_session_info["branch_id"],
@@ -71,6 +71,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         issue_refresh = kwargs.get("issue_refresh", False)
         if "refresh_token" in _mints and issue_refresh:
             refresh_token = self._mint_token(
+                context,
                 token_class="refresh_token",
                 grant=_grant,
                 session_id=_session_info["branch_id"],
@@ -85,10 +86,10 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         if (
             "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+            and req["client_id"] in context.cdb
+            and "revoke_refresh_on_issue" in context.cdb[req["client_id"]]
         ):
-            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+            revoke_refresh = context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
             revoke_refresh = self.endpoint.revoke_refresh_on_issue
 
@@ -98,7 +99,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -109,13 +110,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
         """
 
         request = RefreshAccessTokenRequest(**request.to_dict())
-        _context = self.endpoint.upstream_get("context")
 
         request.verify(
             keyjar=self.endpoint.upstream_get("sttribute", "keyjar"), opponent_id=client_id
         )
 
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["refresh_token"], grant=True, handler_key="refresh_token"

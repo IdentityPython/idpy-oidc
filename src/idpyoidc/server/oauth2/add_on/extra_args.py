@@ -39,7 +39,7 @@ def pre_construct(response_args, request, context, **kwargs):
     return response_args
 
 
-def add_support(endpoint, **kwargs):
+def add_support(context, endpoint, **kwargs):
     #
     _added = False
     for endpoint_name in list(kwargs.keys()):
@@ -47,5 +47,5 @@ def add_support(endpoint, **kwargs):
         _endp.pre_construct.append(pre_construct)
 
         if _added is False:
-            _endp.upstream_get("context").add_on["extra_args"] = kwargs
+            context.add_on["extra_args"] = kwargs
             _added = True

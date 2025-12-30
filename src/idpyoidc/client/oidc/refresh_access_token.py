@@ -7,8 +7,8 @@ class RefreshAccessToken(refresh_access_token.RefreshAccessToken):
     response_cls = oidc.AccessTokenResponse
     error_msg = oidc.ResponseMessage
 
-    def get_authn_method(self):
-        _work_environment = self.upstream_get("context").claims
+    def get_authn_method(self, context):
+        _work_environment = context.claims
         try:
             return _work_environment.get_usage("token_endpoint_auth_method")
         except KeyError:

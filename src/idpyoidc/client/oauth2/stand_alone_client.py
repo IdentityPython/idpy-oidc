@@ -21,8 +21,8 @@ from idpyoidc.exception import NotForMe
 from idpyoidc.key_import import add_kb
 from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oauth2 import ResponseMessage
+from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import Claims
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 class StandAloneClient(Client):
 
-    def get_session_information(self, key):
+    def get_session_information(self, context, key):
         """
         This is the second of the methods users of this class should know about.
         It will return the complete session information as an
@@ -47,10 +47,11 @@ class StandAloneClient(Client):
         :return: A State instance
         """
 
-        return self.get_context().cstate.get(key)
+        return context.cstate.get(key)
 
     def do_provider_info(
             self,
+            context,
             behaviour_args: Optional[dict] = None,
     ) -> str:
         """
@@ -62,15 +63,14 @@ class StandAloneClient(Client):
         """
         logger.debug(20 * "*" + " do_provider_info " + 20 * "*")
 
-        _context = self.get_context()
-        _pi = _context.get("provider_info")
+        _pi = context.get("provider_info")
         if _pi is None or _pi == {}:
-            dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
-            _pi = _context.provider_info
+            dynamic_provider_info_discovery(self, context, behaviour_args=behaviour_args)
+            _pi = context.provider_info
         elif len(_pi) == 1 and "issuer" in _pi:
-            _context.issuer = _pi["issuer"]
-            dynamic_provider_info_discovery(self, behaviour_args=behaviour_args)
-            _pi = _context.provider_info
+            context.issuer = _pi["issuer"]
+            dynamic_provider_info_discovery(self, context, behaviour_args=behaviour_args)
+            _pi = context.provider_info
         else:
             for key, val in _pi.items():
                 # All service endpoint parameters in the provider info has
@@ -93,22 +93,23 @@ class StandAloneClient(Client):
                     elif typ == "file":
                         for kty, _name in _spec.items():
                             if kty == "jwks":
-                                _kj = import_jwks_from_file(_kj, _name, _context.get("issuer"))
+                                _kj = import_jwks_from_file(_kj, _name, context.get("issuer"))
                             elif kty == "rsa":  # PEM file
                                 _kb = keybundle_from_local_file(_name, "der", ["sig"])
-                                _kj = add_kb(_kj, _context.get("issuer"), _kb)
+                                _kj = add_kb(_kj, context.get("issuer"), _kb)
                     else:
                         raise ValueError("Unknown provider JWKS type: {}".format(typ))
 
-        _context.map_supported_to_preferred(info=_pi)
+        context.map_supported_to_preferred(info=_pi)
 
         try:
-            return _context.provider_info["issuer"]
+            return context.provider_info["issuer"]
         except:
-            return _context.issuer
+            return context.issuer
 
     def do_client_registration(
             self,
+            context,
             request_args: Optional[dict] = None,
             behaviour_args: Optional[dict] = None,
             issuer: Optional[str] = ""
@@ -123,11 +124,9 @@ class StandAloneClient(Client):
 
         logger.debug(20 * "*" + " do_client_registration " + 20 * "*")
 
-        _context = self.get_context()
-
         # This should only be interesting if the client supports Single Log Out
-        # if _context.callback.get("post_logout_redirect_uri") is None:
-        #     _context.callback["post_logout_redirect_uri"] = [self.base_url]
+        # if context.callback.get("post_logout_redirect_uri") is None:
+        #     context.callback["post_logout_redirect_uri"] = [self.base_url]
 
         if not self.get_client_id():  # means I have to do dynamic client registration
             if request_args is None:
@@ -139,7 +138,7 @@ class StandAloneClient(Client):
 
             load_registration_response(self, request_args=request_args)
         else:
-            _context.map_preferred_to_registered()
+            context.map_preferred_to_registered()
 
     def _get_response_type(self, context, req_args: Optional[dict] = None):
         if req_args:
@@ -177,6 +176,7 @@ class StandAloneClient(Client):
 
     def init_authorization(
             self,
+            context,
             req_args: Optional[dict] = None,
             behaviour_args: Optional[dict] = None,
     ) -> str:
@@ -193,12 +193,11 @@ class StandAloneClient(Client):
 
         logger.debug(20 * "*" + " init_authorization " + 20 * "*")
 
-        _context = self.get_context()
-        _response_type = self._get_response_type(_context, req_args)
-        _response_mode = self._get_response_mode(_context, _response_type, req_args)
+        _response_type = self._get_response_type(context, req_args)
+        _response_mode = self._get_response_mode(context, _response_type, req_args)
         try:
             _redirect_uri = pick_redirect_uri(
-                _context,
+                context,
                 request_args=req_args,
                 response_type=_response_type,
                 response_mode=_response_mode,
@@ -223,11 +222,11 @@ class StandAloneClient(Client):
             _nonce = rndstr(24)
             request_args["nonce"] = _nonce
 
-        _scope = _context.claims.get_usage("scope")
+        _scope = context.claims.get_usage("scope")
         if _scope:
             request_args["scope"] = _scope
 
-        _req_args = _context.config.get("request_args")
+        _req_args = context.config.get("request_args")
         if _req_args:
             if "claims" in _req_args:
                 _req_args["claims"] = Claims(**_req_args["claims"])
@@ -237,18 +236,18 @@ class StandAloneClient(Client):
             request_args.update(req_args)
 
         # Need a new state for a new authorization request
-        _current = _context.cstate
+        _current = context.cstate
         _state = _current.create_key()
         request_args["state"] = _state
         if _nonce:
             _current.bind_key(_nonce, _state)
 
-        _current.set(_state, {"iss": _context.get("issuer")})
+        _current.set(_state, {"iss": context.get("issuer")})
 
         logger.debug("Authorization request args: {}".format(request_args))
 
         # if behaviour_args and "request_param" not in behaviour_args:
-        #     _pi = _context.get("provider_info")
+        #     _pi = context.get("provider_info")
 
         _srv = self.get_service("authorization")
         _info = _srv.get_request_parameters(
@@ -258,7 +257,7 @@ class StandAloneClient(Client):
         return _info["url"]
 
     @staticmethod
-    def get_client_authn_method(self, endpoint):
+    def get_client_authn_method(self, context, endpoint):
         """
         Return the client authentication method a client wants to use at a
         specific endpoint
@@ -267,7 +266,7 @@ class StandAloneClient(Client):
         :return: The client authentication method
         """
         if endpoint == "token_endpoint":
-            auth_method = self.get_context().get_usage("token_endpoint_auth_method")
+            auth_method = context.get_usage("token_endpoint_auth_method")
             if not auth_method:
                 return ""
             else:
@@ -277,7 +276,7 @@ class StandAloneClient(Client):
                     return auth_method[0]
         return ""
 
-    def get_tokens(self, state):
+    def get_tokens(self, context, state):
         """
         Use the 'accesstoken' service to get an access token from the OP/AS.
 
@@ -288,8 +287,7 @@ class StandAloneClient(Client):
         """
         logger.debug(20 * "*" + " get_tokens " + 20 * "*")
 
-        _context = self.get_context()
-        _claims = _context.cstate.get_set(state, claim=["code", "redirect_uri"])
+        _claims = context.cstate.get_set(state, claim=["code", "redirect_uri"])
 
         req_args = {
             "code": _claims["code"],
@@ -297,14 +295,14 @@ class StandAloneClient(Client):
             "redirect_uri": _claims["redirect_uri"],
             "grant_type": "authorization_code",
             "client_id": self.get_client_id(),
-            "client_secret": _context.claims.get_usage("client_secret"),
+            "client_secret": context.claims.get_usage("client_secret"),
         }
         logger.debug("request_args: {}".format(req_args))
         try:
             tokenresp = self.do_request(
                 "accesstoken",
                 request_args=req_args,
-                authn_method=self.get_client_authn_method(self, "token_endpoint"),
+                authn_method=self.get_client_authn_method(self, context, "token_endpoint"),
                 state=state,
             )
         except Exception:
@@ -317,7 +315,7 @@ class StandAloneClient(Client):
 
         return tokenresp
 
-    def refresh_access_token(self, state, scope=""):
+    def refresh_access_token(self, context, state, scope=""):
         """
         Refresh an access token using a refresh_token. When asking for a new
         access token the RP can ask for another scope for the new token.
@@ -338,7 +336,7 @@ class StandAloneClient(Client):
         try:
             tokenresp = self.do_request(
                 "refresh_token",
-                authn_method=self.get_client_authn_method(self, "token_endpoint"),
+                authn_method=self.get_client_authn_method(self, context, "token_endpoint"),
                 state=state,
                 request_args=req_args,
             )
@@ -352,7 +350,7 @@ class StandAloneClient(Client):
 
         return tokenresp
 
-    def get_user_info(self, state, access_token="", **kwargs):
+    def get_user_info(self, context, state, access_token="", **kwargs):
         """
         use the access token previously acquired to get some userinfo
 
@@ -366,7 +364,7 @@ class StandAloneClient(Client):
         logger.debug(20 * "*" + " get_user_info " + 20 * "*")
 
         if not access_token:
-            _arg = self.get_context().cstate.get_set(state, claim=["access_token"])
+            _arg = context.cstate.get_set(state, claim=["access_token"])
             access_token = _arg["access_token"]
 
         request_args = {"access_token": access_token}
@@ -392,7 +390,7 @@ class StandAloneClient(Client):
         res.update(id_token.extra())
         return res
 
-    def finalize_auth(self, response: dict, behaviour_args: Optional[dict] = None):
+    def finalize_auth(self, context, response: dict, behaviour_args: Optional[dict] = None):
         """
         Given the response returned to the redirect_uri, parse and verify it.
 
@@ -420,30 +418,30 @@ class StandAloneClient(Client):
         if is_error_message(authorization_response):
             return authorization_response
 
-        _context = self.get_context()
         try:
-            _iss = _context.cstate.get_set(authorization_response["state"], claim=["iss"]).get(
+            _iss = context.cstate.get_set(authorization_response["state"], claim=["iss"]).get(
                 "iss"
             )
         except KeyError:
             raise KeyError("Unknown state value")
 
         try:
-            issuer = _context.provider_info["issuer"]
+            issuer = context.provider_info["issuer"]
         except KeyError:
-            issuer = _context.issuer
+            issuer = context.issuer
 
         if _iss != issuer:
             logger.error("Issuer problem: {} != {}".format(_iss, issuer))
             # got it from the wrong bloke
             raise ValueError("Impersonator {}".format(issuer))
 
-        _context.cstate.update(authorization_response["state"], authorization_response)
+        context.cstate.update(authorization_response["state"], authorization_response)
         _srv.update_service_context(authorization_response, key=authorization_response["state"])
         return authorization_response
 
     def get_access_and_id_token(
             self,
+            context,
             authorization_response: Optional[Message] = None,
             state: Optional[str] = "",
             behaviour_args: Optional[dict] = None,
@@ -464,9 +462,7 @@ class StandAloneClient(Client):
 
         logger.debug(20 * "*" + " get_access_and_id_token " + 20 * "*")
 
-        _context = self.get_context()
-
-        resp_attr = authorization_response or _context.cstate.get_set(
+        resp_attr = authorization_response or context.cstate.get_set(
             state, message=AuthorizationResponse
         )
         if resp_attr is None:
@@ -475,7 +471,7 @@ class StandAloneClient(Client):
         if not state:
             state = authorization_response["state"]
 
-        _req_attr = _context.cstate.get_set(state, AuthorizationRequest)
+        _req_attr = context.cstate.get_set(state, AuthorizationRequest)
         if isinstance(_req_attr["response_type"], list):
             _resp_type = set(_req_attr["response_type"])
         else:
@@ -496,7 +492,7 @@ class StandAloneClient(Client):
             if behaviour_args:
                 if behaviour_args.get("collect_tokens", False):
                     # get what you can from the token endpoint
-                    token_resp = self.get_tokens(state)
+                    token_resp = self.get_tokens(context, state)
                     if is_error_message(token_resp):
                         return False, "Invalid response %s." % token_resp["error"]
                     # Now which access_token should I use
@@ -506,7 +502,7 @@ class StandAloneClient(Client):
 
         elif _resp_type in [{"code"}, {"code", "id_token"}]:
             # get the access token
-            token_resp = self.get_tokens(state)
+            token_resp = self.get_tokens(context, state)
             if is_error_message(token_resp):
                 return False, "Invalid response %s." % token_resp["error"]
 

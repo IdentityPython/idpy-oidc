@@ -23,7 +23,7 @@ class Claims(claims.Claims):
         return _base
 
     def get_id(self, configuration: dict):
-        return self.get_preference("client_id")
+        return self.get_preference("client_id", "")
 
     def _add_key_if_missing(self, keyjar, id, key):
         try:

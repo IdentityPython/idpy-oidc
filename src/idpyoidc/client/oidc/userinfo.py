@@ -3,14 +3,14 @@ from typing import Optional
 from typing import Union
 
 from idpyoidc import verified_claim_name
+from idpyoidc.alg_info import get_encryption_algs
+from idpyoidc.alg_info import get_encryption_encs
+from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
-from idpyoidc.alg_info import get_encryption_algs
-from idpyoidc.alg_info import get_encryption_encs
-from idpyoidc.alg_info import get_signing_algs
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ UI2REG = {
 }
 
 
-def carry_state(request_args=None, **kwargs):
+def carry_state(context, request_args=None, **kwargs):
     """
     Make sure post_construct_methods have access to state
 
@@ -52,22 +52,19 @@ class UserInfo(Service):
         Service.__init__(self, upstream_get, conf=conf)
         self.pre_construct = [self.oidc_pre_construct, carry_state]
 
-    def oidc_pre_construct(self, request_args=None, **kwargs):
+    def oidc_pre_construct(self, context, request_args=None, **kwargs):
         if request_args is None:
             request_args = {}
 
         if "access_token" in request_args:
             pass
         else:
-            request_args = self.upstream_get("context").cstate.get_set(
-                kwargs["state"], claim=["access_token"]
-            )
+            request_args = context.cstate.get_set(kwargs["state"], claim=["access_token"])
 
         return request_args, {}
 
-    def post_parse_response(self, response, **kwargs):
-        _context = self.upstream_get("context")
-        _current = _context.cstate
+    def post_parse_response(self, context, response, **kwargs):
+        _current = context.cstate
         _args = _current.get_set(kwargs["state"], claim=[verified_claim_name("id_token")])
 
         try:
@@ -110,23 +107,24 @@ class UserInfo(Service):
         return response
 
     def gather_verify_arguments(
-        self, response: Optional[Union[dict, Message]] = None, behaviour_args: Optional[dict] = None
+            self, context,
+            response: Optional[Union[dict, Message]] = None,
+            behaviour_args: Optional[dict] = None
     ):
         """
         Need to add some information before running verify()
 
         :return: dictionary with arguments to the verify call
         """
-        _context = self.upstream_get("context")
         kwargs = {
-            "client_id": _context.get_client_id(),
-            "iss": _context.issuer,
+            "client_id": context.get_client_id(),
+            "iss": context.issuer,
             "keyjar": self.upstream_get("attribute", "keyjar"),
             "verify": True,
-            "skew": _context.clock_skew,
+            "skew": context.clock_skew,
         }
 
-        _reg_resp = _context.registration_response
+        _reg_resp = context.registration_response
         if _reg_resp:
             for attr, param in UI2REG.items():
                 try:
@@ -135,7 +133,7 @@ class UserInfo(Service):
                     pass
 
         try:
-            kwargs["allow_missing_kid"] = _context.allow["missing_kid"]
+            kwargs["allow_missing_kid"] = context.allow["missing_kid"]
         except KeyError:
             pass
 

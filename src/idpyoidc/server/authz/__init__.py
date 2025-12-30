@@ -19,7 +19,7 @@ class AuthzHandling(object):
         self.grant_config = grant_config or {}
         self.kwargs = kwargs
 
-    def usage_rules(self, client_id: Optional[str] = ""):
+    def usage_rules(self, context):
         if "usage_rules" in self.grant_config:
             _usage_rules = copy.deepcopy(self.grant_config["usage_rules"])
         else:
@@ -29,7 +29,7 @@ class AuthzHandling(object):
             return _usage_rules
 
         try:
-            _per_client = self.upstream_get("context").cdb[client_id]["token_usage_rules"]
+            _per_client = context.cdb[context.client_id]["token_usage_rules"]
         except KeyError:
             pass
         else:
@@ -56,13 +56,13 @@ class AuthzHandling(object):
             return {}
 
     def __call__(
-        self,
-        session_id: str,
-        request: Union[dict, Message],
-        resources: Optional[list] = None,
+            self,
+            context,
+            session_id: str,
+            request: Union[dict, Message],
+            resources: Optional[list] = None,
     ) -> Grant:
-        _context = self.upstream_get("context")
-        session_info = _context.session_manager.get_session_info(session_id=session_id, grant=True)
+        session_info = context.session_manager.get_session_info(session_id=session_id, grant=True)
         grant = session_info["grant"]
         _client_id = session_info["client_id"]
 
@@ -86,11 +86,11 @@ class AuthzHandling(object):
         if not scopes:
             scopes = request.get("scope", [])
         else:
-            scopes = _context.scopes_handler.filter_scopes(scopes, client_id=_client_id)
+            scopes = context.scopes_handler.filter_scopes(scopes, client_id=_client_id)
         grant.scope = scopes
 
         # After this is where user consent should be handled
-        grant.claims = _context.claims_interface.get_claims_all_usage(
+        grant.claims = context.claims_interface.get_claims_all_usage(
             session_id=session_id, scopes=scopes
         )
 
@@ -99,13 +99,14 @@ class AuthzHandling(object):
 
 class Implicit(AuthzHandling):
     def __call__(
-        self,
-        session_id: str,
-        request: Union[dict, Message],
-        resources: Optional[list] = None,
+            self,
+            context,
+            session_id: str,
+            request: Union[dict, Message],
+            resources: Optional[list] = None,
     ) -> Grant:
         args = self.grant_config.copy()
-        grant = self.upstream_get("context").session_manager.get_grant(session_id=session_id)
+        grant = context.session_manager.get_grant(session_id=session_id)
         for arg, val in args:
             setattr(grant, arg, val)
         return grant

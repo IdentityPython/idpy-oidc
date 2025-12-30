@@ -11,7 +11,7 @@ from idpyoidc.message import Message
 logger = logging.getLogger(__name__)
 
 
-def add_code_challenge(request_args, service, **kwargs):
+def add_code_challenge(context, request_args, service, **kwargs):
     """
     PKCE RFC 7636 support
     To be added as a post_construct method to an
@@ -22,8 +22,7 @@ def add_code_challenge(request_args, service, **kwargs):
     :param kwargs: Extra set of keyword arguments
     :return: Updated set of request arguments
     """
-    _context = service.upstream_get("context")
-    _kwargs = _context.add_on["pkce"]
+    _kwargs = context.add_on["pkce"]
 
     try:
         cv_len = _kwargs["code_challenge_length"]
@@ -50,13 +49,13 @@ def add_code_challenge(request_args, service, **kwargs):
         raise Unsupported("PKCE Transformation method:{}".format(_method))
 
     _item = Message(code_verifier=code_verifier, code_challenge_method=_method)
-    _context.cstate.update(request_args["state"], _item)
+    context.cstate.update(request_args["state"], _item)
 
     request_args.update({"code_challenge": code_challenge, "code_challenge_method": _method})
     return request_args, {}
 
 
-def add_code_verifier(request_args, service, **kwargs):
+def add_code_verifier(context, request_args, service, **kwargs):
     """
     PKCE RFC 7636 support
     To be added as a post_construct method to an
@@ -69,7 +68,7 @@ def add_code_verifier(request_args, service, **kwargs):
     _state = request_args.get("state")
     if _state is None:
         _state = kwargs.get("state")
-    _item = service.upstream_get("context").cstate.get_set(_state, claim=["code_verifier"])
+    _item = context.cstate.get_set(_state, claim=["code_verifier"])
     request_args.update(_item)
     return request_args
 
@@ -79,7 +78,7 @@ def put_state_in_post_args(request_args, **kwargs):
     return request_args, {"state": state}
 
 
-def add_support(service, code_challenge_length, code_challenge_method):
+def add_support(context, service, code_challenge_length, code_challenge_method):
     """
     PKCE support can only be considered if this client can access authorization and
     access token services.
@@ -91,8 +90,7 @@ def add_support(service, code_challenge_length, code_challenge_method):
     """
     if "authorization" in service and "accesstoken" in service:
         _service = service["authorization"]
-        _context = _service.upstream_get("context")
-        _context.add_on["pkce"] = {
+        context.add_on["pkce"] = {
             "code_challenge_length": code_challenge_length,
             "code_challenge_method": code_challenge_method,
         }

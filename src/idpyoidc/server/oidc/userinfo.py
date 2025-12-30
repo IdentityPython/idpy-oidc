@@ -1,13 +1,11 @@
 import json
 import logging
-from datetime import datetime
 from typing import Callable
 from typing import Optional
 from typing import Union
 
 from cryptojwt.exception import MissingValue
 from cryptojwt.jwt import JWT
-from cryptojwt.jwt import utc_time_sans_frac
 
 from idpyoidc import alg_info
 from idpyoidc.exception import ImproperlyConfigured
@@ -41,7 +39,7 @@ class UserInfo(Endpoint):
     }
 
     def __init__(
-        self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
+            self, upstream_get: Callable, add_claims_by_scope: Optional[bool] = True, **kwargs
     ):
         Endpoint.__init__(
             self,
@@ -58,21 +56,21 @@ class UserInfo(Endpoint):
         return _info["client_id"]
 
     def do_response(
-        self,
-        response_args: Optional[Union[Message, dict]] = None,
-        request: Optional[Union[Message, dict]] = None,
-        client_id: Optional[str] = "",
-        **kwargs,
+            self,
+            context,
+            response_args: Optional[Union[Message, dict]] = None,
+            request: Optional[Union[Message, dict]] = None,
+            client_id: Optional[str] = "",
+            **kwargs,
     ) -> dict:
         if "error" in kwargs and kwargs["error"]:
             return Endpoint.do_response(self, response_args, request, **kwargs)
 
-        _context = self.upstream_get("context")
         if not client_id:
             raise MissingValue("client_id")
 
         # Should I return a JSON or a JWT ?
-        _cinfo = _context.cdb[client_id]
+        _cinfo = context.cdb[client_id]
 
         # default is not to sign or encrypt
         try:
@@ -93,7 +91,7 @@ class UserInfo(Endpoint):
         if encrypt or sign:
             _jwt = JWT(
                 self.upstream_get("attribute", "keyjar"),
-                iss=_context.issuer,
+                iss=context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,
                 encrypt=encrypt,
@@ -115,8 +113,8 @@ class UserInfo(Endpoint):
 
         return {"response": resp, "http_headers": http_headers}
 
-    def process_request(self, request=None, **kwargs):
-        _mngr = self.upstream_get("context").session_manager
+    def process_request(self, context, request=None, **kwargs):
+        _mngr = context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["access_token"], grant=True, handler_key="access_token"
@@ -143,11 +141,10 @@ class UserInfo(Endpoint):
         if "openid" not in access_token.scope:
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
-        _cntxt = self.upstream_get("context")
-        _claims_restriction = _cntxt.claims_interface.get_claims(
+        _claims_restriction = context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=access_token.scope, claims_release_point="userinfo"
         )
-        info = _cntxt.claims_interface.get_user_claims(
+        info = context.claims_interface.get_user_claims(
             _session_info["user_id"], claims_restriction=_claims_restriction,
             client_id=_session_info["client_id"]
         )
@@ -159,15 +156,15 @@ class UserInfo(Endpoint):
             if extra_claims:
                 info.update(extra_claims)
 
-        if "userinfo" in _cntxt.cdb[request["client_id"]]:
-            self.config["policy"] = _cntxt.cdb[request["client_id"]]["userinfo"]["policy"]
+        if "userinfo" in context.cdb[request["client_id"]]:
+            self.config["policy"] = context.cdb[request["client_id"]]["userinfo"]["policy"]
 
         if "policy" in self.config:
             info = self._enforce_policy(request, info, access_token, self.config)
 
         return {"response_args": info, "client_id": _session_info["client_id"]}
 
-    def parse_request(self, request, http_info=None, **kwargs):
+    def parse_request(self, context, request, http_info=None, **kwargs):
         """
 
         :param request:
@@ -193,6 +190,7 @@ class UserInfo(Endpoint):
 
         # Do any endpoint specific parsing
         return self.do_post_parse_request(
+            context,
             request=request,
             client_id=auth_info["client_id"],
             http_info=http_info,

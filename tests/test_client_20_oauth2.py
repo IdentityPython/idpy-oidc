@@ -6,11 +6,10 @@ import pytest
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 
-from idpyoidc.client.configure import RPHConfiguration
+from idpyoidc.client.configure import Configuration
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
 from idpyoidc.client.oauth2 import Client
-from idpyoidc.client.rp_handler import RPHandler
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -184,9 +183,9 @@ class TestClient2(object):
                 }
             },
         }
-        rp_conf = RPHConfiguration(conf)
-        rp_handler = RPHandler(base_url=BASE_URL, config=rp_conf)
-        self.client = rp_handler.init_client(issuer="service_1")
+        rp_conf = Configuration(conf)
+        rp = Client(base_url=BASE_URL, config=rp_conf)
+        self.client = rp.add_new_context("service_1")
         assert self.client
 
     def test_keyjar(self):

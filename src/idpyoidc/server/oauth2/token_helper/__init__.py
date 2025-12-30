@@ -4,7 +4,6 @@ from typing import Union
 
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import TokenErrorResponse
-from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.session.grant import Grant
 from idpyoidc.server.session.token import SessionToken
 from idpyoidc.time_util import utc_time_sans_frac
@@ -19,7 +18,7 @@ class TokenEndpointHelper(object):
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
@@ -27,23 +26,23 @@ class TokenEndpointHelper(object):
         """
         raise NotImplementedError
 
-    def process_request(self, req: Union[Message, dict], **kwargs):
+    def process_request(self, context, req: Union[Message, dict], **kwargs):
         """Acts on a process request."""
         raise NotImplementedError
 
     def _mint_token(
-        self,
-        token_class: str,
-        grant: Grant,
-        session_id: str,
-        client_id: str,
-        based_on: Optional[SessionToken] = None,
-        scope: Optional[list] = None,
-        token_args: Optional[dict] = None,
-        token_type: Optional[str] = "",
+            self,
+            context,
+            token_class: str,
+            grant: Grant,
+            session_id: str,
+            client_id: str,
+            based_on: Optional[SessionToken] = None,
+            scope: Optional[list] = None,
+            token_args: Optional[dict] = None,
+            token_type: Optional[str] = "",
     ) -> SessionToken:
-        _context = self.endpoint.upstream_get("context")
-        _mngr = _context.session_manager
+        _mngr = context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
@@ -52,8 +51,8 @@ class TokenEndpointHelper(object):
             _exp_in = _token_handler.lifetime
 
         token_args = token_args or {}
-        for meth in _context.token_args_methods:
-            token_args = meth(_context, client_id, token_args)
+        for meth in context.token_args_methods:
+            token_args = meth(context, client_id, token_args)
 
         if token_args:
             _args = token_args
@@ -61,8 +60,8 @@ class TokenEndpointHelper(object):
             _args = {}
 
         token = grant.mint_token(
+            context,
             session_id,
-            context=_context,
             token_class=token_class,
             token_handler=_mngr.token_handler[token_class],
             based_on=based_on,
@@ -79,12 +78,12 @@ class TokenEndpointHelper(object):
             if _exp_in:
                 token.expires_at = utc_time_sans_frac() + _exp_in
 
-        _context.session_manager.set(_context.session_manager.unpack_session_key(session_id), grant)
+        context.session_manager.set(context.session_manager.unpack_session_key(session_id), grant)
 
         return token
 
 
-def validate_resource_indicators_policy(request, context, **kwargs):
+def validate_resource_indicators_policy(context, request, **kwargs):
     if "resource" not in request:
         return TokenErrorResponse(
             error="invalid_target",
@@ -96,8 +95,8 @@ def validate_resource_indicators_policy(request, context, **kwargs):
     resource_servers_per_client = kwargs.get("resource_servers_per_client", [])
 
     if (
-        isinstance(resource_servers_per_client, dict)
-        and client_id not in resource_servers_per_client
+            isinstance(resource_servers_per_client, dict)
+            and client_id not in resource_servers_per_client
     ):
         return TokenErrorResponse(
             error="invalid_target",
@@ -156,14 +155,14 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         )
 
     if (
-        "requested_token_type" in request
-        and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
+            "requested_token_type" in request
+            and request["requested_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token"
     ):
         if "offline_access" not in subject_token.scope:
             return TokenErrorResponse(
                 error="invalid_request",
                 error_description=f"Exchange {request['subject_token_type']} to refresh token "
-                f"forbidden",
+                                  f"forbidden",
             )
 
     scopes = request.get("scope", subject_token.scope)

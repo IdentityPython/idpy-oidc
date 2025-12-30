@@ -35,7 +35,7 @@ class CCAccessTokenRequest(Service):
 
         return request, post_args
 
-    def update_service_context(self, resp, key: Optional[str] = "", **kwargs):
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
-        self.upstream_get("context").cstate.update(key, resp)
+        context.cstate.update(key, resp)

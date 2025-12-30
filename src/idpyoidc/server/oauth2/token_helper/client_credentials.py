@@ -16,9 +16,8 @@ class ClientCredentials(TokenEndpointHelper):
     def __init__(self, endpoint, config=None):
         TokenEndpointHelper.__init__(self, endpoint, config)
 
-    def process_request(self, req: Union[Message, dict], **kwargs):
-        _context = self.endpoint.upstream_get("context")
-        _mngr = _context.session_manager
+    def process_request(self, context, req: Union[Message, dict], **kwargs):
+        _mngr = context.session_manager
         logger.debug("Client credentials flow")
 
         # verify the client and the user
@@ -26,11 +25,11 @@ class ClientCredentials(TokenEndpointHelper):
         client_id = req["client_id"]
         _authenticated = req.get("authenticated", False)
         if not _authenticated:
-            if _context.cdb[client_id] != req["client_secret"]:
+            if context.cdb[client_id] != req["client_secret"]:
                 logger.warning("Client authentication failed")
                 return self.error_cls(error="invalid_request", error_description="Wrong client")
 
-        _grant_types_supported = _context.cdb[client_id].get("grant_types_supported")
+        _grant_types_supported = context.cdb[client_id].get("grant_types_supported")
         if _grant_types_supported and "client_credentials" not in _grant_types_supported:
             return self.error_cls(
                 error="invalid_request", error_description="Unsupported grant type"
@@ -49,7 +48,7 @@ class ClientCredentials(TokenEndpointHelper):
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
+        _allowed = context.cdb[client_id].get("allowed_scopes", [])
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
@@ -72,7 +71,7 @@ class ClientCredentials(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         request = CCAccessTokenRequest(**request.to_dict())
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))

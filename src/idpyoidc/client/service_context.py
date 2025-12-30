@@ -9,12 +9,12 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
+from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
+from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
-from idpyoidc.util import conf_get
 
 from idpyoidc.claims import Claims
 from idpyoidc.claims import claims_dump
@@ -23,10 +23,16 @@ from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
 from idpyoidc.client.configure import Configuration
+from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
+from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
+from idpyoidc.client.service import init_services
+from idpyoidc.client.util import do_add_ons
+from idpyoidc.key_import import add_kb
+from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.transform import preferred_to_registered
 from idpyoidc.transform import supported_to_preferred
+from idpyoidc.util import conf_get
 from idpyoidc.util import rndstr
-from .configure import get_configuration
 from .current import Current
 from .entity_metadata import EntityMetadata
 from ..impexp import ImpExp
@@ -120,20 +126,23 @@ class ServiceContext(ImpExp):
 
     def __init__(
             self,
+            server_entity_id: str,
             upstream_get: Optional[Callable] = None,
             base_url: Optional[str] = "",
-            keyjar: Optional[KeyJar] = None,
+            # keyjar: Optional[KeyJar] = None,
             config: Optional[Union[dict, Configuration]] = None,
             cstate: Optional[Current] = None,
-            client_type: Optional[str] = "oauth2",
+            client_type: Optional[str] = "",
+            services: Optional[dict] = None,
+            entity_id: Optional[str] = "",
             **kwargs,
     ):
         ImpExp.__init__(self)
-        config = get_configuration(config)
-        self.config = config
+        # config = get_configuration(config)
+        self.config = config  # This is entity configuration
         self.upstream_get = upstream_get
 
-        self.client_type = client_type or "oidc"
+        self.client_type = config.get("client_type", None) or client_type or "oidc"
         if self.client_type == "oidc":
             self.claims = OIDC_Specs()
         elif self.client_type == "oauth2":
@@ -143,9 +152,16 @@ class ServiceContext(ImpExp):
         else:
             raise ValueError(f"Unknown client type: {self.client_type}")
 
-        self.entity_id = kwargs.get("entity_id", kwargs.get("client_id", ""))
+        _publish_as = self.upstream_get("attribute", "publish_keyjar_as")
+        if _publish_as:
+            for attr, val in _publish_as.items():
+                self.claims.prefer[attr] = val
+
+        self.entity_id = entity_id or kwargs.get("client_id", "")
         if not self.entity_id:
             self.entity_id = conf_get(config, "entity_id", conf_get(config, "client_id"))
+
+        self.client_id = kwargs.get("client_id", "") or conf_get(config, "client_id", '')
 
         self.cstate = cstate or Current()
 
@@ -162,18 +178,15 @@ class ServiceContext(ImpExp):
         self.iss_hash = ""
         self.issuer = ""
         self.httpc_params = {}
+        self.client_secret = ''
         self.client_secret_expires_at = 0
         self.registration_response = {}
         self.client_authn_methods = {}
 
         # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
-        _issuer = config.get("issuer")
-        if _issuer:
-            self.issuer = _issuer
-        else:
-            self.issuer = self.provider_info.get("issuer", "")
-
+        # issuer == server_entity_id
+        self.issuer = self.server_entity_id = server_entity_id
         self.clock_skew = config.get("clock_skew", 15)
 
         _seed = config.get("hash_seed", rndstr(32))
@@ -182,9 +195,25 @@ class ServiceContext(ImpExp):
         for key, val in kwargs.items():
             setattr(self, key, val)
 
-        self.keyjar = self.claims.load_conf(config.conf, supports=self.supports(), keyjar=keyjar,
+        if services:
+            _srvs = services
+        elif config:
+            _srvs = config.get("services")
+        else:
+            _srvs = None
+
+        if not _srvs:
+            if client_type == "oauth2":
+                _srvs = DEFAULT_OAUTH2_SERVICES
+            else:
+                _srvs = DEFAULT_OIDC_SERVICES
+
+        self.service = init_services(service_definitions=_srvs, upstream_get=upstream_get)
+        self.include_provider_info()
+
+        self.keyjar = self.claims.load_conf(config, supports=self.supports(),
                                             entity_id=self.entity_id,
-                                            metadata_class=kwargs.get("metadata_class",None))
+                                            metadata_class=kwargs.get("metadata_class", None))
 
         _jwks_uri = self.provider_info.get("jwks_uri")
         if _jwks_uri:
@@ -198,6 +227,11 @@ class ServiceContext(ImpExp):
 
         self.map_supported_to_preferred()
         self.map_preferred_to_registered()
+
+        _add_ons = conf_get(config, "add_ons")
+
+        if _add_ons:
+            do_add_ons(_add_ons, self.service)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -310,18 +344,18 @@ class ServiceContext(ImpExp):
         return res
 
     def collect_usage(self):
-        return self.claims.use
+        _use = self.claims.use.copy()
+        _use['client_id'] = self.client_id
+        _secret = getattr(self, 'client_secret')
+        if _secret:
+            _use['client_secret'] = _secret
+        return _use
 
     def supports(self):
         res = {}
-        if self.upstream_get:
-            services = self.upstream_get("services")
-            if not services:
-                pass
-            else:
-                for service in services.values():
-                    res.update(service.supports())
-                    res = service.extends(res)
+        for service in self.service.values():
+            res.update(service.supports())
+            res = service.extends(res)
         res.update(self.claims.supports())
         return res
 
@@ -342,7 +376,7 @@ class ServiceContext(ImpExp):
 
     def _callback_per_service(self):
         _cb = {}
-        for service in self.upstream_get("services").values():
+        for service in self.service.values():
             _cbs = service._callback_path.keys()
             if _cbs:
                 _cb[service.service_name] = _cbs
@@ -359,18 +393,15 @@ class ServiceContext(ImpExp):
         _base_url = self.get("base_url")
 
         _callback_uris = self.get_preference("callback_uris", {})
-        if self.upstream_get:
-            services = self.upstream_get("services")
-            if services:
-                for service in services.values():
-                    _callback_uris.update(
-                        service.construct_uris(
-                            base_url=_base_url,
-                            hex=_hex,
-                            context=self,
-                            response_types=response_types,
-                        )
-                    )
+        for service in self.service.values():
+            _callback_uris.update(
+                service.construct_uris(
+                    context=self,
+                    base_url=_base_url,
+                    hex=_hex,
+                    response_types=response_types,
+                )
+            )
 
         self.set_preference("callback_uris", _callback_uris)
         if "redirect_uris" in _callback_uris:
@@ -383,7 +414,7 @@ class ServiceContext(ImpExp):
         if claim in self.claims.prefer:
             return "prefer"
         else:
-            for service in self.upstream_get("services").values():
+            for service in self.service.values():
                 _res = service.prefer_or_support(claim)
                 if _res:
                     return _res
@@ -401,7 +432,7 @@ class ServiceContext(ImpExp):
     def map_service_against_endpoint(self, provider_config):
         # Check endpoints against services
         remove = []
-        for srv_name, srv in self.upstream_get("services").items():
+        for srv_name, srv in self.service.items():
             if srv.endpoint_name:
                 _match = provider_config.get(srv.endpoint_name)
                 if _match is None:
@@ -411,7 +442,7 @@ class ServiceContext(ImpExp):
                     remove.append(srv_name)
 
         for item in remove:
-            del self.upstream_get("services")[item]
+            del self.service[item]
 
     def map_preferred_to_registered(self,
                                     registration_response: Optional[dict] = None,
@@ -440,3 +471,61 @@ class ServiceContext(ImpExp):
                     return _val
 
         return None
+
+    def get_service(self, service_name, *arg):
+        try:
+            return self.service[service_name]
+        except KeyError:
+            return None
+
+    def get_service_by_endpoint_name(self, endpoint_name, server_entity_id="", *arg):
+        for service in self.service.values():
+            if service.endpoint_name == endpoint_name:
+                return service
+
+        return None
+
+    def include_provider_info(self):
+        _pi = self.provider_info
+        if not _pi:
+            return
+
+        for key, val in _pi.items():
+            # All service endpoint parameters in the provider info has
+            # a name ending in '_endpoint' so I can look specifically
+            # for those
+            if key.endswith("_endpoint"):
+                for _srv in self.service.values():
+                    # Every service has an endpoint_name assigned
+                    # when initiated. This name *MUST* match the
+                    # endpoint names used in the provider info
+                    if _srv.endpoint_name == key:
+                        _srv.endpoint = val
+
+        if "keys" in _pi:
+            _kj = self.upstream_get('attribute', "keyjar")
+            for typ, _spec in _pi["keys"].items():
+                if typ == "url":
+                    for _iss, _url in _spec.items():
+                        _kj.add_url(_iss, _url)
+                elif typ == "file":
+                    for kty, _name in _spec.items():
+                        if kty == "jwks":
+                            _kj = import_jwks_from_file(_kj, _name, self.issuer)
+                        elif kty == "rsa":  # PEM file
+                            _kb = keybundle_from_local_file(_name, "der", ["sig"])
+                            _kj = add_kb(_kj, self.issuer, _kb)
+                else:
+                    raise ValueError("Unknown provider JWKS type: {}".format(typ))
+
+
+def create_new_context(template_context, server_entity_id: str):
+    return ServiceContext(
+        server_entity_id=server_entity_id,
+        config=template_context.config,
+        jwks_uri=template_context.jwks_uri,
+        upstream_get=template_context.upstream_get,
+        keyjar=template_context.keyjar,
+        client_type=template_context.client_type,
+        entity_id=template_context.entity_id
+    )

@@ -25,7 +25,7 @@ class PushedAuthorization(Authorization):
         self.post_parse_request.append(self._post_parse_request)
         self.ttl = kwargs.get("ttl", 3600)
 
-    def process_request(self, request: Optional[Union[Message, str]] = None, **kwargs):
+    def process_request(self, context, request: Optional[Union[Message, str]] = None, **kwargs):
         """
         Store the request and return a URI.
 
@@ -42,7 +42,7 @@ class PushedAuthorization(Authorization):
 
         _urn = "urn:uuid:{}".format(uuid.uuid4())
         # Store the parsed and verified request
-        self.upstream_get("context").par_db[_urn] = _request
+        context.par_db[_urn] = _request
 
         return {
             "response_args": {"request_uri": _urn, "expires_in": self.ttl},

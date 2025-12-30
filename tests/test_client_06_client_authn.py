@@ -76,8 +76,8 @@ def entity():
     )
     # The following two lines is necessary since they replace provider info collection and
     # client registration.
-    _entity.get_service_context().map_supported_to_preferred()
-    _entity.get_service_context().map_preferred_to_registered()
+    _entity.context[''].map_supported_to_preferred()
+    _entity.context[''].map_preferred_to_registered()
     return _entity
 
 
@@ -202,7 +202,7 @@ class TestBearerHeader(object):
         )
 
         response = _service.parse_response(resp2.to_urlencoded(), "urlencoded")
-        _service.upstream_get("service_context").cstate.update(_state, response)
+        _service.upstream_get("context").cstate.update(_state, response)
 
         # and finally use the access token, bound to a state, to
         # construct the authorization header
@@ -258,7 +258,7 @@ class TestBearerBody(object):
         )
         _service2 = entity.get_service("")
         response = _service2.parse_response(resp2.to_urlencoded(), "urlencoded")
-        _service2.upstream_get("service_context").cstate.update(_key, response)
+        _service2.upstream_get("context").cstate.update(_key, response)
 
         request = ResourceRequest()
         BearerBody().construct(request, service=authz_service, key=_key)

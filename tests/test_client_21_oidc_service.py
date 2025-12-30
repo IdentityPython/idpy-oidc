@@ -1,13 +1,13 @@
 import os
 
-import pytest
-import responses
 from cryptojwt.exception import UnsupportedAlgorithm
 from cryptojwt.jws import jws
 from cryptojwt.jws.utils import left_hash
 from cryptojwt.jwt import JWT
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
+import responses
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
@@ -17,9 +17,9 @@ from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.key_import import import_jwks
 from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.key_import import store_under_other_id
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AccessTokenResponse
-from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
@@ -47,10 +47,11 @@ KEYSPEC = [
 
 _dirname = os.path.dirname(os.path.abspath(__file__))
 
-ISS = "https://example.com"
+ISS = "https://default.example.com"
+
 
 # Issuers keys
-def issuers_keyjar(): 
+def issuers_keyjar():
     _keyjar = init_key_jar(
         public_path="{}/pub_iss.jwks".format(_dirname),
         private_path="{}/priv_iss.jwks".format(_dirname),
@@ -58,7 +59,7 @@ def issuers_keyjar():
         issuer_id=ISS,
         read_only=False,
     )
-    
+
     # add clients keys
     _keyjar = import_jwks_from_file(_keyjar, f"{_dirname}/pub_client.jwks", "client_id")
     return _keyjar
@@ -103,13 +104,15 @@ class TestAuthorization(object):
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
         # Add the servers keys
-        _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks", ISS)
-        self.context = _context
-        self.service = entity.get_service("authorization")
+        _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks",
+                                                ISS)
+        self.server_entity_id = 'https://auth.example.com'
+        self.context = entity.add_new_context(self.server_entity_id, client_id='client_auth')
+        self.service = entity.get_service(self.context, "authorization")
 
     def test_construct(self):
         req_args = {"foo": "bar", "response_type": "code", "state": "state"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -123,7 +126,7 @@ class TestAuthorization(object):
 
     def test_construct_missing_openid_scope(self):
         req_args = {"foo": "bar", "response_type": "code", "state": "state", "scope": ["email"]}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -138,7 +141,7 @@ class TestAuthorization(object):
 
     def test_construct_token(self):
         req_args = {"foo": "bar", "response_type": "token", "state": "state"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -151,7 +154,7 @@ class TestAuthorization(object):
 
     def test_construct_token_nonce(self):
         req_args = {"foo": "bar", "response_type": "token", "nonce": "nonce", "state": "state"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -167,7 +170,7 @@ class TestAuthorization(object):
     def test_get_request_parameters(self):
         req_args = {"response_type": "code", "state": "state"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = AuthorizationRequest().from_urlencoded(self.service.get_urlinfo(_info["url"]))
         assert set(msg.keys()) == {
@@ -182,7 +185,7 @@ class TestAuthorization(object):
     def test_request_init(self):
         req_args = {"response_type": "code", "state": "state"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = AuthorizationRequest().from_urlencoded(self.service.get_urlinfo(_info["url"]))
         assert set(msg.keys()) == {
@@ -198,7 +201,8 @@ class TestAuthorization(object):
         req_args = {"response_type": "code", "state": "state"}
         self.service.endpoint = "https://example.com/authorize"
         self.context.set_usage("request_object_encryption_alg", None)
-        _info = self.service.get_request_parameters(request_args=req_args, request_method="value")
+        _info = self.service.get_request_parameters(self.context, request_args=req_args,
+                                                    request_method="value")
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = AuthorizationRequest().from_urlencoded(self.service.get_urlinfo(_info["url"]))
         assert set(msg.to_dict()) == {
@@ -211,7 +215,8 @@ class TestAuthorization(object):
         _jws = jws.factory(msg["request"])
         assert _jws
         _resp = _jws.verify_compact(
-            msg["request"], keys=issuers_keyjar().get_signing_key(key_type="RSA", issuer_id="client_id")
+            msg["request"],
+            keys=issuers_keyjar().get_signing_key(key_type="RSA", issuer_id="client_id")
         )
         assert _resp
         assert set(_resp.keys()) == {
@@ -234,13 +239,12 @@ class TestAuthorization(object):
 
         assert os.path.isfile(os.path.join(_dirname, "request123456.jwt"))
 
-        _context = self.service.upstream_get("context")
-        _context.set_usage("redirect_uris", ["https://example.com/cb"])
-        _context.set_usage("request_uris", ["https://example.com/request123456.jwt"])
-        _context.base_url = "https://example.com/"
+        self.context.set_usage("redirect_uris", ["https://example.com/cb"])
+        self.context.set_usage("request_uris", ["https://example.com/request123456.jwt"])
+        self.context.base_url = "https://example.com/"
         # _context.set_usage('request_object_encryption_alg', None)
         _info = self.service.get_request_parameters(
-            request_args=req_args, request_method="reference"
+            self.context, request_args=req_args, request_method="reference"
         )
 
         assert set(_info.keys()) == {"url", "method", "request"}
@@ -248,16 +252,16 @@ class TestAuthorization(object):
     def test_update_service_context_no_idtoken(self):
         req_args = {"response_type": "code", "state": "state"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         resp = AuthorizationResponse(state="state", code="code")
-        self.service.update_service_context(resp, "state")
+        self.service.update_service_context(self.context, resp, "state")
 
     def test_update_service_context_with_idtoken(self):
         req_args = {"response_type": "code", "state": "state", "nonce": "nonce"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         # Build an ID Token
-        idt = JWT(key_jar=issuers_keyjar(), iss=ISS, lifetime=3600)
+        idt = JWT(key_jar=issuers_keyjar(), iss=self.server_entity_id, lifetime=3600)
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": "nonce"}
         # have to calculate c_hash
         alg = "RS256"
@@ -272,7 +276,7 @@ class TestAuthorization(object):
     def test_update_service_context_with_idtoken_wrong_nonce(self):
         req_args = {"response_type": "code", "state": "state", "nonce": "nonce"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         # Build an ID Token
         idt = JWT(issuers_keyjar(), iss=ISS, lifetime=3600)
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": "noice"}
@@ -284,12 +288,12 @@ class TestAuthorization(object):
         _idt = idt.pack(payload)
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
         with pytest.raises(ValueError):
-            self.service.parse_response(resp.to_urlencoded())
+            self.service.parse_response(self.context, resp.to_urlencoded())
 
     def test_update_service_context_with_idtoken_missing_nonce(self):
         req_args = {"response_type": "code", "state": "state", "nonce": "nonce"}
         self.service.endpoint = "https://example.com/authorize"
-        self.service.get_request_parameters(request_args=req_args)
+        self.service.get_request_parameters(self.context, request_args=req_args)
         # Build an ID Token
         idt = JWT(issuers_keyjar(), iss=ISS, lifetime=3600)
         payload = {"sub": "123456789", "aud": ["client_id"]}
@@ -301,13 +305,13 @@ class TestAuthorization(object):
         _idt = idt.pack(payload)
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
         with pytest.raises(MissingRequiredAttribute):
-            self.service.parse_response(resp.to_urlencoded())
+            self.service.parse_response(self.context, resp.to_urlencoded())
 
     @pytest.mark.parametrize("allow_sign_alg_none", [True, False])
     def test_allow_unsigned_idtoken(self, allow_sign_alg_none):
         req_args = {"response_type": "code", "state": "state", "nonce": "nonce"}
         self.service.endpoint = "https://example.com/authorize"
-        self.service.get_request_parameters(request_args=req_args)
+        self.service.get_request_parameters(self.context, request_args=req_args)
         # Build an ID Token
         idt = JWT(issuers_keyjar(), iss=ISS, lifetime=3600, sign_alg="none")
         payload = {"sub": "123456789", "aud": ["client_id"], "nonce": req_args["nonce"]}
@@ -317,10 +321,10 @@ class TestAuthorization(object):
         )
         resp = AuthorizationResponse(state="state", code="code", id_token=_idt)
         if allow_sign_alg_none:
-            self.service.parse_response(resp.to_urlencoded())
+            self.service.parse_response(self.context, resp.to_urlencoded())
         else:
             with pytest.raises(UnsupportedAlgorithm):
-                self.service.parse_response(resp.to_urlencoded())
+                self.service.parse_response(self.context, resp.to_urlencoded())
 
 
 class TestAuthorizationCallback(object):
@@ -349,11 +353,12 @@ class TestAuthorizationCallback(object):
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
         _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks", ISS)
-        self.service = entity.get_service("authorization")
+        self.service = entity.get_service(_context, "authorization")
+        self.context = _context
 
     def test_construct_code(self):
         req_args = {"foo": "bar", "response_type": "code", "state": "state"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -373,7 +378,7 @@ class TestAuthorizationCallback(object):
             "state": "state",
             "nonce": "nonce",
         }
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -394,7 +399,7 @@ class TestAuthorizationCallback(object):
             "response_mode": "form_post",
             "nonce": "nonce",
         }
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, AuthorizationRequest)
         assert set(_req.keys()) == {
             "redirect_uri",
@@ -426,12 +431,14 @@ class TestAccessTokenRequest(object):
         self.service = entity.get_service("accesstoken")
         _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks", ISS)
 
+        self.server_entity_id = "https://token.example.com"
+        new_context = entity.add_new_context(self.server_entity_id)
         # add some history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state", response_type="code"
         )
 
-        _current = entity.get_context().cstate
+        _current = new_context.cstate
         _current.update("state", auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
@@ -440,7 +447,9 @@ class TestAccessTokenRequest(object):
     def test_construct(self):
         req_args = {"foo": "bar"}
 
-        _req = self.service.construct(request_args=req_args, state="state")
+        _context = self.service.upstream_get("context", self.server_entity_id)
+        _req = self.service.construct(request_args=req_args, state="state",
+                                      server_entity_id=self.server_entity_id)
         assert isinstance(_req, AccessTokenRequest)
         assert set(_req.keys()) == {
             "client_id",
@@ -456,7 +465,8 @@ class TestAccessTokenRequest(object):
         req_args = {"redirect_uri": "https://example.com/cli/authz_cb", "code": "access_code"}
         self.service.endpoint = "https://example.com/authorize"
         _info = self.service.get_request_parameters(
-            request_args=req_args, state="state", authn_method="client_secret_basic"
+            request_args=req_args, state="state", authn_method="client_secret_basic",
+            server_entity_id=self.server_entity_id
         )
         assert set(_info.keys()) == {"body", "url", "headers", "method", "request"}
         assert _info["url"] == "https://example.com/authorize"
@@ -473,7 +483,8 @@ class TestAccessTokenRequest(object):
         req_args = {"redirect_uri": "https://example.com/cli/authz_cb", "code": "access_code"}
         self.service.endpoint = "https://example.com/authorize"
 
-        _info = self.service.get_request_parameters(request_args=req_args, state="state")
+        _info = self.service.get_request_parameters(request_args=req_args, state="state",
+                                                    server_entity_id=self.server_entity_id)
         assert set(_info.keys()) == {"body", "url", "headers", "method", "request"}
         assert _info["url"] == "https://example.com/authorize"
         msg = AccessTokenRequest().from_urlencoded(self.service.get_urlinfo(_info["body"]))
@@ -542,13 +553,16 @@ class TestProviderInfo(object):
         entity.get_context().issuer = "https://example.com"
         self.service = entity.get_service("provider_info")
 
+        self.server_entity_id = "https://sec.example.com"
+        entity.add_new_context(self.server_entity_id)
+
     def test_construct(self):
-        _req = self.service.construct()
+        _req = self.service.construct(self.server_entity_id)
         assert isinstance(_req, Message)
         assert len(_req) == 0
 
     def test_get_request_parameters(self):
-        _info = self.service.get_request_parameters()
+        _info = self.service.get_request_parameters(server_entity_id=self.server_entity_id)
         assert set(_info.keys()) == {"url", "method"}
         assert _info["url"] == "{}/.well-known/openid-configuration".format(self._iss)
 
@@ -892,7 +906,8 @@ def create_jws(val):
     idts = IdToken(**val)
 
     return idts.to_jwt(
-        key=issuers_keyjar().get_signing_key("ec", issuer_id=ISS), algorithm="ES256", lifetime=lifetime
+        key=issuers_keyjar().get_signing_key("ec", issuer_id=ISS), algorithm="ES256",
+        lifetime=lifetime
     )
 
 

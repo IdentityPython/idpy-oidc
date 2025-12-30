@@ -8,17 +8,16 @@ from cryptojwt import KeyJar
 from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_jar import init_key_jar
-from idpyoidc.util import conf_get
 
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
-from idpyoidc.client.defaults import DEFAULT_OAUTH2_SERVICES
-from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.service import init_services
+from idpyoidc.client.exception import ConfigurationError
+from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service_context import ServiceContext
-from idpyoidc.context import OidcContext
+from idpyoidc.client.service_context import create_new_context
 from idpyoidc.node import Unit
+from idpyoidc.util import conf_get
 
 logger = logging.getLogger(__name__)
 
@@ -88,21 +87,24 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
     }
 
     def __init__(
-        self,
-        keyjar: Optional[KeyJar] = None,
-        config: Optional[Union[dict, Configuration]] = None,
-        services: Optional[dict] = None,
-        jwks_uri: Optional[str] = "",
-        httpc: Optional[Callable] = None,
-        httpc_params: Optional[dict] = None,
-        client_type: Optional[str] = "oauth2",
-        context: Optional[OidcContext] = None,
-        upstream_get: Optional[Callable] = None,
-        key_conf: Optional[dict] = None,
-        entity_id: Optional[str] = "",
+            self,
+            keyjar: Optional[KeyJar] = None,
+            config: Optional[Union[dict, Configuration]] = None,
+            services: Optional[dict] = None,
+            jwks_uri: Optional[str] = "",
+            httpc: Optional[Callable] = None,
+            httpc_params: Optional[dict] = None,
+            client_type: Optional[str] = "oauth2",
+            context: Optional[dict] = None,
+            upstream_get: Optional[Callable] = None,
+            key_conf: Optional[dict] = None,
+            entity_id: Optional[str] = "",
+            client_configs: Optional[dict] = None
     ):
         if config is None:
             config = {}
+
+        self.config = config
 
         # Client ID is set through configuration or at registration
         _id = config.get("client_id")
@@ -119,53 +121,64 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             client_id=_id,
         )
 
-        if services:
-            _srvs = services
-        elif config:
-            _srvs = config.get("services")
+        # how to publish ?! JWKS, jwks_uri/jwks_signed_uri, jwks is the default
+        _key_konf = config.get("key_conf", key_conf)
+        if key_conf:
+            pass
         else:
-            _srvs = None
-
-        if not _srvs:
-            if client_type == "oauth2":
-                _srvs = DEFAULT_OAUTH2_SERVICES
-            else:
-                _srvs = DEFAULT_OIDC_SERVICES
-
-        self._service = init_services(service_definitions=_srvs, upstream_get=self.unit_get)
+            self.publish_keyjar_as = {'jwks': self.keyjar.export_jwks(issuer_id="")}
 
         if context:
             self.context = context
         else:
-            self.context = ServiceContext(
-                config=config,
-                jwks_uri=jwks_uri,
-                keyjar=self.keyjar,
-                upstream_get=self.unit_get,
-                client_type=client_type,
-                entity_id=self.entity_id,
-            )
+            if client_configs:
+                self.context = {}
+                for server_id, conf in client_configs.items():
+                    issuer = conf.get("issuer", "")
+                    self.context[issuer] = ServiceContext(
+                        issuer,
+                        config=conf,
+                        jwks_uri=jwks_uri,
+                        # keyjar=self.keyjar,
+                        upstream_get=self.unit_get,
+                        client_type=client_type,
+                        entity_id=self.entity_id
+                    )
+            else:
+                self.context = {
+                    "": ServiceContext(
+                        server_entity_id='',
+                        config=config,
+                        jwks_uri=jwks_uri,
+                        # keyjar=self.keyjar,
+                        upstream_get=self.unit_get,
+                        client_type=client_type,
+                        entity_id=self.entity_id,
+                    )
+                }
 
-        self.setup_client_authn_methods(config)
+        # '' MUST always be present
+        self.default_context = self.context['']
+
+        self.setup_client_authn_methods(config, self.default_context)
         self.upstream_get = upstream_get
 
-    def get_services(self, *arg):
-        return self._service
+    def get_services(self, server_entity_id="", *arg):
+        _context = self.get_context(server_entity_id)
+        return _context.service
 
-    def get_service_context(self, *arg):  # Want to get rid of this
-        return self.context
+    def get_context(self, server_entity_id="", *arg) -> ServiceContext:
+        return self.context[server_entity_id]
 
-    def get_context(self, *arg):
-        return self.context
-
-    def get_service(self, service_name, *arg):
+    def get_service(self, context, service_name, *arg):
         try:
-            return self._service[service_name]
+            return context.service[service_name]
         except KeyError:
             return None
 
-    def get_service_by_endpoint_name(self, endpoint_name, *arg):
-        for service in self._service.values():
+    def get_service_by_endpoint_name(self, context, endpoint_name, server_entity_id="", *arg):
+        _context = self.get_context(server_entity_id)
+        for service in _context.service.values():
             if service.endpoint_name == endpoint_name:
                 return service
 
@@ -174,19 +187,19 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
     # def get_entity(self):
     #     return self
 
-    def get_client_id(self):
-        _val = self.context.claims.get_usage("client_id")
+    def get_client_id(self, context):
+        _val = context.claims.get_usage("client_id")
         if _val:
             return _val
         else:
-            return self.context.claims.get_preference("client_id")
+            return context.claims.get_preference("client_id")
 
-    def setup_client_authn_methods(self, config):
+    def setup_client_authn_methods(self, config, context):
         if config and "client_authn_methods" in config:
             _methods = config.get("client_authn_methods")
-            self.context.client_authn_methods = client_auth_setup(method_to_item(_methods))
+            context.client_authn_methods = client_auth_setup(method_to_item(_methods))
         else:
-            self.context.client_authn_methods = {}
+            context.client_authn_methods = {}
 
     def import_keys(self, keyspec):
         """
@@ -216,5 +229,47 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                     _keyjar.add_kb(iss, _bundle)
         return _keyjar
 
-    def get_callback_uris(self):
-        return self.context.claims.get_preference("callback_uris")
+    def get_callback_uris(self, context):
+        return context.claims.get_preference("callback_uris")
+
+    def add_new_context(self, server_entity_id: str, client_id: Optional[str] = '',
+                        client_secret: Optional[str] = ''):
+        context = create_new_context(self.context[''], server_entity_id)
+        # context.issuer = server_entity_id
+        self.context[server_entity_id] = context
+
+        if client_id:
+            context.client_id = client_id
+            context.claims.use['client_id'] = client_id
+            if client_secret:
+                context.client_secret = client_secret
+                context.claims.use['client_secret'] = client_secret
+
+        self.setup_client_authn_methods(self.config, context)
+        return self.context[server_entity_id]
+
+    def get_context_by_client_id(self, client_id):
+        for cntx in self.context.values():
+            if cntx.client_id == client_id:
+                return cntx
+        return None
+
+def load_registration_response(client, context, request_args: Optional[dict] = None):
+    """
+    If the client has been statically registered that information
+    must be provided during the configuration. If expected to be
+    done dynamically this method will do dynamic client registration.
+
+    :param client: A :py:class:`idpyoidc.client.oidc.Client` instance
+    """
+
+    try:
+        response = client.do_request(context, "registration", request_args=request_args)
+    except KeyError:
+        raise ConfigurationError("No registration info")
+    except Exception as err:
+        logger.error(err)
+        raise
+    else:
+        if "error" in response:
+            raise OidcServiceError(response.to_json())

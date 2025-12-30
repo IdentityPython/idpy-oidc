@@ -1,6 +1,7 @@
 import os
 
-from idpyoidc.client.configure import RPHConfiguration
+from idpyoidc.client.configure import Configuration
+
 from idpyoidc.configure import create_from_config_file
 
 _dirname = os.path.dirname(os.path.abspath(__file__))
@@ -8,7 +9,7 @@ _dirname = os.path.dirname(os.path.abspath(__file__))
 
 def test_json_1():
     configuration = create_from_config_file(
-        RPHConfiguration, filename=os.path.join(_dirname, "rp_conf.json"), base_path=_dirname
+        Configuration, filename=os.path.join(_dirname, "rp_conf.json"), base_path=_dirname
     )
     assert configuration
 

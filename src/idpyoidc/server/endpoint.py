@@ -182,6 +182,7 @@ class Endpoint(Node):
 
     def parse_request(
             self,
+            context,
             request: Union[Message, dict, str],
             http_info: Optional[dict] = None,
             verify_args: Optional[dict] = None,
@@ -200,7 +201,6 @@ class Endpoint(Node):
         if http_info:
             LOGGER.info(f"HTTP info: {http_info}")
 
-        _context = self.upstream_get("context")
         _keyjar = self.upstream_get("attribute", "keyjar")
 
         if http_info is None:
@@ -216,7 +216,7 @@ class Endpoint(Node):
                         request,
                         "jwt",
                         keyjar=_keyjar,
-                        verify=_context.httpc_params["verify"],
+                        verify=context.httpc_params["verify"],
                         **kwargs
                     )
                 elif self.request_format == "url":  # A whole URL not just the query part
@@ -285,38 +285,37 @@ class Endpoint(Node):
         return authn_info
 
     def do_post_parse_request(
-            self, request: Message, client_id: Optional[str] = "", **kwargs
+            self, context, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
-        _context = self.upstream_get("context")
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(request, client_id, context=_context, **kwargs)
+            request = meth(context, request, client_id, **kwargs)
         return request
 
     def do_pre_construct(
-            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, context, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
-        _context = self.upstream_get("context")
         for meth in self.pre_construct:
-            response_args = meth(response_args, request, context=_context, **kwargs)
+            response_args = meth(context, response_args, request, **kwargs)
 
         return response_args
 
     def do_post_construct(
             self,
+            context,
             response_args: Union[Message, dict],
             request: Optional[Union[Message, dict]] = None,
             **kwargs
     ) -> dict:
-        _context = self.upstream_get("context")
         for meth in self.post_construct:
-            response_args = meth(response_args, request, context=_context, **kwargs)
+            response_args = meth(context, response_args, request, **kwargs)
 
         return response_args
 
     def process_request(
             self,
+            context,
             request: Optional[Union[Message, dict]] = None,
             http_info: Optional[dict] = None,
             **kwargs
@@ -331,6 +330,7 @@ class Endpoint(Node):
 
     def construct(
             self,
+            context,
             response_args: Optional[dict] = None,
             request: Optional[Union[Message, dict]] = None,
             **kwargs
@@ -375,6 +375,7 @@ class Endpoint(Node):
 
     def do_response(
             self,
+            context,
             response_args: Optional[dict] = None,
             request: Optional[Union[Message, dict]] = None,
             error: Optional[str] = "",
@@ -480,12 +481,11 @@ class Endpoint(Node):
 
         return _resp
 
-    def allowed_target_uris(self):
+    def allowed_target_uris(self, context):
         res = []
-        _context = self.upstream_get("context")
         for t in self.allowed_targets:
             if t == "":
-                res.append(_context.issuer)
+                res.append(context.issuer)
             else:
                 res.append(self.upstream_get("endpoint", t).full_path)
         return set(res)

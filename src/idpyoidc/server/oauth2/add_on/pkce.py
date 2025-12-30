@@ -56,7 +56,7 @@ def post_authn_parse(request, client_id, context, **kwargs):
         request["code_challenge_method"] = "plain"
 
     if "code_challenge" in request and (
-        request["code_challenge_method"] not in context.add_on["pkce"]["code_challenge_methods"]
+            request["code_challenge_method"] not in context.add_on["pkce"]["code_challenge_methods"]
     ):
         return AuthorizationErrorResponse(
             error="invalid_request",
@@ -93,13 +93,13 @@ def post_token_parse(request, client_id, context, **kwargs):
     :return:
     """
     if isinstance(
-        request,
-        (
-            AuthorizationErrorResponse,
-            RefreshAccessTokenRequest,
-            TokenExchangeRequest,
-            CCAccessTokenRequest,
-        ),
+            request,
+            (
+                    AuthorizationErrorResponse,
+                    RefreshAccessTokenRequest,
+                    TokenExchangeRequest,
+                    CCAccessTokenRequest,
+            ),
     ):
         return request
 
@@ -122,9 +122,9 @@ def post_token_parse(request, client_id, context, **kwargs):
         _method = _authn_req["code_challenge_method"]
 
         if not verify_code_challenge(
-            request["code_verifier"],
-            _authn_req["code_challenge"],
-            _method,
+                request["code_verifier"],
+                _authn_req["code_challenge"],
+                _method,
         ):
             return TokenErrorResponse(error="invalid_grant", error_description="PKCE check failed")
 
@@ -132,10 +132,11 @@ def post_token_parse(request, client_id, context, **kwargs):
 
 
 def add_support(
-    endpoint: Dict[str, Endpoint],
-    code_challenge_methods: Optional[dict] = None,
-    essential: Optional[bool] = False,
-    **kwargs
+        context,
+        endpoint: Dict[str, Endpoint],
+        code_challenge_methods: Optional[dict] = None,
+        essential: Optional[bool] = False,
+        **kwargs
 ):
     authn_endpoint = endpoint.get("authorization")
     if authn_endpoint is None:
@@ -157,9 +158,8 @@ def add_support(
             if method not in CC_METHOD:
                 raise ValueError("Unsupported method: {}".format(method))
 
-    _context = authn_endpoint.upstream_get("context")
-    _context.add_on["pkce"] = {
+    context.add_on["pkce"] = {
         "code_challenge_methods": code_challenge_methods,
         "essential": essential,
     }
-    _context.set_preference("code_challenge_methods_supported", list(code_challenge_methods.keys()))
+    context.set_preference("code_challenge_methods_supported", list(code_challenge_methods.keys()))

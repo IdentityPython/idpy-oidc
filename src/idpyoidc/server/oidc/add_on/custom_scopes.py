@@ -5,7 +5,7 @@ from idpyoidc.server.scopes import SCOPE2CLAIMS
 LOGGER = logging.getLogger(__name__)
 
 
-def add_custom_scopes(endpoint, **kwargs):
+def add_custom_scopes(context, endpoint, **kwargs):
     """
     :param endpoint: A dictionary with endpoint instances as values
     """
@@ -18,14 +18,13 @@ def add_custom_scopes(endpoint, **kwargs):
 
     _scopes2claims = SCOPE2CLAIMS.copy()
     _scopes2claims.update(kwargs)
-    _context = _endpoint.upstream_get("context")
-    _context.scopes_handler.set_scopes_mapping(_scopes2claims)
+    context.scopes_handler.set_scopes_mapping(_scopes2claims)
 
-    pi = _context.provider_info
+    pi = context.provider_info
     _scopes = set(pi.get("scopes_supported", []))
     _scopes.update(set(kwargs.keys()))
     pi["scopes_supported"] = list(_scopes)
-    _context.scopes_handler.allowed_scopes = pi["scopes_supported"]
+    context.scopes_handler.allowed_scopes = pi["scopes_supported"]
 
     _claims = set(pi.get("claims_supported", []))
     for vals in kwargs.values():
