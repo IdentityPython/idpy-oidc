@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 import traceback
@@ -11,15 +12,18 @@ from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import KeyJar
 
 from idpyoidc.claims import Claims
+from idpyoidc.client.client_auth import BearerHeader
 from idpyoidc.client.defaults import DEFAULT_RESPONSE_MODE
 from idpyoidc.client.entity import load_registration_response
 from idpyoidc.client.exception import ConfigurationError
+from idpyoidc.client.exception import HttpError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.client.oauth2.utils import pick_redirect_uri
 from idpyoidc.configure import Configuration
 from idpyoidc.context import OidcContext
+from idpyoidc.defaults import KEYDEFS
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.key_import import add_kb
 from idpyoidc.key_import import import_jwks_from_file
@@ -30,11 +34,13 @@ from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import rndstr
+from idpyoidc.util import use_default_keys
 
 logger = logging.getLogger(__name__)
 
 
 class RP(Client):
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -48,10 +54,14 @@ class RP(Client):
             entity_id: Optional[str] = "",
             verify_ssl: Optional[bool] = True,
             jwks_uri: Optional[str] = "",
-            client_type: Optional[str] = "",
+            client_type: Optional[str] = "oidc",
             client_configs: Optional[dict] = None,
             **kwargs
     ):
+
+        if use_default_keys(keyjar, key_conf, config):
+            key_conf = KEYDEFS
+
         Client.__init__(self, keyjar, config, services, httpc, httpc_params, context,
                         upstream_get, key_conf, entity_id, verify_ssl, jwks_uri,
                         client_type, client_configs, **kwargs)
@@ -131,7 +141,7 @@ class RP(Client):
                 # a name ending in '_endpoint' so I can look specifically
                 # for those
                 if key.endswith("_endpoint"):
-                    for _srv in self.get_services().values():
+                    for _srv in self.get_services(context).values():
                         # Every service has an endpoint_name assigned
                         # when initiated. This name *MUST* match the
                         # endpoint names used in the provider info
@@ -704,6 +714,63 @@ class RP(Client):
                     return am
                 else:  # a list
                     return am[0]
+
+    def fetch_distributed_claims(self, context, userinfo, callback=None):
+        """
+
+        :param userinfo: A :py:class:`idpyoidc.message.Message` subclass
+            instance
+        :param callback: A function that can be used to fetch things
+        :return: Updated userinfo instance
+        """
+        try:
+            _csrc = userinfo["_claim_sources"]
+        except KeyError:
+            pass
+        else:
+            for csrc, spec in _csrc.items():
+                if "endpoint" in spec:
+                    if "access_token" in spec:
+                        cauth = BearerHeader()
+                        httpc_params = cauth.construct(
+                            context,
+                            service=context.get_service("userinfo"),
+                            access_token=spec["access_token"],
+                        )
+                        _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
+                    else:
+                        if callback:
+                            token = callback(spec["endpoint"])
+                            cauth = BearerHeader()
+                            httpc_params = cauth.construct(
+                                context,
+                                service=context.get_service("userinfo"), access_token=token
+                            )
+                            _resp = self.httpc("GET", spec["endpoint"], **httpc_params)
+                        else:
+                            _resp = self.httpc("GET", spec["endpoint"])
+
+                    if _resp.status_code == 200:
+                        _uinfo = json.loads(_resp.text)
+                    else:  # There shouldn't be any redirect
+                        raise HttpError(
+                            "HTTP error {}: {}".format(_resp.status_code, _resp.reason)
+                        )
+
+                    claims = [
+                        value for value, src in userinfo["_claim_names"].items() if src == csrc
+                    ]
+
+                    if set(claims) != set(_uinfo.keys()):
+                        logger.warning(
+                            "Claims from claim source doesn't match what's in " "the userinfo"
+                        )
+
+                    # only add those I expected
+                    for key in claims:
+                        userinfo[key] = _uinfo[key]
+
+            return userinfo
 
 
 def dynamic_provider_info_discovery(client: Client, context,

@@ -67,8 +67,8 @@ class TestUserInfo(object):
         _context = entity.get_context()
         _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks", ISS)
 
-        self.service = entity.get_service("token_exchange")
-        _cstate = self.service.upstream_get("context").cstate
+        self.service = entity.get_service(_context, "token_exchange")
+        _cstate = _context.cstate
         # Add history
         auth_response = AuthorizationResponse(code="access_code")
         _cstate.update("abcde", auth_response)
@@ -82,9 +82,10 @@ class TestUserInfo(object):
             access_token="access_token", id_token=idt, __verified_id_token=ver_idt
         )
         _cstate.update("abcde", token_response)
+        self.context = _context
 
     def test_construct(self):
-        _req = self.service.construct(state="abcde")
+        _req = self.service.construct(self.context, state="abcde")
         assert isinstance(_req, Message)
         assert len(_req) == 2
         assert "subject_token" in _req

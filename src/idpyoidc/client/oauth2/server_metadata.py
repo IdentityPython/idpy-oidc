@@ -81,7 +81,7 @@ class ServerMetadata(Service):
             )
         return _issuer
 
-    def _set_endpoints(self, resp):
+    def _set_endpoints(self, context, resp):
         """
         If there are services defined set the service endpoint to be
         the URLs specified in the provider information."""
@@ -90,7 +90,7 @@ class ServerMetadata(Service):
             # a name ending in '_endpoint' so I can look specifically
             # for those
             if key.endswith("_endpoint"):
-                _srv = self.upstream_get("service_by_endpoint_name", key)
+                _srv = self.upstream_get("service_by_endpoint_name", context, key)
                 if _srv:
                     _srv.endpoint = val
 
@@ -113,7 +113,7 @@ class ServerMetadata(Service):
         context.issuer = _pcr_issuer
         context.provider_info = resp
 
-        self._set_endpoints(resp)
+        self._set_endpoints(context, resp)
 
         # If I already have a Key Jar then I'll add then provider keys to
         # that. Otherwise, a new Key Jar is minted

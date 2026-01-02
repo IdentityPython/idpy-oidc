@@ -41,45 +41,34 @@ class TestDummyService(object):
         service = {"dummy": {"class": DummyService}}
 
         entity = Entity(config=config, services=service)
+        self.context = entity.context[""]
         self.service = DummyService(upstream_get=entity.unit_get, conf={})
 
     def test_construct(self):
         req_args = {"foo": "bar"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, Message)
         assert list(_req.keys()) == ["foo"]
 
     def test_construct_service_context(self):
         req_args = {"foo": "bar", "req_str": "some string"}
-        _req = self.service.construct(request_args=req_args)
+        _req = self.service.construct(self.context, request_args=req_args)
         assert isinstance(_req, Message)
         assert set(_req.keys()) == {"foo", "req_str"}
 
     def test_get_request_parameters(self):
         req_args = {"foo": "bar", "req_str": "some string"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = DummyMessage().from_urlencoded(self.service.get_urlinfo(_info["url"]))
 
     def test_request_init(self):
         req_args = {"foo": "bar", "req_str": "some string"}
         self.service.endpoint = "https://example.com/authorize"
-        _info = self.service.get_request_parameters(request_args=req_args)
+        _info = self.service.get_request_parameters(self.context, request_args=req_args)
         assert set(_info.keys()) == {"url", "method", "request"}
         msg = DummyMessage().from_urlencoded(self.service.get_urlinfo(_info["url"]))
         assert msg.to_dict() == {"foo": "bar", "req_str": "some string"}
 
 
-# class TestRequest(object):
-#     @pytest.fixture(autouse=True)
-#     def create_service(self):
-#         entity = Entity()
-#         service_context = entity.get_service_context()
-#         self.service = Service(service_context, client_authn_method=None)
-#
-#     def test_construct(self):
-#         req_args = {'foo': 'bar'}
-#         _req = self.service.construct(request_args=req_args)
-#         assert isinstance(_req, Message)
-#         assert list(_req.keys()) == ['foo']

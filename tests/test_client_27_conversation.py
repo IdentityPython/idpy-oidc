@@ -137,8 +137,8 @@ def test_conversation():
     }
 
     entity = Entity(config=config, keyjar=RP_KEYJAR, client_type="oidc")
-
-    assert set(entity.get_services().keys()) == {
+    _context = entity.get_context()
+    assert set(entity.get_services(_context).keys()) == {
         "accesstoken",
         "authorization",
         "webfinger",
@@ -148,12 +148,11 @@ def test_conversation():
         "provider_info",
         "end_session",
     }
-    service_context = entity.get_context()
 
     # ======================== WebFinger ========================
 
-    webfinger_service = entity.get_service("webfinger")
-    info = webfinger_service.get_request_parameters(request_args={"resource": "foobar@example.org"})
+    webfinger_service = entity.get_service(_context, "webfinger")
+    info = webfinger_service.get_request_parameters(_context, request_args={"resource": "foobar@example.org"})
 
     assert (
             info["url"] == "https://example.org/.well-known/webfinger?rel=http"
@@ -176,7 +175,7 @@ def test_conversation():
         }
     )
 
-    response = webfinger_service.parse_response(webfinger_response)
+    response = webfinger_service.parse_response(_context, webfinger_response)
 
     assert isinstance(response, JRD)
     assert set(response.keys()) == {"subject", "links", "expires"}
@@ -184,12 +183,12 @@ def test_conversation():
         Link(rel="http://openid.net/specs/connect/1.0/issuer", href="https://example.org/op")
     ]
 
-    webfinger_service.update_service_context(resp=response)
+    webfinger_service.update_service_context(_context, resp=response)
     entity.get_context().issuer = OP_BASEURL
 
     # =================== Provider info discovery ====================
-    provider_info_service = entity.get_service("provider_info")
-    info = provider_info_service.get_request_parameters()
+    provider_info_service = entity.get_service(_context, "provider_info")
+    info = provider_info_service.get_request_parameters(_context)
 
     assert info["url"] == "https://example.org/op/.well-known/openid-configuration"
 
@@ -384,19 +383,19 @@ def test_conversation():
         }
     )
 
-    resp = provider_info_service.parse_response(provider_info_response)
+    resp = provider_info_service.parse_response(_context, provider_info_response)
 
     assert isinstance(resp, ProviderConfigurationResponse)
-    provider_info_service.update_service_context(resp, "")
+    provider_info_service.update_service_context(_context, resp, "")
 
-    _pi = entity.get_context().provider_info
+    _pi = _context.provider_info
     assert _pi["issuer"] == OP_BASEURL
     assert _pi["authorization_endpoint"] == "https://example.org/op/authorization"
     assert _pi["registration_endpoint"] == "https://example.org/op/registration"
 
     # =================== Client registration ====================
-    registration_service = entity.get_service("registration")
-    info = registration_service.get_request_parameters()
+    registration_service = entity.get_service(_context, "registration")
+    info = registration_service.get_request_parameters(_context)
 
     assert info["url"] == "https://example.org/op/registration"
     _body = json.loads(info["body"])
@@ -440,13 +439,13 @@ def test_conversation():
         }
     )
 
-    response = registration_service.parse_response(op_client_registration_response)
+    response = registration_service.parse_response(_context, op_client_registration_response)
 
-    registration_service.update_service_context(response)
+    registration_service.update_service_context(_context, response)
 
-    assert service_context.get_client_id() == "zls2qhN1jO6A"
-    assert service_context.get_usage("client_secret") == "c8434f28cf9375d9a7"
-    assert set(service_context.registration_response.keys()) == {
+    assert _context.get_client_id() == "zls2qhN1jO6A"
+    assert _context.get_usage("client_secret") == "c8434f28cf9375d9a7"
+    assert set(_context.registration_response.keys()) == {
         "client_secret_expires_at",
         "contacts",
         "client_id",
@@ -466,14 +465,16 @@ def test_conversation():
     STATE = "Oh3w3gKlvoM2ehFqlxI3HIK5"
     NONCE = "UvudLKz287YByZdsY3AJoPAlEXQkJ0dK"
 
-    auth_service = entity.get_service("authorization")
-    _cstate = service_context.cstate
+    auth_service = entity.get_service(_context, "authorization")
+    _cstate = _context.cstate
 
-    info = auth_service.get_request_parameters(request_args={"state": STATE, "nonce": NONCE})
+    info = auth_service.get_request_parameters(_context, request_args={"state": STATE, "nonce": NONCE})
 
     p = urlparse(info["url"])
     _query = parse_qs(p.query)
     assert set(_query.keys()) == {
+        'code_challenge_method',
+        'code_challenge',
         "state",
         "nonce",
         "response_type",
@@ -495,22 +496,22 @@ def test_conversation():
 
     _authz_rep = AuthorizationResponse(**op_authz_resp)
 
-    _resp = auth_service.parse_response(_authz_rep.to_urlencoded())
-    auth_service.update_service_context(_resp, key=STATE)
+    _resp = auth_service.parse_response(_context, _authz_rep.to_urlencoded())
+    auth_service.update_service_context(_context, _resp, key=STATE)
     _item = _cstate.get(STATE)
     assert _item["code"] == "Z0FBQUFBQmFkdFFjUVpFWE81SHU5N1N4N01"
 
     # =================== Access token ====================
 
-    token_service = entity.get_service("accesstoken")
-    request_args = {"state": STATE, "redirect_uri": service_context.get_usage("redirect_uris")[0]}
+    token_service = entity.get_service(_context, "accesstoken")
+    request_args = {"state": STATE, "redirect_uri": _context.get_usage("redirect_uris")[0]}
 
-    info = token_service.get_request_parameters(request_args=request_args)
+    info = token_service.get_request_parameters(_context, request_args=request_args)
 
     assert info["url"] == "https://example.org/op/token"
     _qp = parse_qs(info["body"])
     # since the default is private_key_jwt !!!
-    assert set(_qp.keys()) == {"client_id", "code", "grant_type", "redirect_uri", "state"}
+    assert set(_qp.keys()) == {"client_id", "code", "grant_type", "redirect_uri", "state", 'code_verifier'}
     assert info["headers"]["Content-Type"] == "application/x-www-form-urlencoded"
 
     # create the IdToken
@@ -532,8 +533,8 @@ def test_conversation():
         "id_token": _jws,
     }
 
-    service_context.issuer = OP_BASEURL
-    _resp = token_service.parse_response(json.dumps(_resp), state=STATE)
+    _context.issuer = OP_BASEURL
+    _resp = token_service.parse_response(_context, json.dumps(_resp), state=STATE)
 
     assert isinstance(_resp, AccessTokenResponse)
     assert set(_resp["__verified_id_token"].keys()) == {
@@ -547,7 +548,7 @@ def test_conversation():
         "sub",
     }
 
-    token_service.update_service_context(_resp, key=STATE)
+    token_service.update_service_context(_context, _resp, key=STATE)
 
     _item = _cstate.get(STATE)
 
@@ -557,6 +558,9 @@ def test_conversation():
         "access_token",
         "client_id",
         "code",
+        'code_challenge',
+        'code_challenge_method',
+        'code_verifier',
         "expires_in",
         "id_token",
         "iss",
@@ -573,16 +577,16 @@ def test_conversation():
 
     # =================== User info ====================
 
-    userinfo_service = entity.get_service("userinfo")
-    info = userinfo_service.get_request_parameters(state=STATE)
+    userinfo_service = entity.get_service(_context, "userinfo")
+    info = userinfo_service.get_request_parameters(_context, state=STATE)
 
     assert info["url"] == "https://example.org/op/userinfo"
     assert info["headers"] == {"Authorization": "Bearer Z0FBQUFBQmFkdFF"}
 
     op_resp = {"sub": "1b2fc9341a16ae4e30082965d537"}
 
-    _resp = userinfo_service.parse_response(json.dumps(op_resp), state=STATE)
-    userinfo_service.update_service_context(_resp, key=STATE)
+    _resp = userinfo_service.parse_response(_context, json.dumps(op_resp), state=STATE)
+    userinfo_service.update_service_context(_context, _resp, key=STATE)
 
     assert isinstance(_resp, OpenIDSchema)
     assert _resp.to_dict() == {"sub": "1b2fc9341a16ae4e30082965d537"}

@@ -26,11 +26,12 @@ def get_session_status_page(service_context, looked_for_state):
 
 
 def add_support(
-    service,
-    rp_iframe_path,
-    template_file="",
-    session_changed_iframe_path="",
-    session_unchanged_iframe_path="",
+        context,
+        service,
+        rp_iframe_path,
+        template_file="",
+        session_changed_iframe_path="",
+        session_unchanged_iframe_path="",
 ):
     """
     Setup status check support.

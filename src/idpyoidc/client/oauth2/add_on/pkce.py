@@ -73,7 +73,7 @@ def add_code_verifier(context, request_args, service, **kwargs):
     return request_args
 
 
-def put_state_in_post_args(request_args, **kwargs):
+def put_state_in_post_args(context, request_args, **kwargs):
     state = get_state_parameter(request_args, kwargs)
     return request_args, {"state": state}
 

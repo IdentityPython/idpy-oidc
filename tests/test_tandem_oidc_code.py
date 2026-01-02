@@ -4,7 +4,7 @@ import os
 import pytest
 from cryptojwt.key_jar import build_keyjar
 
-from idpyoidc.client.oidc import RP
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest

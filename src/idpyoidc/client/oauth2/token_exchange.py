@@ -56,7 +56,7 @@ class TokenExchange(Service):
 
             parameters = {"access_token", "scope"}
 
-            _current = self.upstream_get("service_context").cstate
+            _current = context.cstate
 
             _args = _current.get_set(_key, claim=parameters)
 

@@ -40,17 +40,18 @@ class TestRegistrationRead(object):
         }
 
         self.entity = Entity(config=client_config, services=services)
-        _context = self.entity.get_service_context()
+        _context = self.entity.get_context()
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
+        self.context = _context
 
-        self.reg_service = self.entity.get_service("registration")
-        self.read_service = self.entity.get_service("registration_read")
+        self.reg_service = self.entity.get_service(_context, "registration")
+        self.read_service = self.entity.get_service(_context, "registration_read")
 
     def test_construct(self):
         self.reg_service.endpoint = "{}/registration".format(ISS)
 
-        _param = self.reg_service.get_request_parameters()
+        _param = self.reg_service.get_request_parameters(self.context)
 
         now = int(time.time())
 
@@ -83,12 +84,12 @@ class TestRegistrationRead(object):
                 verify=False,
             )
 
-        resp = self.reg_service.parse_response(_resp.text)
-        self.reg_service.update_service_context(resp)
+        resp = self.reg_service.parse_response(self.context, _resp.text)
+        self.reg_service.update_service_context(self.context, resp)
 
         assert resp
 
-        _read_param = self.read_service.get_request_parameters()
+        _read_param = self.read_service.get_request_parameters(self.context)
         with responses.RequestsMock() as rsps:
             rsps.add(
                 _param["method"],
@@ -101,5 +102,5 @@ class TestRegistrationRead(object):
                 _param["method"], _param["url"], headers=_param["headers"], verify=False
             )
 
-        read_resp = self.reg_service.parse_response(_resp.text)
+        read_resp = self.reg_service.parse_response(self.context, _resp.text)
         assert isinstance(read_resp, RegistrationResponse)

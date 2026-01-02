@@ -14,6 +14,9 @@ from idpyoidc.time_util import time_sans_frac
 
 __author__ = "Roland Hedberg"
 
+from idpyoidc.util import get_keyjar_chain
+from idpyoidc.util import keyjar_from_keyjar_chain
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -48,10 +51,12 @@ class AccessToken(access_token.AccessToken):
         if not _client_id:
             _client_id = context.get_client_id()
 
+        keyjar = keyjar_from_keyjar_chain(get_keyjar_chain(context))
+
         kwargs = {
             "client_id": _client_id,
             "iss": context.issuer,
-            "keyjar": self.upstream_get("attribute", "keyjar"),
+            "keyjar": keyjar,
             "verify": True,
             "skew": context.clock_skew,
         }

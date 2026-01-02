@@ -58,23 +58,23 @@ class Server(Unit):
 
         self.persistence = None
 
-        if upstream_get is None:
-            if key_conf is None:
-                _conf = conf.get("key_conf")
-                if _conf is None:
-                    key_conf = {"key_defs": DEFAULT_KEY_DEFS}
+        # if upstream_get is None:
+        #     if key_conf is None:
+        #         key_conf = conf.get("key_conf")
+        #         if key_conf is None:
+        #             key_conf = {"key_defs": DEFAULT_KEY_DEFS}
 
         Unit.__init__(
             self,
             config=conf,
-            keyjar=keyjar,
+            keyjar=None,
             httpc=httpc,
             upstream_get=upstream_get,
             httpc_params=httpc_params,
-            key_conf=key_conf,
+            key_conf={},
             issuer_id=self.issuer,
         )
-
+        self.keyjar = None
         if isinstance(conf, OPConfiguration) or isinstance(conf, ASConfiguration):
             self.conf = conf
         else:

@@ -2,56 +2,67 @@ import pytest
 
 from idpyoidc.client.client_auth import ClientAuthnMethod
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.service_context import create_new_context
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+from idpyoidc.util import use_default_keys
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
 
+ISS = "https://op.example.com"
+
 MINI_CONFIG = {
-    "base_url": "https://example.com/cli/",
-    "key_conf": {"key_defs": KEYDEFS},
-    "issuer": "https://op.example.com",
-    "client_id": "Number5",
+    "": {
+        'base_url': "https://example.com",
+    },
+    "foo": {
+        "base_url": "https://example.com/cli/",
+        # "key_conf": {"key_defs": KEYDEFS},
+        "issuer": ISS,
+        "client_id": "Number5",
+    }
 }
 
 
 class TestEntity:
+
     @pytest.fixture(autouse=True)
     def setup(self):
+        key_conf = None
+        if use_default_keys(None, key_conf, {}):
+            key_conf = {"key_defs": KEYDEFS}
+
         self.entity = Entity(
-            config=MINI_CONFIG.copy(),
+            client_configs=MINI_CONFIG.copy(),
             services={"xyz": {"class": "idpyoidc.client.service.Service"}},
+            key_conf=key_conf
         )
+
+        self.context = self.entity.context[ISS]
 
     def test_1(self):
         assert self.entity
 
     def test_get_service(self):
-        _srv = self.entity.get_service("")
+        _srv = self.entity.get_service(self.context, "")
         assert _srv
         assert _srv.service_name == ""
         assert _srv.request_body_type == "urlencoded"
 
     def test_get_service_unsupported(self):
-        _srv = self.entity.get_service("foobar")
+        _srv = self.entity.get_service(self.context, "foobar")
         assert _srv is None
 
     def test_get_client_id(self):
-        assert self.entity.client_id == "Number5"
-        assert self.entity.get_attribute("client_id") == "Number5"
+        assert self.context.client_id == "Number5"
+        assert self.entity.get_attribute("client_id", ISS) == "Number5"
 
     def test_get_service_by_endpoint_name(self):
-        _srv = self.entity.get_service("")
+        _srv = self.context.get_service("")
         _srv.endpoint_name = "flux_endpoint"
-        _fsrv = self.entity.get_service_by_endpoint_name("flux_endpoint")
+        _fsrv = self.entity.get_service_by_endpoint_name(self.context, "flux_endpoint")
         assert _srv == _fsrv
-
-    def test_get_service_context(self):
-        _context = self.entity.get_service_context()
-        assert _context
 
 
 RP_BASEURL = "https://example.com/rp"
@@ -92,6 +103,7 @@ def test_client_authn_by_names():
 
 
 class FooBar(ClientAuthnMethod):
+
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
@@ -147,7 +159,8 @@ def test_service_specific():
         "client_secret_post",
     }
 
-    assert set(entity.get_service("").client_authn_methods.keys()) == {"private_key_jwt"}
+    context = entity.get_context("")
+    assert set(entity.get_service(context, "").client_authn_methods.keys()) == {"private_key_jwt"}
 
 
 def test_service_specific2():
@@ -179,8 +192,8 @@ def test_service_specific2():
         "client_secret_basic",
         "client_secret_post",
     }
-
-    assert set(entity.get_service("").client_authn_methods.keys()) == {"home_brew"}
+    context = entity.get_context("")
+    assert set(entity.get_service(context, "").client_authn_methods.keys()) == {"home_brew"}
 
 
 def test_context_duplication():
@@ -207,26 +220,20 @@ def test_context_duplication():
         },
     )
 
-    context = create_new_context(entity.context[''])
-    assert context
+    server_1_id = 'https://op.example.com'
+    context_1 = entity.add_new_context(server_1_id)
+    assert context_1
 
-    assert set(context.client_authn_methods.keys()) == set()
-
-    entity.context['https://client.example.com'] = context
-    entity.setup_client_authn_methods(config, server_entity_id = 'https://client.example.com')
+    assert set(context_1.client_authn_methods.keys()) == {'client_secret_post', 'client_secret_basic'}
 
     assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",
         "client_secret_post",
     }
 
-    assert set(entity.get_service('').client_authn_methods.keys()) == {"home_brew"}
+    assert set(context_1.get_service('').client_authn_methods.keys()) == {"home_brew"}
 
-    srv_id = 'https://client.example.org'
-    entity.add_new_context(srv_id)
+    server_2_id = 'https://foo_op.example.org'
+    context_2 = entity.add_new_context(server_2_id)
 
-    assert set(entity.context[srv_id].client_authn_methods.keys()) == {
-        "client_secret_basic",
-        "client_secret_post",
-    }
-    assert set(entity.get_service(service_name='').client_authn_methods.keys()) == {"home_brew"}
+    assert set(context_2.get_service(service_name='').client_authn_methods.keys()) == {"home_brew"}

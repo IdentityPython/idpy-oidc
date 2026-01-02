@@ -12,6 +12,7 @@ from requests import request
 
 from idpyoidc.context import OidcContext
 from idpyoidc.message import Message
+from idpyoidc.node import make_keyjar
 from idpyoidc.server import authz
 from idpyoidc.server.claims import Claims
 from idpyoidc.server.claims.oauth2 import Claims as OAUTH2_Claims
@@ -237,10 +238,12 @@ class EndpointContext(OidcContext):
         if _interface:
             self.claims_interface = init_service(_interface, self.unit_get)
 
+        self.keyjar = make_keyjar(config=conf, issuer_id=_id)
+
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
         _supports = self.supports()
-        self.keyjar = self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
+        self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
 
         # INTERFACES
 

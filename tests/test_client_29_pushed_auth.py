@@ -41,13 +41,13 @@ class TestPushedAuth:
             }
         }
         self.entity = Client(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
-
-        self.entity.get_context().provider_info = {
+        self.context = self.entity.get_context()
+        self.context.provider_info = {
             "pushed_authorization_request_endpoint": "https://as.example.com/push"
         }
 
     def test_authorization(self):
-        auth_service = self.entity.get_service("authorization")
+        auth_service = self.entity.get_service(self.context, "authorization")
         req_args = {"foo": "bar", "response_type": "code"}
         with responses.RequestsMock() as rsps:
             _resp = {"request_uri": "urn:example:bwc4JK-ESC0w8acc191e-Y1LTC2", "expires_in": 3600}
@@ -60,6 +60,6 @@ class TestPushedAuth:
                 status=200,
             )
 
-            _req = auth_service.construct(request_args=req_args, state="state")
+            _req = auth_service.construct(self.context, request_args=req_args, state="state")
 
         assert set(_req.keys()) == {"request_uri", "response_type", "client_id"}

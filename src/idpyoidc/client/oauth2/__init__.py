@@ -51,6 +51,7 @@ class Client(Entity):
             jwks_uri: Optional[str] = "",
             client_type: Optional[str] = "",
             client_configs: Optional[dict] = None,
+            base_url: Optional[str] = "",
             **kwargs
     ):
         """
@@ -100,7 +101,8 @@ class Client(Entity):
             upstream_get=upstream_get,
             key_conf=key_conf,
             entity_id=entity_id,
-            client_configs=client_configs
+            client_configs=client_configs,
+            base_url=base_url
         )
 
         self.httpc = httpc or request

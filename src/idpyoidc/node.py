@@ -16,13 +16,15 @@ from idpyoidc.util import instantiate
 def create_keyjar(
         keyjar: Optional[KeyJar] = None,
         conf: Optional[Union[dict, Configuration]] = None,
-        key_conf: Optional[dict] = None,
+        key_conf: Optional[Union[dict, list]] = None,
         id: Optional[str] = "",
 ):
     if keyjar is None:
         if key_conf:
-            keys_args = {k: v for k, v in key_conf.items() if k != "uri_path"}
-            _keyjar = init_key_jar(**keys_args)
+            if isinstance(key_conf, list):
+                _keyjar = init_key_jar(key_defs=key_conf)
+            else:
+                _keyjar = init_key_jar(key_defs=key_conf['key_defs'])
         elif conf:
             if "keys" in conf:
                 keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
@@ -155,14 +157,20 @@ class Unit(ImpExp):
             return _func(*arg)
         return None
 
-    def get_attribute(self, attr, *args):
+    def get_attribute(self, attr, sever_entity_id = "", *args):
         val = getattr(self, attr, None)
         if val:
             return val
 
-        cntx = getattr(self, "context", None)
-        if cntx:
-            val = getattr(cntx, attr, None)
+        cntxs = getattr(self, "context", None)
+        if isinstance(cntxs, dict):
+            _cntx = cntxs.get(sever_entity_id)
+            if _cntx:
+                val = getattr(_cntx, attr, None)
+                if val:
+                    return val
+        else:
+            val = getattr(cntxs, attr, None)
             if val:
                 return val
 

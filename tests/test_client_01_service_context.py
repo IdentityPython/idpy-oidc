@@ -20,11 +20,13 @@ MINI_CONFIG = {
 
 
 class TestServiceContext:
+
     @pytest.fixture(autouse=True)
     def setup(self):
         self.unit = Unit()
         self.service_context = ServiceContext(
-            config=MINI_CONFIG, upstream_get=self.unit.unit_get, base_url="https://example.com/cli"
+            server_entity_id='https://example.org', config=MINI_CONFIG, upstream_get=self.unit.unit_get,
+            base_url="https://example.com/cli"
         )
 
     def test_init(self):
@@ -36,13 +38,13 @@ class TestServiceContext:
 
     def test_get_sign_alg(self):
         _alg = self.service_context.get_sign_alg("id_token")
-        assert _alg is None
+        assert _alg is 'RS256'
 
-        self.service_context.claims.set_preference("id_token_signed_response_alg", "RS384")
+        self.service_context.claims.set_usage("id_token_signed_response_alg", "RS384")
         _alg = self.service_context.get_sign_alg("id_token")
         assert _alg == "RS384"
 
-        self.service_context.claims.prefer = {}
+        self.service_context.claims.use = {}
         self.service_context.provider_info["id_token_signing_alg_values_supported"] = [
             "RS256",
             "ES256",

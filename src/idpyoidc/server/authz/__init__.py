@@ -19,7 +19,7 @@ class AuthzHandling(object):
         self.grant_config = grant_config or {}
         self.kwargs = kwargs
 
-    def usage_rules(self, context):
+    def usage_rules(self, context, client_id: Optional[str] = ''):
         if "usage_rules" in self.grant_config:
             _usage_rules = copy.deepcopy(self.grant_config["usage_rules"])
         else:
@@ -29,7 +29,7 @@ class AuthzHandling(object):
             return _usage_rules
 
         try:
-            _per_client = context.cdb[context.client_id]["token_usage_rules"]
+            _per_client = context.cdb[client_id]["token_usage_rules"]
         except KeyError:
             pass
         else:
@@ -48,8 +48,8 @@ class AuthzHandling(object):
 
         return _usage_rules
 
-    def usage_rules_for(self, client_id, token_type):
-        _token_usage = self.usage_rules(client_id=client_id)
+    def usage_rules_for(self, context, client_id, token_type):
+        _token_usage = self.usage_rules(context, client_id=client_id)
         try:
             return _token_usage[token_type]
         except KeyError:
@@ -91,7 +91,7 @@ class AuthzHandling(object):
 
         # After this is where user consent should be handled
         grant.claims = context.claims_interface.get_claims_all_usage(
-            session_id=session_id, scopes=scopes
+            context, session_id=session_id, scopes=scopes
         )
 
         return grant

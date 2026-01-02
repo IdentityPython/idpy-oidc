@@ -4,20 +4,20 @@ from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
-from cryptojwt.key_jar import init_key_jar
-from cryptojwt.utils import b64e
 import pytest
 import responses
+from cryptojwt.key_jar import init_key_jar
+from cryptojwt.utils import b64e
 
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.oauth2.utils import get_asymetric_keys_from_keyjar_chain
-from idpyoidc.client.oauth2.utils import get_keyjar_chain
-from idpyoidc.client.rp import RP
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.key_import import import_jwks
-from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AccessTokenResponse
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
+from idpyoidc.util import get_keyjar_chain
 
 BASE_URL = "https://example.com/rp"
 
@@ -244,10 +244,10 @@ class TestClient(object):
         assert context.issuer == ""
 
     def test_init_client(self):
-        assert set(self.rp.get_services().keys()) == {'authorization', 'server_metadata',
-                                                      'refresh_token', 'accesstoken'}
-
         _context = self.rp.get_context_by_client_id('GitHub')
+
+        assert set(self.rp.get_services(_context).keys()) == {'authorization', 'userinfo',
+                                                              'refresh_token', 'accesstoken'}
 
         # Neither provider info discovery not client registration has been done
         # So only preferences so far.
@@ -333,14 +333,14 @@ class TestClient(object):
         assert part.path == "/login/oauth/authorize"
         query = parse_qs(part.query)
 
-        assert set(query.keys()) == {
-            "nonce",
-            "state",
-            "client_id",
-            "redirect_uri",
-            "response_type",
-            "scope",
-        }
+        assert set(query.keys()) == {'client_id',
+                                     'code_challenge',
+                                     'code_challenge_method',
+                                     'nonce',
+                                     'redirect_uri',
+                                     'response_type',
+                                     'scope',
+                                     'state'}
 
         # nonce and state are created on the fly so can't check for those
         # that all values are lists is a parse_qs artifact.
@@ -367,14 +367,17 @@ class TestClient(object):
         assert set(resp.keys()) == {"state", "code"}
 
         _state = _context.cstate.get(_state)
-        assert set(_state.keys()) == {
-            "client_id",
-            "code",
-            "iss",
-            "redirect_uri",
-            "response_type",
-            "state",
-        }
+        assert set(_state.keys()) == {'client_id',
+                                      'code',
+                                      'code_challenge',
+                                      'code_challenge_method',
+                                      'code_verifier',
+                                      'iss',
+                                      'nonce',
+                                      'redirect_uri',
+                                      'response_type',
+                                      'scope',
+                                      'state'}
 
     def test_get_client_authn_method(self):
         url = self.rp.begin(issuer_id=GITHUB)
@@ -445,22 +448,23 @@ class TestClient(object):
             }
 
             _curr = _context.cstate.get(_state)
-            assert set(_curr.keys()) == {
-                "__expires_at",
-                "__verified_id_token",
-                "access_token",
-                "client_id",
-                "code",
-                "expires_in",
-                "id_token",
-                "iss",
-                "nonce",
-                "redirect_uri",
-                "response_type",
-                "scope",
-                "state",
-                "token_type",
-            }
+            assert set(_curr.keys()) == {'__expires_at',
+                                         '__verified_id_token',
+                                         'access_token',
+                                         'client_id',
+                                         'code',
+                                         'code_challenge',
+                                         'code_challenge_method',
+                                         'code_verifier',
+                                         'expires_in',
+                                         'id_token',
+                                         'iss',
+                                         'nonce',
+                                         'redirect_uri',
+                                         'response_type',
+                                         'scope',
+                                         'state',
+                                         'token_type'}
 
     def test_access_and_id_token(self):
         url = self.rp.begin(issuer_id=GITHUB)
@@ -647,7 +651,7 @@ class TestClient(object):
 def test_get_provider_specific_service():
     srv_desc = {"access_token": {"class": "idpyoidc.client.provider.github.AccessToken"}}
     entity = Entity(services=srv_desc, config={})
-    assert entity.get_service(entity.context[''], "accesstoken").response_body_type == "json"
+    assert entity.get_service(entity.context[''], "accesstoken").response_body_type == "urlencoded"
 
 
 class TestRPHandlerTier2(object):
@@ -857,6 +861,7 @@ def registration_callback(data):
     _req["client_secret"] = "ClientSecretString"
     return json.dumps(_req)
 
+
 def test_rphandler_request_uri():
     rp = RP(
         client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"], base_url=BASE_URL,
@@ -877,7 +882,6 @@ def test_rphandler_request():
     _url = rp.begin(issuer_id=GITHUB, behaviour_args={"request_param": "request"})
     _qp = parse_qs(urlparse(_url).query)
     assert "request" in _qp
-
 
 # class TestRPHandlerWithMockOP(object):
 #

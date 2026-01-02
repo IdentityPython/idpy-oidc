@@ -219,7 +219,8 @@ class TestWebFinger(object):
     def test_query_device(self):
         wf = WebFinger(ENTITY.upstream_get)
         request_args = {"resource": "p1.example.com"}
-        _info = wf.get_request_parameters(request_args)
+        context = ENTITY.context['']
+        _info = wf.get_request_parameters(context, request_args)
         p = urlsplit(_info["url"])
         assert p.netloc == request_args["resource"]
         qs = parse_qs(p.query)
@@ -229,7 +230,8 @@ class TestWebFinger(object):
     def test_query_rel(self):
         wf = WebFinger(ENTITY.upstream_get)
         request_args = {"resource": "acct:bob@example.com"}
-        _info = wf.get_request_parameters(request_args)
+        context = ENTITY.context['']
+        _info = wf.get_request_parameters(context, request_args)
         p = urlsplit(_info["url"])
         assert p.netloc == "example.com"
         qs = parse_qs(p.query)
@@ -237,9 +239,10 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct(self):
+        context = ENTITY.context['']
         wf = WebFinger(ENTITY.upstream_get, rel=OIC_ISSUER)
         request_args = {"resource": "acct:carol@example.com"}
-        _info = wf.get_request_parameters(request_args=request_args)
+        _info = wf.get_request_parameters(context, request_args=request_args)
 
         p = urlsplit(_info["url"])
         assert p.netloc == "example.com"
@@ -248,9 +251,12 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct_resource_kwargs(self):
+        context = ENTITY.context['']
+
         wf = WebFinger(ENTITY.upstream_get, rel=OIC_ISSUER)
         request_args = {}
         _info = wf.get_request_parameters(
+            context,
             request_args=request_args, resource="acct:carol@example.com"
         )
 
@@ -261,10 +267,12 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct_resource_config(self):
+        context = ENTITY.context['']
+
         wf = WebFinger(ENTITY.unit_get, rel=OIC_ISSUER)
         wf.upstream_get("context").config["resource"] = "acct:carol@example.com"
         request_args = {}
-        _info = wf.get_request_parameters(request_args=request_args)
+        _info = wf.get_request_parameters(context, request_args=request_args)
 
         p = urlsplit(_info["url"])
         assert p.netloc == "example.com"
@@ -273,6 +281,8 @@ class TestWebFinger(object):
         assert qs["rel"][0] == "http://openid.net/specs/connect/1.0/issuer"
 
     def test_query_acct_no_resource(self):
+        context = ENTITY.context['']
+
         wf = WebFinger(ENTITY.unit_get, rel=OIC_ISSUER)
         try:
             del wf.upstream_get("context").config["resource"]
@@ -281,4 +291,4 @@ class TestWebFinger(object):
         request_args = {}
 
         with pytest.raises(MissingRequiredAttribute):
-            wf.get_request_parameters(request_args=request_args)
+            wf.get_request_parameters(context, request_args=request_args)

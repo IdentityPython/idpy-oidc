@@ -5,8 +5,8 @@ from typing import Union
 
 from cryptojwt import KeyBundle
 from cryptojwt import KeyJar
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.client_auth import client_auth_setup
@@ -14,8 +14,8 @@ from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
-from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.client.service_context import create_new_context
+from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.node import Unit
 from idpyoidc.util import conf_get
 
@@ -97,9 +97,10 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             client_type: Optional[str] = "oauth2",
             context: Optional[dict] = None,
             upstream_get: Optional[Callable] = None,
-            key_conf: Optional[dict] = None,
+            key_conf: Optional[list] = None,
             entity_id: Optional[str] = "",
-            client_configs: Optional[dict] = None
+            client_configs: Optional[dict] = None,
+            base_url: Optional[str] = None
     ):
         if config is None:
             config = {}
@@ -122,9 +123,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         )
 
         # how to publish ?! JWKS, jwks_uri/jwks_signed_uri, jwks is the default
-        _key_konf = config.get("key_conf", key_conf)
-        if key_conf:
-            pass
+        if jwks_uri:
+            self.publish_keyjar_as = {'jwks_uri': self.keyjar.export_jwks(issuer_id="")}
         else:
             self.publish_keyjar_as = {'jwks': self.keyjar.export_jwks(issuer_id="")}
 
@@ -142,7 +142,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                         # keyjar=self.keyjar,
                         upstream_get=self.unit_get,
                         client_type=client_type,
-                        entity_id=self.entity_id
+                        entity_id=self.entity_id,
+                        base_url=base_url,
+                        services=services
                     )
             else:
                 self.context = {
@@ -154,6 +156,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                         upstream_get=self.unit_get,
                         client_type=client_type,
                         entity_id=self.entity_id,
+                        base_url=base_url,
+                        services=services
                     )
                 }
 
@@ -163,9 +167,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         self.setup_client_authn_methods(config, self.default_context)
         self.upstream_get = upstream_get
 
-    def get_services(self, server_entity_id="", *arg):
-        _context = self.get_context(server_entity_id)
-        return _context.service
+    def get_services(self, context, *arg):
+        return context.service
 
     def get_context(self, server_entity_id="", *arg) -> ServiceContext:
         return self.context[server_entity_id]
@@ -176,9 +179,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         except KeyError:
             return None
 
-    def get_service_by_endpoint_name(self, context, endpoint_name, server_entity_id="", *arg):
-        _context = self.get_context(server_entity_id)
-        for service in _context.service.values():
+    def get_service_by_endpoint_name(self, context, endpoint_name, *arg):
+        for service in context.service.values():
             if service.endpoint_name == endpoint_name:
                 return service
 
@@ -244,6 +246,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             if client_secret:
                 context.client_secret = client_secret
                 context.claims.use['client_secret'] = client_secret
+                # Add symmetric key to keyjar
+                context.keyjar.add_symmetric(issuer_id="", key=client_secret)
+                context.keyjar.add_symmetric(issuer_id=client_id, key=client_secret)
 
         self.setup_client_authn_methods(self.config, context)
         return self.context[server_entity_id]
@@ -253,6 +258,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             if cntx.client_id == client_id:
                 return cntx
         return None
+
 
 def load_registration_response(client, context, request_args: Optional[dict] = None):
     """

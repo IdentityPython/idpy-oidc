@@ -11,6 +11,8 @@ from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingSigningKey
 from idpyoidc.message import Message
 from idpyoidc.message import oidc
+from idpyoidc.util import get_keyjar_chain
+from idpyoidc.util import keyjar_from_keyjar_chain
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +82,14 @@ class UserInfo(Service):
         except KeyError:
             pass
         else:
+            keyjar = keyjar_from_keyjar_chain(get_keyjar_chain(context))
+
             for csrc, spec in _csrc.items():
                 if "JWT" in spec:
                     try:
                         aggregated_claims = Message().from_jwt(
                             spec["JWT"].encode("utf-8"),
-                            keyjar=self.upstream_get("attribute", "keyjar"),
+                            keyjar=keyjar,
                         )
                     except MissingSigningKey as err:
                         logger.warning(
@@ -116,10 +120,13 @@ class UserInfo(Service):
 
         :return: dictionary with arguments to the verify call
         """
+
+        keyjar = keyjar_from_keyjar_chain(get_keyjar_chain(context))
+
         kwargs = {
             "client_id": context.get_client_id(),
             "iss": context.issuer,
-            "keyjar": self.upstream_get("attribute", "keyjar"),
+            "keyjar": keyjar,
             "verify": True,
             "skew": context.clock_skew,
         }

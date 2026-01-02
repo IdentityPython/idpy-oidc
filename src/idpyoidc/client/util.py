@@ -311,10 +311,10 @@ def get_value_type(http_response, body_type):
         return "urlencoded"
 
 
-def do_add_ons(add_ons, services):
+def do_add_ons(context, add_ons, services):
     for key, spec in add_ons.items():
         _func = importer(spec["function"])
-        _func(services, **spec["kwargs"])
+        _func(context, services, **spec["kwargs"])
 
 
 def lower_or_upper(config, param, default=None):

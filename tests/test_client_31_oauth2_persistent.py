@@ -71,7 +71,7 @@ class TestClient(object):
         auth_response = AuthorizationResponse(code="access_code")
         _context2.cstate.update(_state, auth_response)
 
-        msg = client_2.get_service("accesstoken").construct(request_args={}, state=_state)
+        msg = client_2.get_service(_context2, "accesstoken").construct(_context2, request_args={}, state=_state)
 
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
@@ -108,10 +108,11 @@ class TestClient(object):
 
         # Next up is Client 1
         _state_dump = client_2.get_context().dump()
-        client_1.get_context().load(_state_dump)
+        context_1 = client_1.get_context('')
+        context_1.load(_state_dump)
 
         req_args = {}
-        msg = client_1.get_service("refresh_token").construct(request_args=req_args, state=_state)
+        msg = client_1.get_service(context_1, "refresh_token").construct(context_1, request_args=req_args, state=_state)
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",

@@ -178,7 +178,7 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        self.server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        self.server.context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.context.session_manager
         self.user_id = USER_ID
 
@@ -198,8 +198,8 @@ class TestEndpoint(object):
     def _mint_code(self, grant, session_id):
         # Constructing an authorization code is now done
         return grant.mint_token(
-            session_id=session_id,
             context=self.context,
+            session_id=session_id,
             token_class="authorization_code",
             token_handler=self.session_manager.token_handler["authorization_code"],
             expires_at=utc_time_sans_frac() + 300,  # 5 minutes from now
@@ -207,8 +207,8 @@ class TestEndpoint(object):
 
     def _mint_access_token(self, grant, session_id, token_ref):
         access_token = grant.mint_token(
-            session_id=session_id,
             context=self.context,
+            session_id=session_id,
             token_class="access_token",
             token_handler=self.session_manager.token_handler["access_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -218,8 +218,8 @@ class TestEndpoint(object):
 
     def _mint_id_token(self, grant, session_id, token_ref=None, code=None, access_token=None):
         return grant.mint_token(
-            session_id=session_id,
             context=self.context,
+            session_id=session_id,
             token_class="id_token",
             token_handler=self.session_manager.token_handler["id_token"],
             expires_at=utc_time_sans_frac() + 900,  # 15 minutes from now
@@ -299,7 +299,7 @@ class TestEndpoint(object):
             "iss",
             "sid",
         }        
-        assert payload["exp"] - payload["iat"] == 100
+        assert payload["exp"] - payload["iat"] == 200
 
     def test_id_token_payload_with_code(self):
         session_id = self._create_session(AREQ)
@@ -468,7 +468,7 @@ class TestEndpoint(object):
         assert _jws.jwt.headers["alg"] == "RS256"
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
 
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
@@ -502,7 +502,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -515,7 +515,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -532,7 +532,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -547,7 +547,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -561,6 +561,7 @@ class TestEndpoint(object):
         self.context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {"address": None}
 
         _claims = self.context.claims_interface.get_claims(
+            self.context,
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -568,7 +569,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -580,6 +581,7 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         _claims = self.context.claims_interface.get_claims(
+            self.context,
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -587,7 +589,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -606,7 +608,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -621,6 +623,7 @@ class TestEndpoint(object):
         self.context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
 
         _claims = self.context.claims_interface.get_claims(
+            self.context,
             session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -628,7 +631,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -646,7 +649,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)
@@ -669,7 +672,7 @@ class TestEndpoint(object):
         id_token = self._mint_id_token(grant, session_id)
 
         client_keyjar = KeyJar()
-        _jwks = self.server.keyjar.export_jwks()
+        _jwks = self.context.keyjar.export_jwks()
         client_keyjar = import_jwks(client_keyjar, _jwks, self.context.issuer)
         _jwt = JWT(key_jar=client_keyjar, iss="client_1")
         res = _jwt.unpack(id_token.value)

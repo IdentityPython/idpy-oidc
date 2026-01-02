@@ -42,7 +42,7 @@ class TestDefaultToken(object):
         crypt_config = default_crypt_config()
         crypt_config["kwargs"]["iterations"] = 10
         self.th = DefaultToken(
-            crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
+            None, crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
         )
 
     def test_default_token_split_token(self):
@@ -85,13 +85,13 @@ class TestTokenHandler(object):
         crypt_config["kwargs"]["iterations"] = 10
 
         authorization_code = DefaultToken(
-            crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
+            None, crypt_conf=crypt_config, token_class="authorization_code", lifetime=grant_expires_in
         )
         access_token = DefaultToken(
-            crypt_conf=crypt_config, token_class="access_token", lifetime=token_expires_in
+            None, crypt_conf=crypt_config, token_class="access_token", lifetime=token_expires_in
         )
         refresh_token = DefaultToken(
-            crypt_conf=crypt_config, token_class="refresh_token", lifetime=refresh_token_expires_in
+            None, crypt_conf=crypt_config, token_class="refresh_token", lifetime=refresh_token_expires_in
         )
 
         self.handler = TokenHandler(

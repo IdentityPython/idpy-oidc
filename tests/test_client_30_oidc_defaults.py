@@ -1,0 +1,186 @@
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
+
+import pytest
+import responses
+from cryptojwt.key_jar import build_keyjar
+
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
+from idpyoidc.client.oidc.rp import RP
+from idpyoidc.message.oidc import ProviderConfigurationResponse
+from idpyoidc.message.oidc import RegistrationResponse
+from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
+from idpyoidc.util import get_jwks
+from idpyoidc.util import get_keyjar_chain
+from idpyoidc.util import jwks_from_keys
+
+BASE_URL = "https://example.com"
+
+
+class TestRPHandler(object):
+
+    @pytest.fixture(autouse=True)
+    def rphandler_setup(self):
+        self.rp = RP(base_url=BASE_URL)
+
+    def test_pick_context(self):
+        cnf = self.rp.get_context("")
+        assert cnf
+
+    def test_init_client_oauth2(self):
+        context = self.rp.get_context("")
+        assert set(context.get_services().keys()) == {'accesstoken',
+                                                      'authorization',
+                                                      'provider_info',
+                                                      'refresh_token',
+                                                      'registration',
+                                                      'userinfo'}
+
+        assert set(context.claims.prefer.keys()) == {'application_type',
+                                                     'callback_uris',
+                                                     'default_max_age',
+                                                     'encrypt_request_object_supported',
+                                                     'encrypt_userinfo_supported',
+                                                     'grant_types_supported',
+                                                     'id_token_encryption_alg_values_supported',
+                                                     'id_token_encryption_enc_values_supported',
+                                                     'id_token_signing_alg_values_supported',
+                                                     'jwks',
+                                                     'redirect_uris',
+                                                     'request_object_encryption_alg_values_supported',
+                                                     'request_object_encryption_enc_values_supported',
+                                                     'request_object_signing_alg_values_supported',
+                                                     'request_parameter_supported',
+                                                     'response_modes_supported',
+                                                     'response_types_supported',
+                                                     'scopes_supported',
+                                                     'subject_types_supported',
+                                                     'token_endpoint_auth_methods_supported',
+                                                     'token_endpoint_auth_signing_alg_values_supported',
+                                                     'userinfo_encryption_alg_values_supported',
+                                                     'userinfo_encryption_enc_values_supported',
+                                                     'userinfo_signing_alg_values_supported'}
+
+        # Two Key Jars one in self.rp and one in context
+        # The context one contains the Symmetric key based on the client_secret and whatever keys the
+        # issuer publishes.
+        cntx_keyjar = context.keyjar
+        assert list(cntx_keyjar.owners()) == []
+        rp_keyjar = self.rp.keyjar
+        assert list(rp_keyjar.owners()) == ['']
+        keys = rp_keyjar.get_issuer_keys("")
+        assert len(keys) == 2
+
+        assert context.base_url == BASE_URL
+
+    def test_begin(self):
+        ISS_ID = "https://op.example.org"
+        # The 4 steps of client_setup
+        context = self.rp.add_new_context(ISS_ID)
+
+        key_chain = get_keyjar_chain(context)
+        keys = get_asymetric_keys_from_keyjar_chain(key_chain, key_usages=['sig'])
+        jwks = jwks_from_keys(keys)
+
+        with responses.RequestsMock() as rsps:
+            request_uri = "{}/.well-known/openid-configuration".format(ISS_ID)
+            _jws = ProviderConfigurationResponse(
+                issuer=ISS_ID,
+                authorization_endpoint="{}/authorization".format(ISS_ID),
+                jwks_uri="{}/jwks.json".format(ISS_ID),
+                response_types_supported=["code", "id_token", "id_token token"],
+                subject_types_supported=["public"],
+                id_token_signing_alg_values_supported=["RS256", "ES256"],
+                token_endpoint="{}/token".format(ISS_ID),
+                registration_endpoint="{}/register".format(ISS_ID),
+            ).to_json()
+            rsps.add("GET", request_uri, body=_jws, status=200)
+
+            issuer = self.rp.do_provider_info(context)
+
+        # Calculating request so I can build a reasonable response
+        _req = self.rp.get_service(context, "registration").construct_request(context)
+
+        with responses.RequestsMock() as rsps:
+            request_uri = context.get("provider_info")["registration_endpoint"]
+            _jws = RegistrationResponse(
+                client_id="client uno", client_secret="VerySecretAndLongEnough", **_req.to_dict()
+            ).to_json()
+            rsps.add("POST", request_uri, body=_jws, status=200)
+
+            self.rp.do_client_registration(context, issuer=ISS_ID)
+
+        assert set(context.claims.use.keys()) == {
+            "application_type",
+            "callback_uris",
+            "client_id",
+            "client_secret",
+            "default_max_age",
+            "encrypt_request_object_supported",
+            "grant_types",
+            "id_token_signed_response_alg",
+            "jwks",
+            "redirect_uris",
+            "request_object_signing_alg",
+            'request_parameter_supported',
+            "response_modes",
+            "response_types",
+            "scope",
+            "subject_type",
+            "token_endpoint_auth_method",
+            "token_endpoint_auth_signing_alg",
+        }
+        assert context.get_client_id() == "client uno"
+        assert context.get_usage("client_secret") == "VerySecretAndLongEnough"
+        assert context.get("issuer") == ISS_ID
+
+        url = self.rp.init_authorization(context)
+        p = urlparse(url)
+        assert p.hostname == "op.example.org"
+        assert p.path == "/authorization"
+        qs = parse_qs(p.query)
+        # PKCE stuff
+        assert "code_challenge" in qs
+        assert qs["code_challenge_method"] == ["S256"]
+
+    def test_begin_2(self):
+        ISS_ID = "https://op.example.org"
+        OP_KEYS = build_keyjar(DEFAULT_KEY_DEFS)
+        # The 4 steps of client_setup
+        context = self.rp.add_new_context(ISS_ID)
+        with responses.RequestsMock() as rsps:
+            request_uri = "{}/.well-known/openid-configuration".format(ISS_ID)
+            _jws = ProviderConfigurationResponse(
+                issuer=ISS_ID,
+                authorization_endpoint="{}/authorization".format(ISS_ID),
+                jwks_uri="{}/jwks.json".format(ISS_ID),
+                response_types_supported=["code", "id_token", "id_token token"],
+                subject_types_supported=["public"],
+                id_token_signing_alg_values_supported=["RS256", "ES256"],
+                token_endpoint="{}/token".format(ISS_ID),
+                registration_endpoint="{}/register".format(ISS_ID),
+            ).to_json()
+            rsps.add("GET", request_uri, body=_jws, status=200)
+
+            rsps.add(
+                "GET", "{}/jwks.json".format(ISS_ID), body=OP_KEYS.export_jwks_as_json(), status=200
+            )
+
+            issuer = self.rp.do_provider_info(context)
+
+        # Calculating request, so I can build a reasonable response
+        # Publishing a JWKS instead of a JWKS_URI
+        context.jwks = get_jwks(context)
+
+        _req = context.get_service("registration").construct_request(context)
+
+        with responses.RequestsMock() as rsps:
+            request_uri = context.get("provider_info")["registration_endpoint"]
+            _jws = RegistrationResponse(
+                client_id="client uno", client_secret="VerySecretAndLongEnough", **_req.to_dict()
+            ).to_json()
+            rsps.add("POST", request_uri, body=_jws, status=200)
+            self.rp.do_client_registration(context, issuer=ISS_ID)
+
+        assert "client_id" in context.get("registration_response")
+        assert context.client_id

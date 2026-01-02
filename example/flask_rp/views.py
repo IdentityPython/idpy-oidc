@@ -10,7 +10,7 @@ from flask import request
 from flask import session
 from flask.helpers import make_response
 from flask.helpers import send_from_directory
-from idpyoidc.client import rp_handler
+from old import rp_handler
 from idpyoidc.client.exception import OidcServiceError
 import werkzeug
 

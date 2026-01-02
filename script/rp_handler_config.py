@@ -5,7 +5,7 @@ import sys
 from cryptojwt.utils import qualified_name
 
 from idpyoidc.client.configure import RPHConfiguration
-from idpyoidc.client.rp_handler import RPHandler
+from old.rp_handler import RPHandler
 from idpyoidc.configure import create_from_config_file
 
 

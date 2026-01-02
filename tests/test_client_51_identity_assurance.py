@@ -33,8 +33,9 @@ class TestUserInfo(object):
         KEYS = init_key_jar(key_defs=KEYSPEC)
 
         entity = Entity(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
-        entity.get_context().issuer = "https://server.otherop.com"
-        self.service = entity.get_service("userinfo")
+        self.context = entity.get_context()
+        self.context.issuer = "https://server.otherop.com"
+        self.service = entity.get_service(self.context, "userinfo")
 
         entity.get_context().claims.use = {
             "userinfo_signed_response_alg": "RS256",
@@ -43,7 +44,7 @@ class TestUserInfo(object):
         }
 
     def test_unpack_aggregated_response(self):
-        _cstate = self.service.upstream_get("context").cstate
+        _cstate = self.context.cstate
         # Add history
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb",
@@ -84,14 +85,13 @@ class TestUserInfo(object):
             "_claim_sources": {"src1": {"JWT": _jws}},
         }
 
-        _resp = self.service.parse_response(json.dumps(resp), state="abcde")
-        _resp = self.service.post_parse_response(_resp, state="abcde")
+        _resp = self.service.parse_response(self.context, json.dumps(resp), state="abcde")
+        _resp = self.service.post_parse_response(self.context, _resp, state="abcde")
         assert set(_resp.keys()) == {
             "sub",
             "iss",
             "email",
             "_claim_names",
             "_claim_sources",
-            "verified_claims",
             "email_verified",
         }

@@ -25,12 +25,12 @@ class TestCC:
         }
 
         self.entity = Client(config=client_config, services=services)
-
-        self.entity.get_service("client_credentials").endpoint = "https://example.com/token"
+        self.context = self.entity.get_context("")
+        self.entity.get_service(self.context,"client_credentials").endpoint = "https://example.com/token"
 
     def test_token_get_request(self):
-        _srv = self.entity.get_service("client_credentials")
-        _info = _srv.get_request_parameters()
+        _srv = self.entity.get_service(self.context, "client_credentials")
+        _info = _srv.get_request_parameters(self.context)
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
         assert (
@@ -43,8 +43,8 @@ class TestCC:
         }
 
     def test_token_parse_response(self):
-        _srv = self.entity.get_service("client_credentials")
-        _request_info = _srv.get_request_parameters()
+        _srv = self.entity.get_service(self.context, "client_credentials")
+        _request_info = _srv.get_request_parameters(self.context)
 
         response = AccessTokenResponse(
             **{
@@ -55,10 +55,10 @@ class TestCC:
             }
         )
 
-        _response = _srv.parse_response(response.to_json(), sformat="json")
+        _response = _srv.parse_response(self.context, response.to_json(), sformat="json")
         # since no state attribute is involved, a key is minted
         _key = rndstr(16)
-        _srv.update_service_context(_response, key=_key)
+        _srv.update_service_context(self.context, _response, key=_key)
         info = _srv.upstream_get("context").cstate.get(_key)
         assert "__expires_at" in info
 
@@ -79,14 +79,16 @@ class TestROPC:
         }
 
         self.entity = Entity(config=client_config, services=services)
+        self.context = self.entity.get_context("")
 
         self.entity.get_service(
+            self.context,
             "resource_owner_password_credentials"
         ).endpoint = "https://example.com/token"
 
     def test_token_get_request(self):
-        _srv = self.entity.get_service("resource_owner_password_credentials")
-        _info = _srv.get_request_parameters({"username": "diana", "password": "krall"})
+        _srv = self.entity.get_service(self.context, "resource_owner_password_credentials")
+        _info = _srv.get_request_parameters(self.context, {"username": "diana", "password": "krall"})
         assert _info["method"] == "POST"
         assert _info["url"] == "https://example.com/token"
         assert _info["body"] == (
@@ -102,8 +104,8 @@ class TestROPC:
         }
 
     def test_token_parse_response(self):
-        _srv = self.entity.get_service("resource_owner_password_credentials")
-        _request_info = _srv.get_request_parameters()
+        _srv = self.entity.get_service(self.context, "resource_owner_password_credentials")
+        _request_info = _srv.get_request_parameters(self.context)
 
         response = AccessTokenResponse(
             **{
@@ -114,9 +116,9 @@ class TestROPC:
             }
         )
 
-        _response = _srv.parse_response(response.to_json(), sformat="json")
+        _response = _srv.parse_response(self.context, response.to_json(), sformat="json")
         # since no state attribute is involved, a key is minted
         _key = rndstr(16)
-        _srv.update_service_context(_response, key=_key)
+        _srv.update_service_context(self.context, _response, key=_key)
         info = _srv.upstream_get("context").cstate.get(_key)
         assert "__expires_at" in info

@@ -12,6 +12,10 @@ from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 BASE_URL = "https://example.com"
 
 
+def unit_get(self, what, *arg):
+    return None
+
+
 def test_client_info_init():
     config = {
         "client_id": "client_id",
@@ -20,12 +24,13 @@ def test_client_info_init():
         "base_url": BASE_URL,
         "requests_dir": "requests",
     }
-    ci = ServiceContext(config=config, client_type="oidc", base_url=BASE_URL)
+    ci = ServiceContext(config=config, client_type="oidc", base_url=BASE_URL, server_entity_id=config["issuer"],
+                        upstream_get=unit_get)
     ci.claims.load_conf(config, supports=ci.supports())
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
-    srvcnx = ServiceContext().load(ci.dump())
+    srvcnx = ServiceContext(server_entity_id=config["issuer"], upstream_get=unit_get).load(ci.dump())
 
     for attr in config.keys():
         if attr == "client_id":
@@ -40,18 +45,20 @@ def test_client_info_init():
 
 
 def test_set_and_get_client_secret():
-    service_context = ServiceContext(base_url=BASE_URL)
+    service_context = ServiceContext(base_url=BASE_URL, server_entity_id="issuer", upstream_get=unit_get)
     service_context.set_usage("client_secret", "longenoughsupersecret")
 
-    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
+    srvcnx2 = ServiceContext(server_entity_id="issuer", base_url=BASE_URL,
+                             upstream_get=unit_get).load(service_context.dump())
 
     assert srvcnx2.get_usage("client_secret") == "longenoughsupersecret"
 
 
 def test_set_and_get_client_id():
-    service_context = ServiceContext(base_url=BASE_URL)
+    service_context = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=unit_get)
     service_context.set_usage("client_id", "myself")
-    srvcnx2 = ServiceContext(base_url=BASE_URL).load(service_context.dump())
+    srvcnx2 = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=unit_get).load(
+        service_context.dump())
     assert srvcnx2.get_client_id() == "myself"
 
 
@@ -63,8 +70,8 @@ def test_client_filename():
         "base_url": "https://example.com",
         "requests_dir": "requests",
     }
-    service_context = ServiceContext(config=config, base_url=BASE_URL)
-    srvcnx2 = ServiceContext().load(service_context.dump())
+    service_context = ServiceContext(server_entity_id="issuer", config=config, base_url=BASE_URL, upstream_get=unit_get)
+    srvcnx2 = ServiceContext(server_entity_id="issuer", upstream_get=unit_get).load(service_context.dump())
     fname = srvcnx2.filename_from_webname("https://example.com/rq12345")
     assert fname == "rq12345"
 
@@ -98,6 +105,7 @@ def verify_alg_support(service_context, alg, usage, typ):
 
 
 class TestClientInfo(object):
+
     @pytest.fixture(autouse=True)
     def create_client_info_instance(self):
         config = {
@@ -123,7 +131,7 @@ class TestClientInfo(object):
             "userinfo_encrypted_response_enc": "A128CBC-HS256",
         }
 
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             self.service_context.dump(exclude_attributes=["context"])
         )
         assert srvcntx.get_sign_alg("userinfo") is None
@@ -143,7 +151,7 @@ class TestClientInfo(object):
             "request_object_signing_alg": "RS384",
         }
 
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             self.service_context.dump(exclude_attributes=["context"])
         )
         res = srvcntx.get_enc_alg_enc("userinfo")
@@ -168,7 +176,7 @@ class TestClientInfo(object):
             "id_token_signed_response_alg": "ES384",
         }
 
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             self.service_context.dump(exclude_attributes=["context"])
         )
 
@@ -236,7 +244,7 @@ class TestClientInfo(object):
             "ui_locales_supported": ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"],
         }
 
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             self.service_context.dump(exclude_attributes=["context"])
         )
 
@@ -258,7 +266,7 @@ class TestClientInfo(object):
         keyspec = {"file": {"rsa": [file_path]}}
         self.service_context.import_keys(keyspec)
 
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             self.service_context.dump(exclude_attributes=["context"])
         )
 
@@ -279,7 +287,7 @@ class TestClientInfo(object):
         _sc_state = self.service_context.dump(exclude_attributes=["context", "upstream_get"])
         _jsc_state = json.dumps(_sc_state)
         _o_state = json.loads(_jsc_state)
-        srvcntx = ServiceContext(base_url=BASE_URL).load(
+        srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
             _o_state, init_args={"upstream_get": self.service_context.upstream_get}
         )
 
@@ -308,17 +316,17 @@ class TestClientInfo(object):
             self.service_context.import_keys(keyspec)
             _keyjar.update()
 
-            srvcntx = ServiceContext(base_url=BASE_URL).load(
+            srvcntx = ServiceContext(server_entity_id="issuer", base_url=BASE_URL, upstream_get=self.entity.unit_get).load(
                 self.service_context.dump(exclude_attributes=["context"]),
                 init_args={"upstream_get": self.service_context.upstream_get},
             )
 
             # Now there should be one belonging to https://example.com
             assert (
-                len(
-                    srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys(
-                        "https://foobar.com"
+                    len(
+                        srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys(
+                            "https://foobar.com"
+                        )
                     )
-                )
-                == 1
+                    == 1
             )

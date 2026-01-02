@@ -60,29 +60,32 @@ class TestPKCE256:
             keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES, client_type="oauth2"
         )
 
-        if "add_ons" in config:
-            do_add_ons(config["add_ons"], self.entity.get_services())
         _context = self.entity.get_context()
+
+        if "add_ons" in config:
+            do_add_ons(_context, config["add_ons"], self.entity.get_services(_context))
+
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
+        self.context = _context
 
     def test_add_code_challenge_default_values(self):
-        auth_serv = self.entity.get_service("authorization")
+        auth_serv = self.entity.get_service(self.context, "authorization")
         _state_key = self.entity.get_context().cstate.create_state(iss="Issuer")
-        request_args, _ = add_code_challenge({"state": _state_key}, auth_serv)
+        request_args, _ = add_code_challenge(self.context,{"state": _state_key}, auth_serv)
 
         # default values are length:64 method:S256
         assert set(request_args.keys()) == {"code_challenge", "code_challenge_method", "state"}
         assert request_args["code_challenge_method"] == "S256"
 
-        request_args = add_code_verifier({}, auth_serv, state=_state_key)
+        request_args = add_code_verifier(self.context, {}, auth_serv, state=_state_key)
         assert len(request_args["code_verifier"]) == 64
 
     def test_authorization_and_pkce(self):
-        auth_serv = self.entity.get_service("authorization")
+        auth_serv = self.entity.get_service(self.context,"authorization")
         _state = self.entity.get_context().cstate.create_state(iss="Issuer")
 
-        request = auth_serv.construct_request({"state": _state, "response_type": "code"})
+        request = auth_serv.construct_request(self.context, {"state": _state, "response_type": "code"})
         assert set(request.keys()) == {
             "client_id",
             "code_challenge",
@@ -93,17 +96,17 @@ class TestPKCE256:
         }
 
     def test_access_token_and_pkce(self):
-        authz_service = self.entity.get_service("authorization")
-        request = authz_service.construct_request({"state": "state", "response_type": "code"})
+        authz_service = self.entity.get_service(self.context,"authorization")
+        request = authz_service.construct_request(self.context, {"state": "state", "response_type": "code"})
         _state = request["state"]
         auth_response = AuthorizationResponse(code="access code")
-        _context = self.entity.get_context()
-        _context.cstate.update(_state, auth_response)
+
+        self.context.cstate.update(_state, auth_response)
         # auth_serv = self.entity.get_service("authorization")
         # _state = _context.cstate.create_state(iss="Issuer")
 
-        token_service = self.entity.get_service("accesstoken")
-        request = token_service.construct_request(state=_state)
+        token_service = self.entity.get_service(self.context,"accesstoken")
+        request = token_service.construct_request(self.context,state=_state)
         assert set(request.keys()) == {
             "client_id",
             "redirect_uri",
@@ -130,14 +133,15 @@ class TestPKCE384:
             },
         }
         self.entity = Entity(keyjar=CLI_KEY, config=config, services=DEFAULT_OAUTH2_SERVICES)
+        self.context = self.entity.get_context()
         if "add_ons" in config:
-            do_add_ons(config["add_ons"], self.entity.get_services())
+            do_add_ons(self.context, config["add_ons"], self.entity.get_services(self.context))
 
     def test_add_code_challenge_spec_values(self):
-        auth_serv = self.entity.get_service("authorization")
-        request_args, _ = add_code_challenge({"state": "state"}, auth_serv)
+        auth_serv = self.entity.get_service(self.context, "authorization")
+        request_args, _ = add_code_challenge(self.context,{"state": "state"}, auth_serv)
         assert set(request_args.keys()) == {"code_challenge", "code_challenge_method", "state"}
         assert request_args["code_challenge_method"] == "S384"
 
-        request_args = add_code_verifier({}, auth_serv, state="state")
+        request_args = add_code_verifier(self.context,{}, auth_serv, state="state")
         assert len(request_args["code_verifier"]) == 128

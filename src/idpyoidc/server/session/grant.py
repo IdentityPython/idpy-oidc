@@ -194,7 +194,6 @@ class Grant(Item):
         """
 
         :param session_id: Session ID
-        :param context: EndPoint Context
         :param item: A SessionToken instance
         :param claims_release_point: One of "userinfo", "introspection", "id_token", "access_token"
         :param extra_payload:
@@ -235,6 +234,7 @@ class Grant(Item):
             _claims_restriction = item.claims
         else:
             _claims_restriction = context.claims_interface.get_claims(
+                context,
                 session_id,
                 scopes=payload["scope"],
                 claims_release_point=claims_release_point,
@@ -243,8 +243,8 @@ class Grant(Item):
 
         if _claims_restriction and context.session_manager.node_type[0] == "user":
             user_id, client_id, _ = context.session_manager.decrypt_branch_id(session_id)
-            user_info = context.claims_interface.get_user_claims(user_id, _claims_restriction,
-                                                                 client_id=client_id)
+            user_info = context.claims_interface.get_user_claims(context, user_id, _claims_restriction,
+                                                                      client_id=client_id)
             payload.update(user_info)
 
         # Should I add the acr value
@@ -475,7 +475,7 @@ def get_usage_rules(context, token_type, grant, client_id):
     :return: Usage specification
     """
 
-    _usage = context.authz.usage_rules_for(client_id, token_type)
+    _usage = context.authz.usage_rules_for(context, client_id, token_type)
     if not _usage:
         _usage = DEFAULT_USAGE[token_type]
 

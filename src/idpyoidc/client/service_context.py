@@ -9,8 +9,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
+from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import KeyJar
@@ -101,12 +101,15 @@ class ServiceContext(ImpExp):
         "base_url": None,
         # "behaviour": None,
         # "client_secret_expires_at": 0,
+        "client_id": None,
+        "client_secret": None,
         "clock_skew": None,
         "config": None,
         "hash_seed": b"",
         "httpc_params": None,
         "iss_hash": None,
         "issuer": None,
+        "server_entity_id": None,
         "server_metadata": EntityMetadata,
         "keyjar": KeyJar,
         "claims": Claims,
@@ -139,10 +142,10 @@ class ServiceContext(ImpExp):
     ):
         ImpExp.__init__(self)
         # config = get_configuration(config)
-        self.config = config  # This is entity configuration
+        self.config = config or {} # This is entity configuration
         self.upstream_get = upstream_get
 
-        self.client_type = config.get("client_type", None) or client_type or "oidc"
+        self.client_type = self.config.get("client_type", None) or client_type or "oidc"
         if self.client_type == "oidc":
             self.claims = OIDC_Specs()
         elif self.client_type == "oauth2":
@@ -152,44 +155,44 @@ class ServiceContext(ImpExp):
         else:
             raise ValueError(f"Unknown client type: {self.client_type}")
 
-        _publish_as = self.upstream_get("attribute", "publish_keyjar_as")
-        if _publish_as:
-            for attr, val in _publish_as.items():
-                self.claims.prefer[attr] = val
+        if self.upstream_get:
+            _publish_as = self.upstream_get("attribute", "publish_keyjar_as")
+            if _publish_as:
+                for attr, val in _publish_as.items():
+                    self.claims.prefer[attr] = val
 
         self.entity_id = entity_id or kwargs.get("client_id", "")
         if not self.entity_id:
-            self.entity_id = conf_get(config, "entity_id", conf_get(config, "client_id"))
+            self.entity_id = conf_get(self.config, "entity_id", conf_get(self.config, "client_id"))
 
-        self.client_id = kwargs.get("client_id", "") or conf_get(config, "client_id", '')
+        self.client_id = kwargs.get("client_id", "") or conf_get(self.config, "client_id", '')
 
         self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.allow = conf_get(config, "allow", {})
-        self.base_url = base_url or conf_get(config, "base_url", self.entity_id)
-        self.provider_info = conf_get(config, "provider_info", {})
-        self.server_metadata = conf_get(config, "server_metadata", EntityMetadata())
+        self.allow = conf_get(self.config, "allow", {})
+        self.base_url = base_url or conf_get(self.config, "base_url", self.entity_id)
+        self.provider_info = conf_get(self.config, "provider_info", {})
+        self.server_metadata = conf_get(self.config, "server_metadata", EntityMetadata())
+
+        self.issuer = self.server_entity_id = server_entity_id
+        self.client_secret = conf_get(self.config,"client_secret", "")
 
         # Below so my IDE won't complain
         self.args = {}
         self.add_on = {}
         self.iss_hash = ""
-        self.issuer = ""
         self.httpc_params = {}
-        self.client_secret = ''
         self.client_secret_expires_at = 0
         self.registration_response = {}
         self.client_authn_methods = {}
 
         # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
-        # issuer == server_entity_id
-        self.issuer = self.server_entity_id = server_entity_id
-        self.clock_skew = config.get("clock_skew", 15)
+        self.clock_skew = self.config.get("clock_skew", 15)
 
-        _seed = config.get("hash_seed", rndstr(32))
+        _seed = self.config.get("hash_seed", rndstr(32))
         self.hash_seed = as_bytes(_seed)
 
         for key, val in kwargs.items():
@@ -197,8 +200,8 @@ class ServiceContext(ImpExp):
 
         if services:
             _srvs = services
-        elif config:
-            _srvs = config.get("services")
+        elif self.config:
+            _srvs = self.config.get("services")
         else:
             _srvs = None
 
@@ -208,10 +211,11 @@ class ServiceContext(ImpExp):
             else:
                 _srvs = DEFAULT_OIDC_SERVICES
 
+        self.services_conf = _srvs
         self.service = init_services(service_definitions=_srvs, upstream_get=upstream_get)
         self.include_provider_info()
 
-        self.keyjar = self.claims.load_conf(config, supports=self.supports(),
+        self.keyjar = self.claims.load_conf(self.config, supports=self.supports(),
                                             entity_id=self.entity_id,
                                             metadata_class=kwargs.get("metadata_class", None))
 
@@ -228,10 +232,21 @@ class ServiceContext(ImpExp):
         self.map_supported_to_preferred()
         self.map_preferred_to_registered()
 
-        _add_ons = conf_get(config, "add_ons")
+        _add_ons = conf_get(self.config, "add_ons")
 
         if _add_ons:
-            do_add_ons(_add_ons, self.service)
+            do_add_ons(self, _add_ons, self.service)
+        else:  # pkce is default
+            _add_ons = {
+                "pkce": {
+                    "function": "idpyoidc.client.oauth2.add_on.pkce.add_support",
+                    "kwargs": {
+                        "code_challenge_length": 64,
+                        "code_challenge_method": "S256"
+                    },
+                },
+            }
+            do_add_ons(self, _add_ons, self.service)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -478,6 +493,9 @@ class ServiceContext(ImpExp):
         except KeyError:
             return None
 
+    def get_services(self, *arg):
+        return self.service
+
     def get_service_by_endpoint_name(self, endpoint_name, server_entity_id="", *arg):
         for service in self.service.values():
             if service.endpoint_name == endpoint_name:
@@ -527,5 +545,7 @@ def create_new_context(template_context, server_entity_id: str):
         upstream_get=template_context.upstream_get,
         keyjar=template_context.keyjar,
         client_type=template_context.client_type,
-        entity_id=template_context.entity_id
+        entity_id=template_context.entity_id,
+        base_url=template_context.base_url,
+        services=template_context.services_conf
     )

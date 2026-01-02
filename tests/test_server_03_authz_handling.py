@@ -158,7 +158,7 @@ class TestEndpoint(object):
 
     def test_usage_rules(self):
         _ = self._create_session(AREQ)
-        _usage_rules = self.authz.usage_rules(AREQ["client_id"])
+        _usage_rules = self.authz.usage_rules(self.server.context, AREQ["client_id"])
         assert set(_usage_rules.keys()) == {
             "authorization_code",
             "access_token",
@@ -188,9 +188,10 @@ class TestEndpoint(object):
         }
         assert _usage_rules["authorization_code"]["supports_minting"] == [
             "access_token",
+            'refresh_token',
             "id_token",
         ]
-        assert _usage_rules["refresh_token"] == {}
+        assert _usage_rules["refresh_token"] == {'supports_minting': ['access_token', 'refresh_token']}
 
     def test_factory(self):
         _mod = factory("Implicit", upstream_get=self.server.upstream_get)
@@ -198,5 +199,5 @@ class TestEndpoint(object):
 
     def test_call(self):
         sid = self._create_session(AREQ)
-        _grant = self.authz(sid, AREQ)
+        _grant = self.authz(self.server.context, sid, AREQ)
         assert isinstance(_grant, Grant)

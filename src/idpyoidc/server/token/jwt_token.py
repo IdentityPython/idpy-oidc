@@ -45,6 +45,7 @@ class JWTToken(Token):
         self.issuer = issuer or context.issuer
         self.cdb = context.cdb
         self.upstream_get = upstream_get
+        self.context = context
 
         self.def_aud = aud or []
         self.alg = alg

@@ -39,6 +39,7 @@ IDTOKEN = IdToken(
 
 
 class MockResponse:
+
     def __init__(self, status_code, text, headers=None):
         self.status_code = status_code
         self.text = text
@@ -47,6 +48,7 @@ class MockResponse:
 
 
 class TestClient(object):
+
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "http://example.com/redirect"
@@ -56,6 +58,7 @@ class TestClient(object):
             "client_secret": "abcdefghijklmnop",
         }
         self.client = Client(config=conf)
+        self.context = self.client.get_context('')
 
     def test_construct_authorization_request(self):
         req_args = {
@@ -65,7 +68,7 @@ class TestClient(object):
         }
 
         self.client.get_context().cstate.set("ABCDE", {"iss": "issuer"})
-        msg = self.client.get_service("authorization").construct(request_args=req_args)
+        msg = self.client.get_service(self.context, "authorization").construct(self.context, request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
         assert msg["redirect_uri"] == "https://example.com/auth_cb"
@@ -86,7 +89,8 @@ class TestClient(object):
 
         self.client.get_context().cstate.update("ABCDE", auth_response)
 
-        msg = self.client.get_service("accesstoken").construct(request_args=req_args, state="ABCDE")
+        msg = self.client.get_service(self.context, "accesstoken").construct(self.context, request_args=req_args,
+                                                                             state="ABCDE")
 
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
@@ -118,8 +122,8 @@ class TestClient(object):
         _context.cstate.update(_state, token_response)
 
         req_args = {}
-        msg = self.client.get_service("refresh_token").construct(
-            request_args=req_args, state="ABCDE"
+        msg = self.client.get_service(self.context, "refresh_token").construct(
+            self.context, request_args=req_args, state="ABCDE"
         )
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
@@ -133,7 +137,7 @@ class TestClient(object):
         err = ResponseMessage(error="Illegal")
         http_resp = MockResponse(400, err.to_urlencoded())
         resp = self.client.parse_request_response(
-            self.client.get_service("authorization"), http_resp
+            self.context, self.client.get_service(self.context, "authorization"), http_resp
         )
 
         assert resp["error"] == "Illegal"
@@ -143,7 +147,8 @@ class TestClient(object):
         err = ResponseMessage(error="Illegal")
         http_resp = MockResponse(500, err.to_urlencoded())
         with pytest.raises(ParseError):
-            self.client.parse_request_response(self.client.get_service("authorization"), http_resp)
+            self.client.parse_request_response(self.context, self.client.get_service(self.context, "authorization"),
+                                               http_resp)
 
     def test_error_response_2(self):
         err = ResponseMessage(error="Illegal")
@@ -152,13 +157,15 @@ class TestClient(object):
         )
 
         with pytest.raises(OidcServiceError):
-            self.client.parse_request_response(self.client.get_service("authorization"), http_resp)
+            self.client.parse_request_response(self.context, self.client.get_service(self.context, "authorization"),
+                                               http_resp)
 
 
 BASE_URL = "https://example.com"
 
 
 class TestClient2(object):
+
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "https://example.com/redirect"
@@ -184,12 +191,10 @@ class TestClient2(object):
             },
         }
         rp_conf = Configuration(conf)
-        rp = Client(base_url=BASE_URL, config=rp_conf)
-        self.client = rp.add_new_context("service_1")
-        assert self.client
+        self.rp = Client(base_url=BASE_URL, config=rp_conf)
 
     def test_keyjar(self):
-        _keyjar = self.client.get_attribute("keyjar")
+        _keyjar = self.rp.get_attribute("keyjar")
         assert len(_keyjar) == 1  #
         assert len(_keyjar[""]) == 2
         assert len(_keyjar.get("sig")) == 2

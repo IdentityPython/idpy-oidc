@@ -45,14 +45,14 @@ class UnknownAuthnMethod(Exception):
 # ========================================================================
 def assertion_jwt(client_id, keys, audience, algorithm, lifetime=600):
     """
-    Create a signed Json Web Token containing some information.
+    Create a signed JSON Web Token containing some information.
 
     :param client_id: The Client ID
     :param keys: Signing keys
     :param audience: Who's the receivers for this assertion
     :param algorithm: Signing algorithm
     :param lifetime: The lifetime of the signed Json Web Token
-    :return: A Signed Json Web Token
+    :return: A Signed JSON Web Token
     """
     _now = utc_time_sans_frac()
 
@@ -69,11 +69,11 @@ class ClientAuthnMethod:
     Only has one public method: *construct*
     """
 
-    def construct(self, request, service=None, http_args=None, **kwargs):
+    def construct(self, context, request, service=None, http_args=None, **kwargs):
         """Add authentication information to a request"""
         raise NotImplementedError()
 
-    def modify_request(self, request, service, **kwargs):
+    def modify_request(self, context, request, service, **kwargs):
         """
         Modify the request if necessary.
 
@@ -569,7 +569,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             if "client_assertion_type" not in request:
                 request["client_assertion_type"] = JWT_BEARER
         else:
-            request["client_assertion"] = self._construct_client_assertion(service, **kwargs)
+            request["client_assertion"] = self._construct_client_assertion(context, service, **kwargs)
             request["client_assertion_type"] = JWT_BEARER
 
         try:

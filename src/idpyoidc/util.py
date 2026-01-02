@@ -5,6 +5,8 @@ import logging
 import os
 import secrets
 import sys
+from typing import List
+from typing import Optional
 from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import quote_plus
@@ -13,6 +15,8 @@ from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
 import yaml
+from cryptojwt import KeyJar
+from cryptojwt.jwk.asym import AsymmetricKey
 from cryptojwt.utils import importer
 
 logger = logging.getLogger(__name__)
@@ -180,3 +184,75 @@ def conf_get(config, attr, default=None):
         return default
     else:
         return _res
+
+def get_keyjar_chain(item) -> list:
+    """
+    Returns a list of Key Jars.
+
+    :param item: An item, can be a service, a context, a client or ...
+    """
+    res = []
+    if item.upstream_get:
+        _thing = item.upstream_get('unit')
+        if _thing:
+            _partial_res = get_keyjar_chain(_thing)
+            if _partial_res:
+                res.extend(_partial_res)
+
+    _keyjar = getattr(item, "keyjar")
+    if _keyjar:
+        res.append(_keyjar)
+    return res
+
+
+def get_asymetric_keys_from_keyjar_chain(keyjar_chain: List[KeyJar],
+                                         key_usages: List[str],
+                                         owner: Optional[str] = '',
+                                         key_type: Optional[str] = '',
+                                         kid: Optional[str] = None) -> list:
+    keys = []
+    for keyjar in keyjar_chain:
+        for usage in key_usages:
+            _keys = keyjar.get(key_use=usage, key_type=key_type, issuer_id=owner, kid=kid)
+            if _keys:
+                _async_keys = [k for k in _keys if isinstance(k, AsymmetricKey)]
+                if _async_keys:  # May have to check if the key is already in the list of keys
+                    keys.extend(_async_keys)
+
+    return keys
+
+
+def keyjar_from_keyjar_chain(keyjar_chain: List[KeyJar]):
+    keyjar = KeyJar()
+
+    for kj in keyjar_chain:
+        for iss in kj.owners():
+            if iss == '':
+                continue
+            keyjar.import_jwks(kj.export_jwks(issuer_id=iss), issuer_id=iss)
+    return keyjar
+
+
+def jwks_from_keys(keys) -> dict:
+    keyser = [k.serialize() for k in keys]
+    return {"keys": keyser}
+
+
+def use_default_keys(keyjar, key_conf, config):
+    if keyjar or key_conf:
+        return False
+
+    if config:
+        for attr in ['key_conf', 'keys', 'jwks']:
+            if config.get(attr):
+                return False
+
+    return True
+
+def get_jwks(item) -> dict:
+    key_chain = get_keyjar_chain(item)
+    if key_chain:
+        keys = get_asymetric_keys_from_keyjar_chain(key_chain, key_usages=['sig'])
+        if keys:
+            return jwks_from_keys(keys)
+    return {}

@@ -133,15 +133,15 @@ class TestGrant:
         grant = session_info["grant"]
 
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -157,23 +157,23 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
         code.used = 0
         refresh_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -189,15 +189,15 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -218,23 +218,23 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
         code.used = 0
         refresh_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -255,15 +255,15 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -277,8 +277,8 @@ class TestGrant:
         # Reset code usage
         code.used = 0
         access_token_2 = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -296,15 +296,15 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -334,8 +334,8 @@ class TestGrant:
         grant.token_map = {}
         with pytest.raises(ValueError):
             grant.mint_token(
+                self.context,
                 session_id,
-                context=self.context,
                 token_class="authorization_code",
                 token_handler=TOKEN_HANDLER["authorization_code"],
             )
@@ -351,23 +351,23 @@ class TestGrant:
         token_map["my_token"] = MyToken
         grant.token_map = token_map
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
         )
 
         grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="my_token",
             token_handler=DefaultToken("my_token", typ="M"),
         )
@@ -405,15 +405,15 @@ class TestGrant:
         grant.resources = ["https://api.example.com"]
 
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -440,7 +440,7 @@ class TestGrant:
 
         # Default usage rules
         self.context.cdb["client_id"] = {}
-        rules = get_usage_rules("access_token", self.context, grant, "client_id")
+        rules = get_usage_rules(self.context, "access_token", grant, "client_id")
         assert rules == {"expires_in": 3600}
 
         # client specific usage rules
@@ -453,8 +453,8 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -462,8 +462,8 @@ class TestGrant:
         code.scope = ["openid", "email"]
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -478,8 +478,8 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
@@ -487,16 +487,16 @@ class TestGrant:
         code.scope = ["openid", "email"]
 
         refresh_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -507,8 +507,8 @@ class TestGrant:
         refresh_token.scope = ["openid", "xyz"]
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=refresh_token,
@@ -523,15 +523,15 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -540,8 +540,8 @@ class TestGrant:
         # reset code usage
         code.used = 0
         refresh_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,
@@ -557,15 +557,15 @@ class TestGrant:
         )
         grant = session_info["grant"]
         code = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="authorization_code",
             token_handler=TOKEN_HANDLER["authorization_code"],
         )
 
         access_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="access_token",
             token_handler=TOKEN_HANDLER["access_token"],
             based_on=code,
@@ -574,8 +574,8 @@ class TestGrant:
         # reset code usage
         code.used = 0
         refresh_token = grant.mint_token(
+            self.context,
             session_id,
-            context=self.context,
             token_class="refresh_token",
             token_handler=TOKEN_HANDLER["refresh_token"],
             based_on=code,

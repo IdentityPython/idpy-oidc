@@ -7,11 +7,13 @@ from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
 from idpyoidc.key_import import import_jwks
 from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
+from idpyoidc.node import create_keyjar
 from idpyoidc.transform import preferred_to_registered
 from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
@@ -158,14 +160,21 @@ class Claims(ImpExp):
                     entity_id: Optional[str] = ""):
         logger.debug(f"configuration: {configuration}")
 
-        keyjar = KeyJar()
+        if "session_manager" in configuration:  # Is this good enough ??
+            key_conf = configuration.get("key_conf")
+            if key_conf is None:
+                key_conf = {"key_defs": DEFAULT_KEY_DEFS}
 
-        _id = self.get_id(configuration)
-        _key = configuration.get("client_secret")
-        if _key:
-            keyjar.add_symmetric(issuer="", key=_key)
-            if _id:
-                keyjar.add_symmetric(issuer=_id, key=_key)
+            keyjar = create_keyjar(key_conf=key_conf)
+        else:
+            keyjar = KeyJar()
+
+            _id = self.get_id(configuration)
+            _key = configuration.get("client_secret")
+            if _key:
+                keyjar.add_symmetric(issuer="", key=_key)
+                if _id:
+                    keyjar.add_symmetric(issuer=_id, key=_key)
 
         return keyjar
 

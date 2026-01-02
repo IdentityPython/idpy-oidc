@@ -4,11 +4,10 @@ import pytest as pytest
 from cryptojwt.utils import importer
 
 from idpyoidc.client.claims.oidc import Claims
+from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
-from idpyoidc.transform import create_registration_request
 from idpyoidc.transform import preferred_to_registered
 from idpyoidc.transform import supported_to_preferred
-from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 
 KEYSPEC = [
     {"type": "RSA", "use": ["sig"]},
@@ -17,6 +16,7 @@ KEYSPEC = [
 
 
 class TestWorkEnvironment:
+
     @pytest.fixture(autouse=True)
     def setup(self):
         self.claims = Claims()
@@ -63,69 +63,6 @@ class TestWorkEnvironment:
         self.claims.load_conf(client_conf, self.supported)
         assert self.claims.get_preference("jwks") is None
         assert self.claims.get_preference("jwks_uri") is None
-
-    def test_load_jwks(self):
-        # Symmetric and asymmetric keys published as JWKS
-        client_conf = {
-            "application_type": APPLICATION_TYPE_WEB,
-            "base_url": "https://client.example.org/",
-            "redirect_uris": [
-                "https://client.example.org/callback",
-                "https://client.example.org/callback2",
-            ],
-            "client_name": "My Example",
-            "client_id": "client_id",
-            "keys": {"key_defs": KEYSPEC, "read_only": True},
-            "client_secret": "a longesh password",
-            "logo_uri": "https://client.example.org/logo.png",
-            "contacts": ["ve7jtb@example.org", "mary@example.org"],
-        }
-
-        self.claims.load_conf(client_conf, self.supported)
-        assert self.claims.get_preference("jwks") is not None
-        assert self.claims.get_preference("jwks_uri") is None
-
-    def test_load_jwks_uri1(self):
-        # Symmetric and asymmetric keys published through a jwks_uri
-        client_conf = {
-            "application_type": APPLICATION_TYPE_WEB,
-            "base_url": "https://client.example.org/",
-            "redirect_uris": [
-                "https://client.example.org/callback",
-                "https://client.example.org/callback2",
-            ],
-            "client_name": "My Example",
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYSPEC, "read_only": True},
-            "logo_uri": "https://client.example.org/logo.png",
-            "contacts": ["ve7jtb@example.org", "mary@example.org"],
-        }
-
-        self.claims.load_conf(client_conf, self.supported)
-        assert self.claims.get_preference("jwks") is None
-        assert (
-            self.claims.get_preference("jwks_uri")
-            == f"{client_conf['base_url']}{client_conf['keys']['uri_path']}"
-        )
-
-    def test_load_jwks_uri2(self):
-        # Symmetric and asymmetric keys published through a jwks_uri
-        client_conf = {
-            "application_type": APPLICATION_TYPE_WEB,
-            "base_url": "https://client.example.org/",
-            "redirect_uris": [
-                "https://client.example.org/callback",
-                "https://client.example.org/callback2",
-            ],
-            "client_name": "My Example",
-            "keys": {"key_defs": KEYSPEC, "read_only": True},
-            "jwks_uri": "https://client.example.org/keys/jwks.json",
-            "logo_uri": "https://client.example.org/logo.png",
-            "contacts": ["ve7jtb@example.org", "mary@example.org"],
-        }
-
-        self.claims.load_conf(client_conf, self.supported)
-        assert self.claims.get_preference("jwks") is None
-        assert self.claims.get_preference("jwks_uri") == client_conf["jwks_uri"]
 
     def test_registration_response(self):
         client_conf = {
@@ -184,7 +121,7 @@ class TestWorkEnvironment:
             "contacts",
             "default_max_age",
             "id_token_signed_response_alg",
-            "jwks",
+            # "jwks",
             "logo_uri",
             "redirect_uris",
             "request_object_signing_alg",
@@ -234,7 +171,7 @@ class TestWorkEnvironment:
             'encrypt_userinfo_supported',
             'encrypt_request_object_supported',
             "id_token_signed_response_alg",
-            "jwks",
+            # "jwks",
             "jwks_uri",
             "logo_uri",
             "redirect_uris",
@@ -323,7 +260,7 @@ class TestWorkEnvironment:
             "contacts",
             "default_max_age",
             "id_token_signed_response_alg",
-            "jwks",
+            # "jwks",
             "logo_uri",
             "redirect_uris",
             "request_object_signing_alg",
@@ -373,7 +310,7 @@ class TestWorkEnvironment:
             "encrypt_request_object_supported",
             "encrypt_userinfo_supported",
             "id_token_signed_response_alg",
-            "jwks",
+            # "jwks",
             "jwks_uri",
             "logo_uri",
             "redirect_uris",

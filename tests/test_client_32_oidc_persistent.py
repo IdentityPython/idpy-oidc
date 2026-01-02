@@ -5,7 +5,7 @@ import time
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 
-from idpyoidc.client.oidc import RP
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -63,11 +63,12 @@ class TestClient(object):
         client_2.get_context().load(_state_dump)
 
         auth_response = AuthorizationResponse(code="access_code")
-        client_2.get_context().cstate.update(_state, auth_response)
+        context_2 = client_2.get_context()
+        context_2.cstate.update(_state, auth_response)
 
         # Bind access code to state
         req_args = {}
-        msg = client_2.get_service("accesstoken").construct(request_args=req_args, state=_state)
+        msg = client_2.get_service(context_2, "accesstoken").construct(context_2, request_args=req_args, state=_state)
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -102,10 +103,11 @@ class TestClient(object):
 
         # Back to Client 1
         _state_dump = client_2.get_context().dump()
-        client_1.get_context().load(_state_dump)
+        context_1 = client_1.get_context()
+        context_1.load(_state_dump)
 
         req_args = {}
-        msg = client_1.get_service("refresh_token").construct(request_args=req_args, state=_state)
+        msg = client_1.get_service(context_1, "refresh_token").construct(context_1, request_args=req_args, state=_state)
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -137,11 +139,12 @@ class TestClient(object):
 
         # Back to Client 1
         _state_dump = client_2.get_context().dump()
-        client_1.get_context().load(_state_dump)
+        context_1 = client_1.get_context()
+        context_1.load(_state_dump)
 
-        _srv = client_1.get_service("userinfo")
+        _srv = client_1.get_service(context_1, "userinfo")
         _srv.endpoint = "https://example.com/userinfo"
-        _info = _srv.get_request_parameters(state=_state)
+        _info = _srv.get_request_parameters(context_1, state=_state)
         assert _info
         assert _info["headers"] == {"Authorization": "Bearer access"}
         assert _info["url"] == "https://example.com/userinfo"

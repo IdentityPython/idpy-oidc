@@ -71,6 +71,7 @@ def test_create_client():
         "default_max_age",
         "grant_types_supported",
         "id_token_signing_alg_values_supported",
+        'jwks',
         "post_logout_redirect_uris",
         "redirect_uris",
         "request_object_signing_alg_values_supported",
@@ -97,7 +98,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 24
+    assert len(_conf_args) == 25
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined and will therefore not appear in a registration request
     d = rr.difference(set(_conf_args))
@@ -111,7 +112,6 @@ def test_create_client():
         "id_token_encrypted_response_enc",
         "initiate_login_uri",
         "logo_uri",
-        "jwks",
         "jwks_uri",
         "policy_uri",
         "post_logout_redirect_uri",
@@ -165,6 +165,7 @@ def test_metadata():
                                     'default_max_age',
                                     'grant_types',
                                     'id_token_signed_response_alg',
+                                    'jwks',
                                     'redirect_uris',
                                     'request_object_signing_alg',
                                     'response_modes',

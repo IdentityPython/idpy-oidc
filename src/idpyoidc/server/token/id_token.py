@@ -117,6 +117,7 @@ class IDToken(Token):
 
     def __init__(
             self,
+            context,
             token_class: Optional[str] = "id_token",
             lifetime: Optional[int] = 300,
             upstream_get: Callable = None,
@@ -128,10 +129,10 @@ class IDToken(Token):
         self.kwargs = kwargs
         self.scope_to_claims = None
         self.provider_info = construct_provider_info(self._supports, **kwargs)
+        self.context = context
 
     def payload(
             self,
-            context,
             session_id,
             alg="RS256",
             code=None,
@@ -150,7 +151,7 @@ class IDToken(Token):
         :return: IDToken instance
         """
 
-        _mngr = context.session_manager
+        _mngr = self.context.session_manager
         session_information = _mngr.get_session_info(session_id, grant=True)
         grant = session_information["grant"]
         _args = {"sub": grant.sub, "sid": session_id}
@@ -165,7 +166,8 @@ class IDToken(Token):
             if _claims_restriction == {}:
                 user_info = None
             else:
-                user_info = context.claims_interface.get_user_claims(
+                user_info = self.context.claims_interface.get_user_claims(
+                    context=self.context,
                     user_id=session_information["user_id"],
                     claims_restriction=_claims_restriction,
                     client_id=session_information["client_id"]
@@ -211,7 +213,6 @@ class IDToken(Token):
 
     def sign_encrypt(
             self,
-            context,
             session_id,
             client_id,
             code=None,
@@ -236,9 +237,9 @@ class IDToken(Token):
         :return: IDToken as a signed and/or encrypted JWT
         """
 
-        client_info = context.cdb[client_id]
+        client_info = self.context.cdb[client_id]
         alg_dict = get_sign_and_encrypt_algorithms(
-            context, client_info, "id_token", sign=sign, encrypt=encrypt
+            self.context, client_info, "id_token", sign=sign, encrypt=encrypt
         )
 
         pack_args = {}
@@ -249,7 +250,6 @@ class IDToken(Token):
                 pack_args = {"aud": _aud}
 
         _payload = self.payload(
-            context,
             session_id=session_id,
             alg=alg_dict["sign_alg"],
             code=code,
@@ -263,7 +263,7 @@ class IDToken(Token):
 
         _jwt = JWT(
             self.upstream_get("attribute", "keyjar"),
-            iss=context.issuer,
+            iss=self.context.issuer,
             lifetime=lifetime,
             **alg_dict,
         )
@@ -272,7 +272,6 @@ class IDToken(Token):
 
     def __call__(
             self,
-            context,
             session_id: Optional[str] = "",
             ttype: Optional[str] = "",
             encrypt=False,
@@ -287,11 +286,11 @@ class IDToken(Token):
         except KeyError:
             pass
 
-        user_id, client_id, grant_id = context.session_manager.decrypt_session_id(session_id)
+        user_id, client_id, grant_id = self.context.session_manager.decrypt_session_id(session_id)
 
         # Should I add session ID ? This is about Single Logout.
-        if include_session_id(context, client_id, "back") or include_session_id(
-                context, client_id, "front"
+        if include_session_id(self.context, client_id, "back") or include_session_id(
+                self.context, client_id, "front"
         ):
 
             xargs = {"sid": session_id}
@@ -304,7 +303,6 @@ class IDToken(Token):
             lifetime = self.lifetime
 
         id_token = self.sign_encrypt(
-            context,
             session_id,
             client_id,
             sign=True,
@@ -318,7 +316,7 @@ class IDToken(Token):
 
         return id_token
 
-    def info(self, context, token):
+    def info(self, token):
         """
         Return type of Token (A=Access code, T=Token, R=Refresh token) and
         the session id.
@@ -333,8 +331,8 @@ class IDToken(Token):
 
         _payload = _jwt.jwt.payload()
         client_id = _payload["aud"][0]
-        client_info = context.cdb[client_id]
-        alg_dict = get_sign_and_encrypt_algorithms(context, client_info, "id_token", sign=True)
+        client_info = self.context.cdb[client_id]
+        alg_dict = get_sign_and_encrypt_algorithms(self.context, client_info, "id_token", sign=True)
 
         verifier = JWT(
             key_jar=self.upstream_get("attribute", "keyjar"), allowed_sign_algs=alg_dict["sign_alg"]

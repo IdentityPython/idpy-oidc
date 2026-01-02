@@ -9,7 +9,6 @@ from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.defaults import OIDCONF_PATTERN
 from idpyoidc.client.exception import Unsupported
-from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
 from idpyoidc.exception import VerificationError
 from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenResponse

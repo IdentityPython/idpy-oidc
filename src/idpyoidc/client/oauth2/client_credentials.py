@@ -25,7 +25,7 @@ class CCAccessTokenRequest(Service):
         self.pre_construct.append(self.cc_pre_construct)
 
     def cc_pre_construct(
-        self, request: Union[Message, dict], service: Service, post_args: Optional[dict], **_args
+        self, context, request: Union[Message, dict], service: Service, post_args: Optional[dict], **_args
     ):
         _grant_type = request.get("grant_type")
         if not _grant_type:

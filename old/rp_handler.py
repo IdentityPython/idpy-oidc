@@ -14,15 +14,15 @@ from cryptojwt.utils import importer
 from idpyoidc.client.configure import RPHConfiguration
 from idpyoidc.client.defaults import DEFAULT_CLIENT_CONFIGS
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
-from idpyoidc.client.oauth2.stand_alone_client import StandAloneClient
+from old.stand_alone_client import StandAloneClient
 from idpyoidc.configure import Base
 from idpyoidc.util import add_path
 from idpyoidc.util import rndstr
-from .defaults import DEFAULT_KEY_DEFS
-from .oauth2 import Client
-from ..key_import import import_jwks
-from ..message import Message
-from ..util import conf_get
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
+from idpyoidc.client.oauth2 import Client
+from idpyoidc.key_import import import_jwks
+from idpyoidc.message import Message
+from idpyoidc.util import conf_get
 
 logger = logging.getLogger(__name__)
 

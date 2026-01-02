@@ -5,7 +5,7 @@ from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 from flask.app import Flask
 
-from idpyoidc.client.rp_handler import RPHandler
+from old.rp_handler import RPHandler
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

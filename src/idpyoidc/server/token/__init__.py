@@ -34,6 +34,7 @@ def is_expired(exp, when=0):
 
 
 class Token(object):
+
     def __init__(self, token_class, lifetime=300, **kwargs):
         self.token_class = token_class
         try:
@@ -44,7 +45,7 @@ class Token(object):
         self.lifetime = lifetime
         self.kwargs = kwargs
 
-    def __call__(self, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
+    def __call__(self, context, session_id: Optional[str] = "", ttype: Optional[str] = "", **payload) -> str:
         """
         Return a token.
 
@@ -77,18 +78,21 @@ class Token(object):
 
 
 class DefaultToken(Token):
+
     def __init__(
-        self,
-        token_class: Optional[str] = "",
-        token_type: Optional[str] = "Bearer",
-        crypt_conf: Optional[dict] = None,
-        **kwargs
+            self,
+            context,
+            token_class: Optional[str] = "",
+            token_type: Optional[str] = "Bearer",
+            crypt_conf: Optional[dict] = None,
+            **kwargs
     ):
         Token.__init__(self, token_class, **kwargs)
         _res = init_encrypter(crypt_conf)
         self.crypt = _res["encrypter"]
         self.crypt_config = _res["conf"]
         self.token_type = token_type
+        self.context = context
 
     def __call__(
             self, session_id: Optional[str] = "", token_class: Optional[str] = "", **payload

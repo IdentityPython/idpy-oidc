@@ -8,7 +8,7 @@ import responses
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.key_bundle import KeyBundle
 
-from idpyoidc.client.oidc import RP
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.message.oauth2 import AccessTokenRequest
 from idpyoidc.message.oauth2 import AccessTokenResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
@@ -43,6 +43,7 @@ def access_token_callback(endpoint):
 
 
 class TestClient(object):
+
     @pytest.fixture(autouse=True)
     def create_client(self):
         self.redirect_uri = "http://example.com/redirect"
@@ -53,6 +54,7 @@ class TestClient(object):
             "client_authn_methods": ["bearer_header"],
         }
         self.client = RP(config=conf)
+        self.context = self.client.get_context('')
 
     def test_construct_authorization_request(self):
         req_args = {
@@ -62,29 +64,29 @@ class TestClient(object):
             "nonce": "nonce",
         }
 
-        self.client.get_context().cstate.set("ABCDE", {"iss": "issuer"})
+        self.context.cstate.set("ABCDE", {"iss": "issuer"})
 
-        msg = self.client.get_service("authorization").construct(request_args=req_args)
+        msg = self.client.get_service(self.context, "authorization").construct(self.context, request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["redirect_uri"] == "https://example.com/auth_cb"
 
     def test_construct_accesstoken_request(self):
-        _context = self.client.get_context()
         auth_request = AuthorizationRequest(redirect_uri="https://example.com/cli/authz_cb")
 
-        _state = _context.cstate.create_key()
-        _context.cstate.set(_state, {"iss": "issuer"})
+        _state = self.context.cstate.create_key()
+        self.context.cstate.set(_state, {"iss": "issuer"})
         auth_request["state"] = _state
 
-        _context.cstate.update(_state, auth_request)
+        self.context.cstate.update(_state, auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
 
-        _context.cstate.update(_state, auth_response)
+        self.context.cstate.update(_state, auth_response)
 
         # Bind access code to state
         req_args = {}
-        msg = self.client.get_service("accesstoken").construct(request_args=req_args, state=_state)
+        msg = self.client.get_service(self.context, "accesstoken").construct(self.context, request_args=req_args,
+                                                                             state=_state)
         assert isinstance(msg, AccessTokenRequest)
         assert msg.to_dict() == {
             "client_id": "client_1",
@@ -96,24 +98,23 @@ class TestClient(object):
         }
 
     def test_construct_refresh_token_request(self):
-        _context = self.client.get_context()
-        _context.cstate.set("ABCDE", {"iss": "issuer"})
+        self.context.cstate.set("ABCDE", {"iss": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
         )
 
-        _context.cstate.update("ABCDE", auth_request)
+        self.context.cstate.update("ABCDE", auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
-        _context.cstate.set("ABCDE", auth_response)
+        self.context.cstate.set("ABCDE", auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        _context.cstate.update("ABCDE", token_response)
+        self.context.cstate.update("ABCDE", token_response)
 
         req_args = {}
-        msg = self.client.get_service("refresh_token").construct(
-            request_args=req_args, state="ABCDE"
+        msg = self.client.get_service(self.context, "refresh_token").construct(
+            self.context, request_args=req_args, state="ABCDE"
         )
         assert isinstance(msg, RefreshAccessTokenRequest)
         assert msg.to_dict() == {
@@ -125,25 +126,24 @@ class TestClient(object):
         }
 
     def test_do_userinfo_request_init(self):
-        _context = self.client.get_context()
-        _state = _context.cstate.create_key()
-        _context.cstate.set(_state, {"iss": "issuer"})
+        _state = self.context.cstate.create_key()
+        self.context.cstate.set(_state, {"iss": "issuer"})
 
         auth_request = AuthorizationRequest(
             redirect_uri="https://example.com/cli/authz_cb", state="state"
         )
 
-        _context.cstate.update(_state, auth_request)
+        self.context.cstate.update(_state, auth_request)
 
         auth_response = AuthorizationResponse(code="access_code")
-        _context.cstate.update(_state, auth_response)
+        self.context.cstate.update(_state, auth_response)
 
         token_response = AccessTokenResponse(refresh_token="refresh_with_me", access_token="access")
-        _context.cstate.update(_state, token_response)
+        self.context.cstate.update(_state, token_response)
 
-        _srv = self.client.get_service("userinfo")
+        _srv = self.client.get_service(self.context, "userinfo")
         _srv.endpoint = "https://example.com/userinfo"
-        _info = _srv.get_request_parameters(state=_state)
+        _info = _srv.get_request_parameters(self.context, state=_state)
         assert _info
         assert _info["headers"] == {"Authorization": "Bearer access"}
         assert _info["url"] == "https://example.com/userinfo"
@@ -190,7 +190,7 @@ class TestClient(object):
                 status=200,
             )
 
-            res = self.client.fetch_distributed_claims(uinfo)
+            res = self.client.fetch_distributed_claims(self.context, uinfo)
 
         assert "payment_info" in res
         assert "shipping_address" in res
@@ -224,7 +224,7 @@ class TestClient(object):
                 status=200,
             )
 
-            res = self.client.fetch_distributed_claims(uinfo)
+            res = self.client.fetch_distributed_claims(self.context, uinfo)
 
         assert "credit_score" in res
 
@@ -260,6 +260,6 @@ class TestClient(object):
                 status=200,
             )
 
-            res = self.client.fetch_distributed_claims(uinfo, callback=access_token_callback)
+            res = self.client.fetch_distributed_claims(self.context, uinfo, callback=access_token_callback)
 
         assert "credit_score" in res

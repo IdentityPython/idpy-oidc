@@ -18,8 +18,8 @@ from idpyoidc.exception import MissingSigningKey
 from idpyoidc.impexp import ImpExp
 from idpyoidc.item import DLDict
 from idpyoidc.message import Message
-from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.util import importer
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
@@ -35,6 +35,8 @@ from ..constant import URL_ENCODED
 __author__ = "Roland Hedberg"
 
 from ..context import OidcContext
+from ..util import get_keyjar_chain
+from ..util import keyjar_from_keyjar_chain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +47,7 @@ SPECIAL_ARGS = ["authn_endpoint", "algs"]
 REQUEST_INFO = "Doing request with: URL:{}, method:{}, data:{}, https_args:{}"
 
 
+#
 class Service(ImpExp):
     """The basic Service class."""
 
@@ -267,7 +270,7 @@ class Service(ImpExp):
                 request_args["state"] = kwargs["state"]
 
         # logger.debug("request_args: %s" % sanitize(request_args))
-        _args = self.gather_request_args(context, ** request_args)
+        _args = self.gather_request_args(context, **request_args)
 
         # logger.debug("kwargs: %s" % sanitize(kwargs))
 
@@ -549,9 +552,11 @@ class Service(ImpExp):
         :return: dictionary with arguments to the verify call
         """
 
+        keyjar = keyjar_from_keyjar_chain(get_keyjar_chain(context))
+
         kwargs = {
             "iss": context.issuer,
-            "keyjar": self.upstream_get("attribute", "keyjar"),
+            "keyjar": keyjar,
             "verify": True,
             "client_id": context.get_client_id(),
         }
@@ -568,7 +573,7 @@ class Service(ImpExp):
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
 
-        _jwt = JWT(key_jar=self.upstream_get("attribute", "keyjar"), **args)
+        _jwt = JWT(key_jar=context.keyjar, **args)
         _jwt.iss = context.get_client_id()
         if self.payload_type:
             _jws = factory(info)
@@ -657,10 +662,9 @@ class Service(ImpExp):
                 info = json.loads(info)
             sformat = "dict"
         elif sformat == "jwe":
-            _keyjar = self.upstream_get("attribute", "keyjar")
             _client_id = self.upstream_get("attribute", "client_id")
             _jwe = info
-            resp = self.response_cls().from_jwe(info, keys=_keyjar.get_issuer_keys(_client_id))
+            resp = self.response_cls().from_jwe(info, keys=context.keyjar.get_issuer_keys(_client_id))
         # If format is urlencoded 'info' may be a URL
         # in which case I have to get at the query/fragment part
         elif sformat == "urlencoded":

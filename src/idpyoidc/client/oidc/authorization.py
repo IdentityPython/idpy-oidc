@@ -16,6 +16,8 @@ from idpyoidc.message import oauth2
 from idpyoidc.message import oidc
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.time_util import time_sans_frac
+from idpyoidc.util import get_keyjar_chain
+from idpyoidc.util import keyjar_from_keyjar_chain
 from idpyoidc.util import rndstr
 
 __author__ = "Roland Hedberg"
@@ -271,9 +273,12 @@ class Authorization(authorization.Authorization):
 
         :return: dictionary with arguments to the verify call
         """
+
+        keyjar = keyjar_from_keyjar_chain(get_keyjar_chain(context))
+
         kwargs = {
             "iss": context.issuer,
-            "keyjar": self.upstream_get("attribute", "keyjar"),
+            "keyjar": keyjar,
             "verify": True,
             "skew": context.clock_skew,
         }

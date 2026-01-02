@@ -83,7 +83,7 @@ class TokenHandler(ImpExp):
         return self.handler.keys()
 
 
-def init_token_handler(upstream_get, spec, token_class):
+def init_token_handler(context, upstream_get, spec, token_class):
     _kwargs = spec.get("kwargs", {})
 
     _lt = spec.get("lifetime")
@@ -109,7 +109,7 @@ def init_token_handler(upstream_get, spec, token_class):
             )
         _kwargs = spec
 
-    return cls(token_class=token_class, upstream_get=upstream_get, **_kwargs)
+    return cls(context, token_class=token_class, upstream_get=upstream_get, **_kwargs)
 
 
 def _add_passwd(keyjar, conf, kid):
@@ -188,6 +188,7 @@ def factory(
     else:
         kj = None
 
+    context = upstream_get("context")
     args = {}
     for cls, cnf, attr in [
         ("code", code, "authorization_code"),
@@ -206,9 +207,9 @@ def factory(
                     if kj:
                         _add_passwd(kj, cnf, cls)
             logger.debug(f"init_token_handler: {cls}")
-            args[attr] = init_token_handler(upstream_get, cnf, token_class_map[cls])
+            args[attr] = init_token_handler(context, upstream_get, cnf, token_class_map[cls])
 
     if id_token is not None:
-        args["id_token"] = init_token_handler(upstream_get, id_token, token_class="")
+        args["id_token"] = init_token_handler(context, upstream_get, id_token, token_class="")
 
     return TokenHandler(**args)
