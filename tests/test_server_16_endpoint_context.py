@@ -1,8 +1,8 @@
 import copy
 import os
 
-from cryptojwt.key_jar import build_keyjar
 import pytest
+from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc import alg_info
 from idpyoidc.server import OPConfiguration
@@ -10,8 +10,8 @@ from idpyoidc.server import Server
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from . import CRYPT_CONFIG
-from . import SESSION_PARAMS
 from . import full_path
+from . import SESSION_PARAMS
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -79,6 +79,7 @@ conf = {
 
 
 class TestEndpointContext:
+
     @pytest.fixture(autouse=True)
     def create_endpoint_context(self):
         server = Server(conf)
@@ -86,11 +87,11 @@ class TestEndpointContext:
         self.context = server.context
 
     def test(self):
+        # pure guessing
         self.context.set_provider_info()
         assert set(self.context.provider_info.keys()) == {
             "id_token_signing_alg_values_supported",
             "issuer",
-            "jwks_uri",
             "scopes_supported",
             "subject_types_supported",
             "userinfo_signing_alg_values_supported",
@@ -166,7 +167,6 @@ def test_provider_configuration(kwargs):
         "acr_values_supported",
         "id_token_signing_alg_values_supported",
         "issuer",
-        "jwks_uri",
         "scopes_supported",
         "subject_types_supported",
         "token_endpoint_auth_methods_supported",

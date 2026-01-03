@@ -31,12 +31,12 @@ EXAMPLE_MSG = {
 }
 
 
-def pre(args, request, context):
+def pre(context, args, request):
     args.update({"name": "{}, {}".format(args["family_name"], args["given_name"])})
     return args
 
 
-def post(cis, request, context):
+def post(context, cis, request):
     cis["request"] = request
     return cis
 
@@ -80,6 +80,7 @@ class TestEndpoint(object):
         self.context = server.context
         _endpoints = do_endpoints(conf, server.unit_get)
         self.endpoint = _endpoints[""]
+        self.endpoint.set_context(self.context)
 
     def test_parse_urlencoded(self):
         self.endpoint.request_format = "urlencoded"

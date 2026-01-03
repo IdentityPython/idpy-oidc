@@ -530,7 +530,7 @@ class TestSessionManager:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
-        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
+        token_usage_rules = self.endpoint_context.authz.usage_rules(self.endpoint_context, "client_1")
 
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,

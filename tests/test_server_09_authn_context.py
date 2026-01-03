@@ -165,7 +165,7 @@ class TestAuthnBrokerEC:
                 "code id_token token",
             ],
         }
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
+        # server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
 
         self.server = server
 

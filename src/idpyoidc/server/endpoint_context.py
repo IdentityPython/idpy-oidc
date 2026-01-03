@@ -287,8 +287,7 @@ class EndpointContext(OidcContext):
             return authz.Implicit(self.unit_get)
 
     def setup_client_authn_methods(self):
-        self.client_authn_methods = client_auth_setup(self.unit_get,
-                                                      self.conf.get("client_authn_methods"))
+        self.client_authn_methods = client_auth_setup(self, self.unit_get, self.conf.get("client_authn_methods"))
 
     def setup_login_hint_lookup(self):
         _conf = self.conf.get("login_hint_lookup")

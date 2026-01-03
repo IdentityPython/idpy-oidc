@@ -123,6 +123,10 @@ class Endpoint(Node):
         # By default the endpoint's endpoint URL is an allowed target
         self.allowed_targets = [self.name]
         self.client_verification_method = []
+        # self.context = upstream_get("context")
+
+    def set_context(self, context):
+        self.context = context
 
     def set_client_authn_methods(self, **kwargs):
         self.client_authn_method = []
@@ -182,7 +186,6 @@ class Endpoint(Node):
 
     def parse_request(
             self,
-            context,
             request: Union[Message, dict, str],
             http_info: Optional[dict] = None,
             verify_args: Optional[dict] = None,
@@ -216,7 +219,7 @@ class Endpoint(Node):
                         request,
                         "jwt",
                         keyjar=_keyjar,
-                        verify=context.httpc_params["verify"],
+                        verify=self.context.httpc_params["verify"],
                         **kwargs
                     )
                 elif self.request_format == "url":  # A whole URL not just the query part
@@ -272,7 +275,7 @@ class Endpoint(Node):
         if not get_client_id_from_token:
             kwargs["get_client_id_from_token"] = getattr(self, "get_client_id_from_token", None)
 
-        authn_info = verify_client(request=request, http_info=http_info, **kwargs)
+        authn_info = verify_client(self.context, request=request, http_info=http_info, **kwargs)
 
         LOGGER.debug(f"authn_info: {authn_info}")
         if authn_info == {}:
@@ -285,37 +288,35 @@ class Endpoint(Node):
         return authn_info
 
     def do_post_parse_request(
-            self, context, request: Message, client_id: Optional[str] = "", **kwargs
+            self, request: Message, client_id: Optional[str] = "", **kwargs
     ) -> Message:
         for meth in self.post_parse_request:
             if isinstance(request, self.error_cls):
                 break
-            request = meth(context, request, client_id, **kwargs)
+            request = meth(self.context, request, client_id, **kwargs)
         return request
 
     def do_pre_construct(
-            self, context, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
+            self, response_args: dict, request: Optional[Union[Message, dict]] = None, **kwargs
     ) -> dict:
         for meth in self.pre_construct:
-            response_args = meth(context, response_args, request, **kwargs)
+            response_args = meth(self.context, response_args, request, **kwargs)
 
         return response_args
 
     def do_post_construct(
             self,
-            context,
             response_args: Union[Message, dict],
             request: Optional[Union[Message, dict]] = None,
             **kwargs
     ) -> dict:
         for meth in self.post_construct:
-            response_args = meth(context, response_args, request, **kwargs)
+            response_args = meth(self.context, response_args, request, **kwargs)
 
         return response_args
 
     def process_request(
             self,
-            context,
             request: Optional[Union[Message, dict]] = None,
             http_info: Optional[dict] = None,
             **kwargs
@@ -330,7 +331,6 @@ class Endpoint(Node):
 
     def construct(
             self,
-            context,
             response_args: Optional[dict] = None,
             request: Optional[Union[Message, dict]] = None,
             **kwargs
@@ -375,7 +375,6 @@ class Endpoint(Node):
 
     def do_response(
             self,
-            context,
             response_args: Optional[dict] = None,
             request: Optional[Union[Message, dict]] = None,
             error: Optional[str] = "",
@@ -481,11 +480,11 @@ class Endpoint(Node):
 
         return _resp
 
-    def allowed_target_uris(self, context):
+    def allowed_target_uris(self):
         res = []
         for t in self.allowed_targets:
             if t == "":
-                res.append(context.issuer)
+                res.append(self.context.issuer)
             else:
                 res.append(self.upstream_get("endpoint", t).full_path)
         return set(res)

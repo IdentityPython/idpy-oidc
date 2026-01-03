@@ -94,8 +94,9 @@ class Server(Unit):
         # Need to have context in place before doing this
         self.context.do_add_on(endpoints=self.endpoint)
 
-        for endpoint_name, _ in self.endpoint.items():
+        for endpoint_name, _endpoint in self.endpoint.items():
             self.endpoint[endpoint_name].upstream_get = self.unit_get
+            _endpoint.set_context(self.context)
 
         _token_endp = self.endpoint.get("token")
 
