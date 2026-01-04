@@ -15,7 +15,7 @@ class RegistrationRead(Endpoint):
     name = "registration_read"
     endpoint_type = "oidc"
 
-    def get_client_id_from_token(self, token, request=None):
+    def get_client_id_from_token(self, context, token, request=None):
         if "client_id" in request:
             if request["client_id"] == self.context.registration_access_token[token]:
                 return request["client_id"]

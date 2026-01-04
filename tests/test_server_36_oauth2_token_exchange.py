@@ -1,6 +1,7 @@
 import json
 import os
 
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 import pytest
 from cryptojwt.jwt import utc_time_sans_frac
 from cryptojwt.key_jar import build_keyjar
@@ -21,12 +22,20 @@ from idpyoidc.server.user_info import UserInfo
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
-KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
+CLIENT_KEYJAR = build_keyjar(DEFAULT_KEY_DEFS)
+CLIENT_ID = "client_1"
 
-CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
 
 COOKIE_KEYDEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
@@ -92,7 +101,7 @@ class TestEndpoint(object):
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
             },
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"uri_path": "jwks.json", "key_defs": DEFAULT_KEY_DEFS},
             "endpoint": {
                 "authorization": {
                     "path": "authorization",
@@ -201,7 +210,10 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
-        server.keyjar = import_jwks(server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
+
+        self.key_jar_1 = key_setup(self.context, 'client_1', 'hemligt')
+        self.key_jar_2 = key_setup(self.context, 'client_2', 'hemligt')
+
         self.endpoint = server.get_endpoint("token")
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.session_manager = self.context.session_manager

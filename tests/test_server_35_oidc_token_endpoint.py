@@ -2,14 +2,12 @@ import base64
 import json
 import os
 
-import pytest
 from cryptojwt import JWT
 from cryptojwt.key_jar import build_keyjar
-
-from idpyoidc.key_import import import_jwks
-from idpyoidc.server.exception import UnAuthorizedClient
+import pytest
 
 from idpyoidc.defaults import JWT_BEARER
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
@@ -22,6 +20,7 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.cookie_handler import CookieHandler
 from idpyoidc.server.exception import InvalidToken
+from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.oidc import userinfo
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.oidc.provider_config import ProviderConfiguration
@@ -31,10 +30,8 @@ from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import lv_pack
 from idpyoidc.time_util import utc_time_sans_frac
-
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
-from .test_server_24_oauth2_token_endpoint import TestEndpoint as _TestEndpoint
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
@@ -42,6 +39,20 @@ KEYDEFS = [
 ]
 
 CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 COOKIE_KEYDEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
@@ -70,7 +81,7 @@ CAPABILITIES = {
 }
 
 AUTH_REQ = AuthorizationRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     scope=["openid"],
     state="STATE",
@@ -78,7 +89,7 @@ AUTH_REQ = AuthorizationRequest(
 )
 
 TOKEN_REQ = AccessTokenRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     state="STATE",
     grant_type="authorization_code",
@@ -86,7 +97,7 @@ TOKEN_REQ = AccessTokenRequest(
 )
 
 REFRESH_TOKEN_REQ = RefreshAccessTokenRequest(
-    grant_type="refresh_token", client_id="client_1", client_secret="hemligt"
+    grant_type="refresh_token", client_id=CLIENT_ID, client_secret="hemligt"
 )
 
 TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
@@ -201,7 +212,7 @@ def conf():
     }
 
 
-class TestEndpoint(_TestEndpoint):
+class TestEndpoint():
     @pytest.fixture(autouse=True)
     def create_endpoint(self, conf):
         self.server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
@@ -215,12 +226,12 @@ class TestEndpoint(_TestEndpoint):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        self.server.keyjar = import_jwks(self.server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         context.userinfo = USERINFO
         self.session_manager = context.session_manager
         self.token_endpoint = self.server.get_endpoint("token")
         self.user_id = "diana"
         self.context = context
+        self.client_keyjar = key_setup(context, CLIENT_ID)
 
     def test_init(self):
         assert self.token_endpoint
@@ -231,7 +242,7 @@ class TestEndpoint(_TestEndpoint):
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req["client_id"]
+        client_id = authz_req['client_id']
         ae = create_authn_event(self.user_id)
         return self.session_manager.create_session(
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
@@ -281,7 +292,7 @@ class TestEndpoint(_TestEndpoint):
     def test_parse(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -292,7 +303,7 @@ class TestEndpoint(_TestEndpoint):
     def test_process_request(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _context = self.context
@@ -307,7 +318,7 @@ class TestEndpoint(_TestEndpoint):
     def test_process_request_using_code_twice(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _context = self.context
@@ -323,7 +334,7 @@ class TestEndpoint(_TestEndpoint):
     def test_do_response(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -336,14 +347,14 @@ class TestEndpoint(_TestEndpoint):
     def test_process_request_using_private_key_jwt(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
-        del _token_request["client_id"]
+        del _token_request['client_id']
         del _token_request["client_secret"]
         _context = self.context
 
-        _jwt = JWT(CLIENT_KEYJAR, iss=AUTH_REQ["client_id"], sign_alg="RS256")
+        _jwt = JWT(CLIENT_KEYJAR, iss=AUTH_REQ['client_id'], sign_alg="RS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack({"aud": [self.token_endpoint.full_path]})
         _token_request.update({"client_assertion": _assertion, "client_assertion_type": JWT_BEARER})
@@ -362,7 +373,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _cntx = self.context
 
@@ -409,7 +420,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
         self.token_endpoint.revoke_refresh_on_issue = False
         _cntx = self.context
 
@@ -451,7 +462,7 @@ class TestEndpoint(_TestEndpoint):
             "scope",
         }
         AuthorizationResponse().from_jwt(
-            _2nd_resp["response_args"]["id_token"], self.server.keyjar, sender=""
+            _2nd_resp["response_args"]["id_token"], self.context.keyjar, sender=""
         )
 
         msg = self.token_endpoint.do_response(request=_req, **_resp)
@@ -475,7 +486,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -510,7 +521,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
 
@@ -531,7 +542,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -568,7 +579,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -621,7 +632,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
 
@@ -643,7 +654,7 @@ class TestEndpoint(_TestEndpoint):
         self.session_manager.token_handler.handler["id_token"].kwargs["add_claims_by_scope"] = True
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -651,7 +662,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
         idtoken = AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
 
@@ -676,7 +687,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req)
         idtoken = AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
 
@@ -689,7 +700,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -730,7 +741,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -765,7 +776,7 @@ class TestEndpoint(_TestEndpoint):
         }
         AuthorizationResponse().from_jwt(
             _resp["response_args"]["id_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
         assert _resp["response_args"]["scope"] == ["openid"]
@@ -785,7 +796,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -825,7 +836,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -859,13 +870,13 @@ class TestEndpoint(_TestEndpoint):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        self.context.cdb[AUTH_REQ["client_id"]]["revoke_refresh_on_issue"] = True
+        self.context.cdb[AUTH_REQ['client_id']]["revoke_refresh_on_issue"] = True
         areq = AUTH_REQ.copy()
         areq["scope"] = ["openid", "offline_access"]
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -896,7 +907,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _cntx = self.token_endpoint.upstream_get("context")
 
@@ -920,7 +931,7 @@ class TestEndpoint(_TestEndpoint):
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
-        code = self._mint_code(grant, areq["client_id"])
+        code = self._mint_code(grant, areq['client_id'])
 
         _cntx = self.token_endpoint.upstream_get("context")
 
@@ -953,7 +964,7 @@ class TestEndpoint(_TestEndpoint):
         lifetime = 100
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
         grant.usage_rules["access_token"] = {"expires_in": lifetime}
 
         _token_request = TOKEN_REQ_DICT.copy()
@@ -963,7 +974,7 @@ class TestEndpoint(_TestEndpoint):
 
         access_token = AccessTokenRequest().from_jwt(
             _resp["response_args"]["access_token"],
-            self.server.keyjar,
+            self.context.keyjar,
             sender="",
         )
 
@@ -974,10 +985,10 @@ class TestEndpoint(_TestEndpoint):
         _context.cdb["client_2"] = _context.cdb["client_1"]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
-        _token_request["client_id"] = "client_2"
+        _token_request['client_id'] = "client_2"
         _token_request["code"] = code.value
 
         _req = self.token_endpoint.parse_request(_token_request)
@@ -991,7 +1002,7 @@ class TestEndpoint(_TestEndpoint):
         _context.cdb["client_2"] = _context.cdb["client_1"]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _token_request = TOKEN_REQ_DICT.copy()
         _token_request["code"] = code.value
@@ -1000,7 +1011,7 @@ class TestEndpoint(_TestEndpoint):
         _resp = self.token_endpoint.process_request(request=_req, issue_refresh=True)
 
         _request = REFRESH_TOKEN_REQ.copy()
-        _request["client_id"] = "client_2"
+        _request['client_id'] = "client_2"
         _request["refresh_token"] = _resp["response_args"]["refresh_token"]
 
         _token_value = _resp["response_args"]["refresh_token"]
@@ -1032,7 +1043,6 @@ class TestOldTokens(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar = import_jwks(server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
@@ -1044,7 +1054,7 @@ class TestOldTokens(object):
             authz_req["sector_identifier_uri"] = sector_identifier
         else:
             authz_req = auth_req
-        client_id = authz_req["client_id"]
+        client_id = authz_req['client_id']
         ae = create_authn_event(self.user_id)
         return self.session_manager.create_session(
             ae, authz_req, self.user_id, client_id=client_id, sub_type=sub_type
@@ -1074,7 +1084,7 @@ class TestOldTokens(object):
     def test_old_default_token(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         # pack and unpack
         _handler = self.session_manager.token_handler.handler["authorization_code"]
@@ -1090,7 +1100,7 @@ class TestOldTokens(object):
     def test_old_default_token_sid_unencrypted(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         # pack and unpack
         _handler = self.session_manager.token_handler.handler["authorization_code"]
@@ -1110,7 +1120,7 @@ class TestOldTokens(object):
     def test_old_jwt_token(self):
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
-        code = self._mint_code(grant, AUTH_REQ["client_id"])
+        code = self._mint_code(grant, AUTH_REQ['client_id'])
 
         _handler = self.session_manager.token_handler.handler["access_token"]
         _old_type_token = _handler(session_id=session_id, token_class="T")

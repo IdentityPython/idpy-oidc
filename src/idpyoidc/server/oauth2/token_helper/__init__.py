@@ -135,7 +135,7 @@ def validate_resource_indicators_policy(context, request, **kwargs):
     return request
 
 
-def validate_token_exchange_policy(request, context, subject_token, **kwargs):
+def validate_token_exchange_policy(context, request, subject_token, **kwargs):
     if "resource" in request:
         resource = kwargs.get("resource", [])
         if not set(request["resource"]).issubset(set(resource)):

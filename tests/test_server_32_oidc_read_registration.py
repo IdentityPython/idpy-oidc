@@ -169,7 +169,8 @@ class TestEndpoint(object):
             }
         }
 
-        _api_req = self.registration_api_endpoint.parse_request({'client_id': CLIENT_ID}, http_info=http_info, )
+        _api_req = self.registration_api_endpoint.parse_request(
+            {'client_id': _resp["response_args"]['client_id']}, http_info=http_info)
         assert set(_api_req.keys()) == {"client_id", "authenticated"}
 
         _info = self.registration_api_endpoint.process_request(request=_api_req)

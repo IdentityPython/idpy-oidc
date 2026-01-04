@@ -33,7 +33,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         logger.debug(f"Session info: {_session_info}")
         return _session_info, _access_code
 
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
+    def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
         :param req:
@@ -41,7 +41,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :return:
         """
 
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         logger.debug("OIDC Access Token")
         token = None
 
@@ -54,17 +54,17 @@ class AccessTokenHelper(TokenEndpointHelper):
             logger.warning("{} using token it was not given".format(req["client_id"]))
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        if "grant_types_supported" in context.cdb[client_id]:
-            grant_types_supported = context.cdb[client_id].get("grant_types_supported")
+        if "grant_types_supported" in self.endpoint.context.cdb[client_id]:
+            grant_types_supported = self.endpoint.context.cdb[client_id].get("grant_types_supported")
         else:
-            grant_types_supported = context.provider_info.get("grant_types", [])
+            grant_types_supported = self.endpoint.context.provider_info.get("grant_types", [])
         grant = _session_info["grant"]
 
         token_type = "Bearer"
 
         # Is DPOP supported
         _dpop_enabled = False
-        _dpop_args = context.add_on.get("dpop")
+        _dpop_args = self.endpoint.context.add_on.get("dpop")
         if _dpop_args:
             _dpop_enabled = True
 
@@ -107,7 +107,6 @@ class AccessTokenHelper(TokenEndpointHelper):
         if "access_token" in _supports_minting:
             try:
                 token = self._mint_token(
-                    context,
                     token_class="access_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -127,7 +126,6 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _based_on.used -= 1
             try:
                 refresh_token = self._mint_token(
-                    context,
                     token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -169,7 +167,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         return _response
 
     def post_parse_request(
-            self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
         """
         This is where clients come to get their access tokens
@@ -179,7 +177,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"

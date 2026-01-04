@@ -2,18 +2,17 @@ import io
 import json
 import os
 
+from cryptojwt.key_jar import build_keyjar
 import pytest
 import yaml
-from cryptojwt import KeyJar
 
-from idpyoidc.key_import import store_under_other_id
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.oidc.authorization import Authorization
 from idpyoidc.server.user_authn.authn_context import UNSPECIFIED
 from idpyoidc.server.user_authn.user import NoAuthn
-
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
@@ -22,6 +21,23 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
     # {"type": "EC", "crv": "P-256", "use": ["sig"]}
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -200,12 +216,9 @@ class TestUserAuthn(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.context = context
-        self.rp_keyjar = KeyJar()
-        self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        self.rp_keyjar = key_setup(context, "client_1", "hemligtkodord1234567890")
 
     def test_sso(self):
         request = self.endpoint.parse_request(AUTH_REQ_DICT)

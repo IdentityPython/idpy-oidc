@@ -119,7 +119,8 @@ class EndpointContext(OidcContext):
             entity_id: Optional[str] = "",
             keyjar: Optional[KeyJar] = None,
             claims_class: Optional[Claims] = None,
-            metadata_class: Optional[Message] = None
+            metadata_class: Optional[Message] = None,
+            key_conf: Optional[dict] = None
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -240,7 +241,7 @@ class EndpointContext(OidcContext):
             self.claims_interface = init_service(_interface, self.unit_get)
             self.claims_interface.context = self
 
-        self.keyjar = make_keyjar(config=conf, issuer_id=_id)
+        self.keyjar = make_keyjar(config=conf, issuer_id=_id, key_conf=key_conf)
         _key_conf = conf.get("key_conf")
         if _key_conf:
             _uri_path = _key_conf.get('uri_path')

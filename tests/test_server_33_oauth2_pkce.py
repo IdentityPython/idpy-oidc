@@ -230,7 +230,6 @@ def create_server(config):
     context = server.context
     _clients = yaml.safe_load(io.StringIO(client_yaml))
     context.cdb = _clients["oidc_clients"]
-    server.keyjar = store_under_other_id(server.keyjar, "", config["issuer"], True)
     return server
 
 
@@ -417,7 +416,7 @@ def test_missing_authz_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_support(server.get_endpoints())
+    add_support(server.context, server.get_endpoints())
 
     assert "pkce" not in server.get_context().args
 
@@ -442,6 +441,6 @@ def test_missing_token_endpoint():
     }
     configuration = OPConfiguration(conf, base_path=BASEDIR, domain="127.0.0.1", port=443)
     server = Server(configuration)
-    add_support(server.get_endpoints())
+    add_support(server.context, server.get_endpoints())
 
     assert "pkce" not in server.get_context().args

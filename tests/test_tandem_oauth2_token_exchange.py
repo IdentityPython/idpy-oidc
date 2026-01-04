@@ -1,9 +1,10 @@
 import json
 import os
 
-import pytest
 from cryptojwt.key_jar import build_keyjar
+import pytest
 
+from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
@@ -21,17 +22,21 @@ from idpyoidc.util import rndstr
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
-KEYDEFS = [
-    {"type": "RSA", "key": "", "use": ["sig"]},
-    {"type": "EC", "crv": "P-256", "use": ["sig"]},
-]
+CLIENT_KEYJAR = build_keyjar(DEFAULT_KEY_DEFS)
 
-CLIENT_KEYJAR = build_keyjar(KEYDEFS)
 
-COOKIE_KEYDEFS = [
-    {"type": "oct", "kid": "sig", "use": ["sig"]},
-    {"type": "oct", "kid": "enc", "use": ["enc"]},
-]
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -197,24 +202,32 @@ class TestEndpoint(object):
             "response_types_supported": ["code", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "offline_access"],
         }
+        self.context = self.server.context
+
+        _key_jar_1 = key_setup(self.context, client_1_config['client_id'],
+                               client_secret=client_1_config['client_secret'])
+        _key_jar_2 = key_setup(self.context, client_2_config['client_id'],
+                               client_secret=client_2_config['client_secret'])
+
         self.client_1 = Client(
             client_type="oauth2",
             config=client_1_config,
-            keyjar=build_keyjar(KEYDEFS),
+            keyjar=_key_jar_1,
             services=_OAUTH2_SERVICES,
         )
         self.client_2 = Client(
             client_type="oauth2",
             config=client_2_config,
-            keyjar=build_keyjar(KEYDEFS),
+            keyjar=_key_jar_2,
             services=_OAUTH2_SERVICES,
         )
 
-        self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
         self.context.cdb["client_2"] = client_2_config
-        self.context.keyjar = import_jwks(self.context.keyjar, self.client_1.keyjar.export_jwks(), "client_1")
-        self.context.keyjar = import_jwks(self.context.keyjar, self.client_2.keyjar.export_jwks(), "client_2")
+        # self.context.keyjar = import_jwks(self.context.keyjar, self.client_1.keyjar.export_jwks(),
+        #                                   "client_1")
+        # self.context.keyjar = import_jwks(self.context.keyjar, self.client_2.keyjar.export_jwks(),
+        #                                   "client_2")
 
         self.context.set_provider_info()
 
@@ -224,7 +237,7 @@ class TestEndpoint(object):
         self.user_id = "diana"
 
     def do_query(self, service_type, endpoint_type, request_args, state):
-        _client = self.client_1.get_service(service_type)
+        _client = self.client_1.get_service(self.context, service_type)
         req_info = _client.get_request_parameters(request_args=request_args)
 
         areq = req_info.get("request")
@@ -262,7 +275,7 @@ class TestEndpoint(object):
 
         # ***** Authorization Request **********
         _nonce = (rndstr(24),)
-        _context = self.client_1.get_service_context()
+        _context = self.client_1.get_context(self.server.entity_id)
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
@@ -357,7 +370,8 @@ class TestEndpoint(object):
             ],
             "policy": {
                 "": {
-                    "function": "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
+                    "function":
+                        "idpyoidc.server.oauth2.token_helper.validate_token_exchange_policy",
                     "kwargs": {"scope": ["openid", "offline_access"]},
                 }
             },

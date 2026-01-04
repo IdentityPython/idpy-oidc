@@ -7,23 +7,20 @@ from cryptojwt.jwe.exception import JWEException
 from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import utc_time_sans_frac
 
-from ...exception import InvalidBranchID
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
-from idpyoidc.server.session.token import AuthorizationCode
-from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.token.exception import UnknownToken
-from idpyoidc.util import sanitize
+from ...exception import InvalidBranchID
 
 logger = logging.getLogger(__name__)
 
 
 class RefreshTokenHelper(TokenEndpointHelper):
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
-        _mngr = context.session_manager
+    def process_request(self, req: Union[Message, dict], **kwargs):
+        _mngr = self.endpoint.context.session_manager
 
         if req["grant_type"] != "refresh_token":
             return self.error_cls(error="invalid_request", error_description="Wrong grant_type")
@@ -43,7 +40,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token_type = "Bearer"
 
         # Is DPOP supported
-        if "dpop_signing_alg_values_supported" in _context.provider_info:
+        if "dpop_signing_alg_values_supported" in self.endpoint.context.provider_info:
             _dpop_jkt = req.get("dpop_jkt")
             if _dpop_jkt:
                 _grant.extra["dpop_jkt"] = _dpop_jkt
@@ -114,11 +111,11 @@ class RefreshTokenHelper(TokenEndpointHelper):
         token.register_usage()
 
         if (
-            "client_id" in req
-            and req["client_id"] in _context.cdb
-            and "revoke_refresh_on_issue" in _context.cdb[req["client_id"]]
+                "client_id" in req
+                and req["client_id"] in self.endpoint.context.cdb
+                and "revoke_refresh_on_issue" in self.endpoint.context.cdb[req["client_id"]]
         ):
-            revoke_refresh = _context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
+            revoke_refresh = self.endpoint.context.cdb[req["client_id"]].get("revoke_refresh_on_issue")
         else:
             revoke_refresh = self.endpoint.revoke_refresh_on_issue
 
@@ -128,7 +125,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to refresh their access tokens
@@ -147,7 +144,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
         except MissingRequiredAttribute as e:
             return self.error_cls(error="invalid_grant", error_description=str(e))
 
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["refresh_token"], handler_key="refresh_token", grant=True

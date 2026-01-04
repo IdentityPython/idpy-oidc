@@ -32,7 +32,7 @@ CC_METHOD = {
 }
 
 
-def post_authn_parse(request, client_id, context, **kwargs):
+def post_authn_parse(context, request, client_id, **kwargs):
     """
 
     :param request:
@@ -85,7 +85,7 @@ def verify_code_challenge(code_verifier, code_challenge, code_challenge_method="
     return True
 
 
-def post_token_parse(request, client_id, context, **kwargs):
+def post_token_parse(context, request, client_id, **kwargs):
     """
     To be used as a post_parse_request function.
 

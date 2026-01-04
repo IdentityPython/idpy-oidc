@@ -7,6 +7,7 @@ from typing import Union
 
 from cryptojwt import KeyJar
 from cryptojwt.utils import importer
+from idpyoidc.util import use_default_keys
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.node import Unit
@@ -58,11 +59,8 @@ class Server(Unit):
 
         self.persistence = None
 
-        # if upstream_get is None:
-        #     if key_conf is None:
-        #         key_conf = conf.get("key_conf")
-        #         if key_conf is None:
-        #             key_conf = {"key_defs": DEFAULT_KEY_DEFS}
+        if use_default_keys(keyjar, key_conf, conf):
+            key_conf = {"key_defs": DEFAULT_KEY_DEFS}
 
         Unit.__init__(
             self,
@@ -71,7 +69,7 @@ class Server(Unit):
             httpc=httpc,
             upstream_get=upstream_get,
             httpc_params=httpc_params,
-            key_conf={},
+            key_conf=key_conf,
             issuer_id=self.issuer,
         )
         self.keyjar = None
@@ -88,6 +86,7 @@ class Server(Unit):
             cwd=cwd,
             cookie_handler=cookie_handler,
             keyjar=self.keyjar,
+            key_conf=key_conf,
             entity_id=self.entity_id
         )
 
