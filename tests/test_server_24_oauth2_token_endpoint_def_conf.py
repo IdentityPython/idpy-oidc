@@ -35,9 +35,23 @@ KEYDEFS = [
 ]
 
 CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 AUTH_REQ = AuthorizationRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     scope=["email"],
     state="STATE",
@@ -45,7 +59,7 @@ AUTH_REQ = AuthorizationRequest(
 )
 
 TOKEN_REQ = AccessTokenRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     state="STATE",
     grant_type="authorization_code",
@@ -53,7 +67,7 @@ TOKEN_REQ = AccessTokenRequest(
 )
 
 REFRESH_TOKEN_REQ = RefreshAccessTokenRequest(
-    grant_type="refresh_token", client_id="client_1", client_secret="hemligt"
+    grant_type="refresh_token", client_id=CLIENT_ID, client_secret="hemligt"
 )
 
 TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
@@ -78,7 +92,7 @@ class TestEndpoint(object):
         }
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         context = server.context
-        context.cdb["client_1"] = {
+        context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -86,11 +100,11 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar = import_jwks(server.keyjar, CLIENT_KEYJAR.export_jwks(), "client_1")
         self.session_manager = context.session_manager
         self.token_endpoint = server.get_endpoint("token")
         self.user_id = "diana"
         self.context = context
+        self.client_keyjar = key_setup(self.context, CLIENT_ID)
 
     def test_init(self):
         assert self.token_endpoint
@@ -162,7 +176,7 @@ class TestEndpoint(object):
     def test_auth_code_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
-        self.context.cdb["client_1"]["grant_types_supported"] = []
+        self.context.cdb[CLIENT_ID]["grant_types_supported"] = []
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
@@ -232,9 +246,8 @@ class TestEndpoint(object):
         _token_request = TOKEN_REQ_DICT.copy()
         del _token_request["client_id"]
         del _token_request["client_secret"]
-        _context = self.context
 
-        _jwt = JWT(CLIENT_KEYJAR, iss=AUTH_REQ["client_id"], sign_alg="RS256")
+        _jwt = JWT(self.client_keyjar, CLIENT_ID, sign_alg="RS256")
         _jwt.with_jti = True
         _assertion = _jwt.pack({"aud": [self.token_endpoint.full_path]})
         _token_request.update({"client_assertion": _assertion, "client_assertion_type": JWT_BEARER})
@@ -288,7 +301,7 @@ class TestEndpoint(object):
     def test_refresh_grant_disallowed_per_client(self):
         areq = AUTH_REQ.copy()
         areq["scope"] = ["email"]
-        self.context.cdb["client_1"]["grant_types_supported"] = ["authorization_code"]
+        self.context.cdb[CLIENT_ID]["grant_types_supported"] = ["authorization_code"]
 
         session_id = self._create_session(areq)
         grant = self.context.authz(session_id, areq)
@@ -352,7 +365,7 @@ class TestEndpoint(object):
         assert isinstance(msg, dict)
 
     def test_new_refresh_token(self):
-        self.context.cdb["client_1"] = {
+        self.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -392,7 +405,7 @@ class TestEndpoint(object):
         assert first_refresh_token != second_refresh_token
 
     def test_revoke_on_issue_refresh_token(self):
-        self.context.cdb["client_1"] = {
+        self.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -430,7 +443,7 @@ class TestEndpoint(object):
         assert second_refresh_token.revoked is False
 
     def test_revoke_on_issue_refresh_token_per_client(self):
-        self.context.cdb["client_1"] = {
+        self.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -646,7 +659,7 @@ class TestEndpoint(object):
 
     def test_token_request_other_client(self):
         _context = self.context
-        _context.cdb["client_2"] = _context.cdb["client_1"]
+        _context.cdb["client_2"] = _context.cdb[CLIENT_ID]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, AUTH_REQ["client_id"])
@@ -663,7 +676,7 @@ class TestEndpoint(object):
 
     def test_refresh_token_request_other_client(self):
         _context = self.context
-        _context.cdb["client_2"] = _context.cdb["client_1"]
+        _context.cdb["client_2"] = _context.cdb[CLIENT_ID]
         session_id = self._create_session(AUTH_REQ)
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, AUTH_REQ["client_id"])
@@ -737,9 +750,9 @@ TOKEN_HANDLER_ARGS = {
 CONTEXT = OidcContext()
 CONTEXT.cwd = BASEDIR
 CONTEXT.issuer = "https://op.example.com"
-CONTEXT.cdb = {"client_1": {}}
+CONTEXT.cdb = {CLIENT_ID: {}}
 KEYJAR = KeyJar()
-KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), "client_1")
+KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), CLIENT_ID)
 KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), "")
 
 
@@ -755,7 +768,7 @@ def upstream_get(what, *args):
 def test_def_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **DEFAULT_TOKEN_HANDLER_ARGS)
     token_handler = _handler["access_token"]
-    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": "client_1"}
+    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": CLIENT_ID}
     value = token_handler(session_id="session_id", **token_payload)
 
     _jws = factory(value)
@@ -768,7 +781,7 @@ def test_def_jwttoken():
 def test_jwttoken():
     _handler = handler.factory(upstream_get=upstream_get, **TOKEN_HANDLER_ARGS)
     token_handler = _handler["access_token"]
-    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": "client_1"}
+    token_payload = {"sub": "subject_id", "aud": "resource_1", "client_id": CLIENT_ID}
     value = token_handler(session_id="session_id", **token_payload)
 
     _jws = factory(value)
@@ -816,7 +829,7 @@ class TestClientCredentialsFlow(object):
 
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         context = server.context
-        context.cdb["client_1"] = {
+        context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -832,7 +845,7 @@ class TestClientCredentialsFlow(object):
 
     def test_client_credentials(self):
         request = CCAccessTokenRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             client_secret="hemligt",
             grant_type="client_credentials",
             scope="whatever",
@@ -874,7 +887,7 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
 
         server = Server(ASConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
         context = server.context
-        context.cdb["client_1"] = {
+        context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -889,7 +902,7 @@ class TestResourceOwnerPasswordCredentialsFlow(object):
 
     def test_resource_owner_password_credentials(self):
         request = ROPCAccessTokenRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             client_secret="hemligt",
             grant_type="password",
             username="diana",

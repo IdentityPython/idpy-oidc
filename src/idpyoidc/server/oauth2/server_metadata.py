@@ -18,7 +18,7 @@ class ServerMetadata(Endpoint):
         Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)
         self.pre_construct.append(self.add_endpoints)
 
-    def add_endpoints(self, request, client_id, context, **kwargs):
+    def add_endpoints(self, context, request, client_id, **kwargs):
         for endpoint in [
             "authorization_endpoint",
             "registration_endpoint",
@@ -32,5 +32,5 @@ class ServerMetadata(Endpoint):
 
         return request
 
-    def process_request(self, context, request=None, **kwargs):
-        return {"response_args": context.provider_info}
+    def process_request(self, request=None, **kwargs):
+        return {"response_args": self.context.provider_info}

@@ -57,7 +57,6 @@ class UserInfo(Endpoint):
 
     def do_response(
             self,
-            context,
             response_args: Optional[Union[Message, dict]] = None,
             request: Optional[Union[Message, dict]] = None,
             client_id: Optional[str] = "",
@@ -70,7 +69,7 @@ class UserInfo(Endpoint):
             raise MissingValue("client_id")
 
         # Should I return a JSON or a JWT ?
-        _cinfo = context.cdb[client_id]
+        _cinfo = self.context.cdb[client_id]
 
         # default is not to sign or encrypt
         try:
@@ -91,7 +90,7 @@ class UserInfo(Endpoint):
         if encrypt or sign:
             _jwt = JWT(
                 self.upstream_get("attribute", "keyjar"),
-                iss=context.issuer,
+                iss=self.context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,
                 encrypt=encrypt,
@@ -113,8 +112,8 @@ class UserInfo(Endpoint):
 
         return {"response": resp, "http_headers": http_headers}
 
-    def process_request(self, context, request=None, **kwargs):
-        _mngr = context.session_manager
+    def process_request(self, request=None, **kwargs):
+        _mngr = self.context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["access_token"], grant=True, handler_key="access_token"
@@ -141,10 +140,10 @@ class UserInfo(Endpoint):
         if "openid" not in access_token.scope:
             return self.error_cls(error="invalid_token", error_description="Invalid Token")
 
-        _claims_restriction = context.claims_interface.get_claims(
+        _claims_restriction = self.context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=access_token.scope, claims_release_point="userinfo"
         )
-        info = context.claims_interface.get_user_claims(
+        info = self.context.claims_interface.get_user_claims(
             _session_info["user_id"], claims_restriction=_claims_restriction,
             client_id=_session_info["client_id"]
         )
@@ -156,15 +155,15 @@ class UserInfo(Endpoint):
             if extra_claims:
                 info.update(extra_claims)
 
-        if "userinfo" in context.cdb[request["client_id"]]:
-            self.config["policy"] = context.cdb[request["client_id"]]["userinfo"]["policy"]
+        if "userinfo" in self.context.cdb[request["client_id"]]:
+            self.config["policy"] = self.context.cdb[request["client_id"]]["userinfo"]["policy"]
 
         if "policy" in self.config:
             info = self._enforce_policy(request, info, access_token, self.config)
 
         return {"response_args": info, "client_id": _session_info["client_id"]}
 
-    def parse_request(self, context, request, http_info=None, **kwargs):
+    def parse_request(self, request, http_info=None, **kwargs):
         """
 
         :param request:
@@ -190,7 +189,6 @@ class UserInfo(Endpoint):
 
         # Do any endpoint specific parsing
         return self.do_post_parse_request(
-            context,
             request=request,
             client_id=auth_info["client_id"],
             http_info=http_info,

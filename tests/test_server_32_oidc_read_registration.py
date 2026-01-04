@@ -3,7 +3,9 @@ import json
 import os
 
 import pytest
+from cryptojwt.key_jar import build_keyjar
 
+from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
@@ -23,6 +25,23 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 COOKIE_KEY_DEFS = [
     {"type": "oct", "kid": "sig", "use": ["sig"]},
@@ -76,6 +95,7 @@ CLI_REQ = RegistrationRequest(**msg)
 
 
 class TestEndpoint(object):
+
     @pytest.fixture(autouse=True)
     def create_endpoint(self):
         conf = {
@@ -131,6 +151,7 @@ class TestEndpoint(object):
         server.context.cdb["client_1"] = {
             "redirect_uris": [("https://example.com/cb", ""), ("https://example.com/2nd_cb", "")]
         }
+        self.client_keyjar = key_setup(server.context, CLIENT_ID)
 
     def test_do_response(self):
         _req = self.registration_endpoint.parse_request(CLI_REQ.to_json())
@@ -148,10 +169,7 @@ class TestEndpoint(object):
             }
         }
 
-        _api_req = self.registration_api_endpoint.parse_request(
-            "client_id={}".format(_resp["response_args"]["client_id"]),
-            http_info=http_info,
-        )
+        _api_req = self.registration_api_endpoint.parse_request({'client_id': CLIENT_ID}, http_info=http_info, )
         assert set(_api_req.keys()) == {"client_id", "authenticated"}
 
         _info = self.registration_api_endpoint.process_request(request=_api_req)

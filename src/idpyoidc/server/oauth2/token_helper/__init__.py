@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class TokenEndpointHelper(object):
+
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
         self.config = config
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
-            self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """Context specific parsing of the request.
         This is done after general request parsing and before processing
@@ -26,13 +27,12 @@ class TokenEndpointHelper(object):
         """
         raise NotImplementedError
 
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
+    def process_request(self, req: Union[Message, dict], **kwargs):
         """Acts on a process request."""
         raise NotImplementedError
 
     def _mint_token(
             self,
-            context,
             token_class: str,
             grant: Grant,
             session_id: str,
@@ -42,7 +42,7 @@ class TokenEndpointHelper(object):
             token_args: Optional[dict] = None,
             token_type: Optional[str] = "",
     ) -> SessionToken:
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         usage_rules = grant.usage_rules.get(token_class)
         if usage_rules:
             _exp_in = usage_rules.get("expires_in")
@@ -51,8 +51,8 @@ class TokenEndpointHelper(object):
             _exp_in = _token_handler.lifetime
 
         token_args = token_args or {}
-        for meth in context.token_args_methods:
-            token_args = meth(context, client_id, token_args)
+        for meth in self.endpoint.context.token_args_methods:
+            token_args = meth(self.endpoint.context, client_id, token_args)
 
         if token_args:
             _args = token_args
@@ -60,7 +60,7 @@ class TokenEndpointHelper(object):
             _args = {}
 
         token = grant.mint_token(
-            context,
+            self.endpoint.context,
             session_id,
             token_class=token_class,
             token_handler=_mngr.token_handler[token_class],
@@ -78,7 +78,8 @@ class TokenEndpointHelper(object):
             if _exp_in:
                 token.expires_at = utc_time_sans_frac() + _exp_in
 
-        context.session_manager.set(context.session_manager.unpack_session_key(session_id), grant)
+        self.endpoint.context.session_manager.set(self.endpoint.context.session_manager.unpack_session_key(session_id),
+                                                 grant)
 
         return token
 

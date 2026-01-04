@@ -7,6 +7,7 @@ from cryptojwt import JWT
 from cryptojwt import as_unicode
 from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
+from idpyoidc.key_import import import_jwks
 
 from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import TokenIntrospectionRequest
@@ -31,6 +32,22 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -208,11 +225,11 @@ class TestEndpoint:
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar = store_under_other_id(server.keyjar, "", context.issuer, True)
         self.introspection_endpoint = server.get_endpoint("introspection")
         self.token_endpoint = server.get_endpoint("token")
         self.session_manager = context.session_manager
         self.user_id = "diana"
+        self.client_keyjar = key_setup(context, CLIENT_ID, "hemligtkodord1234567890")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:

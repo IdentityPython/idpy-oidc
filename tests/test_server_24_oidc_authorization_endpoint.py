@@ -10,8 +10,10 @@ import yaml
 from cryptojwt import JWT
 from cryptojwt import KeyJar
 from cryptojwt.jws.jws import factory
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import b64e
+from idpyoidc.key_import import import_jwks
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
@@ -57,11 +59,27 @@ from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import JSONDictDB
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
+from tests.test_server_24_oauth2_token_endpoint import key_setup
 
 KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -290,15 +308,12 @@ class TestEndpoint(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.context = context
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"
 
-        self.rp_keyjar = KeyJar()
-        self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        self.rp_keyjar = key_setup(self.context, CLIENT_ID, "hemligtkodord1234567890")
         self.server = server
 
     def test_init(self):
@@ -414,7 +429,7 @@ class TestEndpoint(object):
 
     def test_re_authenticate(self):
         request = {"prompt": "login"}
-        authn = UserAuthnMethod(self.endpoint.upstream_get("context"))
+        authn = UserAuthnMethod(self.endpoint.upstream_get)
         assert re_authenticate(request, authn)
 
     def test_id_token_acr(self):
@@ -923,7 +938,7 @@ class TestEndpoint(object):
                 status=200,
             )
 
-            self.endpoint._do_request_uri(request, "client_1", context)
+            self.endpoint._do_request_uri(context, request, "client_1")
 
         request["request_uri"] = "https://example.com/request#1"
 
@@ -936,19 +951,19 @@ class TestEndpoint(object):
                 status=200,
             )
 
-            self.endpoint._do_request_uri(request, "client_1", context)
+            self.endpoint._do_request_uri(context, request, "client_1")
 
         request["request_uri"] = "https://example.com/another"
         with pytest.raises(ValueError):
-            self.endpoint._do_request_uri(request, "client_1", context)
+            self.endpoint._do_request_uri(context, request, "client_1")
 
         context.provider_info["request_uri_parameter_supported"] = False
         with pytest.raises(ServiceError):
-            self.endpoint._do_request_uri(request, "client_1", context)
+            self.endpoint._do_request_uri(context, request, "client_1")
 
     def test_post_parse_request(self):
         context = self.endpoint.upstream_get("context")
-        msg = self.endpoint._post_parse_request({}, "client_1", context)
+        msg = self.endpoint._post_parse_request(context, {}, "client_1")
         assert "error" in msg
 
         request = AuthorizationRequest(
@@ -959,7 +974,7 @@ class TestEndpoint(object):
             scope="openid",
         )
 
-        msg = self.endpoint._post_parse_request(request, "client_X", context)
+        msg = self.endpoint._post_parse_request(context, request, "client_X")
         assert "error" in msg
         assert msg["error_description"] == "unknown client"
 
@@ -969,7 +984,7 @@ class TestEndpoint(object):
             ("https://example.com/2nd_cb", ""),
         ]
 
-        msg = self.endpoint._post_parse_request(request, "client_1", context)
+        msg = self.endpoint._post_parse_request(context, request, "client_1")
         assert "error" in msg
         assert msg["error"] == "invalid_request"
 
@@ -1194,14 +1209,11 @@ class TestACR(object):
 
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["oidc_clients"]
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"
 
-        self.rp_keyjar = KeyJar()
-        self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        self.rp_keyjar = key_setup(context, CLIENT_ID, "hemligtkodord1234567890")
 
     def test_setup_acr_claim(self):
         request = AuthorizationRequest(

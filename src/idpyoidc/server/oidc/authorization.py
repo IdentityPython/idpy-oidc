@@ -99,12 +99,12 @@ class Authorization(authorization.Authorization):
         self.post_parse_request.append(self._do_request_uri)
         self.post_parse_request.append(self._post_parse_request)
 
-    def do_request_user(self, context, request_info, **kwargs):
+    def do_request_user(self, request_info, **kwargs):
         if proposed_user(request_info):
             kwargs["req_user"] = proposed_user(request_info)
         else:
             _login_hint = request_info.get("login_hint")
             if _login_hint:
-                if context.login_hint_lookup:
-                    kwargs["req_user"] = context.login_hint_lookup(_login_hint)
+                if self.context.login_hint_lookup:
+                    kwargs["req_user"] = self.context.login_hint_lookup(_login_hint)
         return kwargs

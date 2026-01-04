@@ -188,14 +188,13 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["clients"]
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager
         self.user_id = "diana"
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        server.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
+        server.context.keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
 
     def test_parse_request_parameter(self):
         _jwt = JWT(key_jar=self.rp_keyjar, iss="client_1", sign_alg="HS256")

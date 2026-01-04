@@ -489,7 +489,7 @@ class TestEndpoint(object):
         for the authorization endpoint and resource parameter is missing from request.
         """
         endpoint_context = self.endpoint.upstream_get("context")
-        msg = self.endpoint._post_parse_request({}, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, {}, "client_1")
         assert "error" in msg
 
         request = AuthorizationRequest(
@@ -500,7 +500,7 @@ class TestEndpoint(object):
             scope="openid",
         )
 
-        msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, "client_1")
 
         assert "error" not in msg
         assert isinstance(msg, AuthorizationRequest)
@@ -517,7 +517,7 @@ class TestEndpoint(object):
         request = AUTH_REQ.copy()
         del request["resource"]
 
-        msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, "client_1")
         assert "error" not in msg
 
     def test_authorization_code_req(self, create_endpoint_ri_enabled):
@@ -527,7 +527,7 @@ class TestEndpoint(object):
         endpoint_context = self.endpoint.upstream_get("context")
         request = AUTH_REQ.copy()
 
-        msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, "client_1")
         assert "error" not in msg
 
     def test_authorization_code_req_per_client(self, create_endpoint_ri_disabled):
@@ -547,7 +547,7 @@ class TestEndpoint(object):
         request = AUTH_REQ.copy()
         client_id = request["client_id"]
 
-        msg = self.endpoint._post_parse_request(request, "client_1", endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, "client_1")
         assert "error" in msg
         assert msg["error_description"] == f"Invalid resource requested by client {client_id}"
 
@@ -563,7 +563,7 @@ class TestEndpoint(object):
             "resource_servers_per_client"
         ] = {"client_2": ["client_1"]}
 
-        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, client_id)
 
         assert "error" in msg
         assert msg["error"] == "invalid_target"
@@ -579,7 +579,7 @@ class TestEndpoint(object):
         client_id = request["client_id"]
         endpoint_context = self.endpoint.upstream_get("context")
 
-        msg = self.endpoint._post_parse_request(request, client_id, endpoint_context)
+        msg = self.endpoint._post_parse_request(endpoint_context, request, client_id)
 
         assert "error" in msg
         assert msg["error"] == "invalid_target"
@@ -613,7 +613,7 @@ class TestEndpoint(object):
             sender="",
         )
 
-        assert set(access_token["aud"]) == set(["client_3", "client_1"])
+        assert set(access_token["aud"]) == {"client_3", "client_1"}
 
     def test_access_token_req_invalid_resource_client(self, create_endpoint_ri_enabled):
         """

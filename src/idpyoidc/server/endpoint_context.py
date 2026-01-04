@@ -4,6 +4,7 @@ from typing import Any
 from typing import Callable
 from typing import Optional
 from typing import Union
+from urllib.parse import urljoin
 
 from cryptojwt import KeyJar
 from jinja2 import Environment
@@ -240,9 +241,11 @@ class EndpointContext(OidcContext):
             self.claims_interface.context = self
 
         self.keyjar = make_keyjar(config=conf, issuer_id=_id)
-        _uri_path = conf.key_conf.get('uri_path')
-        if _uri_path:
-            self.claims.prefer["jwks_uri"] = f"{self.claims.get_base_url}/{_uri_path}"
+        _key_conf = conf.get("key_conf")
+        if _key_conf:
+            _uri_path = _key_conf.get('uri_path')
+            if _uri_path:
+                self.claims.prefer["jwks_uri"] = urljoin(self.claims.get_base_url(conf), _uri_path)
 
         if isinstance(conf, OPConfiguration):
             conf = conf.conf

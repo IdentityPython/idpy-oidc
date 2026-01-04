@@ -141,7 +141,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         request_info = dict(scope=request.get("scope", token.scope))
         try:
-            check_unknown_scopes_policy(request_info, request["client_id"], context)
+            check_unknown_scopes_policy(context, request_info, request["client_id"])
         except UnAuthorizedClientScope:
             return self.error_cls(
                 error="invalid_grant",

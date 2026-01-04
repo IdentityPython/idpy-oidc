@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 class AccessTokenHelper(TokenEndpointHelper):
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
+    def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
         :param req:
         :param kwargs:
         :return:
         """
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         token = None
         logger.debug("Access Token")
 
@@ -48,7 +48,7 @@ class AccessTokenHelper(TokenEndpointHelper):
             logger.warning("Client using token it was not given")
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        _cinfo = context.cdb.get(client_id)
+        _cinfo = self.endpoint.context.cdb.get(client_id)
 
         if "resource_indicators" in _cinfo and "access_token" in _cinfo["resource_indicators"]:
             resource_indicators_config = _cinfo["resource_indicators"]["access_token"]
@@ -70,7 +70,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         # Is DPOP supported
         try:
-            _dpop_enabled = context.add_on.get("dpop")
+            _dpop_enabled = self.endpoint.context.add_on.get("dpop")
         except AttributeError:
             _dpop_enabled = False
 
@@ -124,7 +124,6 @@ class AccessTokenHelper(TokenEndpointHelper):
 
             try:
                 token = self._mint_token(
-                    context,
                     token_class="access_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -144,7 +143,6 @@ class AccessTokenHelper(TokenEndpointHelper):
                 _based_on.used -= 1
             try:
                 refresh_token = self._mint_token(
-                    context,
                     token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -163,7 +161,7 @@ class AccessTokenHelper(TokenEndpointHelper):
 
         return _response
 
-    def _enforce_resource_indicators_policy(self, context, request, config):
+    def _enforce_resource_indicators_policy(self, request, config):
         policy = config["policy"]
         function = policy["function"]
         kwargs = policy.get("kwargs", {})
@@ -176,13 +174,13 @@ class AccessTokenHelper(TokenEndpointHelper):
         else:
             fn = function
         try:
-            return fn(request, context=context, **kwargs)
+            return fn(self.endpoint.context, request, **kwargs)
         except Exception as e:
             logger.error(f"Error while executing the {fn} policy function: {e}")
             return self.error_cls(error="server_error", error_description="Internal server error")
 
     def post_parse_request(
-        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         """
         This is where clients come to get their access tokens
@@ -192,7 +190,7 @@ class AccessTokenHelper(TokenEndpointHelper):
         :returns:
         """
 
-        _mngr = context.session_manager
+        _mngr = self.endpoint.context.session_manager
         try:
             _session_info = _mngr.get_session_info_by_token(
                 request["code"], grant=True, handler_key="authorization_code"

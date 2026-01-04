@@ -268,7 +268,7 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = _clients["clients"]
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
+        # server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
         self.context = context
         self.endpoint = server.get_endpoint("authorization")
         self.session_manager = context.session_manager

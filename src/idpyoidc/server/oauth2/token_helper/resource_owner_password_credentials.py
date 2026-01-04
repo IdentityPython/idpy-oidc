@@ -23,14 +23,14 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
                 _db_kwargs = _db.get("kwargs", {})
                 self.user_db = instantiate(_db["class"], **_db_kwargs)
 
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
-        _mngr = context.session_manager
+    def process_request(self, req: Union[Message, dict], **kwargs):
+        _mngr = self.endpoint.context.session_manager
         logger.debug("Client credentials flow")
 
         # verify the client and the user
 
         client_id = req["client_id"]
-        _cinfo = context.cdb.get(client_id)
+        _cinfo = self.endpoint.context.cdb.get(client_id)
         if not _cinfo:
             logger.error("Unknown client")
             return self.error_cls(error="invalid_grant", error_description="Unknown client")
@@ -42,10 +42,10 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
         _auth_method = None
         _acr = kwargs.get("acr")
         if _acr:
-            _auth_method = context.authn_broker.pick(_acr)
+            _auth_method = self.endpoint.context.authn_broker.pick(_acr)
         else:
             try:
-                _auth_method = pick_auth(context, req)
+                _auth_method = pick_auth(self.endpoint.context, req)
             except Exception as exc:
                 logger.exception(f"An error occurred while picking the authN broker: {exc}")
 
@@ -76,9 +76,8 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
 
         token_type = "Bearer"
 
-        _allowed = context.cdb[client_id].get("allowed_scopes", [])
+        _allowed = self.endpoint.context.cdb[client_id].get("allowed_scopes", [])
         access_token = self._mint_token(
-            context,
             token_class="access_token",
             grant=_grant,
             session_id=_session_info["branch_id"],
@@ -100,6 +99,6 @@ class ResourceOwnerPasswordCredentials(TokenEndpointHelper):
         return _resp
 
     def post_parse_request(
-        self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+        self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ):
         return request

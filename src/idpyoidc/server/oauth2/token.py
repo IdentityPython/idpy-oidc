@@ -132,7 +132,7 @@ class Token(Endpoint):
                 error_description=f"Do not know how to handle this type of request",
             )
 
-    def process_request(self, context, request: Optional[Union[Message, dict]] = None, **kwargs):
+    def process_request(self, request: Optional[Union[Message, dict]] = None, **kwargs):
         """
 
         :param request:
@@ -146,7 +146,7 @@ class Token(Endpoint):
             return self.error_cls(error="invalid_request")
 
         try:
-            _helper = self._get_helper(context, request)
+            _helper = self._get_helper(self.context, request)
             if _helper:
                 response_args = _helper.process_request(request, **kwargs)
             else:
@@ -165,18 +165,18 @@ class Token(Endpoint):
         _access_token = response_args["access_token"]
 
         if isinstance(_helper, self.token_exchange_helper):
-            _handler_key = _helper.get_handler_key(context, request)
+            _handler_key = _helper.get_handler_key(request)
         else:
             _handler_key = "access_token"
 
-        _session_info = context.session_manager.get_session_info_by_token(
+        _session_info = self.context.session_manager.get_session_info_by_token(
             _access_token, grant=True, handler_key=_handler_key
         )
 
-        _cookie = context.new_cookie(
-            name=context.cookie_handler.name["session"],
+        _cookie = self.context.new_cookie(
+            name=self.context.cookie_handler.name["session"],
             sub=_session_info["grant"].sub,
-            sid=context.session_manager.session_key(
+            sid=self.context.session_manager.session_key(
                 _session_info["user_id"],
                 _session_info["client_id"],
                 _session_info["grant"].id,

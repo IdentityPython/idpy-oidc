@@ -52,7 +52,7 @@ class BackChannelAuthentication(Endpoint):
         self.expires_in = kwargs.get("expires_in", DEFAULT_EXPIRES_IN)
         self.interval = kwargs.get("interval", DEFAULT_INTERVAL)
 
-    def do_request_user(self, context, request):
+    def do_request_user(self, request):
         cn = verified_claim_name("id_token_hint")
         _request_user = ""
         if request.get(cn):
@@ -72,25 +72,24 @@ class BackChannelAuthentication(Endpoint):
 
         return _request_user
 
-    def allowed_target_uris(self, context):
+    def allowed_target_uris(self):
         """
         The OP MUST accept its Issuer Identifier, Token Endpoint URL, or Backchannel
         Authentication Endpoint URL as values that identify it as an intended audience.
         """
-        res = [context.issuer]
+        res = [self.context.issuer]
         res.append(self.full_path)
         res.append(self.upstream_get("endpoint", "token").full_path)
         return set(res)
 
     def process_request(
             self,
-            context,
             request: Optional[Union[Message, dict]] = None,
             http_info: Optional[dict] = None,
             **kwargs,
     ):
         try:
-            request_user = self.do_request_user(context, request)
+            request_user = self.do_request_user(request)
         except KeyError:
             logger.error("Login hint didn't lead to a known user")
             _error_msg = self.error_cls(
@@ -99,12 +98,12 @@ class BackChannelAuthentication(Endpoint):
             return _error_msg
 
         if request_user:  # Got a request for a legitimate user, create a session
-            _sid = context.session_manager.create_session(
-                None, request, request_user, client_id=request["client_id"]
+            _sid = self.context.session_manager.create_session(
+                request, request_user, client_id=request["client_id"]
             )
 
             auth_req_id = uuid.uuid4().hex
-            context.session_manager.auth_req_id_map[auth_req_id] = _sid
+            self.context.session_manager.auth_req_id_map[auth_req_id] = _sid
 
             return {
                 "response_args": {
@@ -135,9 +134,9 @@ class CIBATokenHelper(AccessTokenHelper):
         return session_info, _grant
 
     def post_parse_request(
-            self, context, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
+            self, request: Union[Message, dict], client_id: Optional[str] = "", **kwargs
     ) -> Union[Message, dict]:
-        _mngr = context.session_manager
+        _mngr = self.context.session_manager
         _session_id = _mngr.auth_req_id_map[request["auth_req_id"]]
         _info = _mngr.get_session_info(_session_id)
         # There should be 2 grants for the user_id, client_id combination
@@ -170,14 +169,14 @@ class CIBATokenHelper(AccessTokenHelper):
         request["_session_id"] = _session_id
         return request
 
-    def process_request(self, context, req: Union[Message, dict], **kwargs):
+    def process_request(self, req: Union[Message, dict], **kwargs):
         """
 
         :param req:
         :param kwargs:
         :return:
         """
-        _mngr = context.session_manager
+        _mngr = self.context.session_manager
         logger.debug("OIDC Access Token")
 
         _session_info, grant = self._get_session_info(req, _mngr)
@@ -190,16 +189,16 @@ class CIBATokenHelper(AccessTokenHelper):
             logger.warning("{} using token it was not given".format(req["client_id"]))
             return self.error_cls(error="invalid_grant", error_description="Wrong client")
 
-        if "grant_types_supported" in context.cdb[client_id]:
-            grant_types_supported = context.cdb[client_id].get("grant_types_supported")
+        if "grant_types_supported" in self.context.cdb[client_id]:
+            grant_types_supported = self.context.cdb[client_id].get("grant_types_supported")
         else:
-            grant_types_supported = context.provider_info["grant_types_supported"]
+            grant_types_supported = self.context.provider_info["grant_types_supported"]
 
         token_type = "Bearer"
 
         # Is DPOP supported
         try:
-            _dpop_enabled = context.dpop_enabled
+            _dpop_enabled = self.context.dpop_enabled
         except AttributeError:
             _dpop_enabled = False
 
@@ -233,7 +232,6 @@ class CIBATokenHelper(AccessTokenHelper):
 
         try:
             token = self._mint_token(
-                context,
                 token_class="access_token",
                 grant=grant,
                 session_id=_session_info["branch_id"],
@@ -250,7 +248,6 @@ class CIBATokenHelper(AccessTokenHelper):
         if issue_refresh and "refresh_token" in grant_types_supported:
             try:
                 refresh_token = self._mint_token(
-                    context,
                     token_class="refresh_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
@@ -267,7 +264,6 @@ class CIBATokenHelper(AccessTokenHelper):
         if "openid" in _authn_req["scope"]:
             try:
                 _idtoken = self._mint_token(
-                    context,
                     token_class="id_token",
                     grant=grant,
                     session_id=_session_info["branch_id"],
