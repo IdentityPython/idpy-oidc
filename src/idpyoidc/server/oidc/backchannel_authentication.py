@@ -302,7 +302,6 @@ class ClientNotification(Endpoint):
 
     def process_request(
             self,
-            context,
             request: Optional[Union[Message, dict]] = None,
             http_info: Optional[dict] = None,
             **kwargs,

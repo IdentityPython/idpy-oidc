@@ -167,7 +167,6 @@ class IDToken(Token):
                 user_info = None
             else:
                 user_info = self.context.claims_interface.get_user_claims(
-                    context=self.context,
                     user_id=session_information["user_id"],
                     claims_restriction=_claims_restriction,
                     client_id=session_information["client_id"]

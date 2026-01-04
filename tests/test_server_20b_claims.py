@@ -21,7 +21,6 @@ KEYDEFS = [
 
 CLIENT_ID = "client_1"
 
-
 AREQ = AuthorizationRequest(
     response_type="code",
     client_id=CLIENT_ID,
@@ -130,9 +129,9 @@ class TestEndpoint(object):
             },
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.add_symmetric(CLIENT_ID, "hemligtochintekort", ["sig", "enc"])
         self.claims_interface = server.context.claims_interface
         self.context = server.context
+        self.context.keyjar.add_symmetric(CLIENT_ID, "hemligtochintekort", ["sig", "enc"])
         self.session_manager = self.context.session_manager
         self.user_id = USER_ID
         self.server = server
@@ -169,7 +168,8 @@ class TestEndpoint(object):
             "email",
         ]
 
-        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "userinfo")
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"],
+                                                  "userinfo")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -191,9 +191,8 @@ class TestEndpoint(object):
         ]
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims(
-            session_id, ["openid", "address"], "introspection"
-        )
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"],
+                                                  "introspection")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -211,7 +210,8 @@ class TestEndpoint(object):
         self.server.get_endpoint("introspection").kwargs = {}
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
+        claims = self.claims_interface.get_claims_all_usage(session_id,
+                                                            ["openid", "address"])
         assert set(claims.keys()) == {
             "id_token",
             "userinfo",
@@ -240,7 +240,8 @@ class TestEndpoint(object):
         self.context.session_manager.token_handler["access_token"].kwargs = {}
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims_all_usage(session_id, ["openid", "address"])
+        claims = self.claims_interface.get_claims_all_usage(session_id,
+                                                            ["openid", "address"])
 
         assert set(claims.keys()) == {
             "id_token",
@@ -276,10 +277,14 @@ class TestEndpoint(object):
             session_id, ["openid", "address"]
         )
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["userinfo"], CLIENT_ID)
+        _claims = self.claims_interface.get_user_claims(USER_ID,
+                                                        claims_restriction["userinfo"],
+                                                        CLIENT_ID)
         assert _claims == {"name": "Diana Krall", "email": "diana@example.org"}
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["id_token"], CLIENT_ID)
+        _claims = self.claims_interface.get_user_claims(USER_ID,
+                                                        claims_restriction["id_token"],
+                                                        CLIENT_ID)
         assert _claims == {"email_verified": False, "email": "diana@example.org"}
 
         _claims = self.claims_interface.get_user_claims(
@@ -295,5 +300,7 @@ class TestEndpoint(object):
             }
         }
 
-        _claims = self.claims_interface.get_user_claims(USER_ID, claims_restriction["access_token"], CLIENT_ID)
+        _claims = self.claims_interface.get_user_claims(USER_ID,
+                                                        claims_restriction["access_token"],
+                                                        CLIENT_ID)
         assert _claims == {}

@@ -1,5 +1,5 @@
-import pytest
 from cryptojwt.jws.jws import factory
+import pytest
 
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.server import Server
@@ -12,7 +12,6 @@ from idpyoidc.server.session.token import AccessToken
 from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.time_util import utc_time_sans_frac
-
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 from . import full_path
@@ -467,7 +466,8 @@ class TestSessionManager:
         }
 
         self.endpoint_context.authz = AuthzHandling(
-            self.server.get_endpoint_context, grant_config=grant_config
+            self.server.unit_get, context=self.server.context,
+            grant_config=grant_config
         )
 
         self.endpoint_context.cdb["client_1"] = {
@@ -514,7 +514,7 @@ class TestSessionManager:
         }
 
         self.endpoint_context.authz = AuthzHandling(
-            self.server.get_endpoint_context, grant_config=grant_config
+            self.server.unit_get, context=self.server.context, grant_config=grant_config
         )
 
         # Change expiration time for the code and allow refresh tokens for this
@@ -530,7 +530,7 @@ class TestSessionManager:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
 
-        token_usage_rules = self.endpoint_context.authz.usage_rules(self.endpoint_context, "client_1")
+        token_usage_rules = self.endpoint_context.authz.usage_rules("client_1")
 
         _session_id = self.session_manager.create_session(
             authn_event=self.authn_event,

@@ -203,7 +203,7 @@ class TestCollectUserInfo:
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
         self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(server.unit_get)
+        self.claims_interface = ClaimsInterface(server.unit_get, context=self.endpoint_context)
         self.user_id = "diana"
         self.server = server
 
@@ -226,7 +226,8 @@ class TestCollectUserInfo:
         session_id = self._create_session(_req)
 
         _userinfo_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], claims_release_point="userinfo"
+            session_id=session_id, scopes=OIDR["scope"],
+            claims_release_point="userinfo"
         )
 
         res = self.claims_interface.get_user_claims("diana", _userinfo_restriction, CLIENT_ID)
@@ -239,7 +240,8 @@ class TestCollectUserInfo:
         }
 
         _id_token_restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], claims_release_point="id_token"
+            session_id=session_id, scopes=OIDR["scope"],
+            claims_release_point="id_token"
         )
 
         res = self.claims_interface.get_user_claims("diana", _id_token_restriction, CLIENT_ID)
@@ -250,7 +252,8 @@ class TestCollectUserInfo:
         }
 
         _restriction = self.claims_interface.get_claims(
-            session_id=session_id, scopes=OIDR["scope"], claims_release_point="introspection"
+            session_id=session_id, scopes=OIDR["scope"],
+            claims_release_point="introspection"
         )
 
         res = self.claims_interface.get_user_claims("diana", _restriction, CLIENT_ID)
@@ -436,7 +439,7 @@ class TestCollectUserInfoCustomScopes:
             ]
         }
         self.session_manager = self.endpoint_context.session_manager
-        self.claims_interface = ClaimsInterface(self.server.unit_get)
+        self.claims_interface = ClaimsInterface(self.server.unit_get, context=self.endpoint_context)
         self.user_id = "diana"
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):

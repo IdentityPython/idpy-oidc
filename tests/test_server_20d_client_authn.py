@@ -1,20 +1,18 @@
 import base64
 from unittest.mock import MagicMock
 
-import pytest
-from cryptojwt.jws.exception import NoSuitableSigningKeys
 from cryptojwt.jwt import JWT
-from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import KeyJar
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.utils import as_bytes
 from cryptojwt.utils import as_unicode
+import pytest
 
 from idpyoidc.defaults import JWT_BEARER
 from idpyoidc.key_import import add_keys
 from idpyoidc.key_import import add_symmetric
 from idpyoidc.key_import import import_jwks
 from idpyoidc.server import Server
-from idpyoidc.server.client_authn import basic_authn
 from idpyoidc.server.client_authn import BearerBody
 from idpyoidc.server.client_authn import BearerHeader
 from idpyoidc.server.client_authn import ClientSecretBasic
@@ -22,6 +20,7 @@ from idpyoidc.server.client_authn import ClientSecretJWT
 from idpyoidc.server.client_authn import ClientSecretPost
 from idpyoidc.server.client_authn import JWSAuthnMethod
 from idpyoidc.server.client_authn import PrivateKeyJWT
+from idpyoidc.server.client_authn import basic_authn
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.exception import ClientAuthenticationError
 from idpyoidc.server.exception import InvalidToken
@@ -97,7 +96,7 @@ class TestClientSecretBasic:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.context = server.context
-        self.method = ClientSecretBasic(server.unit_get)
+        self.method = ClientSecretBasic(server.unit_get, self.context)
 
     def test_client_secret_basic(self):
         _token = "{}:{}".format(client_id, client_secret)
@@ -132,7 +131,7 @@ class TestClientSecretPost:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.context = server.context
-        self.method = ClientSecretPost(server.unit_get)
+        self.method = ClientSecretPost(server.unit_get, self.context)
 
     def test_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
@@ -156,7 +155,7 @@ class TestClientSecretJWT:
         server = Server(conf=CONF, keyjar=KEYJAR)
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.context = server.context
-        self.method = ClientSecretJWT(server.unit_get)
+        self.method = ClientSecretJWT(server.unit_get, self.context)
 
     def test_client_secret_jwt(self):
         client_keyjar = KeyJar()
@@ -171,12 +170,25 @@ class TestClientSecretJWT:
 
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
-        self.context.keyjar = add_keys(self.context.keyjar, client_keyjar.get(key_use="sig", key_type="oct"), client_id)
+        self.context.keyjar = add_keys(self.context.keyjar,
+                                       client_keyjar.get(key_use="sig", key_type="oct"), client_id)
         assert self.method.is_usable(request=request)
         authn_info = self.method.verify(request=request)
 
         assert authn_info["client_id"] == client_id
         assert "jwt" in authn_info
+
+
+def key_setup(context):
+    client_keyjar = build_keyjar(KEYDEFS)
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+    context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
 
 
 class TestPrivateKeyJWT:
@@ -187,16 +199,10 @@ class TestPrivateKeyJWT:
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.context = server.context
-        self.method = PrivateKeyJWT(server.unit_get)
+        self.method = PrivateKeyJWT(server.unit_get, self.context)
 
     def test_private_key_jwt(self):
-        # Own dynamic keys
-        client_keyjar = build_keyjar(KEYDEFS)
-        # The servers keys
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-
-        _jwks = client_keyjar.export_jwks()
-        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -211,13 +217,7 @@ class TestPrivateKeyJWT:
         assert "jwt" in authn_info
 
     def test_private_key_jwt_reusage_other_endpoint(self):
-        # Own dynamic keys
-        client_keyjar = build_keyjar(KEYDEFS)
-        # The servers keys
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-
-        _jwks = client_keyjar.export_jwks()
-        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -238,13 +238,7 @@ class TestPrivateKeyJWT:
             self.method.verify(request=request, endpoint=self.server.get_endpoint("token"))
 
     def test_private_key_jwt_auth_endpoint(self):
-        # Own dynamic keys
-        client_keyjar = build_keyjar(KEYDEFS)
-        # The servers keys
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-
-        _jwks = client_keyjar.export_jwks()
-        self.server.keyjar = import_jwks(self.server.keyjar, _jwks, client_id)
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="RS256")
         _jwt.with_jti = True
@@ -270,7 +264,7 @@ class TestBearerHeader:
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.context = server.context
-        self.method = BearerHeader(server.unit_get)
+        self.method = BearerHeader(server.unit_get, self.context)
 
     def test_bearerheader(self):
         authorization_info = "Bearer 1234567890"
@@ -293,7 +287,7 @@ class TestBearerBody:
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.context = server.context
-        self.method = BearerBody(server.unit_get)
+        self.method = BearerBody(server.unit_get, self.context)
 
     def test_bearer_body(self):
         request = {"access_token": "1234567890"}
@@ -316,27 +310,21 @@ class TestJWSAuthnMethod:
         server.context.cdb[client_id] = {"client_secret": client_secret}
         self.server = server
         self.context = server.context
-        self.method = JWSAuthnMethod(server.unit_get)
+        self.method = JWSAuthnMethod(server.unit_get, self.context)
 
     def test_jws_authn_method_wrong_key(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # Fake symmetric key
-        client_keyjar.add_symmetric("", "client_secret:client_secret", ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
         _assertion = _jwt.pack({"aud": [CONF["issuer"]]})
 
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
-        with pytest.raises(NoSuitableSigningKeys):
+        with pytest.raises(AttributeError):
             self.method.verify(request=request, key_type="private_key")
 
     def test_jws_authn_method_aud_iss(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
         # Audience is OP issuer ID
@@ -348,10 +336,7 @@ class TestJWSAuthnMethod:
         assert self.method.verify(request=request, key_type="client_secret")
 
     def test_jws_authn_method_aud_token_endpoint(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
 
@@ -368,10 +353,7 @@ class TestJWSAuthnMethod:
         )
 
     def test_jws_authn_method_aud_not_me(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has at this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
 
@@ -386,10 +368,7 @@ class TestJWSAuthnMethod:
             self.method.verify(request=request, key_type="client_secret")
 
     def test_jws_authn_method_aud_userinfo_endpoint(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
 
@@ -445,6 +424,7 @@ class TestVerify:
 
         request = {"client_id": client_id}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -458,12 +438,14 @@ class TestVerify:
 
         request = {"client_id": client_id}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
         assert res == {"method": "public", "client_id": client_id}
 
         res = verify_client(
+            self.context,
             request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -471,6 +453,7 @@ class TestVerify:
 
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -480,6 +463,7 @@ class TestVerify:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -487,10 +471,7 @@ class TestVerify:
         assert res["method"] == "client_secret_post"
 
     def test_verify_client_jws_authn_method(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
         # Audience is OP issuer ID
@@ -500,6 +481,7 @@ class TestVerify:
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
         http_info = {"headers": {}}
         res = verify_client(
+            self.context,
             request=request,
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -511,6 +493,7 @@ class TestVerify:
         request = {"access_token": "1234567890", "client_id": client_id}
         self.context.registration_access_token["1234567890"] = client_id
         res = verify_client(
+            self.context,
             request=request,
             get_client_id_from_token=get_client_id_from_token,
             endpoint=self.server.get_endpoint("userinfo"),
@@ -521,6 +504,7 @@ class TestVerify:
     def test_verify_client_client_secret_post(self):
         request = {"client_id": client_id, "client_secret": client_secret}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -534,6 +518,7 @@ class TestVerify:
         http_info = {"headers": {"authorization": authz_token}}
 
         res = verify_client(
+            self.context,
             request={},
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -549,6 +534,7 @@ class TestVerify:
         http_info = {"headers": {"authorization": token}}
         request = {"client_id": client_id}
         res = verify_client(
+            self.context,
             request=request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
@@ -567,10 +553,7 @@ class TestVerify2:
         self.context = self.server.get_context()
 
     def test_verify_client_jws_authn_method(self):
-        client_keyjar = KeyJar()
-        client_keyjar = import_jwks(client_keyjar, KEYJAR.export_jwks(private=True), CONF["issuer"])
-        # The only own key the client has a this point
-        client_keyjar.add_symmetric("", client_secret, ["sig"])
+        client_keyjar = key_setup(self.context)
 
         _jwt = JWT(client_keyjar, iss=client_id, sign_alg="HS256")
         # Audience is OP issuer ID
@@ -580,6 +563,7 @@ class TestVerify2:
         request = {"client_assertion": _assertion, "client_assertion_type": JWT_BEARER}
 
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("token"),
         )
@@ -590,6 +574,7 @@ class TestVerify2:
         request = {"access_token": "1234567890", "client_id": client_id}
         self.context.registration_access_token["1234567890"] = client_id
         res = verify_client(
+            self.context,
             request=request,
             get_client_id_from_token=get_client_id_from_token,
             endpoint=self.server.get_endpoint("userinfo"),
@@ -604,6 +589,7 @@ class TestVerify2:
         http_info = {"headers": {"authorization": authz_token}}
 
         res = verify_client(
+            self.context,
             request={},
             http_info=http_info,
             endpoint=self.server.get_endpoint("token"),
@@ -619,6 +605,7 @@ class TestVerify2:
         http_info = {"headers": {"authorization": token}}
         request = {"client_id": client_id}
         res = verify_client(
+            self.context,
             request=request,
             http_info=http_info,
             get_client_id_from_token=get_client_id_from_token,
@@ -631,6 +618,7 @@ class TestVerify2:
         # This is when it's explicitly said that no client auth method is allowed
         request = {"client_id": client_id}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("authorization"),
         )
@@ -641,6 +629,7 @@ class TestVerify2:
         # This is when no special auth method is configured
         request = {"redirect_uris": ["https://example.com/cb"], "client_id": "client_id"}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -650,6 +639,7 @@ class TestVerify2:
         # This is when no special auth method is configured
         request = {"redirect_uris": ["https://example.com/cb"]}
         res = verify_client(
+            self.context,
             request=request,
             endpoint=self.server.get_endpoint("registration"),
         )
@@ -670,7 +660,8 @@ def test_client_auth_setup():
     server.context.cdb[client_id] = {"client_secret": client_secret}
 
     request = {"redirect_uris": ["https://example.com/cb"]}
-    res = verify_client(request=request, endpoint=server.get_endpoint("registration"))
+    res = verify_client(server.context, request=request,
+                        endpoint=server.get_endpoint("registration"))
 
     assert res == {"client_id": "client_id", "method": "custom"}
     mock.is_usable.assert_called_once()

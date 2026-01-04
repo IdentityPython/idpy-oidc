@@ -15,14 +15,14 @@ class RegistrationRead(Endpoint):
     name = "registration_read"
     endpoint_type = "oidc"
 
-    def get_client_id_from_token(self, context, token, request=None):
+    def get_client_id_from_token(self, token, request=None):
         if "client_id" in request:
-            if request["client_id"] == context.registration_access_token[token]:
+            if request["client_id"] == self.context.registration_access_token[token]:
                 return request["client_id"]
         return ""
 
-    def process_request(self, context, request=None, **kwargs):
-        _cli_info = context.cdb[request["client_id"]]
+    def process_request(self, request=None, **kwargs):
+        _cli_info = self.context.cdb[request["client_id"]]
         args = {k: v for k, v in _cli_info.items() if k in RegistrationResponse.c_param}
         comb_uri(args)
         return {"response_args": RegistrationResponse(**args)}

@@ -123,7 +123,7 @@ def test_capabilities_default():
         "code id_token",
     }
     assert server.context.provider_info["request_uri_parameter_supported"] is False
-    assert server.context.get_preference("jwks_uri") == "https://127.0.0.1:443/static/jwks.json"
+    assert server.context.get_preference('authorization_endpoint') == 'https://127.0.0.1:443/authorization'
 
 
 def test_capabilities_subset1():

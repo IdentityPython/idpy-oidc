@@ -51,7 +51,10 @@ class UserAuthnMethod(object):
         self.query_param = "upm_answer"
         self.upstream_get = upstream_get
         self.kwargs = kwargs
-        self.context = upstream_get('context')
+        if upstream_get:
+            self.context = upstream_get('context')
+        else:
+            self.context = None
 
     def __call__(self, **kwargs):
         """

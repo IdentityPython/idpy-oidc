@@ -18,7 +18,7 @@ class ProviderConfiguration(Endpoint):
         Endpoint.__init__(self, upstream_get=upstream_get, **kwargs)
         self.pre_construct.append(self.add_endpoints)
 
-    def add_endpoints(self, request, client_id, context, **kwargs):
+    def add_endpoints(self, context, request, client_id, **kwargs):
         for endpoint in [
             "authorization",
             # "provider_config",
@@ -32,9 +32,9 @@ class ProviderConfiguration(Endpoint):
 
         return request
 
-    def process_request(self, context, request=None, **kwargs):
+    def process_request(self, request=None, **kwargs):
         _schema = self.upstream_get("attribute", "metadata_schema")
-        _args = context.claims.get_server_metadata(metadata_schema=_schema)
+        _args = self.context.claims.get_server_metadata(metadata_schema=_schema)
         # add issuer
         _args["issuer"] = self.upstream_get("attribute", "entity_id")
         # add endpoints

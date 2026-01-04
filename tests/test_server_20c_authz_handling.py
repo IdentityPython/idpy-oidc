@@ -110,11 +110,12 @@ class TestEndpoint(object):
             "response_types": ["code", "token", "code id_token", "id_token"],
             "allowed_scopes": ["openid", "profile", "email", "address", "phone", "offline_access"],
         }
-        server.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
+        server.context.keyjar.add_symmetric("client_1", "hemligtochintekort", ["sig", "enc"])
         self.session_manager = server.context.session_manager
         self.user_id = USER_ID
         self.server = server
         self.authz = server.context.authz
+        self.context = server.context
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:

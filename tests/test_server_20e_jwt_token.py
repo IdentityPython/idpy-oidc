@@ -1,9 +1,11 @@
 import os
 
-import pytest
 from cryptojwt.jwt import JWT
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
+import pytest
 
+from idpyoidc.key_import import import_jwks
 from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -30,9 +32,7 @@ KEYDEFS = [
 ]
 
 ISSUER = "https://example.com/"
-
-KEYJAR = init_key_jar(key_defs=KEYDEFS, issuer_id=ISSUER)
-KEYJAR = store_under_other_id(KEYJAR, ISSUER, "", True)
+CLIENT_ID = "client_1"
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -67,7 +67,7 @@ CAPABILITIES = {
 }
 
 AUTH_REQ = AuthorizationRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     scope=["openid"],
     state="STATE",
@@ -75,7 +75,7 @@ AUTH_REQ = AuthorizationRequest(
 )
 
 TOKEN_REQ = AccessTokenRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     state="STATE",
     grant_type="authorization_code",
@@ -96,6 +96,19 @@ MAP = {
 
 def full_path(local_file):
     return os.path.join(BASEDIR, local_file)
+
+
+def key_setup(context, client_id, client_secret=''):
+    client_keyjar = build_keyjar(KEYDEFS)
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
 
 
 class TestEndpoint(object):
@@ -197,9 +210,9 @@ class TestEndpoint(object):
             },
             "session_params": {"encrypter": SESSION_PARAMS},
         }
-        self.server = Server(conf, keyjar=KEYJAR)
+        self.server = Server(conf)
         self.context = self.server.context
-        self.context.cdb["client_1"] = {
+        self.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -249,12 +262,12 @@ class TestEndpoint(object):
             "access_token", grant, session_id, code, resources=[AUTH_REQ["client_id"]]
         )
 
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {"client_1"}
+        assert set(_info["aud"]) == {CLIENT_ID}
 
     def test_info(self):
         session_id = self._create_session(AUTH_REQ)
@@ -271,10 +284,12 @@ class TestEndpoint(object):
     @pytest.mark.parametrize("enable_claims_per_client", [True, False])
     def test_enable_claims_per_client(self, enable_claims_per_client):
         # Set up configuration
-        self.context.cdb["client_1"]["add_claims"]["always"]["access_token"] = {"address": None}
+        self.context.cdb[CLIENT_ID]["add_claims"]["always"]["access_token"] = {"address": None}
         self.context.session_manager.token_handler.handler["access_token"].kwargs[
             "enable_claims_per_client"
         ] = enable_claims_per_client
+
+        client_keyjar = key_setup(self.context,client_id=CLIENT_ID)
 
         session_id = self._create_session(AUTH_REQ)
         # apply consent
@@ -283,7 +298,7 @@ class TestEndpoint(object):
         code = self._mint_token("authorization_code", grant, session_id)
         access_token = self._mint_token("access_token", grant, session_id, code)
 
-        _jwt = JWT(key_jar=KEYJAR, iss="client_1")
+        _jwt = JWT(key_jar=self.context.keyjar)
         res = _jwt.unpack(access_token.value)
         assert enable_claims_per_client is ("address" in res)
 
@@ -400,9 +415,9 @@ class TestEndpointWebID(object):
             "scopes_to_claims": _scope2claims,
             "session_params": SESSION_PARAMS,
         }
-        self.server = Server(conf, keyjar=KEYJAR)
+        self.server = Server(conf)
         self.context = self.server.context
-        self.context.cdb["client_1"] = {
+        self.context.cdb[CLIENT_ID] = {
             "client_secret": "hemligt",
             "redirect_uris": [("https://example.com/cb", None)],
             "client_salt": "salted",
@@ -452,7 +467,7 @@ class TestEndpointWebID(object):
 
     def test_parse(self):
         _auth_req = AuthorizationRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             redirect_uri="https://example.com/cb",
             scope=["openid", "webid"],
             state="STATE",
@@ -468,17 +483,17 @@ class TestEndpointWebID(object):
             "access_token", grant, session_id, code, resources=[_auth_req["client_id"]]
         )
 
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {"client_1"}
+        assert set(_info["aud"]) == {CLIENT_ID}
         assert "webid" in _info
 
     def test_mint_with_aud(self):
         _auth_req = AuthorizationRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             redirect_uri="https://example.com/cb",
             scope=["openid", "webid"],
             state="STATE",
@@ -499,17 +514,17 @@ class TestEndpointWebID(object):
             aud=["https://audience.example.com"],
         )
 
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
         # assert _info["eduperson_scoped_affiliation"] == ["staff@example.org"]
-        assert set(_info["aud"]) == {"client_1", "https://audience.example.com"}
+        assert set(_info["aud"]) == {CLIENT_ID, "https://audience.example.com"}
         assert "webid" in _info
 
     def test_mint_with_scope(self):
         _auth_req = AuthorizationRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             redirect_uri="https://example.com/cb",
             scope=["openid", "webid"],
             state="STATE",
@@ -530,7 +545,7 @@ class TestEndpointWebID(object):
             aud=["https://audience.example.com"],
         )
 
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(access_token.value)
 
         assert _info["token_class"] == "access_token"
@@ -540,7 +555,7 @@ class TestEndpointWebID(object):
 
     def test_mint_with_extra(self):
         _auth_req = AuthorizationRequest(
-            client_id="client_1",
+            client_id=CLIENT_ID,
             redirect_uri="https://example.com/cb",
             scope=["openid", "webid"],
             state="STATE",
@@ -560,7 +575,7 @@ class TestEndpointWebID(object):
             claims=["name", "family_name"],
         )
 
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(access_token.value)
         assert "name" in _info
         assert "family_name" in _info
@@ -570,6 +585,6 @@ class TestEndpointWebID(object):
         _handler = master_handler["access_token"]
         assert _handler
         _jwt = _handler(aud="https://example.org")
-        _verifier = JWT(self.server.keyjar)
+        _verifier = JWT(self.context.keyjar)
         _info = _verifier.unpack(_jwt)
         assert _info

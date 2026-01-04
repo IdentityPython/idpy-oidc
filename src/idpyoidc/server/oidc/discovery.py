@@ -35,8 +35,8 @@ class Discovery(Endpoint):
 
         return info
 
-    def process_request(self, context, request=None, **kwargs):
+    def process_request(self, request=None, **kwargs):
         return {
             "subject": request["resource"],
-            "hrefs": [context.issuer],
+            "hrefs": [self.context.issuer],
         }

@@ -237,8 +237,12 @@ class EndpointContext(OidcContext):
         _interface = conf.get("claims_interface")
         if _interface:
             self.claims_interface = init_service(_interface, self.unit_get)
+            self.claims_interface.context = self
 
         self.keyjar = make_keyjar(config=conf, issuer_id=_id)
+        _uri_path = conf.key_conf.get('uri_path')
+        if _uri_path:
+            self.claims.prefer["jwks_uri"] = f"{self.claims.get_base_url}/{_uri_path}"
 
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
@@ -282,9 +286,11 @@ class EndpointContext(OidcContext):
     def setup_authz(self):
         authz_spec = self.conf.get("authz")
         if authz_spec:
-            return init_service(authz_spec, self.unit_get)
+            serv = init_service(authz_spec, self.unit_get)
+            serv.context = self
+            return serv
         else:
-            return authz.Implicit(self.unit_get)
+            return authz.Implicit(self.unit_get, self)
 
     def setup_client_authn_methods(self):
         self.client_authn_methods = client_auth_setup(self, self.unit_get, self.conf.get("client_authn_methods"))
@@ -335,7 +341,7 @@ class EndpointContext(OidcContext):
                     _func = importer(spec["function"])
                 else:
                     _func = spec["function"]
-                _func(endpoints, **spec["kwargs"])
+                _func(self, endpoints, **spec["kwargs"])
 
     def do_login_hint2acrs(self):
         _conf = self.conf.get("login_hint2acrs")

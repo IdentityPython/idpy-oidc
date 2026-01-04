@@ -187,7 +187,7 @@ class TestEndpoint(object):
         self.context.session_manager.token_handler["id_token"].kwargs = {
             "base_claims": {"email": None, "email_verified": None}
         }
-        claims = self.claims_interface.get_claims(self.context, session_id, [], "id_token")
+        claims = self.claims_interface.get_claims(session_id, [], "id_token")
         assert set(claims.keys()) == {"email", "email_verified"}
 
     def test_get_claims_id_token_2(self):
@@ -201,7 +201,7 @@ class TestEndpoint(object):
             "email",
         ]
 
-        claims = self.claims_interface.get_claims(self.context, session_id, [], "id_token")
+        claims = self.claims_interface.get_claims(session_id, [], "id_token")
         assert set(claims.keys()) == {"name", "email", "email_verified"}
 
     def test_get_claims_id_token_3(self):
@@ -216,7 +216,7 @@ class TestEndpoint(object):
             "email",
         ]
 
-        claims = self.claims_interface.get_claims(self.context, session_id, ["openid", "address"], "id_token")
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "id_token")
         assert set(claims.keys()) == {
             "name",
             "email",
@@ -242,7 +242,7 @@ class TestEndpoint(object):
         ]
 
         claims = self.claims_interface.get_claims(
-            self.context, session_id, ["openid", "address"], "id_token", "userinfo"
+            session_id, ["openid", "address"], "id_token", "userinfo"
         )
         assert set(claims.keys()) == {
             "name",
@@ -267,7 +267,7 @@ class TestEndpoint(object):
         ]
 
         session_id = self._create_session(AREQ)
-        claims = self.claims_interface.get_claims(self.context, session_id, ["openid", "address"], "access_token")
+        claims = self.claims_interface.get_claims(session_id, ["openid", "address"], "access_token")
         assert set(claims.keys()) == {
             "name",
             "email",

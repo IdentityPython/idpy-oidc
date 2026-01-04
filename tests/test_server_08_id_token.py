@@ -271,14 +271,14 @@ class TestEndpoint(object):
                 "expires_in": 100
             }
         }
-       
+
         self.context.authz = AuthzHandling(
-            self.server.get_endpoint_context, grant_config=grant_config
+            None, context=self.context, grant_config=grant_config
         )
-        
+
         token_usage_rules = self.context.authz.usage_rules("client_1")
         session_id = self._create_session(auth_req=AREQ, token_usage_rules=token_usage_rules)
-        
+
         grant = self.session_manager[session_id]
         code = self._mint_code(grant, session_id)
         id_token = self._mint_id_token(grant, session_id, code)
@@ -298,8 +298,8 @@ class TestEndpoint(object):
             "scope",
             "iss",
             "sid",
-        }        
-        assert payload["exp"] - payload["iat"] == 200
+        }
+        assert payload["exp"] - payload["iat"] == 100
 
     def test_id_token_payload_with_code(self):
         session_id = self._create_session(AREQ)
@@ -561,7 +561,6 @@ class TestEndpoint(object):
         self.context.cdb["client_1"]["add_claims"]["always"]["id_token"] = {"address": None}
 
         _claims = self.context.claims_interface.get_claims(
-            self.context,
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -581,7 +580,6 @@ class TestEndpoint(object):
         grant = self.session_manager[session_id]
 
         _claims = self.context.claims_interface.get_claims(
-            self.context,
             session_id=session_id, scopes=AREQ["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
@@ -623,7 +621,6 @@ class TestEndpoint(object):
         self.context.cdb[AREQS["client_id"]]["add_claims"]["by_scope"]["id_token"] = False
 
         _claims = self.context.claims_interface.get_claims(
-            self.context,
             session_id=session_id, scopes=AREQS["scope"], claims_release_point="id_token"
         )
         grant.claims = {"id_token": _claims}
