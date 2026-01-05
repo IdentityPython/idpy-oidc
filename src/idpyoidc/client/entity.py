@@ -200,6 +200,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if config and "client_authn_methods" in config:
             _methods = config.get("client_authn_methods")
             context.client_authn_methods = client_auth_setup(method_to_item(_methods))
+            for k,v in context.client_authn_methods.items():
+                v.context = context
+                v.upstream_get = self.unit_get
         else:
             context.client_authn_methods = {}
 

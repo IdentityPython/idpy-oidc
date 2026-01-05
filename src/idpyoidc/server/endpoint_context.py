@@ -241,7 +241,10 @@ class EndpointContext(OidcContext):
             self.claims_interface = init_service(_interface, self.unit_get)
             self.claims_interface.context = self
 
-        self.keyjar = make_keyjar(config=conf, issuer_id=_id, key_conf=key_conf)
+        if keyjar:
+            self.keyjar = keyjar
+        else:
+            self.keyjar = make_keyjar(config=conf, issuer_id=_id, key_conf=key_conf)
         _key_conf = conf.get("key_conf")
         if _key_conf:
             _uri_path = _key_conf.get('uri_path')

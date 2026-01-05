@@ -85,7 +85,7 @@ class Server(Unit):
             upstream_get=self.unit_get,  # points to me
             cwd=cwd,
             cookie_handler=cookie_handler,
-            keyjar=self.keyjar,
+            keyjar=keyjar,
             key_conf=key_conf,
             entity_id=self.entity_id
         )

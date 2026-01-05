@@ -2,12 +2,12 @@
 import logging
 from typing import Optional
 
+from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.client.client_auth import get_client_authn_methods
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
-from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.time_util import time_sans_frac
 
 LOGGER = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class AccessToken(Service):
         Service.__init__(self, upstream_get, conf=conf, **kwargs)
         self.pre_construct.append(self.oauth_pre_construct)
 
-    def update_service_context(self, resp, context, key: Optional[str] = "", **kwargs):
+    def update_service_context(self, context, resp, key: Optional[str] = "", **kwargs):
         if "expires_in" in resp:
             resp["__expires_at"] = time_sans_frac() + int(resp["expires_in"])
         if key:

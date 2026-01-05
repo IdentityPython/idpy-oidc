@@ -167,13 +167,15 @@ class TestFlow(object):
             "token_endpoint_auth_methods_supported": ["client_secret_post"],
             "response_types_supported": ["code"],
         }
-        client_services = _OAUTH2_SERVICES
+
         self.client = Client(
             client_type="oauth2",
             config=client_1_config,
             keyjar=build_keyjar(KEYDEFS),
             services=_OAUTH2_SERVICES,
         )
+
+        self.client_context = self.client.add_new_context(self.server.context.entity_id)
 
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
@@ -184,8 +186,8 @@ class TestFlow(object):
         self.user_id = "diana"
 
     def do_query(self, service_type, endpoint_type, request_args, state):
-        _client_service = self.client.get_service(service_type)
-        req_info = _client_service.get_request_parameters(request_args=request_args, state=state)
+        _client_service = self.client.get_service(self.client_context, service_type)
+        req_info = _client_service.get_request_parameters(self.client_context, request_args=request_args, state=state)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -211,8 +213,8 @@ class TestFlow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        resp = _client_service.parse_response(_response["response"])
-        _client_service.update_service_context(_resp["response_args"], key=state)
+        resp = _client_service.parse_response(self.client_context, _response["response"])
+        _client_service.update_service_context(self.client_context, _resp["response_args"], key=state)
         return areq, resp
 
     def process_setup(self, token=None, scope=None):
@@ -222,10 +224,9 @@ class TestFlow(object):
 
         # ***** Pushed Authorization Request **********
         _nonce = (rndstr(24),)
-        _context = self.client.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.cstate.create_state(iss=_context.get("issuer"))
-        _context.cstate.bind_key(_nonce, _state)
+        _state = self.client_context.cstate.create_state(iss=self.client_context.get("issuer"))
+        self.client_context.cstate.bind_key(_nonce, _state)
 
         req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
@@ -245,8 +246,6 @@ class TestFlow(object):
                                             _state)
 
         # ***** Authorization Request **********
-        _context = self.client.get_service_context()
-
         req_args = {"request_uri": auth_response["request_uri"], "response_type": ["code"]}
 
         areq, auth_response = self.do_query("authorization", "authorization", req_args, _state)
@@ -258,8 +257,8 @@ class TestFlow(object):
             "state": auth_response["state"],
             "redirect_uri": areq["redirect_uri"],
             "grant_type": "authorization_code",
-            "client_id": self.client.get_client_id(),
-            "client_secret": _context.get_usage("client_secret"),
+            "client_id": self.client.get_client_id(self.client_context),
+            "client_secret": self.client_context.get_usage("client_secret"),
         }
 
         _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)
@@ -275,9 +274,9 @@ class TestFlow(object):
 
         # Construct the resource request
 
-        _client_service = self.client.get_service("resource")
+        _client_service = self.client.get_service(self.client_context,"resource")
         req_info = _client_service.get_request_parameters(
-            authn_method="bearer_header", state=_state, endpoint="https://resource.example.com"
+            self.client_context, authn_method="bearer_header", state=_state, endpoint="https://resource.example.com"
         )
 
         assert req_info["url"] == "https://resource.example.com"

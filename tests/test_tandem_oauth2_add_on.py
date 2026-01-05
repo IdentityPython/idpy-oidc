@@ -181,8 +181,11 @@ class Flow(object):
         if msg is None:
             msg = {}
 
-        _client_service = self.client.get_service(service_type)
-        req_info = _client_service.get_request_parameters(request_args=request_args)
+        server_entity_id = self.server.entity_id
+        client_context = self.client.context[server_entity_id]
+
+        _client_service = self.client.get_service(client_context, service_type)
+        req_info = _client_service.get_request_parameters(client_context, request_args=request_args)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -213,21 +216,23 @@ class Flow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        resp = _client_service.parse_response(_response["response"])
+        resp = _client_service.parse_response(client_context, _response["response"])
         _state = msg.get("state", "")
-        _client_service.update_service_context(_resp["response_args"], key=_state)
+        _client_service.update_service_context(client_context, _resp["response_args"], key=_state)
         return {"request": areq, "response": resp}
 
     def server_metadata_request(self, msg):
         return {}
 
     def authorization_request(self, msg):
+        server_entity_id = self.server.entity_id
+        client_context = self.client.context[server_entity_id]
+
         # ***** Authorization Request **********
         _nonce = (rndstr(24),)
-        _context = self.client.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.cstate.create_state(iss=_context.get("issuer"))
-        _context.cstate.bind_key(_nonce, _state)
+        _state = client_context.cstate.create_state(iss=client_context.get("issuer"))
+        client_context.cstate.bind_key(_nonce, _state)
 
         req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
@@ -243,7 +248,8 @@ class Flow(object):
 
     def accesstoken_request(self, msg):
         # ***** Token Request **********
-        _context = self.client.get_service_context()
+        server_entity_id = self.server.entity_id
+        client_context = self.client.context[server_entity_id]
 
         auth_resp = msg["authorization"]["response"]
         req_args = {
@@ -251,8 +257,8 @@ class Flow(object):
             "state": auth_resp["state"],
             "redirect_uri": msg["authorization"]["request"]["redirect_uri"],
             "grant_type": "authorization_code",
-            "client_id": self.client.get_client_id(),
-            "client_secret": _context.get_usage("client_secret"),
+            "client_id": self.client.get_client_id(client_context),
+            "client_secret": client_context.get_usage("client_secret"),
         }
 
         return req_args
@@ -264,6 +270,16 @@ class Flow(object):
             req_args = func(msg)
             msg[request] = self.do_query(request, response, req_args, msg)
         return msg
+
+
+def interchange_keys(server, client):
+    server_entity_id = server.context.entity_id
+    client.context[server_entity_id].keyjar.import_jwks(server.context.keyjar.export_jwks(issuer_id=server_entity_id),
+                                          server_entity_id)
+
+    client_keyjar = client.context[server_entity_id].keyjar
+    client_entity_id = client.context[server_entity_id].entity_id
+    server.context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_entity_id), issuer_id=client_entity_id)
 
 
 def test_pkce():
@@ -291,8 +307,12 @@ def test_pkce():
         services=_OAUTH2_SERVICES,
     )
 
+    _context = client.add_new_context(server.context.entity_id)
+
     server.context.cdb["client"] = CLIENT_CONFIG
     server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
+
+    interchange_keys(server, client)
 
     server.context.set_provider_info()
 
@@ -335,6 +355,10 @@ def test_jar():
 
     server.context.cdb["client"] = CLIENT_CONFIG
     server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
+
+    _context = client.add_new_context(server.context.entity_id)
+
+    interchange_keys(server, client)
 
     server.context.set_provider_info()
 

@@ -5,7 +5,7 @@ from idpyoidc.message.oauth2 import TokenIntrospectionResponse
 from idpyoidc.message.oidc import OpenIDSchema
 
 
-def pre_construct(response_args, request, context, **kwargs):
+def pre_construct(context, response_args, request, **kwargs):
     """
     Add extra arguments to the request.
 

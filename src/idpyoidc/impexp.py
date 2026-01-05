@@ -45,6 +45,7 @@ class ImpExp:
         pass
 
     def dump_attr(self, cls, item, exclude_attributes: Optional[List[str]] = None) -> dict:
+        val = None
         if VERBOSE:
             logger.debug(f"dump_attr:: cls: {cls}, item: {item}")
         if cls in [None, 0, "", bool]:
@@ -85,7 +86,11 @@ class ImpExp:
             if len(cls) != 0:
                 val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
             else:
-                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
+#                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
+                val = []
+                for v in item:
+                    _type = type2cls(v)
+                    val.append(self.dump_attr(_type, v, exclude_attributes))
         elif inspect.isclass(cls):
             if VERBOSE:
                 logger.debug(f"class instance: {cls}")

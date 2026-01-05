@@ -201,7 +201,7 @@ def add_support(context, services, dpop_signing_alg_values_supported, with_dpop_
 class DPoPClientAuth(BearerHeader):
     tag = "dpop_client_auth"
 
-    def construct(self, request=None, service=None, http_args=None, **kwargs):
+    def construct(self, context, request=None, service=None, http_args=None, **kwargs):
         """
         Constructing the Authorization header. The value of
         the Authorization header is "Bearer <access_token>".
@@ -215,7 +215,7 @@ class DPoPClientAuth(BearerHeader):
 
         _token_type = "access_token"
 
-        _token_info = find_token_info(request, _token_type, service, **kwargs)
+        _token_info = find_token_info(context, request, _token_type, service, **kwargs)
 
         if not _token_info:
             raise KeyError("No bearer token available")

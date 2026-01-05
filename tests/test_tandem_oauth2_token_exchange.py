@@ -106,9 +106,9 @@ class TestEndpoint(object):
             ],
             "cookie_handler": {
                 "class": CookieHandler,
-                "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
+                "kwargs": {"keys": {"key_defs": DEFAULT_KEY_DEFS}},
             },
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"uri_path": "jwks.json", "key_defs": DEFAULT_KEY_DEFS},
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",
@@ -222,12 +222,11 @@ class TestEndpoint(object):
             services=_OAUTH2_SERVICES,
         )
 
+        self.client_context_1 = self.client_1.add_new_context(self.context.entity_id)
+        self.client_context_2 = self.client_2.add_new_context(self.context.entity_id)
+
         self.context.cdb["client_1"] = client_1_config
         self.context.cdb["client_2"] = client_2_config
-        # self.context.keyjar = import_jwks(self.context.keyjar, self.client_1.keyjar.export_jwks(),
-        #                                   "client_1")
-        # self.context.keyjar = import_jwks(self.context.keyjar, self.client_2.keyjar.export_jwks(),
-        #                                   "client_2")
 
         self.context.set_provider_info()
 
@@ -237,8 +236,8 @@ class TestEndpoint(object):
         self.user_id = "diana"
 
     def do_query(self, service_type, endpoint_type, request_args, state):
-        _client = self.client_1.get_service(self.context, service_type)
-        req_info = _client.get_request_parameters(request_args=request_args)
+        _client = self.client_1.get_service(self.client_context_1, service_type)
+        req_info = _client.get_request_parameters(self.client_context_1, request_args=request_args)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -264,8 +263,8 @@ class TestEndpoint(object):
 
         _response = _server.do_response(**_resp)
 
-        resp = _client.parse_response(_response["response"])
-        _client.update_service_context(_resp["response_args"], key=state)
+        resp = _client.parse_response(self.client_context_1, _response["response"])
+        _client.update_service_context(self.client_context_1, _resp["response_args"], key=state)
         return areq, resp
 
     def process_setup(self, token=None, scope=None):
@@ -275,7 +274,7 @@ class TestEndpoint(object):
 
         # ***** Authorization Request **********
         _nonce = (rndstr(24),)
-        _context = self.client_1.get_context(self.server.entity_id)
+        _context = self.client_context_1
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
@@ -301,8 +300,8 @@ class TestEndpoint(object):
             "state": auth_response["state"],
             "redirect_uri": areq["redirect_uri"],
             "grant_type": "authorization_code",
-            "client_id": self.client_1.get_client_id(),
-            "client_secret": _context.get_usage("client_secret"),
+            "client_id": self.client_1.get_client_id(self.client_context_1, ),
+            "client_secret": self.client_context_1.get_usage("client_secret"),
         }
 
         _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)

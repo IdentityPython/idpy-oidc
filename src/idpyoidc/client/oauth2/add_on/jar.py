@@ -63,10 +63,10 @@ def jar_post_construct(context, request_args, service, **kwargs):
         else:
             kwargs["local_dir"] = kwargs.get("requests_dir", "./requests")
 
-        _req = construct_request_parameter(service, request_args, _request_param, **kwargs)
+        _req = construct_request_parameter(context, service, request_args, _request_param, **kwargs)
         request_args["request_uri"] = store_request_on_file(context, service, _req, **kwargs)
     elif _request_param == "request":
-        _req = construct_request_parameter(service, request_args, **kwargs)
+        _req = construct_request_parameter(context, service, request_args, **kwargs)
         request_args["request"] = _req
 
     if _req:

@@ -149,7 +149,7 @@ def add_padding(b):
     return b
 
 
-def userinfo_post_parse_request(request, client_id, context, auth_info, **kwargs):
+def userinfo_post_parse_request(context, request, client_id, auth_info, **kwargs):
     """
     Expect http_info attribute in kwargs. http_info should be a dictionary
     containing HTTP information.
@@ -226,10 +226,10 @@ def token_args(context, client_id, token_args: Optional[dict] = None):
 def _add_to_context(context, endpoint, algs_supported):
     context.provider_info["dpop_signing_alg_values_supported"] = algs_supported
     context.add_on["dpop"] = {"algs_supported": algs_supported}
-    context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get)
+    context.client_authn_methods["dpop"] = DPoPClientAuth(endpoint.upstream_get, context)
 
 
-def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None,
+def add_support(context, endpoint: dict, dpop_signing_alg_values_supported=None, dpop_endpoints=None,
                 **kwargs):
     if dpop_signing_alg_values_supported is None:
         _algs_supported = ["RS256"]
@@ -247,7 +247,7 @@ def add_support(endpoint: dict, dpop_signing_alg_values_supported=None, dpop_end
         _endpoint = endpoint.get(_dpop_endpoint, None)
         if _endpoint:
             if not _added_to_context:
-                _add_to_context(_endpoint, _algs_supported)
+                _add_to_context(context, _endpoint, _algs_supported)
                 _added_to_context = True
 
             _endpoint.post_parse_request.append(userinfo_post_parse_request)

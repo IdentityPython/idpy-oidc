@@ -5,10 +5,9 @@ import pytest
 import yaml
 from cryptojwt import JWT
 from cryptojwt.jwt import remove_jwt_parameters
-from cryptojwt.key_jar import init_key_jar
+from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.key_import import import_jwks
-from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server import Server
@@ -38,6 +37,23 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]}
     # {"type": "EC", "crv": "P-256", "use": ["sig"]}
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -170,11 +186,8 @@ class TestEndpoint(object):
         context = server.context
         _clients = yaml.safe_load(io.StringIO(client_yaml))
         context.cdb = verify_oidc_client_information(_clients["oidc_clients"])
-        server.keyjar = store_under_other_id(server.keyjar, "", conf["issuer"], True)
 
-        self.rp_keyjar = init_key_jar(key_defs=KEYDEFS, issuer_id="s6BhdRkqt3")
-        # Add RP's keys to the OP's keyjar
-        server.keyjar = import_jwks(server.keyjar, self.rp_keyjar.export_jwks(issuer_id="s6BhdRkqt3"), "s6BhdRkqt3")
+        self.rp_keyjar = key_setup(context, "s6BhdRkqt3")
 
         self.pushed_authorization_endpoint = server.get_endpoint("pushed_authorization")
         self.authorization_endpoint = server.get_endpoint("authorization")

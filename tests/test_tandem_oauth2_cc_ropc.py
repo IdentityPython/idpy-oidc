@@ -118,10 +118,10 @@ def test_ropc():
     # Client side
 
     client = Client(config=CLIENT_CONFIG, services=CLIENT_SERVICES)
-    client.get_service("resource_owner_password_credentials").endpoint = "https://example.com/token"
-
-    service = client.get_service("resource_owner_password_credentials")
+    service = client.get_service(client.context[''], "resource_owner_password_credentials")
+    service.endpoint = "https://example.com/token"
     client_request_info = service.get_request_parameters(
+        client.context[''],
         request_args={"username": "diana", "password": "krall"}
     )
 

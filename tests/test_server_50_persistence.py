@@ -4,8 +4,10 @@ import shutil
 
 import pytest
 from cryptojwt.jwt import utc_time_sans_frac
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.key_import import import_jwks
 from idpyoidc.key_import import import_jwks_as_json
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
@@ -29,6 +31,26 @@ KEYDEFS = [
     {"type": "RSA", "key": "", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
 ]
+
+CLIENT_KEYJAR = build_keyjar(KEYDEFS)
+CLIENT_ID = "client_1"
+
+
+def key_setup(context, client_id, client_secret=""):
+    client_keyjar = CLIENT_KEYJAR
+    client_keyjar = import_jwks(client_keyjar, client_keyjar.export_jwks(private=True), client_id)
+
+    # server gets clients keys
+    context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_id), issuer=client_id)
+    # client get servers keys
+    client_keyjar.import_jwks(context.keyjar.export_jwks(issuer_id=context.entity_id), issuer=context.entity_id)
+
+    if client_secret:
+        client_keyjar.add_symmetric(client_id, client_secret, ["sig"])
+        context.keyjar.add_symmetric(client_id, client_secret, ["sig"])
+
+    return client_keyjar
+
 
 RESPONSE_TYPES_SUPPORTED = [
     ["code"],
@@ -221,7 +243,7 @@ class TestEndpoint(object):
         except FileNotFoundError:
             pass
 
-        # Both have to use the same keyjar
+        # Since the servers are supposed to be identical both have to use the same keyjar
         _keyjar = init_key_jar(key_defs=KEYDEFS)
         _keyjar = import_jwks_as_json(_keyjar,
                                       _keyjar.export_jwks_as_json(True, ""),
@@ -300,6 +322,12 @@ class TestEndpoint(object):
         }
         self.user_id = "diana"
 
+        self.client_key_1 = key_setup(server1.context, "client_1", "hemligt")
+        self.client_key_2 = key_setup(server1.context, "client_2", "hemligt")
+
+        server2.context.keyjar.import_jwks(self.client_key_1.export_jwks(issuer_id="client_1"), issuer_id="client_1")
+        server2.context.keyjar.import_jwks(self.client_key_2.export_jwks(issuer_id="client_2"), issuer_id="client_2")
+
     def _create_session(self, auth_req, sub_type="public", sector_identifier="", index=1):
         if sector_identifier:
             authz_req = auth_req.copy()
@@ -315,8 +343,8 @@ class TestEndpoint(object):
     def _mint_code(self, grant, session_id, index=1):
         # Constructing an authorization code is now done
         _code = grant.mint_token(
-            session_id,
             context=self.endpoint[index].upstream_get("context"),
+            session_id=session_id,
             token_class="authorization_code",
             token_handler=self.session_manager[index].token_handler["authorization_code"],
         )

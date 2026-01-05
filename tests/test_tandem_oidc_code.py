@@ -195,9 +195,15 @@ class TestFlow(object):
         # self.session_manager = self.context.session_manager
         # self.user_id = "diana"
 
+        self.rp_context = self.rp.add_new_context(self.context.entity_id)
+        self.rp_context.keyjar.import_jwks(self.context.keyjar.export_jwks(issuer_id=self.context.entity_id),
+                                           issuer=self.context.entity_id)
+        self.context.keyjar.import_jwks(self.rp_context.keyjar.export_jwks(issuer_id=self.rp_context.client_id),
+                                        issuer=self.rp_context.client_id)
+
     def do_query(self, service_type, endpoint_type, request_args, state):
-        _client_service = self.rp.get_service(service_type)
-        req_info = _client_service.get_request_parameters(request_args=request_args, state=state)
+        _client_service = self.rp.get_service(self.rp_context, service_type)
+        req_info = _client_service.get_request_parameters(self.rp_context, request_args=request_args, state=state)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -225,8 +231,8 @@ class TestFlow(object):
 
         _response = _server_endpoint.do_response(**_resp)
 
-        resp = _client_service.parse_response(_response["response"], state=state)
-        _client_service.update_service_context(_resp["response_args"], key=state)
+        resp = _client_service.parse_response(self.rp_context, _response["response"], state=state)
+        _client_service.update_service_context(self.rp_context, _resp["response_args"], key=state)
         # Fake key import
         if service_type == "provider_info":
             _keyjar = _client_service.upstream_get("attribute", "keyjar")
@@ -247,17 +253,16 @@ class TestFlow(object):
         # ***** Authorization Request **********
 
         _nonce = rndstr(24)
-        _context = self.rp.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.cstate.create_state(iss=_context.get("issuer"))
-        _context.cstate.bind_key(_nonce, _state)
+        _state = self.rp_context.cstate.create_state(iss=self.rp_context.get("issuer"))
+        self.rp_context.cstate.bind_key(_nonce, _state)
 
         req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
         if scope:
             _scope = scope
         else:
-            _scope = _context.claims.get_usage("scope", None)
+            _scope = self.rp_context.claims.get_usage("scope", None)
             if not _scope:
                 if token:
                     if isinstance(token, list) and list(token.keys())[0] == "refresh_token":
@@ -276,8 +281,8 @@ class TestFlow(object):
             "state": auth_response["state"],
             "redirect_uri": areq["redirect_uri"],
             "grant_type": "authorization_code",
-            "client_id": self.rp.get_client_id(),
-            "client_secret": _context.get_usage("client_secret"),
+            "client_id": self.rp.get_client_id(self.rp_context),
+            "client_secret": self.rp_context.get_usage("client_secret"),
         }
 
         _token_request, resp = self.do_query("accesstoken", "token", req_args, _state)

@@ -3,8 +3,10 @@ import os
 from cryptojwt.jwk.ec import ECKey
 from cryptojwt.jwk.ec import new_ec_key
 from cryptojwt.jws.jws import factory
+from cryptojwt.key_jar import build_keyjar
 from cryptojwt.key_jar import init_key_jar
 import pytest
+from idpyoidc.key_import import import_jwks
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.oauth2 import Client
@@ -61,8 +63,8 @@ def test_verify_header():
 
 ISSUER = "https://example.com/"
 
-KEYJAR = init_key_jar(key_defs=DEFAULT_KEY_DEFS, issuer_id=ISSUER)
-KEYJAR = store_under_other_id(KEYJAR, ISSUER, "", True)
+CLIENT_ID = "client_1"
+
 
 AUTH_REQ = AuthorizationRequest(
     scope=["openid"],
@@ -70,7 +72,7 @@ AUTH_REQ = AuthorizationRequest(
 )
 
 TOKEN_REQ = AccessTokenRequest(
-    client_id="client_1",
+    client_id=CLIENT_ID,
     redirect_uri="https://example.com/cb",
     state="STATE",
     grant_type="authorization_code",
@@ -82,7 +84,7 @@ BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 def create_client():
     config = {
-        "client_id": "client_1",
+        "client_id": CLIENT_ID,
         "client_secret": "a longesh password",
         "redirect_uris": ["https://example.com/cli/authz_cb"],
         "preference": {"response_types": ["code"]},
@@ -114,7 +116,7 @@ def create_client():
         public_path="{}/pub_client.jwks".format(_dirname),
         private_path="{}/priv_client.jwks".format(_dirname),
         key_defs=DEFAULT_KEY_DEFS,
-        issuer_id="client_id",
+        issuer_id=CLIENT_ID,
     )
 
     client = Client(keyjar=CLI_KEY, config=config, services=services)
@@ -229,9 +231,8 @@ def create_server():
         },
         "session_params": SESSION_PARAMS,
     }
-    server = Server(OPConfiguration(conf, base_path=BASEDIR), keyjar=KEYJAR)
+    server = Server(OPConfiguration(conf, base_path=BASEDIR))
     return server
-
 
 class TestEndpoint(object):
     @pytest.fixture(autouse=True)
@@ -243,10 +244,18 @@ class TestEndpoint(object):
 
         self.client = create_client()
         self.context = self.server.context
-        self.context.cdb["client_1"] = self.client.context.prefers()
+
+        # server gets clients keys
+        self.context.keyjar.import_jwks(self.client.keyjar.export_jwks(issuer_id=CLIENT_ID), issuer=CLIENT_ID)
+        # client get servers keys
+        self.client.keyjar.import_jwks(self.context.keyjar.export_jwks(issuer_id=self.context.entity_id),
+                                       issuer=self.context.entity_id)
+
+#         self.context.cdb[CLIENT_ID] = self.client.context[self.context.entity_id].prefers()
+        self.context.cdb[CLIENT_ID] = self.client.context[''].prefers()
         self.session_manager = self.context.session_manager
 
-        self.authz_service = self.client.get_service("authorization")
+        self.authz_service = self.client.get_service(self.client.context[''], "authorization")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -273,28 +282,29 @@ class TestEndpoint(object):
         )
 
     def _access_token_request_response(self):
+        context = self.client.context['']
         # Authz
         auth_req = AUTH_REQ.copy()
         auth_req["client_id"] = self.client.client_id
-        _redirect_uri = self.client.context.claims.get_preference("redirect_uris")[0]
+        _redirect_uri = context.claims.get_preference("redirect_uris")[0]
         auth_req["redirect_uri"] = _redirect_uri
-        _context = self.client.context
-        auth_req["state"] = _context.cstate.create_state(iss=_context.get("issuer"))
+
+        auth_req["state"] = context.cstate.create_state(iss=context.get("issuer"))
         session_id = self._create_session(auth_req)
         # Consent handling
         grant = self.token_endpoint.upstream_get("endpoint_context").authz(session_id, auth_req)
         self.session_manager[session_id] = grant
         code = self._mint_token("authorization_code", grant, session_id)
-        _context.cstate.update(auth_req["state"], auth_req)
+        context.cstate.update(auth_req["state"], auth_req)
 
         # Access token request from the RP
-        token_serv = self.client.get_service("accesstoken")
+        token_serv = self.client.get_service(context, "accesstoken")
         req_args = {
             "grant_type": "authorization_code",
             "code": code.value,
             "redirect_uri": _redirect_uri
         }
-        req_info = token_serv.get_request_parameters(request_args=req_args, state=auth_req["state"])
+        req_info = token_serv.get_request_parameters(context, request_args=req_args, state=auth_req["state"])
         assert "headers" in req_info
         assert "dpop" in req_info["headers"]
 
@@ -303,7 +313,7 @@ class TestEndpoint(object):
             req_args,
             http_info={"headers": req_info["headers"], "url": _redirect_uri, "method": "POST"})
         resp = self.token_endpoint.process_request(req)
-        _context.cstate.update(auth_req["state"], resp["response_args"])
+        context.cstate.update(auth_req["state"], resp["response_args"])
         return resp, auth_req["state"]
 
     def test_post_parse_request(self):
@@ -315,8 +325,8 @@ class TestEndpoint(object):
         _response, state = self._access_token_request_response()
 
         # The RP creates the user info request
-        _user_info_service = self.client.get_service("userinfo")
-        _request = _user_info_service.get_request_parameters(state=state, authn_method="dpop")
+        _user_info_service = self.client.get_service(self.client.context[''],"userinfo")
+        _request = _user_info_service.get_request_parameters(self.client.context[''],state=state, authn_method="dpop")
 
         http_info = {
             "headers": _request["headers"],

@@ -293,7 +293,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
                 f"Unsupported default requested_token_type {_default_requested_token_type}"
             )
 
-    def get_handler_key(self, request, endpoint_context):
+    def get_handler_key(self, endpoint_context, request):
         client_info = endpoint_context.cdb.get(request["client_id"], {})
 
         default_requested_token_type = client_info.get("token_exchange", {}).get(

@@ -139,10 +139,13 @@ class TestClient(object):
         self.context = self.server.context
         self.context.cdb["client_1"] = client_conf
         self.context.keyjar = import_jwks(self.context.keyjar, self.client.keyjar.export_jwks(), "client_1")
+        # Connecting the client to the server
+        self.client_context = self.client.add_new_context(self.context.entity_id)
+
 
     def do_query(self, service_type, endpoint_type, request_args, state):
-        _client = self.client.get_service(service_type)
-        req_info = _client.get_request_parameters(request_args=request_args)
+        _client = self.client.get_service(self.client_context, service_type)
+        req_info = _client.get_request_parameters(self.client_context, request_args=request_args)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -170,9 +173,9 @@ class TestClient(object):
 
         _response = _server.do_response(**_resp)
 
-        resp = _client.parse_response(_response["response"])
+        resp = _client.parse_response(self.client_context, _response["response"])
         if "response_args" in _resp:
-            _client.update_service_context(_resp["response_args"], key=state)
+            _client.update_service_context(self.client_context, _resp["response_args"], key=state)
 
         return areq, resp
 
@@ -182,12 +185,11 @@ class TestClient(object):
         _req, _resp = self.do_query("server_metadata", "server_metadata", {}, "")
 
         # ***** Authorization Request **********
-        _context = self.client.get_service_context()
         # Need a new state for a new authorization request
-        _state = _context.cstate.create_state(iss=_context.get("issuer"))
+        _state = self.client_context.cstate.create_state(iss=self.client_context.get("issuer"))
         _nonce = (rndstr(24),)
         # bind nonce to state
-        _context.cstate.bind_key(_nonce, _state)
+        self.client_context.cstate.bind_key(_nonce, _state)
 
         req_args = {"response_type": ["code"], "nonce": _nonce, "state": _state}
 
@@ -218,8 +220,7 @@ class TestClient(object):
     def test_revoke(self):
         resp, _state, _scope = self.process_setup()
 
-        _context = self.client.get_context()
-        _state = _context.cstate.get(_state)
+        _state = self.client_context.cstate.get(_state)
 
         req_args = {"token": _state["access_token"], "token_type_hint": "access_token"}
 

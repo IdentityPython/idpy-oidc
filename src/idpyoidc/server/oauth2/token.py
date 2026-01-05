@@ -165,7 +165,7 @@ class Token(Endpoint):
         _access_token = response_args["access_token"]
 
         if isinstance(_helper, self.token_exchange_helper):
-            _handler_key = _helper.get_handler_key(request)
+            _handler_key = _helper.get_handler_key(self.context, request)
         else:
             _handler_key = "access_token"
 
