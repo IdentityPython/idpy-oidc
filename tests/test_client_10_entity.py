@@ -3,8 +3,10 @@ import os
 
 import pytest
 import responses
+from idpyoidc.client.service_context import ServiceContext
 
 from idpyoidc.client.entity import Entity
+from idpyoidc.util import get_client_keyjar
 
 KEYSPEC = [{"type": "RSA", "use": ["sig"]}]
 
@@ -22,8 +24,9 @@ class TestClientInfo(object):
         self.entity = Entity(config=config)
 
     def test_import_keys_file(self):
-        # Should only be one, a symmetric key (client_secret)
-        assert len(self.entity.keyjar.get_issuer_keys("")) == 1
+        keyjar = get_client_keyjar(self.entity, '')
+        #
+        assert len(keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
 
@@ -31,11 +34,12 @@ class TestClientInfo(object):
         self.entity.import_keys(keyspec)
 
         # Now there should be 3, 2 RSA keys
-        assert len(self.entity.keyjar.get_issuer_keys("")) == 2
+        assert len(keyjar.get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):
+        keyjar = get_client_keyjar(self.entity)
         # Uses 2 variants of getting hold of the keyjar
-        assert len(self.entity.keyjar.get_issuer_keys("")) == 1
+        assert len(keyjar.get_issuer_keys("")) == 1
 
         with responses.RequestsMock() as rsps:
             _jwks_url = "https://foobar.com/jwks.json"
@@ -51,23 +55,24 @@ class TestClientInfo(object):
 
             # Now there should be one belonging to https://example.com
             assert (
-                len(self.entity.get_attribute("keyjar").get_issuer_keys("https://foobar.com")) == 1
+                len(keyjar.get_issuer_keys("https://foobar.com")) == 1
             )
 
     def test_import_keys_file_json(self):
+        keyjar = get_client_keyjar(self.entity, '')
         # Should only be one and that a symmetric key (client_secret) usable
         # for signing and encryption
-        assert len(self.entity.keyjar.get_issuer_keys("")) == 1
+        assert len(keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
 
         keyspec = {"file": {"rsa": [file_path]}}
         self.entity.import_keys(keyspec)
 
-        _entity_state = self.entity.dump(exclude_attributes=["context"])
+        _entity_state = self.entity.dump()
         _jsc_state = json.dumps(_entity_state)
         _o_state = json.loads(_jsc_state)
         _entity = Entity().load(_o_state)
 
-        # Now there should be 2, the second a RSA key for signing
-        assert len(_entity.keyjar.get_issuer_keys("")) == 2
+        # Now there should be 2, the second an RSA key for signing
+        assert len(get_client_keyjar(_entity).get_issuer_keys("")) == 2

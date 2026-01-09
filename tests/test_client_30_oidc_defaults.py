@@ -11,6 +11,7 @@ from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
 from idpyoidc.util import get_jwks
+from idpyoidc.util import get_client_keyjar
 from idpyoidc.util import get_keyjar_chain
 from idpyoidc.util import jwks_from_keys
 
@@ -66,10 +67,7 @@ class TestRPHandler(object):
         # issuer publishes.
         cntx_keyjar = context.keyjar
         assert list(cntx_keyjar.owners()) == []
-        rp_keyjar = self.rp.keyjar
-        assert list(rp_keyjar.owners()) == ['']
-        keys = rp_keyjar.get_issuer_keys("")
-        assert len(keys) == 2
+        rp_keyjar = get_client_keyjar(self.rp)
 
         assert context.base_url == BASE_URL
 

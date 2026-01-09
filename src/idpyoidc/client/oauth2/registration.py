@@ -10,6 +10,8 @@ from idpyoidc.message.oauth2 import ResponseMessage
 
 __author__ = "Roland Hedberg"
 
+from idpyoidc.util import get_client_keyjar
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +70,7 @@ class Registration(Service):
         _client_id = context.get_usage("client_id")
         if _client_id:
             context.client_id = _client_id
-            _keyjar = self.upstream_get("attribute", "keyjar")
+            _keyjar = context.keyjar
             if _keyjar:
                 if _client_id not in _keyjar:
                     _keyjar = store_under_other_id(_keyjar, "", _client_id, True)

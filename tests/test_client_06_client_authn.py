@@ -32,6 +32,7 @@ from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import ResourceRequest
+from idpyoidc.util import get_client_keyjar
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 CLIENT_ID = "A"
@@ -393,7 +394,7 @@ class TestPrivateKeyJWT(object):
             key.add_kid()
 
         _context = token_service.upstream_get("context")
-        _keyjar = token_service.upstream_get("attribute", "keyjar")
+        _keyjar = _context.keyjar
         _keyjar.add_kb("", kb_rsa)
         _context.provider_info = {
             "issuer": "https://example.com/",
@@ -443,14 +444,12 @@ class TestClientSecretJWTTE(object):
 
     @pytest.fixture(autouse=True)
     def entity(self):
-        keyjar = init_key_jar(**KEY_CONF)
         self.entity = Entity(
             config=CLIENT_CONF,
             services={
                 "base": {"class": "idpyoidc.client.service.Service"},
                 "accesstoken": {"class": "idpyoidc.client.oidc.access_token.AccessToken", "kwargs": {}},
             },
-            keyjar=keyjar,
             client_type="oidc",
         )
         # The following two lines is necessary since they replace provider info collection and
@@ -458,6 +457,11 @@ class TestClientSecretJWTTE(object):
         self.entity.context[''].map_supported_to_preferred()
         self.entity.context[''].map_preferred_to_registered()
         self.context = self.entity.context['']
+
+        client_secret = 'rimligtlangaordnar'
+        self.context.set_usage("client_secret", client_secret)
+        self.context.keyjar.add_symmetric(issuer_id="", key=client_secret, usage=['sig'])
+        self.context.keyjar.add_symmetric(issuer_id=self.entity.entity_id, key=client_secret, usage=['sig'])
 
     def test_client_secret_jwt(self):
         self.context.token_endpoint = "https://example.com/token"
@@ -480,9 +484,8 @@ class TestClientSecretJWTTE(object):
         cas = request["client_assertion"]
 
         _kj = KeyJar()
-        _kj.add_symmetric(
-            self.context.get_client_id(), self.context.get_usage("client_secret"), ["sig"]
-        )
+        _kj.import_jwks(self.context.keyjar.export_jwks(issuer_id=''), 'A')
+
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "exp", "iat", "jti"])
 
@@ -563,10 +566,11 @@ class TestClientSecretJWTTE(object):
         # Since I have an RSA key this doesn't fail
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint")
 
-        _rsa_key = self.entity.keyjar.get(key_use="sig", key_type="rsa", issuer_id="")[0]
+        keyjar = get_client_keyjar(self.entity, self.context.server_entity_id)
+        _rsa_key = keyjar.get(key_use="sig", key_type="rsa", issuer_id="")[0]
         _jws = factory(request["client_assertion"])
         assert _jws.jwt.headers["alg"] == "RS256"
-        _rsa_key = self.entity.keyjar.get_signing_key(key_type="RSA")[0]
+        _rsa_key = keyjar.get_signing_key(key_type="RSA")[0]
         assert _jws.jwt.headers["kid"] == _rsa_key.kid
 
         # By client preferences
@@ -587,11 +591,11 @@ class TestClientSecretJWTTE(object):
         ]
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint")
 
-        _ec_key = self.entity.keyjar.get(key_use="sig", key_type="ec", issuer_id="")[0]
+        _ec_key = keyjar.get(key_use="sig", key_type="ec", issuer_id="")[0]
         _jws = factory(request["client_assertion"])
         # Should be ES256 since I have a key for ES256
         assert _jws.jwt.headers["alg"] == "ES256"
-        _ec_key = self.entity.keyjar.get_signing_key(key_type="EC")[0]
+        _ec_key = keyjar.get_signing_key(key_type="EC")[0]
         assert _jws.jwt.headers["kid"] == _ec_key.kid
 
 
@@ -615,6 +619,12 @@ class TestClientSecretJWT_UI(object):
         self.entity.context[''].map_preferred_to_registered()
         self.context = self.entity.context['']
 
+        client_secret = 'rimligtlangaordnar'
+        self.context.set_usage("client_secret", client_secret)
+        self.context.keyjar.add_symmetric(issuer_id="", key=client_secret, usage=['sig'])
+        self.context.keyjar.add_symmetric(issuer_id=self.entity.entity_id, key=client_secret, usage=['sig'])
+
+
     def test_client_secret_jwt(self):
         access_token_service = self.entity.get_service(self.context, "")
 
@@ -636,11 +646,7 @@ class TestClientSecretJWT_UI(object):
         cas = request["client_assertion"]
 
         _kj = KeyJar()
-        _kj.add_symmetric(
-            self.context.get_client_id(),
-            self.context.get_usage("client_secret"),
-            usage=["sig"],
-        )
+        _kj.import_jwks(self.context.keyjar.export_jwks(''), 'A')
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
 

@@ -118,7 +118,7 @@ class TestEndpoint(object):
                     },
                 },
             },
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",

@@ -10,6 +10,8 @@ from idpyoidc.message.oauth2 import ResponseMessage
 
 __author__ = "Roland Hedberg"
 
+from idpyoidc.util import get_client_keyjar
+
 logger = logging.getLogger(__name__)
 
 
@@ -71,28 +73,23 @@ class Registration(Service):
         _client_id = context.get_usage("client_id")
         if _client_id:
             context.client_id = _client_id
-            _keyjar = self.upstream_get("attribute", "keyjar")
-            if _keyjar:
+            _keyjar = context.keyjar
+            if _keyjar is not None:
                 if _client_id not in _keyjar:
                     _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(True, ""), _client_id)
             _client_secret = context.get_usage("client_secret")
             if _client_secret:
-                if not _keyjar:
-                    _entity = self.upstream_get("unit")
-                    _keyjar = _entity.keyjar = KeyJar()
+                if _keyjar is None:
+                    _keyjar = get_client_keyjar(self, context.server_entity_id)
 
                 context.client_secret = _client_secret
                 _keyjar.add_symmetric("", _client_secret)
                 _keyjar.add_symmetric(_client_id, _client_secret)
-                try:
+                if "client_secret_expires_at" in resp:
                     context.set_usage("client_secret_expires_at", resp["client_secret_expires_at"])
-                except KeyError:
-                    pass
 
-        try:
+        if 'registration_access_token' in resp:
             context.set_usage("registration_access_token", resp["registration_access_token"])
-        except KeyError:
-            pass
 
     def gather_request_args(self, context, **kwargs):
         """

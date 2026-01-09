@@ -7,6 +7,7 @@ from cryptojwt.jwt import utc_time_sans_frac
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import make_openid_request
+from idpyoidc.util import get_client_keyjar
 from idpyoidc.util import rndstr
 
 DEFAULT_EXPIRES_IN = 3600
@@ -113,7 +114,7 @@ def construct_request_parameter(context, service, req, audience=None, **kwargs):
     kwargs["request_object_signing_alg"] = alg
 
     if "keys" not in kwargs and alg and alg != "none":
-        kwargs["keys"] = service.upstream_get("attribute", "keyjar")
+        kwargs["keys"] = get_client_keyjar(service)
 
     if alg == "none":
         kwargs["keys"] = []
@@ -140,7 +141,7 @@ def construct_request_parameter(context, service, req, audience=None, **kwargs):
     _expires_in = kwargs.get("expires_in", DEFAULT_EXPIRES_IN)
     req["exp"] = utc_time_sans_frac() + int(_expires_in)
 
-    kwargs["with_jti"] = kwargs.get("with_jti",True)
+    kwargs["with_jti"] = kwargs.get("with_jti", True)
 
     _enc_enc = kwargs.get("request_object_encryption_enc", "")
     if not _enc_enc:
@@ -173,6 +174,6 @@ def construct_request_parameter(context, service, req, audience=None, **kwargs):
 
     # Should the request be encrypted
     _req_jwte = request_object_encryption(
-        _req_jwt, context, service.upstream_get("attribute", "keyjar"), **kwargs
+        _req_jwt, context, context.keyjar, **kwargs
     )
     return _req_jwte

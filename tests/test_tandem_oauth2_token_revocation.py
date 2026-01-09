@@ -32,7 +32,7 @@ class TestClient(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "endpoint": {
                 "discovery": {
                     "path": "/.well-known/oauth-authorization-server",
@@ -138,7 +138,9 @@ class TestClient(object):
         # ------- tell the server about the client ----------------
         self.context = self.server.context
         self.context.cdb["client_1"] = client_conf
-        self.context.keyjar = import_jwks(self.context.keyjar, self.client.keyjar.export_jwks(), "client_1")
+        self.context.keyjar = import_jwks(self.context.keyjar,
+                                          self.client.context[''].keyjar.export_jwks(),
+                                          "client_1")
         # Connecting the client to the server
         self.client_context = self.client.add_new_context(self.context.entity_id)
 

@@ -33,3 +33,4 @@ class OidcContext(ImpExp):
                 self.entity_id = val
             else:
                 self.entity_id = ""
+        self.keyjar = None

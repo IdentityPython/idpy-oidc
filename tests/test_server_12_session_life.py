@@ -247,7 +247,7 @@ class TestSessionJWTToken:
             "grant_expires_in": 300,
             "refresh_token_expires_in": 86400,
             "capabilities": CAPABILITIES,
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600},

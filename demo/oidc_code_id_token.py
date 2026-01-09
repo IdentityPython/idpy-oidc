@@ -15,7 +15,7 @@ from oidc_server_conf import SERVER_CONF
 # ================ Server side ===================================
 
 server_conf = SERVER_CONF.copy()
-server_conf["key_conf"] = {"uri_path": "jwks.json", "key_defs": KEYDEFS}
+server_conf["key_conf"] = {"key_defs": KEYDEFS}
 server_conf["token_handler_args"]["key_conf"] = {"key_defs": KEYDEFS}
 
 del server_conf['endpoint']['userinfo']

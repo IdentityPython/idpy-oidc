@@ -45,6 +45,7 @@ from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import get_server_keyjar
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 
@@ -503,7 +504,7 @@ class Authorization(Endpoint):
             # Fetch the request
             _resp = context.httpc("GET", _request_uri, **context.httpc_params)
             if _resp.status_code == 200:
-                args = {"keyjar": self.upstream_get("attribute", "keyjar"), "issuer": client_id}
+                args = {"keyjar": get_server_keyjar(self), "issuer": client_id}
                 _ver_request = self.request_cls().from_jwt(_resp.text, **args)
                 self.allowed_request_algorithms(
                     client_id,

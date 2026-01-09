@@ -37,7 +37,7 @@ CONFIG = {
     "issuer": "https://example.net/",
     "httpc_params": {"verify": False},
     "preference": {"grant_types_supported": ["client_credentials", "password"]},
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, "read_only": False},
+    "keys": {"key_defs": KEYDEFS, "read_only": False},
     "token_handler_args": {
         "jwks_defs": {"key_defs": KEYDEFS},
         "token": {

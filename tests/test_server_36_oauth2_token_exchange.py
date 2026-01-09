@@ -101,7 +101,7 @@ class TestEndpoint(object):
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": COOKIE_KEYDEFS}},
             },
-            "keys": {"uri_path": "jwks.json", "key_defs": DEFAULT_KEY_DEFS},
+            "keys": {"key_defs": DEFAULT_KEY_DEFS},
             "endpoint": {
                 "authorization": {
                     "path": "authorization",

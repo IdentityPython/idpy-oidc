@@ -17,6 +17,7 @@ from idpyoidc.node import Node
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
+from idpyoidc.util import get_server_keyjar
 from idpyoidc.util import sanitize
 
 __author__ = "Roland Hedberg"
@@ -123,7 +124,7 @@ class Endpoint(Node):
         # By default the endpoint's endpoint URL is an allowed target
         self.allowed_targets = [self.name]
         self.client_verification_method = []
-        # self.context = upstream_get("context")
+        self.context = None
 
     def set_context(self, context):
         self.context = context
@@ -204,7 +205,7 @@ class Endpoint(Node):
         if http_info:
             LOGGER.info(f"HTTP info: {http_info}")
 
-        _keyjar = self.upstream_get("attribute", "keyjar")
+        _keyjar = get_server_keyjar(self)
 
         if http_info is None:
             http_info = {}

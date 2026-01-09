@@ -8,6 +8,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+from idpyoidc.util import get_client_keyjar
 
 BASE_URL = "https://example.com"
 
@@ -258,7 +259,7 @@ class TestClientInfo(object):
     def test_import_keys_file(self):
         # Should only be one and that a symmetric key (client_secret) usable
         # for signing and encryption
-        _keyjar = self.entity.keyjar
+        _keyjar = self.entity.context[''].keyjar
         assert len(_keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
@@ -276,7 +277,7 @@ class TestClientInfo(object):
     def test_import_keys_file_json(self):
         # Should only be one and that a symmetric key (client_secret) usable
         # for signing and encryption
-        _keyjar = self.entity.keyjar
+        _keyjar = self.entity.context[''].keyjar
         assert len(_keyjar.get_issuer_keys("")) == 1
 
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "salesforce.key"))
@@ -292,10 +293,10 @@ class TestClientInfo(object):
         )
 
         # Now there should be 2, the second a RSA key for signing
-        assert len(srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys("")) == 2
+        assert len(srvcntx.keyjar.get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):
-        _keyjar = self.service_context.upstream_get("attribute", "keyjar")
+        _keyjar = self.service_context.keyjar
         assert len(_keyjar.get_issuer_keys("")) == 1
 
         # One EC key for signing
@@ -322,11 +323,4 @@ class TestClientInfo(object):
             )
 
             # Now there should be one belonging to https://example.com
-            assert (
-                    len(
-                        srvcntx.upstream_get("attribute", "keyjar").get_issuer_keys(
-                            "https://foobar.com"
-                        )
-                    )
-                    == 1
-            )
+            assert len(get_client_keyjar(srvcntx).get_issuer_keys("https://foobar.com")) == 1

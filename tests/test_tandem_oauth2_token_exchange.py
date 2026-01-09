@@ -108,7 +108,7 @@ class TestEndpoint(object):
                 "class": CookieHandler,
                 "kwargs": {"keys": {"key_defs": DEFAULT_KEY_DEFS}},
             },
-            "keys": {"uri_path": "jwks.json", "key_defs": DEFAULT_KEY_DEFS},
+            "keys": {"key_defs": DEFAULT_KEY_DEFS},
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",

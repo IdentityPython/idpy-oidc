@@ -9,6 +9,7 @@ from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
+from idpyoidc.util import get_client_keyjar
 
 KEYSPEC = [
     {"type": "RSA", "use": ["sig"]},
@@ -73,7 +74,7 @@ class TestUserInfo(object):
             },
         }
 
-        _jwt = JWT(key_jar=self.service.upstream_get("attribute", "keyjar"))
+        _jwt = JWT(key_jar=get_client_keyjar(self.service))
         _jws = _jwt.pack(payload=_distributed_respone)
 
         resp = {

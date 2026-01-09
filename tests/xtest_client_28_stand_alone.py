@@ -17,6 +17,7 @@ from idpyoidc.message.oidc import IdToken
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationResponse
+from idpyoidc.util import get_client_keyjar
 
 ISSUER = "https://op.example.com"
 
@@ -41,6 +42,7 @@ def get_state_from_url(url):
 
 
 class TestStandAloneClientOIDCStatic(object):
+
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.client = StandAloneClient(config=STATIC_CONFIG)
@@ -154,6 +156,7 @@ OP_KEYS = build_keyjar(DEFAULT_KEY_DEFS)
 
 
 class TestStandAloneClientOIDCDynProviderInfo(object):
+
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.client = StandAloneClient(config=SEMI_DYN_CONFIG)
@@ -190,6 +193,7 @@ DYN_CONFIG = {
 
 
 class TestStandAloneClientOIDCDyn(object):
+
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.client = StandAloneClient(config=DYN_CONFIG)
@@ -320,6 +324,7 @@ def test_request_type_mode_4():
 
 
 class TestFinalizeAuth(object):
+
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.client = StandAloneClient(config=STATIC_CONFIG)
@@ -391,6 +396,7 @@ EXTENDED_STATIC_CONFIG = {
 
 
 class TestPostAuthn(object):
+
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.client = StandAloneClient(config=EXTENDED_STATIC_CONFIG)
@@ -415,7 +421,7 @@ class TestPostAuthn(object):
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": subject, "iss": _iss, "aud": _aud}
 
-        _keyjar = _context.upstream_get("attribute", "keyjar")
+        _keyjar = get_client_keyjar(_context)
         _keyjar = import_jwks(_keyjar, ISSUER_KEYS.export_jwks(issuer_id=ISSUER), ISSUER)
 
         idts = IdToken(**idval)

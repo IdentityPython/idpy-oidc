@@ -143,13 +143,7 @@ class Unit(ImpExp):
         if config is None:
             config = {}
 
-        self.keyjar = make_keyjar(keyjar, config, key_conf, issuer_id, client_id)
-
         self.httpc_params = httpc_params or config.get("httpc_params", {})
-
-        if self.keyjar:
-            self.keyjar.httpc = self.httpc
-            self.keyjar.httpc_params = self.httpc_params
 
     def unit_get(self, what, *arg):
         _func = getattr(self, f"get_{what}", None)

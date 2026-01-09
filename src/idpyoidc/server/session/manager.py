@@ -99,6 +99,7 @@ class SessionManager(GrantManager):
             remove_inactive_token: Optional[bool] = False,
             upstream_get: Optional[Callable] = None,
     ):
+        self.upstream_get = upstream_get
         self.conf = conf or {"session_params": {"encrypter": default_crypt_config()}}
         session_params = self.conf.get("session_params") or {}
         self.token_handler = self.create_token_handler(upstream_get, token_handler_args)

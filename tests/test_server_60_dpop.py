@@ -169,7 +169,7 @@ def create_server():
                 "kwargs": {"dpop_signing_alg_values_supported": ["ES256"]},
             },
         },
-        "keys": {"uri_path": "jwks.json", "key_defs": DEFAULT_KEY_DEFS},
+        "keys": {"key_defs": DEFAULT_KEY_DEFS},
         "token_handler_args": {
             "jwks_file": "private/token_jwks.json",
             "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
@@ -246,9 +246,10 @@ class TestEndpoint(object):
         self.context = self.server.context
 
         # server gets clients keys
-        self.context.keyjar.import_jwks(self.client.keyjar.export_jwks(issuer_id=CLIENT_ID), issuer=CLIENT_ID)
+        self.context.keyjar.import_jwks(self.client.context[''].keyjar.export_jwks(issuer_id=CLIENT_ID),
+                                        issuer=CLIENT_ID)
         # client get servers keys
-        self.client.keyjar.import_jwks(self.context.keyjar.export_jwks(issuer_id=self.context.entity_id),
+        self.client.context[''].keyjar.import_jwks(self.context.keyjar.export_jwks(issuer_id=self.context.entity_id),
                                        issuer=self.context.entity_id)
 
 #         self.context.cdb[CLIENT_ID] = self.client.context[self.context.entity_id].prefers()

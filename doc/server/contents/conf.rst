@@ -524,9 +524,9 @@ A configuration example::
         "uri_path": "static/jwks.json"
       },
 
-*read_only* means that on each restart the keys will created and overwritten with new ones.
+*read_only* means that on each restart the keys will be created and the old will be overwritten with the new ones.
 This can be useful during the first time the project have been executed, then to keep them
-as they are *read_only* would be configured to *True*.
+as they are *read_only* should be changed to *True*.
 
 ---------------
 login_hint2acrs

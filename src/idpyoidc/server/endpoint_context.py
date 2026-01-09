@@ -13,7 +13,6 @@ from requests import request
 
 from idpyoidc.context import OidcContext
 from idpyoidc.message import Message
-from idpyoidc.node import make_keyjar
 from idpyoidc.server import authz
 from idpyoidc.server.claims import Claims
 from idpyoidc.server.claims.oauth2 import Claims as OAUTH2_Claims
@@ -26,6 +25,8 @@ from idpyoidc.server.session.manager import SessionManager
 from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
+from idpyoidc.server.util import init_keyjar
+from idpyoidc.util import conf_get
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 
@@ -120,7 +121,8 @@ class EndpointContext(OidcContext):
             keyjar: Optional[KeyJar] = None,
             claims_class: Optional[Claims] = None,
             metadata_class: Optional[Message] = None,
-            key_conf: Optional[dict] = None
+            key_conf: Optional[dict] = None,
+            **kwargs
     ):
         _id = entity_id or conf.get("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
@@ -241,20 +243,16 @@ class EndpointContext(OidcContext):
             self.claims_interface = init_service(_interface, self.unit_get)
             self.claims_interface.context = self
 
-        if keyjar:
-            self.keyjar = keyjar
-        else:
-            self.keyjar = make_keyjar(config=conf, issuer_id=_id, key_conf=key_conf)
-        _key_conf = conf.get("key_conf")
-        if _key_conf:
-            _uri_path = _key_conf.get('uri_path')
-            if _uri_path:
-                self.claims.prefer["jwks_uri"] = urljoin(self.claims.get_base_url(conf), _uri_path)
+        self.keyjar = init_keyjar(self.conf, keyjar=keyjar, key_config=key_conf, issuer_id=self.entity_id, **kwargs)
 
         if isinstance(conf, OPConfiguration):
             conf = conf.conf
         _supports = self.supports()
         self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
+
+        jwks_uri = conf_get(self.conf, 'jwks_uri', '')
+        if jwks_uri:
+            self.claims.prefer["jwks_uri"] = urljoin(self.claims.get_base_url(conf), jwks_uri)
 
         # INTERFACES
 

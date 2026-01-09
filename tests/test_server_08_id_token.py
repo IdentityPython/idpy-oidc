@@ -65,8 +65,9 @@ AREQRC = AuthorizationRequest(
 
 conf = {
     "issuer": "https://example.com/",
+    "entity_id": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
-    "key_conf": {"key_defs": KEYDEFS, "uri_path": "static/jwks.json"},
+    "key_conf": {"key_defs": KEYDEFS},
     "token_handler_args": {
         "jwks_def": {
             "private_path": "private/token_jwks.json",

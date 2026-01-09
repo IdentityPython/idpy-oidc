@@ -19,6 +19,7 @@ from idpyoidc.server.exception import NoSuchAuthentication
 from idpyoidc.server.oidc.token_helper.access_token import AccessTokenHelper
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.util import execute
+from idpyoidc.util import get_server_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +61,14 @@ class BackChannelAuthentication(Endpoint):
         elif request.get("login_hint"):
             _login_hint = request.get("login_hint")
             if _login_hint:
-                if context.login_hint_lookup:
-                    _request_user = context.login_hint_lookup(_login_hint)
+                if self.context.login_hint_lookup:
+                    _request_user = self.context.login_hint_lookup(_login_hint)
         elif request.get("login_hint_token"):
             _request_user = execute(
                 self.parse_login_hint_token,
-                keyjar=self.upstream_get("attribute", "keyjar"),
+                keyjar=get_server_keyjar(self),
                 login_hint_token=request.get("login_hint_token"),
-                context=context,
+                context=self.context,
             )
 
         return _request_user

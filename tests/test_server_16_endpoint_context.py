@@ -92,7 +92,6 @@ class TestEndpointContext:
         assert set(self.context.provider_info.keys()) == {
             "id_token_signing_alg_values_supported",
             "issuer",
-            "jwks_uri",
             "scopes_supported",
             "subject_types_supported",
             "userinfo_signing_alg_values_supported",
@@ -168,7 +167,6 @@ def test_provider_configuration(kwargs):
         "acr_values_supported",
         "id_token_signing_alg_values_supported",
         "issuer",
-        "jwks_uri",
         "scopes_supported",
         "subject_types_supported",
         "token_endpoint_auth_methods_supported",

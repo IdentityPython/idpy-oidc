@@ -20,7 +20,7 @@ def full_path(local_file):
 # ================ Server side ===================================
 
 server_conf = SERVER_CONF.copy()
-server_conf["keys"] = {"uri_path": "jwks.json", "key_defs": KEYDEFS}
+server_conf["keys"] = {"key_defs": KEYDEFS}
 server_conf["token_handler_args"]["key_conf"] = {"key_defs": KEYDEFS}
 
 server = Server(ASConfiguration(conf=server_conf, base_path=BASEDIR), cwd=BASEDIR)

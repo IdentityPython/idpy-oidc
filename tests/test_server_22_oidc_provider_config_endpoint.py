@@ -54,7 +54,8 @@ class TestProviderConfigEndpoint(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False},
             "preference": CAPABILITIES,
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
+            'jwks_uri': 'json.dump',
             "endpoint": {
                 "provider_config": {
                     "path": ".well-known/openid-configuration",
@@ -86,6 +87,6 @@ class TestProviderConfigEndpoint(object):
         _msg = json.loads(msg["response"])
         assert _msg
         assert _msg["token_endpoint"] == "https://example.com/token"
-        assert _msg["jwks_uri"] == "https://example.com/static/jwks.json"
+        assert _msg["jwks_uri"] == "https://example.com/json.dump"
         assert "claims_supported" not in _msg  # No default for this
         assert ("Content-type", "application/json") in msg["http_headers"]

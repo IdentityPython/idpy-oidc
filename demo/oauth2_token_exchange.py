@@ -25,7 +25,7 @@ def full_path(local_file):
 # ================ Server side ===================================
 
 server_conf = SERVER_CONF.copy()
-server_conf["keys"] = {"uri_path": "jwks.json", "key_defs": KEYDEFS}
+server_conf["keys"] = {"key_defs": KEYDEFS}
 server_conf["token_handler_args"]["key_conf"] = {"key_defs": KEYDEFS}
 server_conf["authz"]["kwargs"]["grant_config"]["usage_rules"]["access_token"] = {
     "supports_minting": ["access_token"],

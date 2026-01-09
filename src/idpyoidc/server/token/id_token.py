@@ -15,6 +15,7 @@ from . import Token
 from . import UnknownToken
 from . import is_expired
 from .exception import InvalidToken
+from ...util import get_server_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +262,7 @@ class IDToken(Token):
             lifetime = self.lifetime
 
         _jwt = JWT(
-            self.upstream_get("attribute", "keyjar"),
+            get_server_keyjar(self),
             iss=self.context.issuer,
             lifetime=lifetime,
             **alg_dict,
@@ -334,7 +335,7 @@ class IDToken(Token):
         alg_dict = get_sign_and_encrypt_algorithms(self.context, client_info, "id_token", sign=True)
 
         verifier = JWT(
-            key_jar=self.upstream_get("attribute", "keyjar"), allowed_sign_algs=alg_dict["sign_alg"]
+            key_jar=get_server_keyjar(self), allowed_sign_algs=alg_dict["sign_alg"]
         )
         try:
             _payload = verifier.unpack(token)

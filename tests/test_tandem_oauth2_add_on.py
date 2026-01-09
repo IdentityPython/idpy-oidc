@@ -74,7 +74,7 @@ SERVER_CONF = {
     "issuer": "https://example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+    "keys": {"key_defs": KEYDEFS},
     "endpoint": {
         "metadata": {
             "path": ".well-known/oauth-authorization-server",
@@ -275,7 +275,7 @@ class Flow(object):
 def interchange_keys(server, client):
     server_entity_id = server.context.entity_id
     client.context[server_entity_id].keyjar.import_jwks(server.context.keyjar.export_jwks(issuer_id=server_entity_id),
-                                          server_entity_id)
+                                                        server_entity_id)
 
     client_keyjar = client.context[server_entity_id].keyjar
     client_entity_id = client.context[server_entity_id].entity_id
@@ -310,7 +310,7 @@ def test_pkce():
     _context = client.add_new_context(server.context.entity_id)
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
+    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), "client")
 
     interchange_keys(server, client)
 
@@ -354,7 +354,7 @@ def test_jar():
     )
 
     server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_jwks(), "client")
+    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), "client")
 
     _context = client.add_new_context(server.context.entity_id)
 

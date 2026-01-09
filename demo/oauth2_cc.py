@@ -20,7 +20,7 @@ SERVER_CONFIG = {
     "preference": {
         "grant_types_supported": ["client_credentials", "password"]
     },
-    "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS, 'read_only': False},
+    "keys": {"key_defs": KEYDEFS, 'read_only': False},
     "endpoint": {
         "token": {
             "path": "token",

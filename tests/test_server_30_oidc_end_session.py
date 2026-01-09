@@ -31,6 +31,7 @@ from idpyoidc.server.oidc.token import Token
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import get_server_keyjar
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
@@ -101,7 +102,7 @@ class TestEndpoint(object):
             "password": "mycket hemlig zebra",
             "verify_ssl": False,
             "preferences": PREFRERENCES,
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "endpoint": {
                 "provider_config": {
                     "path": "{}/.well-known/openid-configuration",
@@ -344,7 +345,7 @@ class TestEndpoint(object):
         http_info = {"cookie": [cookie]}
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute", "keyjar"))
+        verify_id_token(msg, keyjar=get_server_keyjar(self.session_endpoint))
 
         msg2 = Message(id_token_hint=id_token)
         msg2[verified_claim_name("id_token_hint")] = msg[verified_claim_name("id_token")]
@@ -411,7 +412,7 @@ class TestEndpoint(object):
         post_logout_redirect_uri = "https://demo.example.com/log_out"
 
         msg = Message(id_token=id_token)
-        verify_id_token(msg, keyjar=self.session_endpoint.upstream_get("attribute", "keyjar"))
+        verify_id_token(msg, keyjar=get_server_keyjar(self.session_endpoint))
 
         with pytest.raises(RedirectURIError):
             self.session_endpoint.process_request(

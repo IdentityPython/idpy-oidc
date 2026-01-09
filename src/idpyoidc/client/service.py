@@ -567,13 +567,16 @@ class Service(ImpExp):
 
         return kwargs
 
+    def get_keyjar(self, context):
+        return context.keyjar
+
     def _do_jwt(self, context, info):
         args = {"allowed_sign_algs": context.get_sign_alg(self.service_name)}
         enc_algs = context.get_enc_alg_enc(self.service_name)
         args["allowed_enc_algs"] = enc_algs["alg"]
         args["allowed_enc_encs"] = enc_algs["enc"]
 
-        _jwt = JWT(key_jar=context.keyjar, **args)
+        _jwt = JWT(key_jar=self.get_keyjar(context), **args)
         _jwt.iss = context.get_client_id()
         if self.payload_type:
             _jws = factory(info)

@@ -16,6 +16,7 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
+from idpyoidc.util import get_server_keyjar
 from idpyoidc.util import rndstr
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
@@ -82,7 +83,8 @@ class TestFlow(object):
             "issuer": "https://op.example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
+            "jwks_uri": 'jwks.json',
             "scopes_supported": ["openid", "profile", "email", "offline_access", "address", "phone"],
             "endpoint": {
                 "provider_info": {
@@ -235,9 +237,9 @@ class TestFlow(object):
         _client_service.update_service_context(self.rp_context, _resp["response_args"], key=state)
         # Fake key import
         if service_type == "provider_info":
-            _keyjar = _client_service.upstream_get("attribute", "keyjar")
+            _keyjar = self.rp_context.keyjar
             _keyjar = import_jwks(_keyjar,
-                                  _server_endpoint.upstream_get("attribute", "keyjar").export_jwks(),
+                                  get_server_keyjar(_server_endpoint).export_jwks(),
                                   _server_endpoint.upstream_get("attribute", "issuer"))
 
         return areq, resp

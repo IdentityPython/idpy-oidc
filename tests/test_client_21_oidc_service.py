@@ -227,7 +227,7 @@ class TestAuthorization(object):
         assert _jws
         _resp = _jws.verify_compact(
             msg["request"],
-            keys=self.entity.keyjar.get_signing_key(key_type="RSA", issuer_id="client_id")
+            keys=self.context.keyjar.get_signing_key(key_type="RSA", issuer_id="client_id")
         )
         assert _resp
         assert set(_resp.keys()) == {

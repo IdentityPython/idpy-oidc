@@ -194,7 +194,7 @@ class TestClient2(object):
         self.rp = Client(base_url=BASE_URL, config=rp_conf)
 
     def test_keyjar(self):
-        _keyjar = self.rp.get_attribute("keyjar")
+        _keyjar = self.rp.context[''].keyjar
         assert len(_keyjar) == 1  #
         assert len(_keyjar[""]) == 2
         assert len(_keyjar.get("sig")) == 2

@@ -24,6 +24,7 @@ from idpyoidc.server.exception import InvalidClient
 from idpyoidc.server.exception import InvalidToken
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnknownClient
+from idpyoidc.util import get_server_keyjar
 from idpyoidc.util import importer
 from idpyoidc.util import sanitize
 
@@ -302,7 +303,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
             http_info: Optional[dict] = None,
             **kwargs,
     ):
-        _keyjar = self.upstream_get("attribute", "keyjar")
+        _keyjar = get_server_keyjar(self)
         _jwt = JWT(_keyjar, msg_cls=JsonWebToken)
         try:
             ca_jwt = _jwt.unpack(request["client_assertion"])
@@ -417,7 +418,7 @@ class RequestParam(ClientAuthnMethod):
             http_info: Optional[dict] = None,
             **kwargs,
     ):
-        _jwt = JWT(self.upstream_get("attribute", "keyjar"), msg_cls=JsonWebToken)
+        _jwt = JWT(get_server_keyjar(self), msg_cls=JsonWebToken)
         try:
             _jwt = _jwt.unpack(request["request"])
         except (Invalid, MissingKey, BadSignature) as err:
@@ -538,7 +539,7 @@ def verify_client(
             logger.info(f"Verifying client authentication using '{_method.tag}'")
             _tested.append(_method.tag)
             auth_info = _method.verify(
-                keyjar=endpoint.upstream_get("attribute", "keyjar"),
+                keyjar=get_server_keyjar(endpoint),
                 request=request,
                 authorization_token=authorization_token,
                 endpoint=endpoint,

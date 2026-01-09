@@ -80,7 +80,7 @@ class TestFlow(object):
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "subject_types_supported": ["public", "pairwise", "ephemeral"],
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "endpoint": {
                 "metadata": {
                     "path": ".well-known/oauth-authorization-server",
@@ -179,7 +179,7 @@ class TestFlow(object):
 
         self.context = self.server.context
         self.context.cdb["client_1"] = client_1_config
-        self.context.keyjar = import_jwks(self.context.keyjar, self.client.keyjar.export_jwks(), "client_1")
+        self.context.keyjar = import_jwks(self.context.keyjar, self.client.context[''].keyjar.export_jwks(), "client_1")
 
         self.context.set_provider_info()
         self.session_manager = self.context.session_manager
@@ -274,7 +274,7 @@ class TestFlow(object):
 
         # Construct the resource request
 
-        _client_service = self.client.get_service(self.client_context,"resource")
+        _client_service = self.client.get_service(self.client_context, "resource")
         req_info = _client_service.get_request_parameters(
             self.client_context, authn_method="bearer_header", state=_state, endpoint="https://resource.example.com"
         )

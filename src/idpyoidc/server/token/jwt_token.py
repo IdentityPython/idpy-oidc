@@ -15,6 +15,7 @@ from .exception import WrongTokenClass
 from ..constant import DEFAULT_TOKEN_LIFETIME
 from ...message import Message
 from ...message.oauth2 import JWTAccessToken
+from ...util import get_server_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ class JWTToken(Token):
             lifetime = usage_rules.get("expires_in")
         else:
             lifetime = self.lifetime
-        _keyjar = self.upstream_get("attribute", "keyjar")
+        _keyjar = get_server_keyjar(self)
         logger.info(f"Key owners in the keyjar: {_keyjar.owners()}")
         signer = JWT(
             key_jar=_keyjar,
@@ -118,7 +119,7 @@ class JWTToken(Token):
 
     def get_payload(self, token):
         verifier = JWT(
-            key_jar=self.upstream_get("attribute", "keyjar"), allowed_sign_algs=[self.alg]
+            key_jar=get_server_keyjar(self), allowed_sign_algs=[self.alg]
         )
         try:
             _payload = verifier.unpack(token)

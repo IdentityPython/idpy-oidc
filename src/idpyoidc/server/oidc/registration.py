@@ -27,6 +27,7 @@ from idpyoidc.server.exception import InvalidRedirectURIError
 from idpyoidc.server.exception import InvalidSectorIdentifier
 from idpyoidc.time_util import utc_time_sans_frac
 from idpyoidc.transform import RP_URI_CLAIMS
+from idpyoidc.util import get_server_keyjar
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 from idpyoidc.util import sanitize
@@ -329,7 +330,7 @@ class Registration(Endpoint):
                             error_description="%s pointed to illegal URL" % item,
                         )
 
-        _keyjar = self.upstream_get("attribute", "keyjar")
+        _keyjar = get_server_keyjar(self)
         # Do I have the necessary keys
         for item in ["id_token_signed_response_alg", "userinfo_signed_response_alg"]:
             if item in request:
@@ -570,7 +571,7 @@ class Registration(Endpoint):
 
         # Add the client_secret as a symmetric key to the key jar
         if client_secret:
-            self.upstream_get("attribute", "keyjar").add_symmetric(client_id, str(client_secret))
+            get_server_keyjar(self).add_symmetric(client_id, str(client_secret))
 
         logger.debug("Stored updated client info in CDB under cid={}".format(client_id))
         logger.debug("ClientInfo: {}".format(_cinfo))

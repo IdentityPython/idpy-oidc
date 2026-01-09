@@ -29,6 +29,7 @@ from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import ResourceRequest
+from idpyoidc.util import get_client_keyjar
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 CLIENT_ID = "A"
@@ -328,7 +329,7 @@ class TestPrivateKeyJWT(object):
         for key in kb_rsa:
             key.add_kid()
 
-        _keyjar = token_service.upstream_get("attribute", "keyjar")
+        _keyjar = get_client_keyjar(token_service, '')
         _keyjar.add_kb("", kb_rsa)
 
         _context = token_service.upstream_get("context")
@@ -439,7 +440,7 @@ class TestClientSecretJWT_TE(object):
         request = AccessTokenRequest()
 
         # get a kid
-        _keys = self.entity.keyjar.get_issuer_keys("")
+        _keys = get_client_keyjar(self.entity, '').get_issuer_keys("")
         kid = _keys[0].kid
         token_service = self.entity.get_service(self.context, "accesstoken")
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint", kid=kid)
@@ -487,7 +488,7 @@ class TestClientSecretJWT_TE(object):
         _kb = KeyBundle()
         _rsa_key = new_rsa_key()
         _kb.append(_rsa_key)
-        self.entity.keyjar.add_kb("", _kb)
+        get_client_keyjar(self.entity, '').add_kb("", _kb)
         # Since I have a RSA key this doesn't fail
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint")
 

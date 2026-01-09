@@ -57,6 +57,7 @@ from idpyoidc.server.user_authn.user import UserAuthnMethod
 from idpyoidc.server.user_authn.user import UserPassJinja2
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import JSONDictDB
+from idpyoidc.util import get_server_keyjar
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 from tests.test_server_24_oauth2_token_endpoint import key_setup
@@ -418,7 +419,7 @@ class TestEndpoint(object):
         _pr_resp = self.endpoint.parse_request(_req)
         _resp = self.endpoint.process_request(_pr_resp)
         idt = verify_id_token(
-            _resp["response_args"], keyjar=self.endpoint.upstream_get("attribute", "keyjar")
+            _resp["response_args"], keyjar=get_server_keyjar(self.endpoint)
         )
         assert idt
         # from config
@@ -443,7 +444,7 @@ class TestEndpoint(object):
         _resp = self.endpoint.process_request(_pr_resp)
         res = verify_id_token(
             _resp["response_args"],
-            keyjar=self.endpoint.upstream_get("attribute", "keyjar"),
+            keyjar=get_server_keyjar(self.endpoint),
         )
         assert res
         res = _resp["response_args"][verified_claim_name("id_token")]

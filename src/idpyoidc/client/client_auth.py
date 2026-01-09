@@ -521,7 +521,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
     def _construct_client_assertion(self, context, service, **kwargs):
         _entity = service.upstream_get("unit")
 
-        _keyjar = service.upstream_get("attribute", "keyjar")
+        _keyjar = context.keyjar
         audience, algorithm = self._get_audience_and_algorithm(context, _keyjar, **kwargs)
 
         if "kid" in kwargs:

@@ -59,7 +59,7 @@ class ProviderInfoDiscovery(server_metadata.ServerMetadata):
         self._update_service_context(context, resp)
         context.map_supported_to_preferred(resp)
         if "pre_load_keys" in self.conf and self.conf["pre_load_keys"]:
-            _jwks = self.upstream_get("attribute", "keyjar").export_jwks_as_json(
+            _jwks = context.keyjar.export_jwks_as_json(
                 issuer=resp["issuer"]
             )
             logger.info("Preloaded keys for {}: {}".format(resp["issuer"], _jwks))

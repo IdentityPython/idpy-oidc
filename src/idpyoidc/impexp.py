@@ -104,6 +104,22 @@ class ImpExp:
                     val = {qualified_name(cls): item}
                 else:
                     logger.error(f"Can't dump {item} as {cls}")
+        elif isinstance(cls, dict):
+            # {"": class_instance}
+            val = {}
+            for key, class_instance in item.items():
+                _dump = getattr(class_instance, "dump", None)
+                if _dump:
+                    key_val = _dump(exclude_attributes=exclude_attributes)
+                else:
+                    if getattr(class_instance, "to_dict", None):
+                        key_val = {qualified_name(type(class_instance)): class_instance.to_dict()}
+                    elif isinstance(class_instance, dict):
+                        key_val = {qualified_name(type(class_instance)): class_instance}
+                    else:
+                        logger.error(f"Can't dump {class_instance} as {qualified_name(type(class_instance))}")
+                        key_val = None
+                val[key] = {qualified_name(type(class_instance)): key_val}
         else:
             _dump = getattr(item, "dump", None)
             if _dump:
@@ -191,6 +207,12 @@ class ImpExp:
                 _args = {}
 
             val = [_cls(**_args).load(v, **_kwargs) for v in item]
+        elif isinstance(cls, dict):
+            val = {}
+            for key,value in item.items():
+                # value is a dict
+                for _cls_name, claims in value.items():
+                    val[key] = importer(_cls_name)(**claims)
         elif issubclass(cls, Message):
             _cls_name = list(item.keys())[0]
             try:

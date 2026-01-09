@@ -189,6 +189,12 @@ def factory(
         kj = None
 
     context = upstream_get("context")
+    if kj:
+        if context.keyjar is not None:
+            context.keyjar.import_jwks(kj.export_jwks(issuer_id=''), issuer_id='')
+        else:
+            context.keyjar = kj
+
     args = {}
     for cls, cnf, attr in [
         ("code", code, "authorization_code"),

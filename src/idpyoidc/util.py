@@ -199,7 +199,7 @@ def get_keyjar_chain(item) -> list:
             if _partial_res:
                 res.extend(_partial_res)
 
-    _keyjar = getattr(item, "keyjar")
+    _keyjar = getattr(item, "keyjar", None)
     if _keyjar:
         res.append(_keyjar)
     return res
@@ -256,3 +256,49 @@ def get_jwks(item) -> dict:
         if keys:
             return jwks_from_keys(keys)
     return {}
+
+def get_client_keyjar(item, server_entity_id=""):
+    context = getattr(item, 'context', None)
+    if context:
+        if server_entity_id in context:
+            if context[server_entity_id].keyjar is not None:
+                return context[server_entity_id].keyjar
+
+    if item.upstream_get:
+        _superior = item.upstream_get('unit')
+    else:
+        return None
+
+    while _superior:
+        context = getattr(_superior, 'context', None)
+        if context:
+            if server_entity_id in context:
+                if context[server_entity_id].keyjar:
+                    return context[server_entity_id].keyjar
+        if _superior.upstream_get:
+            _superior = _superior.upstream_get('unit')
+        else:
+            break
+    return None
+
+def get_server_keyjar(item):
+    context = getattr(item, 'context', None)
+    if context:
+        if context.keyjar is not None:
+            return context.keyjar
+
+    if item.upstream_get:
+        _superior = item.upstream_get('unit')
+    else:
+        return None
+
+    while _superior:
+        context = getattr(_superior, 'context', None)
+        if context:
+            if context.keyjar:
+                return context.keyjar
+        if _superior.upstream_get:
+            _superior = _superior.upstream_get('unit')
+        else:
+            break
+    return None

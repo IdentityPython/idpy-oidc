@@ -33,7 +33,13 @@ def claims_load(item: dict, **kwargs):
 
 
 class Claims(ImpExp):
-    parameter = {"prefer": None, "use": None, "callback_path": None, "_local": None}
+    parameter = {
+        "prefer": None,
+        "use": None,
+        "callback_path": None,
+        "_local": None,
+        "callback_uris": None,
+    }
 
     _supports = {}
 
@@ -160,21 +166,18 @@ class Claims(ImpExp):
                     entity_id: Optional[str] = ""):
         logger.debug(f"configuration: {configuration}")
 
-        if "session_manager" in configuration:  # Is this good enough ??
-            key_conf = configuration.get("key_conf")
-            if key_conf is None:
-                key_conf = {"key_defs": DEFAULT_KEY_DEFS}
+        key_conf = configuration.get("key_conf")
+        if key_conf is None:
+            key_conf = {"key_defs": DEFAULT_KEY_DEFS}
 
-            keyjar = create_keyjar(key_conf=key_conf)
-        else:
-            keyjar = KeyJar()
+        keyjar = create_keyjar(key_conf=key_conf)
 
-            _id = self.get_id(configuration)
-            _key = configuration.get("client_secret")
-            if _key:
-                keyjar.add_symmetric(issuer="", key=_key)
-                if _id:
-                    keyjar.add_symmetric(issuer=_id, key=_key)
+        _id = self.get_id(configuration)
+        _key = configuration.get("client_secret")
+        if _key:
+            keyjar.add_symmetric(issuer="", key=_key)
+            if _id:
+                keyjar.add_symmetric(issuer=_id, key=_key)
 
         return keyjar
 
@@ -185,7 +188,7 @@ class Claims(ImpExp):
             keyjar: Optional[KeyJar] = None,
             entity_id: Optional[str] = "",
             metadata_class: Optional[type(Message)] = None
-    ) -> KeyJar:
+    ):
         unsupported = []
         for attr, val in configuration.items():
             if attr in ["preference", "capabilities"]:
@@ -201,14 +204,13 @@ class Claims(ImpExp):
 
         self.locals(configuration)
 
-        keyjar = self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id)
+        # keyjar = self.handle_keys(configuration, keyjar=keyjar, entity_id=entity_id)
 
         for attr, val in supports.items():
             if attr not in self.prefer and val is not None:
                 self.set_preference(attr, val)
 
         self.verify_rules(supports)
-        return keyjar
 
     def get(self, key, default=None):
         if key in self._local:

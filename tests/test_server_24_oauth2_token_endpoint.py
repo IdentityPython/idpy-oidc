@@ -110,7 +110,7 @@ def conf():
         "issuer": "https://example.com/",
         "httpc_params": {"verify": False},
         "capabilities": CAPABILITIES,
-        "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+        "keys": {"key_defs": KEYDEFS},
         "token_handler_args": {
             "jwks_file": "private/token_jwks.json",
             "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
@@ -875,7 +875,7 @@ CONTEXT.cdb = {CLIENT_ID: {}}
 KEYJAR = KeyJar()
 KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), CLIENT_ID)
 KEYJAR = import_jwks(KEYJAR, CLIENT_KEYJAR.export_jwks(private=True), "")
-
+CONTEXT.keyjar = KEYJAR
 
 def upstream_get(what, *args):
     if what == "context":

@@ -115,7 +115,7 @@ class TestEndpoint:
             "issuer": "https://example.com/",
             "httpc_params": {"verify": False, "timeout": 1},
             "capabilities": CAPABILITIES,
-            "keys": {"uri_path": "jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},

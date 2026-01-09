@@ -401,7 +401,7 @@ class TestClient(object):
         _session = self.rp.get_session_information(_context, _state)
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.keyjar
+        _keyjar = self.rp.context[''].keyjar
         _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
 
         _nonce = _session["nonce"]
@@ -411,7 +411,7 @@ class TestClient(object):
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=self.rp.keyjar.get_signing_key(issuer_id=_github_id), algorithm="RS256",
+            key=self.rp.context[''].keyjar.get_signing_key(issuer_id=_github_id), algorithm="RS256",
             lifetime=300
         )
 
@@ -478,7 +478,7 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.keyjar
+        _keyjar = self.rp.context[''].keyjar
         _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
 
         idts = IdToken(**idval)
@@ -526,7 +526,7 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.keyjar
+        _keyjar = self.rp.context[''].keyjar
         _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
 
         idts = IdToken(**idval)
@@ -574,7 +574,7 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.keyjar
+        _keyjar = self.rp.context[''].keyjar
         _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
 
         idts = IdToken(**idval)
@@ -675,12 +675,12 @@ class TestRPHandlerTier2(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.keyjar
+        _keyjar = self.rp.context[''].keyjar
         _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=self.rp.keyjar.get_signing_key("rsa", issuer_id=_github_id),
+            key=self.rp.context[''].keyjar.get_signing_key("rsa", issuer_id=_github_id),
             algorithm="RS256",
             lifetime=300,
         )

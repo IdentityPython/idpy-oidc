@@ -15,7 +15,6 @@ from cryptojwt.utils import b64e
 
 from idpyoidc.exception import ParameterError
 from idpyoidc.exception import URIError
-from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message.oauth2 import AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
@@ -40,6 +39,7 @@ from idpyoidc.server.oauth2.authorization import join_query
 from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import in_a_while
+from idpyoidc.util import get_server_keyjar
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
@@ -169,7 +169,7 @@ class TestEndpoint(object):
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_def": {
                     "private_path": "private/token_jwks.json",
@@ -276,9 +276,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        self.endpoint.upstream_get("attribute", "keyjar").add_symmetric(
-            "client_1", "hemligtkodord1234567890"
-        )
+        get_server_keyjar(self.endpoint).add_symmetric("client_1", "hemligtkodord1234567890")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:
@@ -904,30 +902,6 @@ class TestEndpoint(object):
         _id = self.endpoint._unwrap_identity(identity)
         assert _id["uid"] == "6260077f56d8970e543aa380"
 
-    # def test_sso(self):
-    #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT)
-    #     _resp = self.endpoint.process_request(_pr_resp)
-    #     msg = self.endpoint.do_response(**_resp)
-    #
-    #     request = AuthorizationRequest(
-    #         client_id="client_2",
-    #         redirect_uri="https://rp.example.org/cb",
-    #         response_type=["code"],
-    #         state="state",
-    #         scope="openid",
-    #     )
-    #
-    #     cinfo = {
-    #         "client_id": "client_2",
-    #         "redirect_uris": [(request["redirect_uri"], {})]
-    #     }
-    #
-    #     _pr_resp = self.endpoint.parse_request(AUTH_REQ_DICT, cookie="kaka")
-    #     _resp = self.endpoint.process_request(_pr_resp)
-    #     msg = self.endpoint.do_response(**_resp)
-    #
-    #     assert set(res.keys()) == {"authn_event", "identity", "user"}
-
     def test_audience_id_token(self):
         request = AuthorizationRequest(
             client_id="client_1",
@@ -945,31 +919,6 @@ class TestEndpoint(object):
         _jws = factory(_resp["response_args"]["id_token"])
         _payload = _jws.jwt.payload()
         assert 'aud' in _payload
-
-    # def test_audience(self):
-    #     request = AuthorizationRequest(
-    #         client_id="client_id",
-    #         redirect_uri="https://rp.example.com/cb",
-    #         response_type=["id_token"],
-    #         state="state",
-    #         nonce="nonce",
-    #         scope="openid",
-    #         audience="https://aud.exmple.org"
-    #     )
-    #     redirect_uri = request["redirect_uri"]
-    #     cinfo = {
-    #         "client_id": "client_id",
-    #         "redirect_uris": [("https://rp.example.com/cb", {})],
-    #         "id_token_signed_response_alg": "RS256",
-    #     }
-    #
-    #     session_id = self._create_session(request)
-    #
-    #     item = self.endpoint.upstream_get("context").authn_broker.db["anon"]
-    #     item["method"].user = b64e(as_bytes(json.dumps({"uid": "krall", "sid": session_id})))
-    #
-    #     res = self.endpoint.setup_auth(request, redirect_uri, cinfo, None)
-    #     assert set(res.keys()) == {"session_id", "identity", "user"}
 
 
 def test_inputs():

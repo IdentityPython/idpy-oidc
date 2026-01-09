@@ -18,6 +18,7 @@ from idpyoidc.client.service_context import create_new_context
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.node import Unit
 from idpyoidc.util import conf_get
+from idpyoidc.util import get_client_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         "httpc_params": None,
         "key_conf": None,
         "keyjar": KeyJar,
-        "context": None,
+        "context": {"": ServiceContext},
     }
 
     def __init__(
@@ -122,12 +123,6 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             client_id=_id,
         )
 
-        # how to publish ?! JWKS, jwks_uri/jwks_signed_uri, jwks is the default
-        if jwks_uri:
-            self.publish_keyjar_as = {'jwks_uri': self.keyjar.export_jwks(issuer_id="")}
-        else:
-            self.publish_keyjar_as = {'jwks': self.keyjar.export_jwks(issuer_id="")}
-
         if context:
             self.context = context
         else:
@@ -139,7 +134,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                         issuer,
                         config=conf,
                         jwks_uri=jwks_uri,
-                        # keyjar=self.keyjar,
+                        keyjar=keyjar,
                         upstream_get=self.unit_get,
                         client_type=client_type,
                         entity_id=self.entity_id,
@@ -152,7 +147,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                         server_entity_id='',
                         config=config,
                         jwks_uri=jwks_uri,
-                        # keyjar=self.keyjar,
+                        keyjar=keyjar,
                         upstream_get=self.unit_get,
                         client_type=client_type,
                         entity_id=self.entity_id,
@@ -186,9 +181,6 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         return None
 
-    # def get_entity(self):
-    #     return self
-
     def get_client_id(self, context):
         _val = context.claims.get_usage("client_id")
         if _val:
@@ -200,7 +192,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if config and "client_authn_methods" in config:
             _methods = config.get("client_authn_methods")
             context.client_authn_methods = client_auth_setup(method_to_item(_methods))
-            for k,v in context.client_authn_methods.items():
+            for k, v in context.client_authn_methods.items():
                 v.context = context
                 v.upstream_get = self.unit_get
         else:
@@ -215,7 +207,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         :param keyspec:
         """
-        _keyjar = self.get_attribute("keyjar")
+        _keyjar = get_client_keyjar(self)
         if _keyjar is None:
             _keyjar = KeyJar()
 

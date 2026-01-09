@@ -13,6 +13,7 @@ from idpyoidc.message.oidc import RefreshAccessTokenRequest
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
 from idpyoidc.server.session.token import RefreshToken
 from idpyoidc.server.token.exception import UnknownToken
+from idpyoidc.util import get_server_keyjar
 from ...exception import InvalidBranchID
 
 logger = logging.getLogger(__name__)
@@ -139,7 +140,7 @@ class RefreshTokenHelper(TokenEndpointHelper):
 
         try:
             request.verify(
-                keyjar=self.endpoint.upstream_get("attribute", "keyjar"), opponent_id=client_id
+                keyjar=get_server_keyjar(self.endpoint), opponent_id=client_id
             )
         except MissingRequiredAttribute as e:
             return self.error_cls(error="invalid_grant", error_description=str(e))
