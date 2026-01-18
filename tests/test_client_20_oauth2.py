@@ -67,7 +67,7 @@ class TestClient(object):
             "response_type": ["code"],
         }
 
-        self.client.get_context().cstate.set("ABCDE", {"iss": "issuer"})
+        self.context.cstate.set("ABCDE", {"iss": "issuer"})
         msg = self.client.get_service(self.context, "authorization").construct(self.context, request_args=req_args)
         assert isinstance(msg, AuthorizationRequest)
         assert msg["client_id"] == "client_1"
@@ -131,6 +131,7 @@ class TestClient(object):
             "client_secret": "abcdefghijklmnop",
             "grant_type": "refresh_token",
             "refresh_token": "refresh_with_me",
+            'scope': 'openid'
         }
 
     def test_error_response(self):
@@ -187,6 +188,9 @@ class TestClient2(object):
                     "client_id": "client_1",
                     "client_secret": "abcdefghijklmnop",
                     "redirect_uris": ["https://example.com/cli/authz_cb"],
+                },
+                "": {
+                    "redirect_uris": ["https://example.com/cli/authz_cb"],
                 }
             },
         }
@@ -194,7 +198,21 @@ class TestClient2(object):
         self.rp = Client(base_url=BASE_URL, config=rp_conf)
 
     def test_keyjar(self):
-        _keyjar = self.rp.context[''].keyjar
+        _keyjar = self.rp.keyjar
         assert len(_keyjar) == 1  #
         assert len(_keyjar[""]) == 2
         assert len(_keyjar.get("sig")) == 2
+        assert len(_keyjar.get_signing_key(key_type="rsa", issuer_id="")) == 1
+        assert len(_keyjar.get_signing_key(key_type="ec", issuer_id="")) == 1
+        assert len(_keyjar.get_signing_key(key_type="oct", issuer_id="")) == 0
+
+        _keyjar = self.rp.context[''].keyjar
+        assert len(_keyjar) == 0  #
+
+        _keyjar = self.rp.context['service_1'].keyjar
+        assert len(_keyjar) == 2  # '' and 'client_1'
+        assert len(_keyjar[""]) == 1 # One symmetric key
+        assert len(_keyjar.get("sig")) == 1
+        assert len(_keyjar.get_signing_key(key_type="rsa", issuer_id="")) == 0
+        assert len(_keyjar.get_signing_key(key_type="ec", issuer_id="")) == 0
+        assert len(_keyjar.get_signing_key(key_type="oct", issuer_id="")) == 1

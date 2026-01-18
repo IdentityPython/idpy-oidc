@@ -34,7 +34,6 @@ class ExpiredToken(Exception):
 
 
 class Client(Entity):
-    client_type = "oauth2"
 
     def __init__(
             self,
@@ -72,12 +71,7 @@ class Client(Entity):
         if config is None:
             config = {}
 
-        if client_type:
-            self.client_type = client_type
-        elif config and "client_type" in config:
-            client_type = self.client_type = config["client_type"]
-        else:
-            client_type = self.client_type
+        self.set_type(client_type=client_type, config=config)
 
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
@@ -85,8 +79,6 @@ class Client(Entity):
                 httpc_params["verify"] = False
             else:
                 httpc_params = {"verify": False}
-
-        jwks_uri = jwks_uri or config.get("jwks_uri", "")
 
         Entity.__init__(
             self,
@@ -106,6 +98,15 @@ class Client(Entity):
         )
 
         self.httpc = httpc or request
+
+    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None):
+        if client_type:
+            self.client_type = client_type
+        elif config and "client_type" in config:
+            client_type = self.client_type = config["client_type"]
+        else:
+            client_type = 'oauth2'
+        self.client_type = client_type
 
     def do_request(
             self,

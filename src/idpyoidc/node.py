@@ -53,7 +53,7 @@ def make_keyjar(
         config: Optional[Union[Configuration, dict]] = None,
         key_conf: Optional[dict] = None,
         issuer_id: Optional[str] = "",
-        client_id: Optional[str] = "",
+        entity_id: Optional[str] = "",
 ):
     if keyjar is False:
         return None
@@ -65,23 +65,23 @@ def make_keyjar(
         keyjar = KeyJar()
         _jwks = config.get("jwks")
         if _jwks:
-            keyjar = import_jwks_as_json(keyjar, _jwks, client_id)
+            keyjar = import_jwks_as_json(keyjar, _jwks, entity_id)
 
     if keyjar or key_conf:
         # Should be either one
-        id = issuer_id or client_id
+        id = issuer_id or entity_id
         keyjar = create_keyjar(keyjar, conf=config, key_conf=key_conf, id=id)
-        if client_id:
+        if entity_id:
             _key = config.get("client_secret")
             if _key:
-                keyjar.add_symmetric(client_id, _key)
+                keyjar.add_symmetric(entity_id, _key)
                 keyjar.add_symmetric("", _key)
     else:
-        if client_id:
+        if entity_id:
             _key = config.get("client_secret")
             if _key:
                 keyjar = KeyJar()
-                keyjar.add_symmetric(client_id, _key)
+                keyjar.add_symmetric(entity_id, _key)
                 keyjar.add_symmetric("", _key)
 
     return keyjar
@@ -133,12 +133,12 @@ class Unit(ImpExp):
             config: Optional[Union[Configuration, dict]] = None,
             key_conf: Optional[dict] = None,
             issuer_id: Optional[str] = "",
-            client_id: Optional[str] = "",
+            entity_id: Optional[str] = "",
     ):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
         self.httpc = httpc
-        self.client_id = client_id
+        self.entity_id = entity_id
 
         if config is None:
             config = {}
@@ -209,8 +209,7 @@ class ClientUnit(Unit):
         if config is None:
             config = {}
 
-        self.entity_id = entity_id or config.get("entity_id")
-        self.client_id = config.get("client_id", entity_id)
+        self.entity_id = entity_id or config.get("entity_id", config.get("client_id", ''))
 
         Unit.__init__(
             self,
@@ -219,7 +218,7 @@ class ClientUnit(Unit):
             httpc=httpc,
             httpc_params=httpc_params,
             config=config,
-            client_id=self.client_id,
+            entity_id=self.entity_id,
             key_conf=key_conf,
         )
 

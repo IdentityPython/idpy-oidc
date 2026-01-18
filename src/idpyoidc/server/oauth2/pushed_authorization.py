@@ -6,7 +6,7 @@ from idpyoidc.message import Message
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.server.oauth2.authorization import Authorization
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 
 
 class PushedAuthorization(Authorization):
@@ -39,7 +39,7 @@ class PushedAuthorization(Authorization):
         else:
             _request = AuthorizationRequest(**request)
 
-        _request.verify(keyjar=get_server_keyjar(self))
+        _request.verify(keyjar=get_keyjar(self))
 
         _urn = "urn:uuid:{}".format(uuid.uuid4())
         # Store the parsed and verified request

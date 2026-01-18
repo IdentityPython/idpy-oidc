@@ -6,19 +6,18 @@ import base64
 import hashlib
 import logging
 import os
-from base64 import b64decode
 from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Union
 
+from cryptojwt.jwk.hmac import SYMKey
 from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_bundle import KeyBundle
 from cryptojwt.key_bundle import keybundle_from_local_file
 from cryptojwt.key_jar import KeyJar
 from cryptojwt.utils import as_bytes
-from tomlkit.items import KeyType
 
 from idpyoidc.claims import Claims
 from idpyoidc.claims import claims_dump
@@ -40,8 +39,7 @@ from idpyoidc.util import rndstr
 from .current import Current
 from .entity_metadata import EntityMetadata
 from ..impexp import ImpExp
-from ..server.util import init_keyjar
-from ..server.util import load_keyjar
+from ..message import Message
 
 logger = logging.getLogger(__name__)
 
@@ -205,12 +203,25 @@ class ServiceContext(ImpExp):
         _seed = self.config.get("hash_seed", rndstr(32))
         self.hash_seed = as_bytes(_seed)
 
-        restored_keyjar = None
         for key, val in kwargs.items():
             if key == 'claims':
                 continue
-            elif key == "keyjar": # dealt with further ahead
-                continue
+            elif key == "keyjar":  # dealt with further ahead
+                if val is None:
+                    self.keyjar = KeyJar()
+                    # client secret key
+                    _client_secret = conf_get(self.config, "client_secret", None)
+                    _client_id = conf_get(self.config, "client_id", None)
+                    if _client_id and _client_secret:
+                        self.keyjar.add_symmetric(issuer_id=_client_id, key=_client_secret, usage=['sig'])
+                        self.keyjar.add_symmetric(issuer_id='', key=_client_secret, usage=['sig'])
+                        if self.entity_id and self.entity_id != _client_id:
+                            self.keyjar.add_symmetric(issuer_id=self.entity_id, key=_client_secret, usage=['sig'])
+                elif isinstance(val, KeyJar):
+                    self.keyjar = val
+                else:
+                    self.keyjar = KeyJar()
+                    self.keyjar.load(val)
             elif key == "hash_seed":
                 if val:
                     if val.startswith("BYTES"):
@@ -235,7 +246,6 @@ class ServiceContext(ImpExp):
         self.service = init_services(service_definitions=_srvs, upstream_get=upstream_get)
         self.include_provider_info()
 
-        self.keyjar = init_keyjar(self.config, issuer_id=self.entity_id, **kwargs)
         # Import of server's key
         _jwks_uri = self.provider_info.get("jwks_uri")
         if _jwks_uri:
@@ -243,15 +253,14 @@ class ServiceContext(ImpExp):
 
         _claims = kwargs.get("claims", None)
         if _claims:
-            self.claims = Claims(prefer=_claims["prefer"], callback_path= _claims['callback_path'])
+            self.claims = Claims(prefer=_claims["prefer"], callback_path=_claims['callback_path'])
             self.claims.use = _claims['use']
         else:
             self.claims.load_conf(self.config, supports=self.supports(),
                                   entity_id=self.entity_id,
                                   metadata_class=kwargs.get("metadata_class", None))
 
-
-            self.prefer_jwks_uri_or_jwks(base_url, **kwargs)
+            #             self.prefer_jwks_uri_or_jwks(base_url, **kwargs)
 
             _response_types = self.get_preference(
                 "response_types_supported", self.supports().get("response_types_supported", [])
@@ -501,9 +510,9 @@ class ServiceContext(ImpExp):
 
         return self.claims.use
 
-    def get_metadata_claim(self, claim, entity_type: Optional[List[str]] = "") -> Optional[dict]:
-        if entity_type:
-            for _type in entity_type:
+    def get_metadata_claim(self, claim, entity_types: Optional[List[str]] = "") -> Optional[dict]:
+        if entity_types:
+            for _type in entity_types:
                 _ent = self.server_metadata.get(_type, None)
                 if _ent:
                     _val = _ent.get(claim, None)
@@ -516,6 +525,40 @@ class ServiceContext(ImpExp):
                     return _val
 
         return None
+
+    def get_metadata(self,
+                     entity_type: Optional[str] = "",
+                     supports: Optional[dict] = None,
+                     schema: Optional[Message] = None):
+        if supports is None:
+            supports = self.supports()
+        _metadata = self.claims.get_client_metadata(entity_type, supports=supports, metadata_schema=schema)
+        return _metadata
+
+    # def get_opponent_keyjar(self):
+    #     keyjar = KeyJar()
+    #     for iss in self.keyjar.owners():
+    #         if iss != '':
+    #             keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss), issuer_id=iss)
+    #
+    #     kj = self.upstream_get('attribute', 'keyjar')
+    #     for iss in kj.owners():
+    #         if iss == '':
+    #             keyjar.import_jwks(kj.export_jwks(issuer_id=iss), issuer_id=iss)
+    #
+    #     return keyjar
+    #
+    # def get_own_keyjar(self, private=False):
+    #     keyjar = KeyJar()
+    #     iss = ''
+    #     keyjar.import_jwks(self.keyjar.export_jwks(private=private, issuer_id=iss), issuer_id=iss)
+    #     kj = self.upstream_get('attribute', 'keyjar')
+    #     keyjar.import_jwks(kj.export_jwks(private=private, issuer_id=iss), issuer_id=iss)
+    #     return keyjar
+
+    # def get_jwks(self):
+    #     _kj = self.get_own_keyjar()
+    #     return _kj.export_jwks(issuer_id='')
 
     def get_service(self, service_name, *arg):
         try:
@@ -580,16 +623,15 @@ class ServiceContext(ImpExp):
                     else:
                         self.claims.set_preference('jwks_uri', os.path.join(self.entity_id, _jwks_uri))
                 else:
-                    self.claims.set_preference('jwks', self.keyjar.export_jwks(issuer_id=self.entity_id))
+                    self.claims.set_preference('jwks', self.get_jwks())
             else:  # defal
-                self.claims.set_preference('jwks', self.keyjar.export_jwks(issuer_id=self.entity_id))
+                self.claims.set_preference('jwks', self.get_jwks())
 
 
 def create_new_context(template_context, server_entity_id: str):
-    return ServiceContext(
+    sc = ServiceContext(
         server_entity_id=server_entity_id,
         config=template_context.config,
-        jwks_uri=template_context.jwks_uri,
         upstream_get=template_context.upstream_get,
         keyjar=template_context.keyjar,
         client_type=template_context.client_type,
@@ -597,3 +639,17 @@ def create_new_context(template_context, server_entity_id: str):
         base_url=template_context.base_url,
         services=template_context.services_conf
     )
+    # remove client_secret
+    if template_context.client_id != '':
+        if template_context.client_secret:
+            key = SYMKey(use=['sig'], key=template_context.client_secret)
+            for id in ['', template_context.client_id]:
+                _issuer = sc.keyjar._issuers[id]
+                _kbs = []
+                for kb in _issuer.get_bundles():
+                    kb._keys = [k for k in kb.keys() if k != key]
+                    if kb._keys:
+                        _kbs.append(kb)
+                _issuer._bundles = _kbs
+
+    return sc

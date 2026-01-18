@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class RP(Client):
-
+    entity_type = 'openid_relying_party'
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -59,8 +59,8 @@ class RP(Client):
             **kwargs
     ):
 
-        if use_default_keys(keyjar, key_conf, config):
-            key_conf = KEYDEFS
+        # if use_default_keys(keyjar, key_conf, config):
+        #    key_conf = KEYDEFS
 
         Client.__init__(self, keyjar, config, services, httpc, httpc_params, context,
                         upstream_get, key_conf, entity_id, verify_ssl, jwks_uri,

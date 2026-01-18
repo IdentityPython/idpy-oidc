@@ -10,7 +10,7 @@ from idpyoidc.message.oauth2 import ResponseMessage
 
 __author__ = "Roland Hedberg"
 
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 logger = logging.getLogger(__name__)
 

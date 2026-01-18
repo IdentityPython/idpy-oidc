@@ -221,7 +221,7 @@ def init_keyjar(config: Optional[dict] = None,
     :param kwargs: Extra key word arguments
     :return: A KeyJar instance
     """
-    flag = False
+
     if keyjar is not None:
         if isinstance(keyjar, KeyJar):
             pass
@@ -242,7 +242,6 @@ def init_keyjar(config: Optional[dict] = None,
                     if issuer_id:
                         keyjar.import_jwks(keyjar.export_jwks(private=True, issuer_id=''), issuer_id=_issuer_id)
             if not keyjar:
-                flag = True
                 _args = {k: v for k, v in key_conf.items() if k not in ['uri_path', 'issuer_id']}
                 keyjar = init_key_jar(**_args)
                 if _issuer_id:
@@ -254,14 +253,6 @@ def init_keyjar(config: Optional[dict] = None,
                         _out.write(json.dumps(jwks))
 
     if keyjar is None:
-        flag = True
         keyjar = KeyJar()
-
-    if flag:
-        _client_secret = config.get("client_secret", None)
-        _client_id = config.get("client_id", None)
-        if _client_id and _client_secret:
-            keyjar.add_symmetric(issuer_id=_client_id, key=_client_secret, usage=['sig'])
-            keyjar.add_symmetric(issuer_id='', key=_client_secret, usage=['sig'])
 
     return keyjar

@@ -11,7 +11,7 @@ from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
 from idpyoidc.util import get_jwks
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import get_keyjar_chain
 from idpyoidc.util import jwks_from_keys
 
@@ -46,7 +46,6 @@ class TestRPHandler(object):
                                                      'id_token_encryption_alg_values_supported',
                                                      'id_token_encryption_enc_values_supported',
                                                      'id_token_signing_alg_values_supported',
-                                                     'jwks',
                                                      'redirect_uris',
                                                      'request_object_encryption_alg_values_supported',
                                                      'request_object_encryption_enc_values_supported',
@@ -67,7 +66,7 @@ class TestRPHandler(object):
         # issuer publishes.
         cntx_keyjar = context.keyjar
         assert list(cntx_keyjar.owners()) == []
-        rp_keyjar = get_client_keyjar(self.rp)
+        rp_keyjar = get_keyjar(self.rp)
 
         assert context.base_url == BASE_URL
 
@@ -117,7 +116,6 @@ class TestRPHandler(object):
             "encrypt_request_object_supported",
             "grant_types",
             "id_token_signed_response_alg",
-            "jwks",
             "redirect_uris",
             "request_object_signing_alg",
             'request_parameter_supported',

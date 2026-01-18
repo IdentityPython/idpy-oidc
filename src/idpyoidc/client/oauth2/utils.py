@@ -12,7 +12,7 @@ from idpyoidc.client.service import Service
 from idpyoidc.exception import MissingParameter
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ def set_request_object(context, service, request_args):
     if context.keyjar:
         _jwt = JWT(key_jar=context.keyjar)
     else:
-        _jwt = JWT(key_jar=get_client_keyjar(service, context.server_entity_id))
+        _jwt = JWT(key_jar=get_keyjar(service, context.server_entity_id))
 
     if isinstance(request_args, Message):
         _request_object = _jwt.pack(request_args.to_dict())

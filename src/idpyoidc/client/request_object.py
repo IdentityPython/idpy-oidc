@@ -7,7 +7,7 @@ from cryptojwt.jwt import utc_time_sans_frac
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import make_openid_request
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import full_keyjar_join
 from idpyoidc.util import rndstr
 
 DEFAULT_EXPIRES_IN = 3600
@@ -114,7 +114,8 @@ def construct_request_parameter(context, service, req, audience=None, **kwargs):
     kwargs["request_object_signing_alg"] = alg
 
     if "keys" not in kwargs and alg and alg != "none":
-        kwargs["keys"] = get_client_keyjar(service)
+        _entity = service.upstream_get('unit')
+        kwargs["keys"] = full_keyjar_join(context.keyjar, _entity.keyjar, private=True)
 
     if alg == "none":
         kwargs["keys"] = []

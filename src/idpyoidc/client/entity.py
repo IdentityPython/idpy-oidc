@@ -1,7 +1,9 @@
 import logging
+import os
 from typing import Callable
 from typing import Optional
 from typing import Union
+from urllib.parse import urljoin
 
 from cryptojwt import KeyBundle
 from cryptojwt import KeyJar
@@ -16,9 +18,11 @@ from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service_context import create_new_context
 from idpyoidc.client.service_context import ServiceContext
+from idpyoidc.message import Message
 from idpyoidc.node import Unit
+from idpyoidc.server.util import init_keyjar
 from idpyoidc.util import conf_get
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import keyjar_join
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +105,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             key_conf: Optional[list] = None,
             entity_id: Optional[str] = "",
             client_configs: Optional[dict] = None,
-            base_url: Optional[str] = None
+            base_url: Optional[str] = None,
+            **kwargs
     ):
         if config is None:
             config = {}
@@ -109,8 +114,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         self.config = config
 
         # Client ID is set through configuration or at registration
-        _id = config.get("client_id")
-        self.entity_id = entity_id or config.get("entity_id", _id)
+        self.set_entity_id(config=config, entity_id=entity_id)
 
         Unit.__init__(
             self,
@@ -120,21 +124,28 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             httpc_params=httpc_params,
             config=config,
             key_conf=key_conf,
-            client_id=_id,
+            # client_id=_id,
         )
+
+        # Keys used by all contexts
+        self.keyjar = init_keyjar(self.config, keyjar, key_conf, issuer_id=self.entity_id, **kwargs)
+        self.jwks_uri = jwks_uri or conf_get(self.config, "jwks_uri", '')
+        if self.jwks_uri and not self.jwks_uri.startswith("https"):
+            base_url = base_url or conf_get(self.config, "base_url", '') or kwargs.get('base_url', '')
+            self.jwks_uri = urljoin(base_url, self.jwks_uri)
 
         if context:
             self.context = context
         else:
-            if client_configs:
+            _client_configs = client_configs or conf_get(config, "client_configs", {})
+            if _client_configs:
                 self.context = {}
-                for server_id, conf in client_configs.items():
-                    issuer = conf.get("issuer", "")
+                for server_id, conf in _client_configs.items():
+                    issuer = conf.get("issuer", server_id)
                     self.context[issuer] = ServiceContext(
                         issuer,
                         config=conf,
-                        jwks_uri=jwks_uri,
-                        keyjar=keyjar,
+                        keyjar=None,
                         upstream_get=self.unit_get,
                         client_type=client_type,
                         entity_id=self.entity_id,
@@ -147,7 +158,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                         server_entity_id='',
                         config=config,
                         jwks_uri=jwks_uri,
-                        keyjar=keyjar,
+                        keyjar=None,
                         upstream_get=self.unit_get,
                         client_type=client_type,
                         entity_id=self.entity_id,
@@ -157,10 +168,17 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                 }
 
         # '' MUST always be present
+        if '' not in self.context:
+            raise ValueError("Default context description missing")
+
         self.default_context = self.context['']
 
         self.setup_client_authn_methods(config, self.default_context)
         self.upstream_get = upstream_get
+
+    def set_entity_id(self, config=None, entity_id=''):
+        _id = config.get("client_id")
+        self.entity_id = entity_id or config.get("entity_id", _id)
 
     def get_services(self, context, *arg):
         return context.service
@@ -198,6 +216,28 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         else:
             context.client_authn_methods = {}
 
+    def get_metadata(self, server_entity_id="",
+                     metadata_schema: Optional[Message] = None,
+                     with_entity_type: Optional[bool] = False
+                     ):
+        if with_entity_type:
+            _entity_type = self.entity_type
+        else:
+            _entity_type = ''
+
+        _context = self.get_context(server_entity_id)
+        _metadata = _context.get_metadata(_entity_type, _context.supports(), metadata_schema)
+        if with_entity_type:
+            _md = _metadata[_entity_type]
+        else:
+            _md = _metadata
+        _jwks_uri = getattr(self, 'jwks_uri', '')
+        if _jwks_uri:
+            _md['jwks_uri'] = os.path.join(self.base_url, _jwks_uri)
+        else:
+            _md['jwks'] = keyjar_join(self.keyjar, _context.keyjar, issuer_id='')
+        return _metadata
+
     def import_keys(self, keyspec):
         """
         The client needs its own set of keys. It can either dynamically
@@ -207,9 +247,9 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         :param keyspec:
         """
-        _keyjar = get_client_keyjar(self)
+        _keyjar = self.keyjar
         if _keyjar is None:
-            _keyjar = KeyJar()
+            self.keyjar = _keyjar = KeyJar()
 
         for where, spec in keyspec.items():
             if where == "file":

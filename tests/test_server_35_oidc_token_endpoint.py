@@ -30,7 +30,7 @@ from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.server.util import lv_pack
 from idpyoidc.time_util import utc_time_sans_frac
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from . import CRYPT_CONFIG
 from . import SESSION_PARAMS
 
@@ -1135,7 +1135,7 @@ class TestOldTokens(object):
         # payload.update(kwargs)
         _context = _handler.upstream_get("context")
         signer = JWT(
-            key_jar=get_server_keyjar(_handler),
+            key_jar=get_keyjar(_handler),
             iss=_handler.issuer,
             lifetime=300,
             sign_alg=_handler.alg,

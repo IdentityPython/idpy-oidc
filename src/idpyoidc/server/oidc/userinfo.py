@@ -15,7 +15,7 @@ from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ClientAuthenticationError
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class UserInfo(Endpoint):
 
         if encrypt or sign:
             _jwt = JWT(
-                get_server_keyjar(self),
+                get_keyjar(self),
                 iss=self.context.issuer,
                 sign=sign,
                 sign_alg=sign_alg,

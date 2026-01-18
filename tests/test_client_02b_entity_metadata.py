@@ -1,8 +1,10 @@
 from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.entity import Entity
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import RegistrationRequest
+from idpyoidc.util import keyjar_join
 
 ISS = "http://example.org/op"
 CLIENT_CONFIG = {
@@ -45,7 +47,7 @@ CLIENT_CONFIG = {
 
 KEY_CONF = {
     "private_path": "private/jwks.json",
-    "key_defs": [
+    'key_defs': [
         {"type": "RSA", "key": "", "use": ["sig"]},
         {"type": "EC", "crv": "P-256", "use": ["sig"]},
     ],
@@ -71,7 +73,6 @@ def test_create_client():
         "default_max_age",
         "grant_types_supported",
         "id_token_signing_alg_values_supported",
-        'jwks',
         "post_logout_redirect_uris",
         "redirect_uris",
         "request_object_signing_alg_values_supported",
@@ -98,7 +99,7 @@ def test_create_client():
 
     _conf_args = list(_context.collect_usage().keys())
     assert _conf_args
-    assert len(_conf_args) == 25
+    assert len(_conf_args) == 24
     rr = set(RegistrationRequest.c_param.keys())
     # The ones that are not defined and will therefore not appear in a registration request
     d = rr.difference(set(_conf_args))
@@ -112,7 +113,8 @@ def test_create_client():
         "id_token_encrypted_response_enc",
         "initiate_login_uri",
         "logo_uri",
-        "jwks_uri",
+        'jwks',
+        'jwks_uri',
         "policy_uri",
         "post_logout_redirect_uri",
         "request_object_encryption_alg",
@@ -130,34 +132,49 @@ def test_create_client_key_conf():
     client_config = CLIENT_CONFIG.copy()
     client_config.update({"key_conf": KEY_CONF, "jwks_uri": "https://example.com/keys/jwks.json"})
 
-    client = Entity(config=client_config, client_type="oidc")
-    assert client.context[''].get_preference("jwks_uri")
+    client = RP(config=client_config, client_type="oidc")
+    assert client.jwks_uri
 
 
 def test_create_client_keyjar():
     _keyjar = init_key_jar(**KEY_CONF)
     client_config = CLIENT_CONFIG.copy()
 
-    client = Entity(config=client_config, keyjar=_keyjar, client_type="oidc")
-    _jwks = client.context[''].get_preference("jwks")
-    assert _jwks
+    client = RP(config=client_config, keyjar=_keyjar, client_type="oidc")
+    _keyjar = keyjar_join(client.keyjar, client.context[''].keyjar)
+    assert _keyjar
 
 
 def test_create_client_jwks_uri():
     client_config = CLIENT_CONFIG.copy()
     client_config["jwks_uri"] = "https://rp.example.com/jwks_uri.json"
-    client = Entity(config=client_config)
-    assert client.context[''].get_preference("jwks_uri")
+    client_config['key_conf'] = KEY_CONF
+    client = RP(config=client_config)
+    assert client.jwks_uri == "https://rp.example.com/jwks_uri.json"
 
 
 def test_metadata():
-    client = Entity(config=CLIENT_CONFIG, client_type="oidc")
+    client = RP(config=CLIENT_CONFIG, key_conf=KEY_CONF, client_type="oidc")
     # With entity type
-    metadata = client.context[''].claims.get_client_metadata("openid_relying_party",
-                                                  metadata_schema=RegistrationRequest)
-    assert set(metadata.keys()) == {"openid_relying_party"}
-    # Without entity type, no endpoints. Typical client
-    metadata = client.context[''].claims.get_client_metadata(metadata_schema=RegistrationRequest)
+    metadata = client.get_metadata('', metadata_schema=RegistrationRequest, with_entity_type=True)
+    assert set(metadata.keys()) == {'openid_relying_party'}
+    assert set(metadata['openid_relying_party'].keys()) == {'application_type',
+                                                            'backchannel_logout_session_required',
+                                                            'backchannel_logout_uri',
+                                                            'contacts',
+                                                            'default_max_age',
+                                                            'grant_types',
+                                                            'id_token_signed_response_alg',
+                                                            'jwks',
+                                                            'redirect_uris',
+                                                            'request_object_signing_alg',
+                                                            'response_modes',
+                                                            'response_types',
+                                                            'subject_type',
+                                                            'token_endpoint_auth_method',
+                                                            'token_endpoint_auth_signing_alg',
+                                                            'userinfo_signed_response_alg'}
+    metadata = client.get_metadata('', metadata_schema=RegistrationRequest, with_entity_type=False)
     assert set(metadata.keys()) == {'application_type',
                                     'backchannel_logout_session_required',
                                     'backchannel_logout_uri',
@@ -174,3 +191,16 @@ def test_metadata():
                                     'token_endpoint_auth_method',
                                     'token_endpoint_auth_signing_alg',
                                     'userinfo_signed_response_alg'}
+
+
+def test_metadata2():
+    entity = RP(config=CLIENT_CONFIG, key_conf=KEY_CONF, client_type="oidc")
+    new_server = 'https://second.example.com'
+    context_2 = entity.add_new_context(new_server)
+
+    metadata_1 = entity.get_metadata(metadata_schema=RegistrationRequest, with_entity_type=True)
+
+    metadata_2 = entity.get_metadata(server_entity_id=new_server, metadata_schema=RegistrationRequest,
+                                     with_entity_type=True)
+
+    assert set(metadata_1.keys()) == set(metadata_2.keys())

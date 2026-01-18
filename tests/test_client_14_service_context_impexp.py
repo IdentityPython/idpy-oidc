@@ -8,7 +8,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 BASE_URL = "https://example.com"
 
@@ -323,4 +323,4 @@ class TestClientInfo(object):
             )
 
             # Now there should be one belonging to https://example.com
-            assert len(get_client_keyjar(srvcntx).get_issuer_keys("https://foobar.com")) == 1
+            assert len(get_keyjar(srvcntx).get_issuer_keys("https://foobar.com")) == 1

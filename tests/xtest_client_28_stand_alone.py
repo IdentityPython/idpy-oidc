@@ -17,7 +17,7 @@ from idpyoidc.message.oidc import IdToken
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import ProviderConfigurationResponse
 from idpyoidc.message.oidc import RegistrationResponse
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 ISSUER = "https://op.example.com"
 
@@ -421,7 +421,7 @@ class TestPostAuthn(object):
         _aud = _context.get_client_id()
         idval = {"nonce": _nonce, "sub": subject, "iss": _iss, "aud": _aud}
 
-        _keyjar = get_client_keyjar(_context)
+        _keyjar = get_keyjar(_context)
         _keyjar = import_jwks(_keyjar, ISSUER_KEYS.export_jwks(issuer_id=ISSUER), ISSUER)
 
         idts = IdToken(**idval)

@@ -467,8 +467,11 @@ class Service(ImpExp):
         _info = {"method": method, "request": request}
 
         _args = kwargs.copy()
-        _args["iss"] = context.issuer
-
+        _iss = getattr(context, 'issuer', None)
+        if _iss is None:
+            _iss = getattr(context, 'entity_id', None)
+            if _iss is None:
+                raise ValueError("Can't find a issuer identifier")
         # Find out where to send this request
         try:
             endpoint_url = kwargs["endpoint"]

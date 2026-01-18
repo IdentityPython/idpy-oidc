@@ -10,7 +10,7 @@ from idpyoidc.server import do_endpoints
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
@@ -110,7 +110,7 @@ class TestEndpoint(object):
 
     def test_parse_jwt(self):
         self.endpoint.request_format = "jwt"
-        kj = get_server_keyjar(self.endpoint)
+        kj = get_keyjar(self.endpoint)
         request = REQ.to_jwt(kj.get_signing_key("RSA"), "RS256")
         req = self.endpoint.parse_request(request)
         assert req == REQ

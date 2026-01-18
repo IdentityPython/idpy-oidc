@@ -10,6 +10,7 @@ from cryptojwt.exception import IssuerNotFound
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.exception import MissingRequiredValue
 from idpyoidc.exception import ParameterError
+from idpyoidc.jwks_set import keyjar_union
 from idpyoidc.message import Message
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.message.oidc import RegistrationRequest
@@ -17,7 +18,8 @@ from idpyoidc.node import Node
 from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.exception import UnAuthorizedClient
 from idpyoidc.server.util import OAUTH2_NOCACHE_HEADERS
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import full_keyjar_join
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import sanitize
 
 __author__ = "Roland Hedberg"
@@ -205,7 +207,7 @@ class Endpoint(Node):
         if http_info:
             LOGGER.info(f"HTTP info: {http_info}")
 
-        _keyjar = get_server_keyjar(self)
+        _keyjar = keyjar_union(self.context.keyjar, self.context.upstream_get('unit').keyjar)
 
         if http_info is None:
             http_info = {}

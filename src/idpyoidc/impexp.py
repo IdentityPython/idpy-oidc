@@ -234,7 +234,15 @@ class ImpExp:
 
         return val
 
-    def load(self, item: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None):
+    def load(self, state: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None):
+        """
+        Loads a state into this instance.
+
+        :param state: The state description
+        :param init_args: Arguments that should be loaded at the beginning.
+        :param load_args: Arguments used for the local adjustment of attributes
+        :return:
+        """
         if load_args:
             _kwargs = {"load_args": load_args}
             _load_args = load_args
@@ -250,7 +258,7 @@ class ImpExp:
         _kwargs["init_args"] = init_args
 
         for attr, cls in self.parameter.items():
-            if attr not in item or attr in self.special_load_dump:
+            if attr not in state or attr in self.special_load_dump:
                 continue
 
             _cls_init_args = getattr(cls, "init_args", {})
@@ -267,15 +275,15 @@ class ImpExp:
                     else:
                         _kwargs["init_args"][param] = target_val
 
-            setattr(self, attr, self.load_attr(cls, item[attr], **_kwargs))
+            setattr(self, attr, self.load_attr(cls, state[attr], **_kwargs))
 
         for attr, func in self.special_load_dump.items():
-            if attr in item:
+            if attr in state:
                 if "load" in func:
-                    setattr(self, attr, func["load"](item[attr], **_kwargs))
+                    setattr(self, attr, func["load"](state[attr], **_kwargs))
                 else:
                     cls = self.parameter[attr]
-                    setattr(self, attr, self.load_attr(cls, item[attr], **_kwargs))
+                    setattr(self, attr, self.load_attr(cls, state[attr], **_kwargs))
 
         self.local_load_adjustments(**_load_args)
         return self

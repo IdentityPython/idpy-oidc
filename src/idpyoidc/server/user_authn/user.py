@@ -18,7 +18,7 @@ from idpyoidc.server.exception import NoSuchClientSession
 from idpyoidc.server.exception import NoSuchGrant
 from idpyoidc.server.exception import OnlyForTestingWarning
 from idpyoidc.time_util import utc_time_sans_frac
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import instantiate
 
 __author__ = "Roland Hedberg"
@@ -95,7 +95,7 @@ class UserAuthnMethod(object):
         raise NotImplementedError
 
     def unpack_token(self, token):
-        return verify_signed_jwt(token=token, keyjar=get_server_keyjar(self))
+        return verify_signed_jwt(token=token, keyjar=get_keyjar(self))
 
     def done(self, areq):
         """
@@ -202,7 +202,7 @@ class UserPassJinja2(UserAuthnMethod):
         if not self.upstream_get:
             raise Exception(f"{self.__class__.__name__} doesn't have a working upstream_get")
 
-        _keyjar = get_server_keyjar(self)
+        _keyjar = get_keyjar(self)
         # Stores information need afterwards in a signed JWT that then
         # appears as a hidden input in the form
         jws = create_signed_jwt(self.context.issuer, _keyjar, **kwargs)

@@ -27,7 +27,7 @@ from idpyoidc.message.oidc.session import EndSessionRequest
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.oauth2.authorization import verify_uri
 from idpyoidc.util import add_path
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import rndstr
 
 logger = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ class Session(Endpoint):
                 alg = self.context.provider_info.get("id_token_signed_response_alg", "RS256")
 
         _jws = JWT(
-            get_server_keyjar(self),
+            get_keyjar(self),
             iss=self.context.issuer,
             lifetime=86400,
             sign_alg=alg,
@@ -225,7 +225,7 @@ class Session(Endpoint):
             else:
                 alg = self.kwargs["signing_alg"]
 
-            sign_keys = get_server_keyjar(self).get_signing_key(alg2keytype(alg))
+            sign_keys = get_keyjar(self).get_signing_key(alg2keytype(alg))
             _info = _jwt.verify_compact(keys=sign_keys, sigalg=alg)
             return _info
         else:
@@ -342,7 +342,7 @@ class Session(Endpoint):
         logger.debug("JWS payload: {}".format(payload))
         # From me to me
         _jws = JWT(
-            get_server_keyjar(self),
+            get_keyjar(self),
             iss=self.context.issuer,
             lifetime=86400,
             sign_alg=self.kwargs["signing_alg"],
@@ -376,7 +376,7 @@ class Session(Endpoint):
 
         if isinstance(request, dict):
             request = self.request_cls(**request)
-            if not request.verify(keyjar=get_server_keyjar(self), sigalg=""):
+            if not request.verify(keyjar=get_keyjar(self), sigalg=""):
                 raise InvalidRequest("Request didn't verify")
             # id_token_signing_alg_values_supported
             try:

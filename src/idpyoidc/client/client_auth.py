@@ -23,6 +23,7 @@ from idpyoidc.util import rndstr
 from .util import sanitize
 from ..message import VREQUIRED
 from ..util import instantiate
+from ..util import keyjar_join
 
 # from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
 
@@ -520,8 +521,13 @@ class JWSAuthnMethod(ClientAuthnMethod):
 
     def _construct_client_assertion(self, context, service, **kwargs):
         _entity = service.upstream_get("unit")
+        _entity_id = context.entity_id
 
-        _keyjar = context.keyjar
+        # if _entity_id in _entity.keyjar.owners():
+        #     _keyjar = keyjar_join(_entity.keyjar, context.keyjar, private=True, issuer_id=_entity_id)
+        # else:
+        _keyjar = keyjar_join(_entity.keyjar, context.keyjar, issuer_id='', private=True)
+
         audience, algorithm = self._get_audience_and_algorithm(context, _keyjar, **kwargs)
 
         if "kid" in kwargs:
@@ -543,9 +549,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         except KeyError:
             _args = {}
 
-        _client_id = kwargs.get("client_id", _entity.client_id)
-        if not _client_id:
-            _client_id = kwargs.get("entity_id", _entity.entity_id)
+        _client_id = kwargs.get("client_id", kwargs.get("entity_id", context.entity_id))
 
         # construct the signed JWT with the assertions and add
         # it as value to the 'client_assertion' claim of the request

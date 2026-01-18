@@ -16,7 +16,7 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.configure import OPConfiguration
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import rndstr
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
@@ -239,7 +239,7 @@ class TestFlow(object):
         if service_type == "provider_info":
             _keyjar = self.rp_context.keyjar
             _keyjar = import_jwks(_keyjar,
-                                  get_server_keyjar(_server_endpoint).export_jwks(),
+                                  get_keyjar(_server_endpoint).export_jwks(),
                                   _server_endpoint.upstream_get("attribute", "issuer"))
 
         return areq, resp

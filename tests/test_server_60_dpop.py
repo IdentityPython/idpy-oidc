@@ -286,7 +286,7 @@ class TestEndpoint(object):
         context = self.client.context['']
         # Authz
         auth_req = AUTH_REQ.copy()
-        auth_req["client_id"] = self.client.client_id
+        auth_req["client_id"] = self.client.context[''].entity_id
         _redirect_uri = context.claims.get_preference("redirect_uris")[0]
         auth_req["redirect_uri"] = _redirect_uri
 

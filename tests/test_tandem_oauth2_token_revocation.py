@@ -118,11 +118,11 @@ class TestClient(object):
         # -------------- Client -----------------------
 
         client_conf = {
-            "redirect_uris": ["https://example.com/cli/code_cb"],
             "client_id": "client_1",
             "client_secret": "abcdefghijklmnop",
             "issuer": "https://example.com/",
             "response_types_supported": ["code"],
+            'base_url': "https://client.example.com",
         }
         services = {
             "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},

@@ -10,7 +10,7 @@ from idpyoidc.message.oauth2 import ResponseMessage
 
 __author__ = "Roland Hedberg"
 
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class Registration(Service):
             _client_secret = context.get_usage("client_secret")
             if _client_secret:
                 if _keyjar is None:
-                    _keyjar = get_client_keyjar(self, context.server_entity_id)
+                    _keyjar = get_keyjar(self, context.server_entity_id)
 
                 context.client_secret = _client_secret
                 _keyjar.add_symmetric("", _client_secret)
@@ -98,7 +98,8 @@ class Registration(Service):
         @return:
         """
         req_args = context.claims.get_client_metadata(metadata_schema=self.msg_type,
-                                                      supported=context.supports())
+                                                      supported=context.supports(),
+                                                      context=context)
         if "request_args" in self.conf:
             req_args.update(self.conf["request_args"])
 

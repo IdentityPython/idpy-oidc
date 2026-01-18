@@ -16,6 +16,7 @@ from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.util import full_keyjar_join
 from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
 from idpyoidc.util import get_keyjar_chain
 
@@ -54,7 +55,7 @@ LINKEDIN = "https://www.linkedin.com/oauth/v2/"
 FACEBOOK = "https://www.facebook.com/v2.11/dialog/oauth"
 GITHUB = "https://github.com/login/oauth/authorize"
 
-CLIENT_CONFIG = {
+CLIENT_CONFIGS = {
     "": {
         "preference": PREF,
         "redirect_uris": None,
@@ -138,39 +139,7 @@ CLIENT_CONFIG = {
                 "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
             },
         },
-    },
-    # "github2": {
-    #     "issuer": "https://github.com/login/oauth/authorize",
-    #     "client_id": "GitHubII",
-    #     "client_secret": "aaaaaaaaaaaaaaaaaaaa",
-    #     "client_type": "oidc",
-    #     "redirect_uris": ["{}/authz_cb/github".format(BASE_URL)],
-    #     "preference": {
-    #         "response_types_supported": ["code"],
-    #         "scopes_supported": ["user", "public_repo"],
-    #         "token_endpoint_auth_methods_supported": [],
-    #         "verify_args": {"allow_sign_alg_none": True},
-    #         "encrypt_request_object": False,
-    #     },
-    #     "provider_info": {
-    #         "authorization_endpoint": "https://github.com/login/oauth/authorize",
-    #         "token_endpoint": "https://github.com/login/oauth/access_token",
-    #         "userinfo_endpoint": "https://api.github.com/user",
-    #         "request_parameter_supported": True,
-    #         "request_uri_parameter_supported": True,
-    #     },
-    #     "services": {
-    #         "authorization": {"class": "idpyoidc.client.oidc.authorization.Authorization"},
-    #         "access_token": {"class": "idpyoidc.client.oidc.access_token.AccessToken"},
-    #         "userinfo": {
-    #             "class": "idpyoidc.client.oidc.userinfo.UserInfo",
-    #             "kwargs": {"default_authn_method": ""},
-    #         },
-    #         "refresh_access_token": {
-    #             "class": "idpyoidc.client.oidc.refresh_access_token.RefreshAccessToken"
-    #         },
-    #     },
-    # },
+    }
 }
 
 KEYDEFS = [
@@ -180,34 +149,32 @@ KEYDEFS = [
 
 _dirname = os.path.dirname(os.path.abspath(__file__))
 
-ISS = "https://example.com"
 
-CLI_KEY = init_key_jar(
-    public_path="{}/pub_client.jwks".format(_dirname),
-    private_path="{}/priv_client.jwks".format(_dirname),
-    key_defs=KEYDEFS,
-    issuer_id="",
-)
+CLI_KEYCONF = {
+    "public_path": "{}/pub_client.jwks".format(_dirname),
+    'private_path': "{}/priv_client.jwks".format(_dirname),
+    'key_defs': KEYDEFS,
+}
 
-LINKEDIN_KEY = init_key_jar(
+LINKEDIN_KEYJAR = init_key_jar(
     public_path="{}/pub_linkedin.jwks".format(_dirname),
     private_path="{}/priv_linkedin.jwks".format(_dirname),
     key_defs=KEYDEFS,
-    issuer_id=CLIENT_CONFIG["linkedin"]["issuer"],
+    issuer_id=CLIENT_CONFIGS["linkedin"]["issuer"],
 )
 
-FACEBOOK_KEY = init_key_jar(
+FACEBOOK_KEYJAR = init_key_jar(
     public_path="{}/pub_facebook.jwks".format(_dirname),
     private_path="{}/priv_facebook.jwks".format(_dirname),
     key_defs=KEYDEFS,
-    issuer_id=CLIENT_CONFIG["facebook"]["issuer"],
+    issuer_id=CLIENT_CONFIGS["facebook"]["issuer"],
 )
 
-GITHUB_KEY = init_key_jar(
+GITHUB_KEYJAR = init_key_jar(
     public_path="{}/pub_github.jwks".format(_dirname),
     private_path="{}/priv_github.jwks".format(_dirname),
     key_defs=KEYDEFS,
-    issuer_id=CLIENT_CONFIG["github"]["issuer"],
+    issuer_id=CLIENT_CONFIGS["github"]["issuer"],
 )
 
 
@@ -218,7 +185,15 @@ def get_state_from_url(url):
 
 
 def iss_id(iss):
-    return CLIENT_CONFIG[iss]["issuer"]
+    return CLIENT_CONFIGS[iss]["issuer"]
+
+
+CONFIG = {
+    "redirect_uris": [f"{BASE_URL}/authz_cb"],
+    "public_path": f"{BASE_URL}/pub_client.jwks",
+    'private_path': f"{BASE_URL}/priv_client.jwks",
+    'key_defs': KEYDEFS,
+}
 
 
 class TestClient(object):
@@ -226,7 +201,8 @@ class TestClient(object):
     @pytest.fixture(autouse=True)
     def client_setup(self):
         self.rp = RP(
-            client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"], base_url=BASE_URL,
+            config=CONFIG,
+            client_configs=CLIENT_CONFIGS, key_conf=CLI_KEYCONF, module_dirs=["oidc"], base_url=BASE_URL,
             entity_id=BASE_URL
         )
 
@@ -270,7 +246,6 @@ class TestClient(object):
                               'default_max_age',
                               'grant_types_supported',
                               'id_token_signing_alg_values_supported',
-                              'jwks',
                               'redirect_uris',
                               'request_object_signing_alg_values_supported',
                               'request_parameter_supported',
@@ -401,8 +376,9 @@ class TestClient(object):
         _session = self.rp.get_session_information(_context, _state)
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.context[''].keyjar
-        _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
+        _keyjar = self.rp.context[_github_id].keyjar
+        # Import github keys into context's keyjar.This so it can verify the signature later
+        _keyjar.import_jwks(GITHUB_KEYJAR.export_jwks(issuer_id=_github_id), _github_id)
 
         _nonce = _session["nonce"]
         _iss = _session["iss"]
@@ -410,8 +386,10 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         idts = IdToken(**idval)
+        # _keyjar = full_keyjar_join(self.rp.context[_github_id].keyjar, self.rp.keyjar, private=True)
+        # The entity signing the IdToken is the server (_iss). Signing with its own key.
         _signed_jwt = idts.to_jwt(
-            key=self.rp.context[''].keyjar.get_signing_key(issuer_id=_github_id), algorithm="RS256",
+            key=GITHUB_KEYJAR.get_signing_key(issuer_id=_github_id), algorithm="RS256",
             lifetime=300
         )
 
@@ -478,12 +456,12 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.context[''].keyjar
-        _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
+        _keyjar = self.rp.context[_github_id].keyjar
+        _keyjar.import_jwks(GITHUB_KEYJAR.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=_keyjar.get_signing_key("rsa", issuer_id=_github_id),
+            key=GITHUB_KEYJAR.get_signing_key("rsa", issuer_id=_github_id),
             algorithm="RS256",
             lifetime=300,
         )
@@ -526,12 +504,12 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.context[''].keyjar
-        _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
+        _keyjar = self.rp.context[_github_id].keyjar
+        _keyjar.import_jwks(GITHUB_KEYJAR.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=_keyjar.get_signing_key("rsa", issuer_id=_github_id),
+            key=GITHUB_KEYJAR.get_signing_key("rsa", issuer_id=_github_id),
             algorithm="RS256",
             lifetime=300,
         )
@@ -574,12 +552,12 @@ class TestClient(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.context[''].keyjar
-        _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
+        _keyjar = self.rp.context[_github_id].keyjar
+        _keyjar.import_jwks(GITHUB_KEYJAR.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=_keyjar.get_signing_key("rsa", issuer_id=_github_id),
+            key=GITHUB_KEYJAR.get_signing_key("rsa", issuer_id=_github_id),
             algorithm="RS256",
             lifetime=300,
         )
@@ -659,7 +637,8 @@ class TestRPHandlerTier2(object):
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
         self.rp = RP(
-            client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"], base_url=BASE_URL,
+            config=CONFIG,
+            client_configs=CLIENT_CONFIGS, key_conf=CLI_KEYCONF, module_dirs=["oidc"], base_url=BASE_URL,
             entity_id=BASE_URL
         )
 
@@ -675,12 +654,12 @@ class TestRPHandlerTier2(object):
         idval = {"nonce": _nonce, "sub": "EndUserSubject", "iss": _iss, "aud": _aud}
 
         _github_id = iss_id("github")
-        _keyjar = self.rp.context[''].keyjar
-        _keyjar = import_jwks(_keyjar, _keyjar.export_jwks(issuer_id='', private=True), _github_id)
+        _keyjar = self.rp.context[_github_id].keyjar
+        _keyjar.import_jwks(GITHUB_KEYJAR.export_jwks(issuer_id=_github_id), _github_id)
 
         idts = IdToken(**idval)
         _signed_jwt = idts.to_jwt(
-            key=self.rp.context[''].keyjar.get_signing_key("rsa", issuer_id=_github_id),
+            key=GITHUB_KEYJAR.get_signing_key("rsa", issuer_id=_github_id),
             algorithm="RS256",
             lifetime=300,
         )
@@ -864,7 +843,8 @@ def registration_callback(data):
 
 def test_rphandler_request_uri():
     rp = RP(
-        client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"], base_url=BASE_URL,
+        config=CONFIG,
+        client_configs=CLIENT_CONFIGS, key_conf=CLI_KEYCONF, module_dirs=["oidc"], base_url=BASE_URL,
         entity_id=BASE_URL
     )
 
@@ -875,164 +855,11 @@ def test_rphandler_request_uri():
 
 def test_rphandler_request():
     rp = RP(
-        client_configs=CLIENT_CONFIG, keyjar=CLI_KEY, module_dirs=["oidc"], base_url=BASE_URL,
+        config=CONFIG,
+        client_configs=CLIENT_CONFIGS, key_conf=CLI_KEYCONF, module_dirs=["oidc"], base_url=BASE_URL,
         entity_id=BASE_URL
     )
 
     _url = rp.begin(issuer_id=GITHUB, behaviour_args={"request_param": "request"})
     _qp = parse_qs(urlparse(_url).query)
     assert "request" in _qp
-
-# class TestRPHandlerWithMockOP(object):
-#
-#     @pytest.fixture(autouse=True)
-#     def rphandler_setup(self):
-#         self.issuer = "https://github.com/login/oauth/authorize"
-#         # self.mock_op = MockOP(issuer=self.issuer)
-#         self.rp = RPHandler(BASE_URL, client_configs=CLIENT_CONFIG, keyjar=CLI_KEY)
-#
-#     def test_finalize(self):
-#         url = self.rp.begin(issuer_id="github")
-#         _state = get_state_from_url(url)
-#         #  The authorization query is sent and after successful authentication
-#         client = self.rp.get_client_from_session_key(state=_state)
-#         # register a response
-#         _url = CLIENT_CONFIG["github"]["provider_info"]["authorization_endpoint"]
-#         with responses.RequestsMock() as rsps:
-#             rsps.add(
-#                 "GET",
-#                 _url,
-#                 status=302,
-#             )
-#             _ = client.httpc("GET", url)
-#
-#         #  the user is redirected back to the RP with a positive response
-#         auth_response = AuthorizationResponse(code="access_code", state=_state)
-#
-#         # need session information and the client instance
-#         _session = self.rp.get_session_information(auth_response["state"])
-#         client = self.rp.get_client_from_session_key(state=auth_response["state"])
-#
-#         # Faking
-#         resp = construct_access_token_response(
-#             _session["nonce"],
-#             issuer=self.issuer,
-#             client_id=CLIENT_CONFIG["github"]["client_id"],
-#             key_jar=GITHUB_KEY,
-#         )
-#
-#         _token_url = CLIENT_CONFIG["github"]["provider_info"]["token_endpoint"]
-#         _user_url = CLIENT_CONFIG["github"]["provider_info"]["userinfo_endpoint"]
-#         _user_info = OpenIDSchema(
-#             sub="EndUserSubject", given_name="Diana", family_name="Krall", occupation="Jazz
-#             pianist"
-#         )
-#         _github_id = iss_id("github")
-#         _keyjar = client.get_attribute("keyjar")
-#         _keyjar = import_jwks(_keyjar, GITHUB_KEY.export_jwks(issuer_id=_github_id), _github_id)
-#         with responses.RequestsMock() as rsps:
-#             rsps.add(
-#                 "POST",
-#                 _token_url,
-#                 body=resp.to_json(),
-#                 adding_headers={"Content-Type": "application/json"},
-#                 status=200,
-#             )
-#             rsps.add(
-#                 "GET",
-#                 _user_url,
-#                 body=_user_info.to_json(),
-#                 adding_headers={"Content-Type": "application/json"},
-#                 status=200,
-#             )
-#
-#             # do the rest (= get access token and user info)
-#             # assume code flow
-#             resp = self.rp.finalize(_session["iss"], auth_response.to_dict())
-#
-#         assert set(resp.keys()) == {
-#             "token",
-#             "session_state",
-#             "userinfo",
-#             "state",
-#             "issuer",
-#             "id_token",
-#         }
-#
-#     def test_dynamic_setup(self):
-#         user_id = "acct:foobar@example.com"
-#         _link = Link(
-#             rel="http://openid.net/specs/connect/1.0/issuer", href="https://server.example.com"
-#         )
-#         webfinger_response = JRD(subject=user_id, links=[_link])
-#         resp = {
-#             "authorization_endpoint": "https://server.example.com/connect/authorize",
-#             "issuer": "https://server.example.com",
-#             "subject_types_supported": ["public"],
-#             "token_endpoint": "https://server.example.com/connect/token",
-#             "token_endpoint_auth_methods_supported": ["client_secret_basic", "private_key_jwt"],
-#             "userinfo_endpoint": "https://server.example.com/connect/user",
-#             "check_id_endpoint": "https://server.example.com/connect/check_id",
-#             "refresh_session_endpoint": "https://server.example.com/connect/refresh_session",
-#             "end_session_endpoint": "https://server.example.com/connect/end_session",
-#             "jwks_uri": "https://server.example.com/jwk.json",
-#             "registration_endpoint": "https://server.example.com/connect/register",
-#             "scopes_supported": ["openid", "profile", "email", "address", "phone"],
-#             "response_types_supported": ["code", "code id_token", "token id_token"],
-#             "acrs_supported": ["1", "2", "http://id.incommon.org/assurance/bronze"],
-#             "user_id_types_supported": ["public", "pairwise"],
-#             "userinfo_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
-#             "id_token_signing_alg_values_supported": [
-#                 "HS256",
-#                 "RS256",
-#                 "A128CBC",
-#                 "A128KW",
-#                 "RSA1_5",
-#             ],
-#             "request_object_algs_supported": ["HS256", "RS256", "A128CBC", "A128KW", "RSA1_5"],
-#         }
-#         pcr = ProviderConfigurationResponse(**resp)
-#         _crr = {
-#             "application_type": APPLICATION_TYPE_WEB,
-#             "response_types": ["code", "code id_token"],
-#             "redirect_uris": [
-#                 "https://example.com/rp/authz_cb"
-#                 "/7b7308fecf10c90b29303b6ae35ad1ef0f1914e49187f163335ae0b26a769e4f"
-#             ],
-#             "grant_types": ["authorization_code", "implicit"],
-#             "contacts": ["ops@example.com"],
-#             "subject_type": "public",
-#             "id_token_signed_response_alg": "RS256",
-#             "userinfo_signed_response_alg": "RS256",
-#             "request_object_signing_alg": "RS256",
-#             "token_endpoint_auth_signing_alg": "RS256",
-#             "default_max_age": 86400,
-#             "token_endpoint_auth_method": "client_secret_basic",
-#         }
-#         _crr.update({"client_id": "abcdefghijkl", "client_secret": rndstr(32)})
-#         cli_reg_resp = RegistrationResponse(**_crr)
-#         with responses.RequestsMock() as rsps:
-#             rsps.add(
-#                 "GET",
-#                 "https://example.com/.well-known/webfinger",
-#                 body=webfinger_response.to_json(),
-#                 adding_headers={"Content-Type": "application/json"},
-#                 status=200,
-#             )
-#             rsps.add(
-#                 "GET",
-#                 "https://server.example.com/.well-known/openid-configuration",
-#                 body=pcr.to_json(),
-#                 status=200,
-#                 adding_headers={"Content-Type": "application/json"},
-#             )
-#             rsps.add(
-#                 "POST",
-#                 "https://server.example.com/connect/register",
-#                 body=cli_reg_resp.to_json(),
-#                 status=200,
-#                 adding_headers={"Content-Type": "application/json"},
-#             )
-#
-#             auth_query = self.rp.begin(user_id=user_id)
-#         assert auth_query

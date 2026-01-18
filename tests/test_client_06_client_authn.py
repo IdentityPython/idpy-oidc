@@ -32,7 +32,8 @@ from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import ResourceRequest
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
+from idpyoidc.util import keyjar_join
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 CLIENT_ID = "A"
@@ -385,17 +386,17 @@ class TestPrivateKeyJWT(object):
 
     def test_construct(self):
         token_service = self.entity.get_service(self.context, "")
-        kb_rsa = KeyBundle(
-            source="file://{}".format(os.path.join(BASE_PATH, "data/keys/rsa.key")),
-            fileformat="der",
-        )
-
-        for key in kb_rsa:
-            key.add_kid()
+        # kb_rsa = KeyBundle(
+        #     source="file://{}".format(os.path.join(BASE_PATH, "data/keys/rsa.key")),
+        #     fileformat="der",
+        # )
+        #
+        # for key in kb_rsa:
+        #     key.add_kid()
 
         _context = token_service.upstream_get("context")
-        _keyjar = _context.keyjar
-        _keyjar.add_kb("", kb_rsa)
+        # _keyjar = _context.keyjar
+        # _keyjar.add_kb("", kb_rsa)
         _context.provider_info = {
             "issuer": "https://example.com/",
             "token_endpoint": "https://example.com/token",
@@ -410,9 +411,9 @@ class TestPrivateKeyJWT(object):
         cas = request["client_assertion"]
 
         # Receiver
-        _kj = KeyJar()
-        _kj = import_jwks(_kj, _keyjar.export_jwks(), _context.get_client_id())
-        _kj = add_kb(_kj, kb_rsa, _context.get_client_id())
+        _kj = keyjar_join(self.context.keyjar, self.entity.keyjar, issuer_id="")
+        _kj.import_jwks(_kj.export_jwks(''), _context.entity_id)
+
         jso = JWT(key_jar=_kj).unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "jti", "exp", "iat"])
         # assert _jwt.headers == {'alg': 'RS256'}
@@ -483,8 +484,9 @@ class TestClientSecretJWTTE(object):
         assert "client_assertion" in request
         cas = request["client_assertion"]
 
-        _kj = KeyJar()
-        _kj.import_jwks(self.context.keyjar.export_jwks(issuer_id=''), 'A')
+        _kj = keyjar_join(self.context.keyjar, self.entity.keyjar, issuer_id='A', private=False)
+
+        # _kj.import_jwks(self.context.keyjar.export_jwks(issuer_id=''), 'A')
 
         jso = JWT(key_jar=_kj, sign_alg="HS256").unpack(cas)
         assert _eq(jso.keys(), ["aud", "iss", "sub", "exp", "iat", "jti"])
@@ -566,8 +568,8 @@ class TestClientSecretJWTTE(object):
         # Since I have an RSA key this doesn't fail
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint")
 
-        keyjar = get_client_keyjar(self.entity, self.context.server_entity_id)
-        _rsa_key = keyjar.get(key_use="sig", key_type="rsa", issuer_id="")[0]
+        keyjar = keyjar_join(self.entity.keyjar, self.context.keyjar)
+
         _jws = factory(request["client_assertion"])
         assert _jws.jwt.headers["alg"] == "RS256"
         _rsa_key = keyjar.get_signing_key(key_type="RSA")[0]
@@ -623,7 +625,6 @@ class TestClientSecretJWT_UI(object):
         self.context.set_usage("client_secret", client_secret)
         self.context.keyjar.add_symmetric(issuer_id="", key=client_secret, usage=['sig'])
         self.context.keyjar.add_symmetric(issuer_id=self.entity.entity_id, key=client_secret, usage=['sig'])
-
 
     def test_client_secret_jwt(self):
         access_token_service = self.entity.get_service(self.context, "")

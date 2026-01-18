@@ -30,6 +30,7 @@ from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.message.oidc.session import CheckIDRequest
 from idpyoidc.message.oidc.session import CheckSessionRequest
 from idpyoidc.message.oidc.session import EndSessionRequest
+from idpyoidc.util import full_keyjar_join
 
 
 class Response(object):
@@ -225,9 +226,10 @@ class TestAuthorization(object):
         }
         _jws = jws.factory(msg["request"])
         assert _jws
+        _keyjar = full_keyjar_join(self.context.keyjar, self.entity.keyjar, private=True)
         _resp = _jws.verify_compact(
             msg["request"],
-            keys=self.context.keyjar.get_signing_key(key_type="RSA", issuer_id="client_id")
+            keys=_keyjar.get_signing_key(key_type="RSA", issuer_id="client_id")
         )
         assert _resp
         assert set(_resp.keys()) == {
@@ -854,7 +856,6 @@ class TestProviderInfo(object):
             'encrypt_userinfo_supported',
             'grant_types',
             'id_token_signed_response_alg',
-            'jwks',
             'post_logout_redirect_uris',
             'redirect_uris',
             'request_object_signing_alg',
@@ -879,8 +880,6 @@ class TestProviderInfo(object):
 
         use_copy = _context.claims.use.copy()
         # jwks content will change dynamically between runs
-        assert "jwks" in use_copy
-        del use_copy["jwks"]
         del use_copy["callback_uris"]
 
         assert use_copy == {
@@ -962,7 +961,6 @@ class TestRegistration(object):
             "default_max_age",
             "grant_types",
             "id_token_signed_response_alg",
-            "jwks",
             "redirect_uris",
             "request_object_signing_alg",
             "response_modes",
@@ -985,7 +983,6 @@ class TestRegistration(object):
             "default_max_age",
             "grant_types",
             "id_token_signed_response_alg",
-            "jwks",
             "post_logout_redirect_uri",
             "redirect_uris",
             "request_object_signing_alg",
@@ -1029,7 +1026,6 @@ def test_config_with_required_request_uri():
         "application_type",
         "response_modes",
         "response_types",
-        "jwks",
         "redirect_uris",
         "grant_types",
         "id_token_signed_response_alg",
@@ -1085,7 +1081,6 @@ def test_config_logout_uri():
         "default_max_age",
         "grant_types",
         "id_token_signed_response_alg",
-        "jwks",
         "redirect_uris",
         "request_object_signing_alg",
         "request_uris",

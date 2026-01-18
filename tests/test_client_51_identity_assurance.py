@@ -9,7 +9,8 @@ from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import AuthorizationResponse
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import full_keyjar_join
+from idpyoidc.util import get_keyjar
 
 KEYSPEC = [
     {"type": "RSA", "use": ["sig"]},
@@ -33,12 +34,12 @@ class TestUserInfo(object):
 
         KEYS = init_key_jar(key_defs=KEYSPEC)
 
-        entity = Entity(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
-        self.context = entity.get_context()
+        self.entity = Entity(config=client_config, services=DEFAULT_OIDC_SERVICES, keyjar=KEYS)
+        self.context = self.entity.get_context()
         self.context.issuer = "https://server.otherop.com"
-        self.service = entity.get_service(self.context, "userinfo")
+        self.service = self.entity.get_service(self.context, "userinfo")
 
-        entity.get_context().claims.use = {
+        self.entity.get_context().claims.use = {
             "userinfo_signed_response_alg": "RS256",
             "userinfo_encrypted_response_alg": "RSA-OAEP",
             "userinfo_encrypted_response_enc": "A256GCM",
@@ -74,7 +75,8 @@ class TestUserInfo(object):
             },
         }
 
-        _jwt = JWT(key_jar=get_client_keyjar(self.service))
+        _keyjar = full_keyjar_join(self.context.keyjar, self.entity.keyjar, private=True)
+        _jwt = JWT(key_jar=_keyjar)
         _jws = _jwt.pack(payload=_distributed_respone)
 
         resp = {

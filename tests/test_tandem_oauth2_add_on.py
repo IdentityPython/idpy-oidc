@@ -2,9 +2,11 @@ import json
 import os
 from typing import List
 
+from cryptojwt import JWK
 from cryptojwt.key_jar import build_keyjar
 
 from idpyoidc.client.oauth2 import Client
+from idpyoidc.jwks_set import to_local_from_foreign
 from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
@@ -32,24 +34,27 @@ COOKIE_KEYDEFS = [
     {"type": "oct", "kid": "enc", "use": ["enc"]},
 ]
 
+CLIENT_ID = "client"
+SERVER_ID = "https://server.example.com/"
+
 AUTH_REQ = AuthorizationRequest(
-    client_id="client",
-    redirect_uri="https://example.com/cb",
+    client_id=CLIENT_ID,
+    redirect_uri=f"{SERVER_ID}/cb",
     scope=["openid"],
     state="STATE",
     response_type="code",
 )
 
 TOKEN_REQ = AccessTokenRequest(
-    client_id="client",
-    redirect_uri="https://example.com/cb",
+    client_id=CLIENT_ID,
+    redirect_uri=f"{SERVER_ID}/cb",
     state="STATE",
     grant_type="authorization_code",
     client_secret="hemligt",
 )
 
 REFRESH_TOKEN_REQ = RefreshAccessTokenRequest(
-    grant_type="refresh_token", client_id="https://example.com/", client_secret="hemligt"
+    grant_type="refresh_token", client_id=CLIENT_ID, client_secret="hemligt"
 )
 
 TOKEN_REQ_DICT = TOKEN_REQ.to_dict()
@@ -71,7 +76,7 @@ _OAUTH2_SERVICES = {
 }
 
 SERVER_CONF = {
-    "issuer": "https://example.com/",
+    "issuer": SERVER_ID,
     "httpc_params": {"verify": False, "timeout": 1},
     "subject_types_supported": ["public", "pairwise", "ephemeral"],
     "keys": {"key_defs": KEYDEFS},
@@ -153,9 +158,7 @@ SERVER_CONF = {
 }
 
 CLIENT_CONFIG = {
-    "issuer": SERVER_CONF["issuer"],
-    "client_secret": "hemligtlösenord",
-    "client_id": "client",
+    "issuer": SERVER_ID,
     "redirect_uris": ["https://example.com/cb"],
     "client_salt": "salted_peanuts_cooking",
     "token_endpoint_auth_methods_supported": ["client_secret_post"],
@@ -181,7 +184,7 @@ class Flow(object):
         if msg is None:
             msg = {}
 
-        server_entity_id = self.server.entity_id
+        server_entity_id = self.server.context.entity_id
         client_context = self.client.context[server_entity_id]
 
         _client_service = self.client.get_service(client_context, service_type)
@@ -248,7 +251,7 @@ class Flow(object):
 
     def accesstoken_request(self, msg):
         # ***** Token Request **********
-        server_entity_id = self.server.entity_id
+        server_entity_id = self.server.context.entity_id
         client_context = self.client.context[server_entity_id]
 
         auth_resp = msg["authorization"]["response"]
@@ -273,13 +276,26 @@ class Flow(object):
 
 
 def interchange_keys(server, client):
+    # This is only about asymmetric keys
     server_entity_id = server.context.entity_id
-    client.context[server_entity_id].keyjar.import_jwks(server.context.keyjar.export_jwks(issuer_id=server_entity_id),
-                                                        server_entity_id)
+    client_keyjar = client.keyjar
+    client_context_keyjar = client.context[server_entity_id].keyjar
+    client_id = client.context[server_entity_id].client_id
 
-    client_keyjar = client.context[server_entity_id].keyjar
-    client_entity_id = client.context[server_entity_id].entity_id
-    server.context.keyjar.import_jwks(client_keyjar.export_jwks(issuer_id=client_entity_id), issuer_id=client_entity_id)
+    # From client to server
+    if server.context.keyjar is not None:
+        keys = to_local_from_foreign(server.context.keyjar, client_keyjar, client_id)
+        if keys:
+            keys = [k for k in keys if isinstance(k, JWK)]
+            if keys:
+                server.context.keyjar.add_keys(client_id, keys)
+
+    # from server to client context
+    keys = to_local_from_foreign(client_context_keyjar, server.context.keyjar, server_entity_id)
+    if keys:
+        keys = [k for k in keys if isinstance(k, JWK)]
+        if keys:
+            client_context_keyjar.add_keys(server_entity_id, keys)
 
 
 def test_pkce():
@@ -307,10 +323,11 @@ def test_pkce():
         services=_OAUTH2_SERVICES,
     )
 
-    _context = client.add_new_context(server.context.entity_id)
+    _context = client.add_new_context(server.context.entity_id, client_secret="hemligtlösenord", client_id=CLIENT_ID)
 
-    server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), "client")
+    server.context.cdb[CLIENT_ID] = CLIENT_CONFIG
+    # Symmetric key based on client_secret
+    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), CLIENT_ID)
 
     interchange_keys(server, client)
 
@@ -352,11 +369,12 @@ def test_jar():
         keyjar=build_keyjar(KEYDEFS),
         services=_OAUTH2_SERVICES,
     )
+    client.keyjar.import_jwks(client.keyjar.export_jwks(issuer_id="", private=True), CLIENT_ID)
 
-    server.context.cdb["client"] = CLIENT_CONFIG
-    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), "client")
+    server.context.cdb[CLIENT_ID] = CLIENT_CONFIG
+    server.context.keyjar = import_jwks(server.context.keyjar, client.context[''].keyjar.export_jwks(), CLIENT_ID)
 
-    _context = client.add_new_context(server.context.entity_id)
+    _context = client.add_new_context(server.context.entity_id, client_id=CLIENT_ID, client_secret="hemligtlösenord")
 
     interchange_keys(server, client)
 

@@ -27,7 +27,7 @@ from idpyoidc.server.oauth2.token_helper import (
 )
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.time_util import in_a_while
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from tests import CRYPT_CONFIG
 from tests import SESSION_PARAMS
 
@@ -415,7 +415,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        get_server_keyjar(self.endpoint).add_symmetric("client_1", "hemligtkodord1234567890")
+        get_keyjar(self.endpoint).add_symmetric("client_1", "hemligtkodord1234567890")
 
     @pytest.fixture(autouse=False)
     def create_endpoint_ri_enabled(self):
@@ -435,7 +435,7 @@ class TestEndpoint(object):
 
         self.rp_keyjar = KeyJar()
         self.rp_keyjar.add_symmetric("client_1", "hemligtkodord1234567890")
-        get_server_keyjar(self.endpoint).add_symmetric("client_1", "hemligtkodord1234567890")
+        get_keyjar(self.endpoint).add_symmetric("client_1", "hemligtkodord1234567890")
 
     def _create_session(self, auth_req, sub_type="public", sector_identifier=""):
         if sector_identifier:

@@ -17,7 +17,7 @@ from idpyoidc.server.session.token import TOKEN_TYPES_MAPPING
 from idpyoidc.server.session.token import MintingNotAllowed
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.time_util import utc_time_sans_frac
-from idpyoidc.util import get_server_keyjar
+from idpyoidc.util import get_keyjar
 from idpyoidc.util import importer
 
 from . import TokenEndpointHelper
@@ -58,7 +58,7 @@ class TokenExchangeHelper(TokenEndpointHelper):
 
         try:
             request.verify(
-                keyjar=get_server_keyjar(self.endpoint), opponent_id=client_id
+                keyjar=get_keyjar(self.endpoint), opponent_id=client_id
             )
         except (
             MissingRequiredAttribute,

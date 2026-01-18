@@ -4,7 +4,7 @@ from cryptojwt.key_jar import init_key_jar
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import Message
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
 
 
 class Response(object):
@@ -55,7 +55,7 @@ class TestService:
         if args[0] == "context":
             return self.service_context
         elif args[0] == "attribute" and args[1] == "keyjar":
-            return get_client_keyjar(self, '')
+            return get_keyjar(self, '')
 
     def test_1(self):
         assert self.service
@@ -70,7 +70,6 @@ class TestService:
             "default_max_age",
             "encrypt_request_object_supported",
             "id_token_signed_response_alg",
-            "jwks_uri",
             "redirect_uris",
             "request_object_signing_alg",
             'request_parameter_supported',

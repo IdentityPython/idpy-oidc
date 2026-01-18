@@ -111,9 +111,13 @@ class Authorization(authorization.Authorization):
         if request_args is None:
             request_args = {}
 
-        try:
-            _response_types = [request_args["response_type"]]
-        except KeyError:
+        _response_type = request_args.get("response_type", None)
+        if _response_type:
+            if isinstance(_response_type, list):
+                _response_types = _response_type
+            else:
+                _response_types = [_response_type]
+        else:
             _response_types = context.get_usage("response_types")
             if _response_types:
                 request_args["response_type"] = _response_types[0]

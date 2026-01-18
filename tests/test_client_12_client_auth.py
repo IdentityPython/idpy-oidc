@@ -29,7 +29,8 @@ from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oauth2 import AuthorizationResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
 from idpyoidc.message.oauth2 import ResourceRequest
-from idpyoidc.util import get_client_keyjar
+from idpyoidc.util import get_keyjar
+from idpyoidc.util import keyjar_join
 
 BASE_PATH = os.path.abspath(os.path.dirname(__file__))
 CLIENT_ID = "A"
@@ -329,7 +330,7 @@ class TestPrivateKeyJWT(object):
         for key in kb_rsa:
             key.add_kid()
 
-        _keyjar = get_client_keyjar(token_service, '')
+        _keyjar = get_keyjar(token_service, '')
         _keyjar.add_kb("", kb_rsa)
 
         _context = token_service.upstream_get("context")
@@ -426,6 +427,7 @@ class TestClientSecretJWT_TE(object):
         assert info["aud"] == [self.context.provider_info["token_endpoint"]]
 
     def test_get_key_by_kid(self):
+        # Initial setup has no key in entity.keyjar and one symmetric (client_secret) in entity.context.keyjar
         self.context = self.entity.get_context()
         self.context.token_endpoint = "https://example.com/token"
 
@@ -434,13 +436,15 @@ class TestClientSecretJWT_TE(object):
             "token_endpoint": "https://example.com/token",
         }
 
+        # Use symmetric keys for signing
         self.context.set_usage("token_endpoint_auth_signing_alg", "HS256")
 
         csj = ClientSecretJWT()
         request = AccessTokenRequest()
 
         # get a kid
-        _keys = get_client_keyjar(self.entity, '').get_issuer_keys("")
+        _keyjar = keyjar_join(self.entity.keyjar, self.entity.context[''].keyjar)
+        _keys = _keyjar.get_issuer_keys("")
         kid = _keys[0].kid
         token_service = self.entity.get_service(self.context, "accesstoken")
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint", kid=kid)
@@ -488,7 +492,7 @@ class TestClientSecretJWT_TE(object):
         _kb = KeyBundle()
         _rsa_key = new_rsa_key()
         _kb.append(_rsa_key)
-        get_client_keyjar(self.entity, '').add_kb("", _kb)
+        get_keyjar(self.entity, '').add_kb("", _kb)
         # Since I have a RSA key this doesn't fail
         csj.construct(self.context, request, service=token_service, authn_endpoint="token_endpoint")
 

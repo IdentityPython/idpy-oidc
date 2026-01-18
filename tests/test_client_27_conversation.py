@@ -407,7 +407,6 @@ def test_conversation():
         "default_max_age",
         "grant_types",
         "id_token_signed_response_alg",
-        "jwks",
         "redirect_uris",
         "request_object_signing_alg",
         "request_uris",

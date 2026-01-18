@@ -185,6 +185,7 @@ def conf_get(config, attr, default=None):
     else:
         return _res
 
+
 def get_keyjar_chain(item) -> list:
     """
     Returns a list of Key Jars.
@@ -249,6 +250,7 @@ def use_default_keys(keyjar, key_conf, config):
 
     return True
 
+
 def get_jwks(item) -> dict:
     key_chain = get_keyjar_chain(item)
     if key_chain:
@@ -257,48 +259,85 @@ def get_jwks(item) -> dict:
             return jwks_from_keys(keys)
     return {}
 
-def get_client_keyjar(item, server_entity_id=""):
+
+def _eval(item, server_entity_id=""):
     context = getattr(item, 'context', None)
     if context:
-        if server_entity_id in context:
-            if context[server_entity_id].keyjar is not None:
-                return context[server_entity_id].keyjar
-
-    if item.upstream_get:
-        _superior = item.upstream_get('unit')
-    else:
-        return None
-
-    while _superior:
-        context = getattr(_superior, 'context', None)
-        if context:
+        if isinstance(context, dict):
             if server_entity_id in context:
-                if context[server_entity_id].keyjar:
-                    return context[server_entity_id].keyjar
-        if _superior.upstream_get:
-            _superior = _superior.upstream_get('unit')
+                _keyjar = getattr(context[server_entity_id], 'keyjar', None)
+                if _keyjar is not None:
+                    return {"keyjar": _keyjar}
         else:
-            break
-    return None
-
-def get_server_keyjar(item):
-    context = getattr(item, 'context', None)
-    if context:
-        if context.keyjar is not None:
-            return context.keyjar
-
+            _keyjar = getattr(context, 'keyjar', None)
+            if _keyjar is not None:
+                return {"keyjar": _keyjar}
     if item.upstream_get:
-        _superior = item.upstream_get('unit')
+        return {"superior": item.upstream_get('unit')}
     else:
         return None
 
-    while _superior:
-        context = getattr(_superior, 'context', None)
-        if context:
-            if context.keyjar:
-                return context.keyjar
-        if _superior.upstream_get:
-            _superior = _superior.upstream_get('unit')
+
+def get_keyjar(item, server_entity_id=""):
+    res = _eval(item, server_entity_id)
+    if res is None:
+        return None
+    if "keyjar" in res:
+        return res["keyjar"]
+
+    _superior = res["superior"]
+    while True:
+        res = _eval(_superior, server_entity_id)
+        if 'keyjar' in res:
+            return res["keyjar"]
+        elif 'superior' in res:
+            _superior = res["superior"]
         else:
             break
     return None
+
+
+def keyjar_join(kj1, kj2, issuer_id='', private=False):
+    _keyjar = KeyJar()
+    _keyjar.import_jwks(kj1.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+    _keyjar.import_jwks(kj2.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+    return _keyjar
+
+
+def wrapped_keyjar_join(entity=None, context=None, issuer_id='', private=False):
+    if entity:
+        _ent_keyjar = getattr(entity, 'keyjar', None)
+        if _ent_keyjar is None:
+            return None
+        if context:
+            _context_keyjar = getattr(context, 'keyjar', None)
+            if _context_keyjar is None:
+                return None
+            return keyjar_join(_ent_keyjar, _context_keyjar, issuer_id, private)
+        else:
+            context = getattr(entity, 'context', None)
+            if context:
+                _context_keyjar = getattr(context, 'keyjar', None)
+                if _context_keyjar is not None:
+                    return keyjar_join(_ent_keyjar, _context_keyjar, issuer_id, private)
+    elif context:
+        entity = context.upstream_get('unit')
+        if entity:
+            _ent_keyjar = getattr(entity, 'keyjar', None)
+            if _ent_keyjar is None:
+                return None
+            _context_keyjar = getattr(context, 'keyjar', None)
+            if _context_keyjar is None:
+                return None
+            return keyjar_join(_ent_keyjar, _context_keyjar, issuer_id, private)
+    return None
+
+def full_keyjar_join(kj1, kj2, private=False):
+    issuers = kj1.owners()
+    issuers.extend(kj2.owners())
+    issuers = list(set(issuers))
+    _keyjar = KeyJar()
+    for issuer_id in issuers:
+        _keyjar.import_jwks(kj1.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+        _keyjar.import_jwks(kj2.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+    return _keyjar
