@@ -187,6 +187,19 @@ class Endpoint(Node):
                 )
         return None
 
+    def _get_keyjar(self):
+        _superior = self.context.upstream_get('unit')
+        _sup_keyjar = getattr(_superior, 'keyjar', None)
+        if _sup_keyjar != None:
+            _keyjar = keyjar_union(self.context.keyjar, _sup_keyjar)
+        else:
+            _sup_keyjar = getattr(_superior.context, 'keyjar', None)
+            if _sup_keyjar != None:
+                _keyjar = keyjar_union(self.context.keyjar, _sup_keyjar)
+            else:
+                _keyjar = self.context.keyjar
+        return _keyjar
+
     def parse_request(
             self,
             request: Union[Message, dict, str],
@@ -207,7 +220,7 @@ class Endpoint(Node):
         if http_info:
             LOGGER.info(f"HTTP info: {http_info}")
 
-        _keyjar = keyjar_union(self.context.keyjar, self.context.upstream_get('unit').keyjar)
+        _keyjar = self._get_keyjar()
 
         if http_info is None:
             http_info = {}
@@ -247,6 +260,8 @@ class Endpoint(Node):
                 req["authenticated"] = True
         else:
             _client_id = req.get("client_id", None)
+
+        _keyjar = self._get_keyjar()
 
         # verify that the request message is correct, may have to do it twice
         err_response = self.verify_request(

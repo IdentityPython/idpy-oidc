@@ -533,32 +533,21 @@ class ServiceContext(ImpExp):
         if supports is None:
             supports = self.supports()
         _metadata = self.claims.get_client_metadata(entity_type, supports=supports, metadata_schema=schema)
+
+        _entity = self.upstream_get('unit')
+        _jwks_uri = getattr(_entity, 'jwks_uri', None)
+        _jwks_arg = {}
+        if _jwks_uri:
+            _jwks_arg['jwks_uri'] = _jwks_uri
+        else:
+            _jwks_arg['jwks'] = _entity.keyjar.export_jwks()
+        if _jwks_arg:
+            if entity_type:
+                _metadata[entity_type].update(_jwks_arg)
+            else:
+                _metadata.update(_jwks_arg)
+
         return _metadata
-
-    # def get_opponent_keyjar(self):
-    #     keyjar = KeyJar()
-    #     for iss in self.keyjar.owners():
-    #         if iss != '':
-    #             keyjar.import_jwks(self.keyjar.export_jwks(issuer_id=iss), issuer_id=iss)
-    #
-    #     kj = self.upstream_get('attribute', 'keyjar')
-    #     for iss in kj.owners():
-    #         if iss == '':
-    #             keyjar.import_jwks(kj.export_jwks(issuer_id=iss), issuer_id=iss)
-    #
-    #     return keyjar
-    #
-    # def get_own_keyjar(self, private=False):
-    #     keyjar = KeyJar()
-    #     iss = ''
-    #     keyjar.import_jwks(self.keyjar.export_jwks(private=private, issuer_id=iss), issuer_id=iss)
-    #     kj = self.upstream_get('attribute', 'keyjar')
-    #     keyjar.import_jwks(kj.export_jwks(private=private, issuer_id=iss), issuer_id=iss)
-    #     return keyjar
-
-    # def get_jwks(self):
-    #     _kj = self.get_own_keyjar()
-    #     return _kj.export_jwks(issuer_id='')
 
     def get_service(self, service_name, *arg):
         try:
