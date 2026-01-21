@@ -138,7 +138,6 @@ class Unit(ImpExp):
         ImpExp.__init__(self)
         self.upstream_get = upstream_get
         self.httpc = httpc
-        self.entity_id = entity_id
 
         if config is None:
             config = {}

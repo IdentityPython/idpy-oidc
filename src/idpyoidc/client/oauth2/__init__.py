@@ -71,7 +71,11 @@ class Client(Entity):
         if config is None:
             config = {}
 
-        self.set_type(client_type=client_type, config=config)
+        _entity_type = getattr(self, "entity_type", None)
+        if _entity_type is not None:
+            self.set_type(client_type=client_type, config=config, entity_type=_entity_type)
+        else:
+            self.set_type(client_type=client_type, config=config)
 
         if verify_ssl is False:
             # just ignore verify_ssl until it goes away
@@ -99,7 +103,7 @@ class Client(Entity):
 
         self.httpc = httpc or request
 
-    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None):
+    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None, **kwargs):
         if client_type:
             self.client_type = client_type
         elif config and "client_type" in config:

@@ -22,6 +22,7 @@ from idpyoidc.message import Message
 from idpyoidc.node import Unit
 from idpyoidc.server.util import init_keyjar
 from idpyoidc.util import conf_get
+from idpyoidc.util import keyjar_combination
 from idpyoidc.util import keyjar_join
 
 logger = logging.getLogger(__name__)
@@ -235,7 +236,8 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if _jwks_uri:
             _md['jwks_uri'] = os.path.join(self.base_url, _jwks_uri)
         else:
-            _md['jwks'] = keyjar_join(self.keyjar, _context.keyjar, issuer_id='')
+            _keyjar = keyjar_combination(self)
+            _md['jwks'] = _keyjar.export_jwks(issuer_id="")
         return _metadata
 
     def import_keys(self, keyspec):

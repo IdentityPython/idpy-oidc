@@ -23,10 +23,7 @@ from idpyoidc.util import rndstr
 from .util import sanitize
 from ..message import VREQUIRED
 from ..util import instantiate
-from ..util import keyjar_join
-
-# from idpyoidc.oidc.backchannel_authentication import ClientNotificationAuthn
-
+from ..util import keyjar_combination
 
 LOGGER = logging.getLogger(__name__)
 
@@ -523,10 +520,7 @@ class JWSAuthnMethod(ClientAuthnMethod):
         _entity = service.upstream_get("unit")
         _entity_id = context.entity_id
 
-        # if _entity_id in _entity.keyjar.owners():
-        #     _keyjar = keyjar_join(_entity.keyjar, context.keyjar, private=True, issuer_id=_entity_id)
-        # else:
-        _keyjar = keyjar_join(_entity.keyjar, context.keyjar, issuer_id='', private=True)
+        _keyjar = keyjar_combination(_entity, private=True)
 
         audience, algorithm = self._get_audience_and_algorithm(context, _keyjar, **kwargs)
 

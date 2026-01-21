@@ -332,6 +332,7 @@ def wrapped_keyjar_join(entity=None, context=None, issuer_id='', private=False):
             return keyjar_join(_ent_keyjar, _context_keyjar, issuer_id, private)
     return None
 
+
 def full_keyjar_join(kj1, kj2, private=False):
     issuers = kj1.owners()
     issuers.extend(kj2.owners())
@@ -340,4 +341,56 @@ def full_keyjar_join(kj1, kj2, private=False):
     for issuer_id in issuers:
         _keyjar.import_jwks(kj1.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
         _keyjar.import_jwks(kj2.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+    return _keyjar
+
+
+def keyjar_combination(item,
+                       private: Optional[bool] = True,
+                       server_entity_id: Optional[str] = '') -> Optional[KeyJar]:
+    keyjars = []
+    kj = getattr(item, 'keyjar', None)
+    if kj:
+        keyjars.append(kj)
+
+    _context = getattr(item, 'context', None)
+    if _context:
+        if isinstance(_context, dict):
+            kj = getattr(_context[server_entity_id], 'keyjar', None)
+        else:
+            kj = getattr(_context, 'keyjar', None)
+        if kj:
+            keyjars.append(kj)
+
+    if getattr(item, 'upstream_get', None):
+        superior = item.upstream_get('unit')
+        kj = keyjar_combination(superior, server_entity_id)
+        if kj:
+            keyjars.append(kj)
+
+
+    if len(keyjars) == 0:
+        return None
+    elif len(keyjars) == 1:
+        _keyjar = keyjars[0]
+
+    elif len(keyjars) == 2:
+        issuers = keyjars[0].owners()
+        issuers.extend(keyjars[1].owners())
+        issuers = list(set(issuers))
+        _keyjar = KeyJar()
+        for issuer_id in issuers:
+            _keyjar.import_jwks(keyjars[0].export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+            _keyjar.import_jwks(keyjars[1].export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+
+    else:  # more than 2 keyjars
+        issuers = keyjars[0].owners()
+        for nr in range(1, len(keyjars)):
+            issuers.extend(keyjars[nr].owners())
+        issuers = list(set(issuers))
+
+        _keyjar = KeyJar()
+        for iss in issuers:
+            for nr in range(1, len(keyjars)):
+                _keyjar.import_jwks(keyjars[nr].export_jwks(issuer_id=iss, private=private), issuer_id=iss)
+
     return _keyjar
