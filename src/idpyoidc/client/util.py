@@ -5,6 +5,7 @@ from http.cookiejar import http2time
 import logging
 import secrets
 from urllib.parse import parse_qs
+from urllib.parse import urljoin
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
@@ -342,5 +343,5 @@ def implicit_response_types(a):
     return res
 
 
-def get_uri(base_url, path, hex):
-    return f"{base_url}/{path}/{hex}"
+def get_uri(base_url, path):
+    return urljoin(base_url,path)

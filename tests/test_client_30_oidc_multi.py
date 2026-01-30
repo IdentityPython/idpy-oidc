@@ -292,12 +292,8 @@ class TestClient(object):
 
         assert set(cb.keys()) == {"request_uris", "redirect_uris"}
         assert set(cb["redirect_uris"].keys()) == {"query", "fragment", "form_post"}
-        _hash = _context.iss_hash
 
-        assert cb["redirect_uris"]["query"] == [f"https://example.com/rp/authz_cb/{_hash}"]
-
-        # assert list(self.rp.hash2issuer.keys()) == [_hash]
-        # assert self.rp.hash2issuer[_hash] == "https://op.example.com/"
+        assert cb["redirect_uris"]["query"] == [f"https://example.com/authz_cb"]
 
     def test_begin(self):
         url = self.rp.begin(GITHUB)
@@ -338,7 +334,7 @@ class TestClient(object):
         _session = self.rp.get_session_information(_context, _state)
 
         auth_response = AuthorizationResponse(code="access_code", state=_state)
-        resp = self.rp.finalize_auth(_context, auth_response.to_dict())
+        resp = self.rp.finalize_auth(auth_response.to_dict())
         assert set(resp.keys()) == {"state", "code"}
 
         _state = _context.cstate.get(_state)
@@ -413,7 +409,7 @@ class TestClient(object):
             self.rp.get_service(_context, "accesstoken").endpoint = _url
 
             auth_response = AuthorizationResponse(code="access_code", state=_state)
-            resp = self.rp.finalize_auth(_context, auth_response.to_dict())
+            resp = self.rp.finalize_auth(auth_response.to_dict())
 
             resp = self.rp.get_tokens(_context, _state)
             assert set(resp.keys()) == {
@@ -486,7 +482,7 @@ class TestClient(object):
             _context.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=_state)
-            auth_response = self.rp.finalize_auth(_context, _response.to_dict())
+            auth_response = self.rp.finalize_auth(_response.to_dict())
             resp = self.rp.get_access_and_id_token(_context, auth_response)
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -534,7 +530,7 @@ class TestClient(object):
             _context.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=_state)
-            _ = self.rp.finalize_auth(_context, _response.to_dict())
+            _ = self.rp.finalize_auth(_response.to_dict())
             resp = self.rp.get_access_and_id_token(_context, state=_state)
             assert resp["access_token"] == "accessTok"
             assert isinstance(resp["id_token"], IdToken)
@@ -582,7 +578,7 @@ class TestClient(object):
             _context.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=_state)
-            auth_response = self.rp.finalize_auth(_context, _response.to_dict())
+            auth_response = self.rp.finalize_auth(_response.to_dict())
 
             token_resp = self.rp.get_access_and_id_token(_context, auth_response)
 
@@ -686,7 +682,7 @@ class TestRPHandlerTier2(object):
             self.context.get_service("accesstoken").endpoint = _url
 
             _response = AuthorizationResponse(code="access_code", state=_state)
-            auth_response = self.rp.finalize_auth(self.context, _response.to_dict())
+            auth_response = self.rp.finalize_auth(_response.to_dict())
 
             token_resp = self.rp.get_access_and_id_token(self.context, auth_response)
 

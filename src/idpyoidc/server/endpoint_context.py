@@ -44,8 +44,8 @@ def init_user_info(conf, cwd: str, upstream_get: Optional[Callable] = None):
     return conf["class"](**kwargs)
 
 
-def init_service(conf, upstream_get=None):
-    kwargs = conf.get("kwargs", {})
+def init_service(conf, upstream_get=None, **kwargs):
+    kwargs.update(conf.get("kwargs", {}))
 
     if upstream_get:
         kwargs["upstream_get"] = upstream_get

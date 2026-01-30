@@ -309,7 +309,7 @@ class Authorization(authorization.Authorization):
 
         return kwargs
 
-    def _do_request_uris(self, context, base_url, hex, callback_uris):
+    def _do_request_uris(self, context, base_url, callback_uris):
         _uri_name = "request_uris"
         if context.get_preference("request_parameter") == _uri_name:
             if _uri_name not in callback_uris:
@@ -317,9 +317,9 @@ class Authorization(authorization.Authorization):
                 uris = []
                 if isinstance(_c_path, list):
                     for _path in _c_path:
-                        uris.append(self.get_uri(base_url, _path, hex))
+                        uris.append(self.get_uri(base_url, _path))
                 else:
-                    uris.append(self.get_uri(base_url, _c_path, hex))
+                    uris.append(self.get_uri(base_url, _c_path))
                 callback_uris[_uri_name] = uris
         return callback_uris
 
@@ -340,7 +340,6 @@ class Authorization(authorization.Authorization):
             self,
             context,
             base_url: str,
-            hex: bytes,
             targets: Optional[List[str]] = None,
             response_types: Optional[List[str]] = None,
     ):
@@ -349,13 +348,11 @@ class Authorization(authorization.Authorization):
         for uri_name in self._callback_path.keys():
             if uri_name == "redirect_uris":
                 _callback_uris = self._do_redirect_uris(
-                    context, base_url, hex, _callback_uris, response_types
+                    context, base_url, _callback_uris, response_types
                 )
             elif uri_name == "request_uris":
-                _callback_uris = self._do_request_uris(context, base_url, hex, _callback_uris)
+                _callback_uris = self._do_request_uris(context, base_url, _callback_uris)
             else:
-                _callback_uris[uri_name] = self.get_uri(
-                    base_url, self._callback_path[uri_name], hex
-                )
+                _callback_uris[uri_name] = self.get_uri(base_url, self._callback_path[uri_name])
 
         return _callback_uris

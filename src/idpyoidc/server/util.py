@@ -239,7 +239,7 @@ def init_keyjar(config: Optional[dict] = None,
                 if _read_only:
                     keyjar = KeyJar()
                     keyjar.import_jwks_from_file(key_conf['uri_path'], issuer_id='')
-                    if issuer_id:
+                    if _issuer_id:
                         keyjar.import_jwks(keyjar.export_jwks(private=True, issuer_id=''), issuer_id=_issuer_id)
             if not keyjar:
                 _args = {k: v for k, v in key_conf.items() if k not in ['uri_path', 'issuer_id']}

@@ -3,19 +3,17 @@ import logging
 from typing import List
 from typing import Optional
 
-from idpyoidc.util import conf_get
-
 from idpyoidc.client.oauth2.utils import get_state_parameter
 from idpyoidc.client.oauth2.utils import pre_construct_pick_redirect_uri
 from idpyoidc.client.oauth2.utils import set_state_parameter
 from idpyoidc.client.service import Service
 from idpyoidc.client.service_context import ServiceContext
-from idpyoidc.client.util import IMPLICIT_RESPONSE_TYPES
 from idpyoidc.client.util import implicit_response_types
 from idpyoidc.exception import MissingParameter
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.time_util import time_sans_frac
+from idpyoidc.util import conf_get
 
 LOGGER = logging.getLogger(__name__)
 
@@ -113,7 +111,7 @@ class Authorization(Service):
                     return "query"
         return ""
 
-    def _do_redirect_uris(self, context, base_url, hex, callback_uris, response_types):
+    def _do_redirect_uris(self, context, base_url, callback_uris, response_types):
         _redirect_uris = context.get_preference("redirect_uris", [])
         if _redirect_uris:
             if not callback_uris or "redirect_uris" not in callback_uris:
@@ -132,7 +130,7 @@ class Authorization(Service):
                     if _var:
                         _path = self._callback_path["redirect_uris"][_var]
                         callback_uris["redirect_uris"][flow_type] = [
-                            self.get_uri(base_url, _path, hex)
+                            self.get_uri(base_url, _path)
                         ]
         else:
             callback_uris["redirect_uris"] = {}
@@ -140,23 +138,22 @@ class Authorization(Service):
                 _var = self._do_flow(context, flow_type, response_types)
                 if _var:
                     _path = self._callback_path["redirect_uris"][_var]
-                    callback_uris["redirect_uris"][flow_type] = [self.get_uri(base_url, _path, hex)]
+                    callback_uris["redirect_uris"][flow_type] = [self.get_uri(base_url, _path)]
         return callback_uris
 
     def construct_uris(
-        self,
-        context: ServiceContext,
-        base_url: str,
-        hex: bytes,
-        targets: Optional[List[str]] = None,
-        response_types: Optional[List[str]] = None,
+            self,
+            context: ServiceContext,
+            base_url: str,
+            targets: Optional[List[str]] = None,
+            response_types: Optional[List[str]] = None,
     ):
         _callback_uris = context.get_preference("callback_uris", {})
 
         for uri_name in self._callback_path.keys():
             if uri_name == "redirect_uris":
                 _callback_uris = self._do_redirect_uris(
-                    context, base_url, hex,_callback_uris, response_types
+                    context, base_url, _callback_uris, response_types
                 )
                 _redirect_uris = set()
                 for flow, _uris in _callback_uris["redirect_uris"].items():
@@ -164,7 +161,7 @@ class Authorization(Service):
                 context.set_preference("redirect_uris", list(_redirect_uris))
             else:
                 _callback_uris[uri_name] = self.get_uri(
-                    context, base_url, self._callback_path[uri_name], hex
+                    context, base_url, self._callback_path[uri_name]
                 )
 
         return _callback_uris

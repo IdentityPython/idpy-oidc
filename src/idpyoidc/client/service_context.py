@@ -253,7 +253,7 @@ class ServiceContext(ImpExp):
 
         _claims = kwargs.get("claims", None)
         if _claims:
-            self.claims = Claims(prefer=_claims["prefer"], callback_path=_claims['callback_path'])
+            self.claims = Claims(prefer=_claims["prefer"])
             self.claims.use = _claims['use']
         else:
             self.claims.load_conf(self.config, supports=self.supports(),
@@ -437,13 +437,6 @@ class ServiceContext(ImpExp):
         return _cb
 
     def construct_uris(self, response_types: Optional[list] = None):
-        _hash = hashlib.sha256()
-        _hash.update(self.hash_seed)
-        _hash.update(as_bytes(self.issuer))
-        _hex = _hash.hexdigest()
-
-        self.iss_hash = _hex
-
         _base_url = self.get("base_url")
 
         _callback_uris = self.get_preference("callback_uris", {})
@@ -452,12 +445,13 @@ class ServiceContext(ImpExp):
                 service.construct_uris(
                     context=self,
                     base_url=_base_url,
-                    hex=_hex,
                     response_types=response_types,
                 )
             )
 
-        self.set_preference("callback_uris", _callback_uris)
+        if _callback_uris:
+            self.set_preference("callback_uris", _callback_uris)
+
         if "redirect_uris" in _callback_uris:
             _redirect_uris = set()
             for flow, _uris in _callback_uris["redirect_uris"].items():

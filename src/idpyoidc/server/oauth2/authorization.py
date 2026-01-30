@@ -432,7 +432,11 @@ class Authorization(Endpoint):
 
     def verify_response_type(self, request: Union[Message, dict], cinfo: dict) -> bool:
         # Checking response types
-        _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types_supported", [])]
+        if "response_types" in cinfo:
+            _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types", [])]
+        else:
+            _registered = [set(rt.split(" ")) for rt in cinfo.get("response_types_supported", [])]
+
         if not _registered:
             # If no response_type is registered by the client then we'll use code.
             _registered = [{"code"}]
@@ -555,6 +559,8 @@ class Authorization(Endpoint):
         request = self.filter_request(context, request)
 
         _cinfo = context.cdb.get(client_id)
+        logger.debug(f"Got Authorization request Client Info: {_cinfo}")
+
         if not _cinfo:
             logger.error(f"Client ID ({request['client_id']}) not in client database")
             return self.authentication_error_response(
@@ -1108,6 +1114,7 @@ class Authorization(Endpoint):
         try:
             resp_info = self.post_authentication(request, session_id, **kwargs)
         except Exception as err:
+            logger.exception(err)
             return self.error_by_response_mode({}, request, "server_error", err)
 
         logger.debug(f"resp_info: {resp_info}")

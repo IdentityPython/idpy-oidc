@@ -74,7 +74,7 @@ class Claims(ImpExp):
         if key in self.prefer:
             del self.prefer[key]
 
-    def _callback_uris(self, base_url, hex):
+    def _callback_uris(self, base_url):
         _uri = []
         for type in self.get_usage("response_types", self._supports["response_types"]):
             if "code" in type:
@@ -87,12 +87,12 @@ class Claims(ImpExp):
 
         callback_uri = {}
         for key in _uri:
-            callback_uri[key] = get_uri(base_url, self.callback_path[key], hex)
+            callback_uri[key] = get_uri(base_url, self.callback_path[key])
         return callback_uri
 
-    def construct_redirect_uris(self, base_url: str, hex: str, callbacks: Optional[dict] = None):
+    def construct_redirect_uris(self, base_url: str, callbacks: Optional[dict] = None):
         if not callbacks:
-            callbacks = self._callback_uris(base_url, hex)
+            callbacks = self._callback_uris(base_url)
 
         if callbacks:
             self.set_preference("callbacks", callbacks)

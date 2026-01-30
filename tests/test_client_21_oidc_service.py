@@ -11,7 +11,6 @@ from cryptojwt.key_jar import init_key_jar
 
 from idpyoidc.client.defaults import DEFAULT_OIDC_SERVICES
 from idpyoidc.client.entity import Entity
-from idpyoidc.client.exception import ParameterError
 from idpyoidc.client.oidc.registration import response_types_to_grant_types
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.key_import import import_jwks
@@ -104,7 +103,7 @@ class TestAuthorization(object):
         _context.map_supported_to_preferred()
         _context.map_preferred_to_registered()
         # Add the servers keys
-        #_context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks",
+        # _context.keyjar = import_jwks_from_file(_context.keyjar, f"{_dirname}/pub_iss.jwks",
         #                                        ISS)
         self.server_entity_id = ISS
         self.context = entity.add_new_context(ISS, client_id='client_auth')
@@ -793,12 +792,13 @@ class TestProviderInfo(object):
         if "jwks" in use_copy:
             assert True
             del use_copy["jwks"]
-        del use_copy["callback_uris"]
 
         assert use_copy == {
             "application_type": APPLICATION_TYPE_WEB,
             "backchannel_logout_session_required": True,
             "backchannel_logout_uri": "https://rp.example.com/back",
+            'callback_uris': {'redirect_uris': {'form_post': ['https://example.com/cli/authz_cb'],
+                                                'query': ['https://example.com/cli/authz_cb']}},
             "client_id": "client_id",
             "client_secret": "a longesh password",
             "contacts": ["ops@example.org"],
@@ -1016,10 +1016,10 @@ def test_config_with_required_request_uri():
     _context = entity.get_context()
     _context.issuer = "https://example.com"
 
-    pi_service = entity.get_service(_context,"provider_info")
+    pi_service = entity.get_service(_context, "provider_info")
     pi_service.match_preferences(_context, {"require_request_uri_registration": True})
 
-    reg_service = entity.get_service(_context,"registration")
+    reg_service = entity.get_service(_context, "registration")
     _req = reg_service.construct(_context)
     assert isinstance(_req, RegistrationRequest)
     assert set(_req.keys()) == {
@@ -1233,7 +1233,7 @@ class TestUserInfo(object):
         # Add encryption key
         _kj = build_keyjar([{"type": "RSA", "use": ["enc"]}], issuer_id="")
         # Own key jar gets the private key
-        self.context.keyjar.import_jwks(_kj.export_jwks(private=True),"client_id")
+        self.context.keyjar.import_jwks(_kj.export_jwks(private=True), "client_id")
         # opponent gets the client public keys
         _keyjar = issuers_keyjar()
         _keyjar = import_jwks(_keyjar, _kj.export_jwks(), "client_id")
@@ -1295,7 +1295,7 @@ class TestCheckID(object):
         entity = Entity(keyjar=make_keyjar(), config=client_config, services=services)
         self.context = entity.get_context()
         self.context.issuer = "https://example.com"
-        self.service = entity.get_service(self.context,"check_id")
+        self.service = entity.get_service(self.context, "check_id")
 
     def test_construct(self):
         _cstate = self.context.cstate

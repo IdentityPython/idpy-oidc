@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from typing import Callable
@@ -315,4 +316,7 @@ def load_registration_response(client, context, request_args: Optional[dict] = N
         raise
     else:
         if "error" in response:
-            raise OidcServiceError(response.to_json())
+            if isinstance(response, dict):
+                raise OidcServiceError(json.dumps(response))
+            else:
+                raise OidcServiceError(response.to_json())

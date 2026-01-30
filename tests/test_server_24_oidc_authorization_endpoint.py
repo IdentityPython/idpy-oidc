@@ -180,7 +180,7 @@ class TestEndpoint(object):
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
             "preference": CAPABILITIES,
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "keys": {"key_defs": KEYDEFS},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
                 "code": {"lifetime": 600, "kwargs": {"crypt_conf": CRYPT_CONFIG}},
@@ -303,7 +303,8 @@ class TestEndpoint(object):
             },
             "session_params": {"encrypter": SESSION_PARAMS},
         }
-        server = Server(OPConfiguration(conf=conf, base_path=BASEDIR), cwd=BASEDIR)
+        conf = OPConfiguration(conf=conf, base_path=BASEDIR)
+        server = Server(conf, cwd=BASEDIR)
 
         context = server.context
 
@@ -1074,7 +1075,7 @@ class TestACR(object):
             "password": "mycket hemligt zebra",
             "verify_ssl": False,
             "capabilities": CAPABILITIES,
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS, "read_only": False},
             "token_handler_args": {
                 "jwks_file": "private/token_jwks.json",
                 "code": {"kwargs": {"lifetime": 600}},
@@ -1315,7 +1316,7 @@ class TestUserAuthn(object):
                     "kwargs": {},
                 }
             },
-            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS},
+            "keys": {"uri_path": "static/jwks.json", "key_defs": KEYDEFS, 'read_only': False},
             "authentication": {
                 "user": {
                     "acr": INTERNETPROTOCOLPASSWORD,

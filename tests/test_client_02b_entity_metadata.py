@@ -66,7 +66,7 @@ def test_create_client():
         "application_type",
         "backchannel_logout_session_required",
         "backchannel_logout_uri",
-        "callback_uris",
+        'callback_uris',
         "client_id",
         "client_secret",
         "contacts",

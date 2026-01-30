@@ -21,9 +21,9 @@ from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import Unsupported
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.client.oauth2.utils import pick_redirect_uri
+from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.configure import Configuration
 from idpyoidc.context import OidcContext
-from idpyoidc.defaults import KEYDEFS
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.key_import import add_kb
 from idpyoidc.key_import import import_jwks_from_file
@@ -34,13 +34,13 @@ from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import OpenIDSchema
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import rndstr
-from idpyoidc.util import use_default_keys
 
 logger = logging.getLogger(__name__)
 
 
 class RP(Client):
     entity_type = 'openid_relying_party'
+
     def __init__(
             self,
             keyjar: Optional[KeyJar] = None,
@@ -417,7 +417,7 @@ class RP(Client):
 
     def get_access_and_id_token(
             self,
-            context,
+            context: Optional[ServiceContext] = None,
             authorization_response: Optional[Message] = None,
             state: Optional[str] = "",
             behaviour_args: Optional[dict] = None,
@@ -438,9 +438,13 @@ class RP(Client):
 
         logger.debug(20 * "*" + " get_access_and_id_token " + 20 * "*")
 
-        resp_attr = authorization_response or context.cstate.get_set(
-            state, message=AuthorizationResponse
-        )
+        if context is None:
+            context = self.state2context({"state":state})
+
+        resp_attr = authorization_response
+        if not resp_attr:
+            resp_attr = context.cstate.get_set(state, message=AuthorizationResponse)
+
         if resp_attr is None:
             raise ValueError("One of authorization_response or state must be provided")
 
@@ -645,7 +649,9 @@ class RP(Client):
 
         return context.cstate.get(key)
 
-    def finalize_auth(self, context, response: dict, behaviour_args: Optional[dict] = None):
+    def finalize_auth(self, response: dict,
+                      context: Optional[ServiceContext] = None,
+                      behaviour_args: Optional[dict] = None):
         """
         Given the response returned to the redirect_uri, parse and verify it.
 
@@ -656,6 +662,8 @@ class RP(Client):
         """
 
         logger.debug(20 * "*" + " finalize_auth " + 20 * "*")
+        if context is None:
+            context = self.state2context(response)
 
         _srv = self.get_service(context, "authorization")
         try:
@@ -772,6 +780,17 @@ class RP(Client):
 
             return userinfo
 
+    def state2context(self, response):
+        _state = response["state"]
+        if isinstance(self.context, dict):
+            for server_entity_id, cntx in self.context.items():
+                if _state in cntx.cstate.keys():
+                    return cntx
+        else:
+            return self.context
+
+        return None
+
 
 def dynamic_provider_info_discovery(client: Client, context,
                                     behaviour_args: Optional[dict] = None):
@@ -798,3 +817,4 @@ def dynamic_provider_info_discovery(client: Client, context,
     response = client.do_request(context, service, behaviour_args=behaviour_args)
     if is_error_message(response):
         raise OidcServiceError(response["error"])
+

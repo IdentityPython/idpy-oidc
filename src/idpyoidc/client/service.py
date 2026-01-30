@@ -6,6 +6,7 @@ from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Union
+from urllib.parse import urljoin
 from urllib.parse import urlparse
 
 from cryptojwt.jwe.jwe import factory as jwe_factory
@@ -756,41 +757,35 @@ class Service(ImpExp):
         return self._callback_path.get(callback)
 
     @staticmethod
-    def get_uri(base_url, path, hex):
-        return f"{base_url}/{path}/{hex}"
+    def get_uri(base_url, path):
+        return urljoin(base_url, path)
+        # return f"{base_url}/{path}"
 
     def construct_uris(
             self,
             context: OidcContext,
             base_url: str,
-            hex: bytes,
             targets: Optional[List[str]] = None,
             response_types: Optional[list] = None,
     ):
         if not targets:
-            targets = self._callback_path.keys()
-
-        if not targets:
             return {}
 
-        _callback_uris = context.get_preference("callback_uris", {})
+        _callback_uris = {}
         for uri in targets:
-            if uri in _callback_uris:
-                pass
+            _path = self._callback_path.get(uri)
+            if isinstance(_path, str):
+                _callback_uris[uri] = self.get_uri(base_url, _path)
             else:
-                _path = self._callback_path.get(uri)
-                if isinstance(_path, str):
-                    _callback_uris[uri] = self.get_uri(base_url, _path, hex)
-                else:
-                    _callback_uris[uri] = [self.get_uri(base_url, _var, hex) for _var in _path]
+                _callback_uris[uri] = [self.get_uri(base_url, _var) for _var in _path]
 
         return _callback_uris
 
     def supported(self, claim):
         return claim in self._supports
 
-    def callback_uris(self):
-        return list(self._callback_path.keys())
+    # def callback_uris(self):
+    #     return list(self._callback_path.keys())
 
 
 def init_services(service_definitions, upstream_get):

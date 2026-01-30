@@ -65,7 +65,7 @@ class TestService:
 
         assert set(use.keys()) == {
             "application_type",
-            "callback_uris",
+            'callback_uris',
             "client_id",
             "default_max_age",
             "encrypt_request_object_supported",

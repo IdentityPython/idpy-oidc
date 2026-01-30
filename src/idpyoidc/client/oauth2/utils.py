@@ -98,7 +98,8 @@ def pre_construct_pick_redirect_uri(
         service: Optional[Service] = None,
         **kwargs
 ):
-    request_args["redirect_uri"] = pick_redirect_uri(context, request_args=request_args)
+    if "redirect_uri" not in request_args:
+        request_args["redirect_uri"] = pick_redirect_uri(context, request_args=request_args)
     return request_args, {}
 
 
