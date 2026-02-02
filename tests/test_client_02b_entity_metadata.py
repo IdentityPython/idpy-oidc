@@ -204,3 +204,15 @@ def test_metadata2():
                                      with_entity_type=True)
 
     assert set(metadata_1.keys()) == set(metadata_2.keys())
+
+def test_supported():
+    _client_config = CLIENT_CONFIG.copy()
+
+    del _client_config["preference"]["response_types_supported"]
+    _client_config["preference"]["response_types_supported"] = ["code"]
+    _client_config["preference"]["grant_types_supported"] = ["authorization_code", "implicit"]
+    _client_config["preference"]["subject_types_supported"] = ["pairwise", "public"]
+
+    entity = RP(config=CLIENT_CONFIG, key_conf=KEY_CONF, client_type="oidc")
+    metadata_1 = entity.get_metadata(metadata_schema=RegistrationRequest, with_entity_type=True)
+    assert set(metadata_1.keys()) == {"openid_relying_party"}
