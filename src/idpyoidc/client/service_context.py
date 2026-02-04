@@ -40,6 +40,8 @@ from .current import Current
 from .entity_metadata import EntityMetadata
 from ..impexp import ImpExp
 from ..message import Message
+from ..message.oidc import RegistrationResponse
+from ..transform import REGISTER2PREFERRED
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +194,10 @@ class ServiceContext(ImpExp):
         self.registration_response = {}
         self.client_authn_methods = {}
 
+        # These needs to be carried over to copies
+        self.metadata_class = kwargs.get("metadata_class", None)
+        self.register2preferred = kwargs.get("register2preferred", {})
+
         # _def_value = copy.deepcopy(DEFAULT_VALUE)
 
         self.clock_skew = self.config.get("clock_skew", 15)
@@ -269,7 +275,14 @@ class ServiceContext(ImpExp):
             self.construct_uris(response_types=_response_types)
 
             self.map_supported_to_preferred()
-            self.map_preferred_to_registered()
+
+            args = {}
+            for attr in ['metadata_class', 'register2preferred']:
+                if attr in kwargs:
+                    args[attr] = kwargs[attr]
+                    setattr(self, attr, kwargs[attr])
+
+            self.map_preferred_to_registered(**args)
 
         _add_ons = conf_get(self.config, "add_ons")
 
@@ -494,12 +507,17 @@ class ServiceContext(ImpExp):
 
     def map_preferred_to_registered(self,
                                     registration_response: Optional[dict] = None,
-                                    uri_claims: Optional[list] = None):
+                                    uri_claims: Optional[list] = None,
+                                    metadata_class: Optional[Message] = RegistrationResponse,
+                                    register2preferred: Optional[dict] = REGISTER2PREFERRED,
+                                    ):
         self.claims.use = preferred_to_registered(
             self.claims.prefer,
             supported=self.supports(),
             registration_response=registration_response,
             uri_claims=uri_claims,
+            metadata_class=metadata_class,
+            register2preferred=register2preferred
         )
 
         return self.claims.use
@@ -620,7 +638,9 @@ def create_new_context(template_context, server_entity_id: str):
         client_type=template_context.client_type,
         entity_id=template_context.entity_id,
         base_url=template_context.base_url,
-        services=template_context.services_conf
+        services=template_context.services_conf,
+        metadata_class=template_context.metadata_class,
+        register2preferred=template_context.register2preferred
     )
     # remove client_secret
     if template_context.client_id != '':

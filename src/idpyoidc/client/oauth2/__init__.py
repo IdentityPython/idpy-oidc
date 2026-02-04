@@ -98,7 +98,8 @@ class Client(Entity):
             key_conf=key_conf,
             entity_id=entity_id,
             client_configs=client_configs,
-            base_url=base_url
+            base_url=base_url,
+            **kwargs
         )
 
         self.httpc = httpc or request

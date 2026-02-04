@@ -24,7 +24,6 @@ from idpyoidc.node import Unit
 from idpyoidc.server.util import init_keyjar
 from idpyoidc.util import conf_get
 from idpyoidc.util import keyjar_combination
-from idpyoidc.util import keyjar_join
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +135,21 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             base_url = base_url or conf_get(self.config, "base_url", '') or kwargs.get('base_url', '')
             self.jwks_uri = urljoin(base_url, self.jwks_uri)
 
+        _context_args = {
+            "keyjar": None,
+            "upstream_get": self.unit_get,
+            "client_type": client_type,
+            "entity_id": self.entity_id,
+            "base_url": base_url,
+            "services": services
+        }
+        for attr in ['metadata_class', 'register2preferred']:
+            if attr in kwargs:
+                _context_args[attr] = kwargs.get(attr)
+
+        if self.jwks_uri:
+            _context_args['jwks_uri'] = self.jwks_uri
+
         if context:
             self.context = context
         else:
@@ -147,25 +161,14 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                     self.context[issuer] = ServiceContext(
                         issuer,
                         config=conf,
-                        keyjar=None,
-                        upstream_get=self.unit_get,
-                        client_type=client_type,
-                        entity_id=self.entity_id,
-                        base_url=base_url,
-                        services=services
+                        **_context_args
                     )
             else:
                 self.context = {
                     "": ServiceContext(
                         server_entity_id='',
                         config=config,
-                        jwks_uri=jwks_uri,
-                        keyjar=None,
-                        upstream_get=self.unit_get,
-                        client_type=client_type,
-                        entity_id=self.entity_id,
-                        base_url=base_url,
-                        services=services
+                        **_context_args
                     )
                 }
 

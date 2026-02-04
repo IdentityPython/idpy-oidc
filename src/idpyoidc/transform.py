@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+from idpyoidc.message import Message
 from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 
@@ -158,7 +159,9 @@ def preferred_to_registered(
         prefers: dict,
         supported: dict,
         registration_response: Optional[dict] = None,
-        uri_claims: Optional[list] = None
+        uri_claims: Optional[list] = None,
+        register2preferred: Optional[dict] = REGISTER2PREFERRED,
+        metadata_class: Optional[Message] = RegistrationResponse
 ):
     """
     The claims with values that are returned from the OP is what goes unless (!!)
@@ -176,8 +179,8 @@ def preferred_to_registered(
                 registered[key] = val
                 continue
 
-            if key in REGISTER2PREFERRED:
-                _sp_key = REGISTER2PREFERRED[key]
+            if key in register2preferred:
+                _sp_key = register2preferred[key]
                 _allow = prefers.get(_sp_key)
                 if not _allow:
                     _allow = supported.get(_sp_key)
@@ -199,21 +202,23 @@ def preferred_to_registered(
             else:
                 registered[key] = val  # Should I just accept with the OP says ??
 
-    for key, spec in RegistrationResponse.c_param.items():
+    for key, spec in metadata_class.c_param.items():
         if key in registered:
             continue
-        _pref_key = REGISTER2PREFERRED.get(key, key)
+        _supported_key = register2preferred.get(key, key)
 
-        _preferred_values = prefers.get(_pref_key, prefers.get(key))
+        _preferred_values = prefers.get(key, prefers.get(_supported_key))
         if not _preferred_values:
             continue
 
         registered[key] = array_or_singleton(spec, _preferred_values)
 
+    preferred2register = dict([(v, k) for k, v in register2preferred.items()])
+
     # transfer those claims that are not part of the registration request
-    _rr_keys = list(RegistrationResponse.c_param.keys())
+    _rr_keys = list(metadata_class.c_param.keys())
     for key, val in prefers.items():
-        _reg_key = PREFERRED2REGISTER.get(key, key)
+        _reg_key = preferred2register.get(key, key)
         if _reg_key not in _rr_keys:
             # If they are not part of the registration request I do not knoe if it is supposed to
             # be a singleton or an array. So just add it as is.
