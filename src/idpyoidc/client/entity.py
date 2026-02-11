@@ -146,6 +146,10 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         for attr in ['metadata_class', 'register2preferred']:
             if attr in kwargs:
                 _context_args[attr] = kwargs.get(attr)
+            elif attr == 'metadata_class':
+                _mc = getattr(self, attr, None)
+                if _mc:
+                    _context_args[attr] = _mc
 
         if self.jwks_uri:
             _context_args['jwks_uri'] = self.jwks_uri

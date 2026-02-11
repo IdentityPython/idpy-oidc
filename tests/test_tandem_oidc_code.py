@@ -10,6 +10,7 @@ from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -187,7 +188,9 @@ class TestFlow(object):
             "response_types_supported": ["code", "id_token", "id_token token"],
             "preference": {"scopes_supported": ["openid", "profile"]}
         }
-        self.rp = RP(config=client_config, keyjar=build_keyjar(KEYDEFS), services=_OIDC_SERVICES)
+        self.rp = RP(config=client_config,
+                     keyjar=build_keyjar(KEYDEFS),
+                     services=_OIDC_SERVICES)
 
         self.context = self.server.context
         # self.context.cdb["client_1"] = client_config

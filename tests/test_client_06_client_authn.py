@@ -572,7 +572,7 @@ class TestClientSecretJWTTE(object):
         keyjar = keyjar_combination(token_service)
 
         _jws = factory(request["client_assertion"])
-        assert _jws.jwt.headers["alg"] == "RS256"
+        assert _jws.jwt.headers["alg"] == "RS512"
         _rsa_key = keyjar.get_signing_key(key_type="RSA")[0]
         assert _jws.jwt.headers["kid"] == _rsa_key.kid
 

@@ -442,7 +442,7 @@ class TestEndpoint(object):
         res = self.session_endpoint.do_back_channel_logout(_cdb, info["session_id"])
         assert isinstance(res, tuple)
         assert res[0] == "https://example.com/bc_logout"
-        _jwt = self.session_endpoint.unpack_signed_jwt(res[1], "RS256")
+        _jwt = self.session_endpoint.unpack_signed_jwt(res[1], "RS512")
         assert _jwt
         assert _jwt["iss"] == ISS
         assert _jwt["aud"] == ["client_1"]
@@ -508,7 +508,7 @@ class TestEndpoint(object):
         assert set(res["blu"].keys()) == {"client_1"}
         _spec = res["blu"]["client_1"]
         assert _spec[0] == "https://example.com/bc_logout"
-        _jwt = self.session_endpoint.unpack_signed_jwt(_spec[1], "RS256")
+        _jwt = self.session_endpoint.unpack_signed_jwt(_spec[1], "RS512")
         assert _jwt
         assert _jwt["iss"] == ISS
         assert _jwt["aud"] == ["client_1"]
@@ -580,7 +580,7 @@ class TestEndpoint(object):
         assert set(res["blu"].keys()) == {"client_1"}
         logout_url, logout_token = res["blu"]["client_1"]
         assert logout_url == "https://example.com/bc_logout"
-        _jwt = self.session_endpoint.unpack_signed_jwt(logout_token, "RS256")
+        _jwt = self.session_endpoint.unpack_signed_jwt(logout_token, "RS512")
         assert _jwt
         assert _jwt["iss"] == ISS
         assert _jwt["aud"] == ["client_1"]

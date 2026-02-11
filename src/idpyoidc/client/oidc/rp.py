@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 class RP(Client):
     entity_type = 'openid_relying_party'
+    metadata_class = RegistrationRequest
 
     def __init__(
             self,
@@ -439,7 +440,7 @@ class RP(Client):
         logger.debug(20 * "*" + " get_access_and_id_token " + 20 * "*")
 
         if context is None:
-            context = self.state2context({"state":state})
+            context = self.state2context({"state": state})
 
         resp_attr = authorization_response
         if not resp_attr:
@@ -817,4 +818,3 @@ def dynamic_provider_info_discovery(client: Client, context,
     response = client.do_request(context, service, behaviour_args=behaviour_args)
     if is_error_message(response):
         raise OidcServiceError(response["error"])
-

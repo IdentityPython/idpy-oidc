@@ -10,20 +10,25 @@ logger = logging.getLogger(__name__)
 SIGNING_ALGORITHM_SORT_ORDER = ["RS", "ES", "PS", "HS", "Ed"]
 
 
-def cmp(a, b):
-    return (a > b) - (a < b)
-
-
 def alg_cmp(a, b):
+    """ Should algorithm 'a' be sorted before (==1) algorithm 'b'"""
     if a == "none":
-        return 1
+        if b != "none":
+            return 1
+        else:
+            return 0
     elif b == "none":
         return -1
 
     _pos1 = SIGNING_ALGORITHM_SORT_ORDER.index(a[0:2])
     _pos2 = SIGNING_ALGORITHM_SORT_ORDER.index(b[0:2])
     if _pos1 == _pos2:
-        return (a > b) - (a < b)
+        if a[2:] < b[2:]:
+            return 1
+        elif a[2:] == b[2:]:
+            return 0
+        else:
+            return -1
     elif _pos1 > _pos2:
         return 1
     else:
@@ -32,7 +37,8 @@ def alg_cmp(a, b):
 
 def get_signing_algs():
     # Assumes Cryptojwt
-    _algs = [name for name in list(SIGNER_ALGS.keys()) if name != "none" and name not in DEPRECATED["alg"]]
+    _algs = [name for name in list(SIGNER_ALGS.keys()) if
+             name != "none" and name not in DEPRECATED["alg"]]
     return sorted(_algs, key=cmp_to_key(alg_cmp))
 
 
@@ -55,13 +61,3 @@ def array_or_singleton(claim_spec, values):
             return values[0]
         else:  # singleton
             return values
-
-
-def is_subset(a, b):
-    if isinstance(a, list):
-        if isinstance(b, list):
-            return set(b).issubset(set(a))
-    elif isinstance(b, list):
-        return a in b
-    else:
-        return a == b

@@ -38,7 +38,7 @@ class TestServiceContext:
 
     def test_get_sign_alg(self):
         _alg = self.service_context.get_sign_alg("id_token")
-        assert _alg is 'RS256'
+        assert _alg is 'RS512'
 
         self.service_context.claims.set_usage("id_token_signed_response_alg", "RS384")
         _alg = self.service_context.get_sign_alg("id_token")

@@ -16,6 +16,7 @@ from idpyoidc.message.oidc import AccessTokenResponse
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
 from idpyoidc.message.oidc import AuthorizationResponse
 from idpyoidc.message.oidc import IdToken
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.util import full_keyjar_join
 from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
 from idpyoidc.util import get_keyjar_chain
@@ -203,7 +204,8 @@ class TestClient(object):
         self.rp = RP(
             config=CONFIG,
             client_configs=CLIENT_CONFIGS, key_conf=CLI_KEYCONF, module_dirs=["oidc"], base_url=BASE_URL,
-            entity_id=BASE_URL
+            entity_id=BASE_URL,
+            metadata_class=RegistrationRequest,
         )
 
     def test_pick_config(self):

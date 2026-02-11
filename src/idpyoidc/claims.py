@@ -4,18 +4,11 @@ from typing import List
 from typing import Optional
 
 from cryptojwt import KeyJar
-from cryptojwt.key_jar import init_key_jar
 from cryptojwt.utils import importer
 
-from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
-from idpyoidc.client.util import get_uri
 from idpyoidc.impexp import ImpExp
-from idpyoidc.key_import import import_jwks
-from idpyoidc.key_import import store_under_other_id
 from idpyoidc.message import Message
-from idpyoidc.node import create_keyjar
 from idpyoidc.transform import preferred_to_registered
-from idpyoidc.util import add_path
 from idpyoidc.util import qualified_name
 
 logger = logging.getLogger(__name__)
@@ -26,7 +19,7 @@ def claims_dump(info, exclude_attributes):
 
 
 def claims_load(item: dict, **kwargs):
-    _class_name = list(item.keys())[0]  # there is only one
+    _class_name = list(item.keys())[0]  # there should only be one
     _cls = importer(_class_name)
     _cls = _cls().load(item[_class_name])
     return _cls
@@ -74,31 +67,31 @@ class Claims(ImpExp):
         if key in self.prefer:
             del self.prefer[key]
 
-    def _callback_uris(self, base_url):
-        _uri = []
-        for type in self.get_usage("response_types", self._supports["response_types"]):
-            if "code" in type:
-                _uri.append("code")
-            elif type in ["id_token"]:
-                _uri.append("implicit")
-
-        if "form_post" in self._supports:
-            _uri.append("form_post")
-
-        callback_uri = {}
-        for key in _uri:
-            callback_uri[key] = get_uri(base_url, self.callback_path[key])
-        return callback_uri
-
-    def construct_redirect_uris(self, base_url: str, callbacks: Optional[dict] = None):
-        if not callbacks:
-            callbacks = self._callback_uris(base_url)
-
-        if callbacks:
-            self.set_preference("callbacks", callbacks)
-            self.set_preference("redirect_uris", [v for k, v in callbacks.items()])
-
-        self.callback = callbacks
+    # def _callback_uris(self, base_url):
+    #     _uri = []
+    #     for type in self.get_usage("response_types", self._supports["response_types"]):
+    #         if "code" in type:
+    #             _uri.append("code")
+    #         elif type in ["id_token"]:
+    #             _uri.append("implicit")
+    #
+    #     if "form_post" in self._supports:
+    #         _uri.append("form_post")
+    #
+    #     callback_uri = {}
+    #     for key in _uri:
+    #         callback_uri[key] = get_uri(base_url, self.callback_path[key])
+    #     return callback_uri
+    #
+    # def construct_redirect_uris(self, base_url: str, callbacks: Optional[dict] = None):
+    #     if not callbacks:
+    #         callbacks = self._callback_uris(base_url)
+    #
+    #     if callbacks:
+    #         self.set_preference("callbacks", callbacks)
+    #         self.set_preference("redirect_uris", [v for k, v in callbacks.items()])
+    #
+    #     self.callback = callbacks
 
     def verify_rules(self, supports):
         if self.get_preference("encrypt_userinfo_supported", False) is True:
@@ -116,37 +109,37 @@ class Claims(ImpExp):
     def locals(self, info):
         pass
 
-    def _keyjar(self, keyjar=None, conf=None, entity_id=""):
-        _uri_path = ""
-        if keyjar is None:
-            if "keys" in conf:
-                keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-                _uri_path = conf["keys"].get("uri_path")
-            elif "key_conf" in conf and conf["key_conf"]:
-                keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
-                _keyjar = init_key_jar(**keys_args)
-                _uri_path = conf["key_conf"].get("uri_path")
-            else:
-                _keyjar = KeyJar()
-                if "jwks" in conf:
-                    _keyjar = import_jwks(_keyjar, conf["jwks"], "")
-
-            if "" in _keyjar and entity_id:
-                # make sure I have the keys under my own name too (if I know it)
-                _keyjar = store_under_other_id(_keyjar, "", entity_id, True)
-
-            _httpc_params = conf.get("httpc_params")
-            if _httpc_params:
-                _keyjar.httpc_params = _httpc_params
-            return _keyjar, _uri_path
-        else:
-            if "keys" in conf:
-                _uri_path = conf["keys"].get("uri_path")
-            elif "key_conf" in conf and conf["key_conf"]:
-                _uri_path = conf["key_conf"].get("uri_path")
-
-        return keyjar, _uri_path
+    # def _keyjar(self, keyjar=None, conf=None, entity_id=""):
+    #     _uri_path = ""
+    #     if keyjar is None:
+    #         if "keys" in conf:
+    #             keys_args = {k: v for k, v in conf["keys"].items() if k != "uri_path"}
+    #             _keyjar = init_key_jar(**keys_args)
+    #             _uri_path = conf["keys"].get("uri_path")
+    #         elif "key_conf" in conf and conf["key_conf"]:
+    #             keys_args = {k: v for k, v in conf["key_conf"].items() if k != "uri_path"}
+    #             _keyjar = init_key_jar(**keys_args)
+    #             _uri_path = conf["key_conf"].get("uri_path")
+    #         else:
+    #             _keyjar = KeyJar()
+    #             if "jwks" in conf:
+    #                 _keyjar = import_jwks(_keyjar, conf["jwks"], "")
+    #
+    #         if "" in _keyjar and entity_id:
+    #             # make sure I have the keys under my own name too (if I know it)
+    #             _keyjar = store_under_other_id(_keyjar, "", entity_id, True)
+    #
+    #         _httpc_params = conf.get("httpc_params")
+    #         if _httpc_params:
+    #             _keyjar.httpc_params = _httpc_params
+    #         return _keyjar, _uri_path
+    #     else:
+    #         if "keys" in conf:
+    #             _uri_path = conf["keys"].get("uri_path")
+    #         elif "key_conf" in conf and conf["key_conf"]:
+    #             _uri_path = conf["key_conf"].get("uri_path")
+    #
+    #     return keyjar, _uri_path
 
     def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
         raise NotImplementedError()
@@ -160,26 +153,26 @@ class Claims(ImpExp):
     def get_jwks(self, keyjar):
         return keyjar.export_jwks()
 
-    def handle_keys(self,
-                    configuration: dict,
-                    keyjar: Optional[KeyJar] = None,
-                    entity_id: Optional[str] = ""):
-        logger.debug(f"configuration: {configuration}")
-
-        key_conf = configuration.get("key_conf")
-        if key_conf is None:
-            key_conf = {"key_defs": DEFAULT_KEY_DEFS}
-
-        keyjar = create_keyjar(key_conf=key_conf)
-
-        _id = self.get_id(configuration)
-        _key = configuration.get("client_secret")
-        if _key:
-            keyjar.add_symmetric(issuer="", key=_key)
-            if _id:
-                keyjar.add_symmetric(issuer=_id, key=_key)
-
-        return keyjar
+    # def handle_keys(self,
+    #                 configuration: dict,
+    #                 keyjar: Optional[KeyJar] = None,
+    #                 entity_id: Optional[str] = ""):
+    #     logger.debug(f"configuration: {configuration}")
+    #
+    #     key_conf = configuration.get("key_conf")
+    #     if key_conf is None:
+    #         key_conf = {"key_defs": DEFAULT_KEY_DEFS}
+    #
+    #     keyjar = create_keyjar(key_conf=key_conf)
+    #
+    #     _id = self.get_id(configuration)
+    #     _key = configuration.get("client_secret")
+    #     if _key:
+    #         keyjar.add_symmetric(issuer="", key=_key)
+    #         if _id:
+    #             keyjar.add_symmetric(issuer=_id, key=_key)
+    #
+    #     return keyjar
 
     def load_conf(
             self,

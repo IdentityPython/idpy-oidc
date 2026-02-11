@@ -8,6 +8,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
 from idpyoidc.client.oidc.rp import RP
 from idpyoidc.message.oidc import ProviderConfigurationResponse
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.util import get_asymetric_keys_from_keyjar_chain
 from idpyoidc.util import get_jwks
@@ -22,7 +23,7 @@ class TestRPHandler(object):
 
     @pytest.fixture(autouse=True)
     def rphandler_setup(self):
-        self.rp = RP(base_url=BASE_URL)
+        self.rp = RP(base_url=BASE_URL, metadata_class=RegistrationRequest)
 
     def test_pick_context(self):
         cnf = self.rp.get_context("")

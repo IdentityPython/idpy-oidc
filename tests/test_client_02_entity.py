@@ -3,6 +3,7 @@ import pytest
 from idpyoidc.client.client_auth import ClientAuthnMethod
 from idpyoidc.client.entity import Entity
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
+from idpyoidc.message.oidc import RegistrationResponse
 from idpyoidc.util import use_default_keys
 
 KEYDEFS = [
@@ -208,6 +209,7 @@ def test_context_duplication():
     entity = Entity(
         config=config,
         client_type="oidc",
+        metadata_class=RegistrationResponse,
         services={
             "xyz": {
                 "class": "idpyoidc.client.service.Service",

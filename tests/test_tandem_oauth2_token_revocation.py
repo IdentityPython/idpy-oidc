@@ -6,6 +6,7 @@ from cryptojwt.key_jar import build_keyjar
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.key_import import import_jwks
 from idpyoidc.message.oauth2 import is_error_message
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import ASConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
@@ -133,7 +134,10 @@ class TestClient(object):
             },
             "introspection": {"class": "idpyoidc.client.oauth2.introspection.Introspection"},
         }
-        self.client = Client(config=client_conf, keyjar=build_keyjar(KEYDEFS), services=services)
+        self.client = Client(config=client_conf,
+                             keyjar=build_keyjar(KEYDEFS),
+                             services=services,
+                             metadata_class=RegistrationRequest)
 
         # ------- tell the server about the client ----------------
         self.context = self.server.context

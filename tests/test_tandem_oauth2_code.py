@@ -10,6 +10,7 @@ from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -167,6 +168,7 @@ class TestFlow(object):
             config=client_1_config,
             keyjar=build_keyjar(KEYDEFS),
             services=_OAUTH2_SERVICES,
+            metadata_class=RegistrationRequest,
         )
 
         self.client_context = self.client.add_new_context(self.server.context.entity_id)

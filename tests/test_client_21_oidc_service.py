@@ -98,6 +98,7 @@ class TestAuthorization(object):
             keyjar=make_keyjar(),
             config=client_config,
             client_type="oidc",
+            metadata_class=RegistrationRequest,
         )
         _context = entity.get_context()
         _context.map_supported_to_preferred()
@@ -444,7 +445,8 @@ class TestAccessTokenRequest(object):
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "client_authn_methods": ["client_secret_basic"],
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES)
+        entity = Entity(keyjar=make_keyjar(), config=client_config, services=DEFAULT_OIDC_SERVICES,
+                        metadata_class=RegistrationRequest)
         _context = entity.get_context()
         _context.issuer = "https://example.com"
 
@@ -570,7 +572,8 @@ class TestProviderInfo(object):
                 },
             },
         }
-        entity = Entity(keyjar=make_keyjar(), config=client_config, client_type="oidc")
+        entity = Entity(keyjar=make_keyjar(), config=client_config, client_type="oidc",
+                        metadata_class=RegistrationRequest)
 
         self.server_entity_id = ISS
         self.context = entity.add_new_context(self.server_entity_id)
@@ -807,7 +810,7 @@ class TestProviderInfo(object):
             "encrypt_request_object_supported": False,
             "encrypt_userinfo_supported": False,
             "grant_types": ["authorization_code"],
-            "id_token_signed_response_alg": "RS256",
+            "id_token_signed_response_alg": "RS512",
             "post_logout_redirect_uris": ["https://rp.example.com/post"],
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "request_object_signing_alg": "ES256",
@@ -894,7 +897,7 @@ class TestProviderInfo(object):
             "encrypt_request_object_supported": False,
             "encrypt_userinfo_supported": False,
             "grant_types": ["authorization_code"],
-            "id_token_signed_response_alg": "RS256",
+            "id_token_signed_response_alg": "RS512",
             "post_logout_redirect_uris": ["https://rp.example.com/post"],
             "redirect_uris": ["https://example.com/cli/authz_cb"],
             "request_object_signing_alg": "ES256",

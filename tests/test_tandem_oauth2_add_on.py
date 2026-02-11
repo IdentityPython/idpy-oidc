@@ -12,6 +12,7 @@ from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -321,6 +322,7 @@ def test_pkce():
         config=client_config,
         keyjar=build_keyjar(KEYDEFS),
         services=_OAUTH2_SERVICES,
+        metadata_class=RegistrationRequest,
     )
 
     _context = client.add_new_context(server.context.entity_id, client_secret="hemligtlösenord", client_id=CLIENT_ID)
@@ -368,6 +370,7 @@ def test_jar():
         config=client_config,
         keyjar=build_keyjar(KEYDEFS),
         services=_OAUTH2_SERVICES,
+        metadata_class=RegistrationRequest,
     )
     client.keyjar.import_jwks(client.keyjar.export_jwks(issuer_id="", private=True), CLIENT_ID)
 

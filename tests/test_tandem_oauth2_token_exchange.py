@@ -11,6 +11,7 @@ from idpyoidc.message.oauth2 import is_error_message
 from idpyoidc.message.oidc import AccessTokenRequest
 from idpyoidc.message.oidc import AuthorizationRequest
 from idpyoidc.message.oidc import RefreshAccessTokenRequest
+from idpyoidc.message.oidc import RegistrationRequest
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
@@ -214,12 +215,14 @@ class TestEndpoint(object):
             config=client_1_config,
             keyjar=_key_jar_1,
             services=_OAUTH2_SERVICES,
+            metadata_class=RegistrationRequest,
         )
         self.client_2 = Client(
             client_type="oauth2",
             config=client_2_config,
             keyjar=_key_jar_2,
             services=_OAUTH2_SERVICES,
+            metadata_class=RegistrationRequest,
         )
 
         self.client_context_1 = self.client_1.add_new_context(self.context.entity_id)

@@ -194,13 +194,14 @@ def test_metadata():
 
 
 def test_metadata2():
-    entity = RP(config=CLIENT_CONFIG, key_conf=KEY_CONF, client_type="oidc")
+    entity = RP(config=CLIENT_CONFIG, key_conf=KEY_CONF, client_type="oidc",
+                metadata_class=RegistrationRequest)
     new_server = 'https://second.example.com'
     context_2 = entity.add_new_context(new_server)
 
-    metadata_1 = entity.get_metadata(metadata_schema=RegistrationRequest, with_entity_type=True)
+    metadata_1 = entity.get_metadata(with_entity_type=True)
 
-    metadata_2 = entity.get_metadata(server_entity_id=new_server, metadata_schema=RegistrationRequest,
+    metadata_2 = entity.get_metadata(server_entity_id=new_server,
                                      with_entity_type=True)
 
     assert set(metadata_1.keys()) == set(metadata_2.keys())
