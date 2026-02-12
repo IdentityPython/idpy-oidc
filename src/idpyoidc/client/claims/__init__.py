@@ -16,9 +16,17 @@ class Claims(claims.Claims):
     _supports = {}
 
     def get_base_url(self, configuration: dict, entity_id: Optional[str] = ""):
-        _base = configuration.get("base_url")
+        _base = configuration.get("base_url", None)
         if not _base:
-            _base = configuration.get("client_id", configuration.get("entity_id"))
+            if entity_id:
+                _base = entity_id
+            else:
+                _base = configuration.get("entity_id", configuration.get("client_id", ""))
+
+        if not _base:
+            raise ValueError("Missing client_id/entity_id/base_url in configuration")
+        elif not _base.startswith("https://"):
+            raise ValueError("Need client_id/entity_id to be a URL")
 
         return _base
 
@@ -42,6 +50,7 @@ class Claims(claims.Claims):
                 keyjar = KeyJar()
             self._add_key_if_missing(keyjar, id, _secret)
             self._add_key_if_missing(keyjar, "", _secret)
+        return keyjar
 
     def get_jwks(self, keyjar):
         if keyjar is None:
@@ -56,9 +65,9 @@ class Claims(claims.Claims):
             # if only one key under the id == "", that key being a SYMKey I assume it's
             # and I have a client_secret then don't publish a JWKS
             if (
-                len(_own_keys) == 1
-                and isinstance(_own_keys[0], SYMKey)
-                and self.prefer.get("client_secret", None)
+                    len(_own_keys) == 1
+                    and isinstance(_own_keys[0], SYMKey)
+                    and self.prefer.get("client_secret", None)
             ):
                 pass
             else:
