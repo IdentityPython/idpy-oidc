@@ -5,9 +5,9 @@ from common import BASEDIR
 from common import full_path
 from common import KEYDEFS
 from flow import Flow
+from idpyoidc.alg_info import get_signing_algs
 from idpyoidc.client.oauth2 import Client
 from idpyoidc.key_import import import_jwks
-from idpyoidc.metadata import get_signing_algs
 from idpyoidc.server import Server
 from idpyoidc.server.configure import ASConfiguration
 from idpyoidc.server.user_info import UserInfo
@@ -60,6 +60,10 @@ server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_
 
 server.context.set_provider_info()
 
+# ==== client - server connection
+
+client.add_new_context(server_entity_id=server.context.entity_id)
+
 # ==== And now for the protocol exchange sequence
 
 flow = Flow(client, server)
@@ -70,6 +74,6 @@ msg = flow(
         ["accesstoken", 'token'],
     ],
     scope=['foobar'],
-    server_jwks=server.keyjar.export_jwks(''),
-    server_jwks_uri=server.context.provider_info['jwks_uri']
+    server_jwks=server.context.keyjar.export_jwks(''),
+    server_jwks_uri=server.context.get_preference('jwks_uri')
 )

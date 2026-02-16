@@ -5,8 +5,10 @@ from idpyoidc.server.client_authn import verify_client
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 
 SERVER_CONF = {
-    "issuer": "https://example.com/",
+    "issuer": "https://as.example.com/",
     "httpc_params": {"verify": False, "timeout": 1},
+    "jwks_uri": "https://as.example.com/jwks",
+    "metadata_schema": 'idpyoidc.message.oauth2.ASConfigurationResponse',
     "endpoint": {
         "metadata": {
             "path": ".well-known/oauth-authorization-server",

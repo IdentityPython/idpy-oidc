@@ -35,7 +35,7 @@ class TestCC:
         assert _info["url"] == "https://example.com/token"
         assert (
             _info["body"]
-            == "grant_type=client_credentials&client_id=client_id&client_secret=another+password&scope=openid"
+            == "grant_type=client_credentials&client_id=client_id&client_secret=another+password"
         )
 
         assert _info["headers"] == {

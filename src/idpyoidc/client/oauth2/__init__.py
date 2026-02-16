@@ -104,14 +104,20 @@ class Client(Entity):
 
         self.httpc = httpc or request
 
-    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None, **kwargs):
+    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None, **kwargs) -> None:
+        """
+        Default client type is OAuth2
+
+        :param client_type: oauth2 or oidc
+        :param config: The configuration
+        :param kwargs:
+        """
         if client_type:
             self.client_type = client_type
         elif config and "client_type" in config:
-            client_type = self.client_type = config["client_type"]
+            self.client_type = config["client_type"]
         else:
-            client_type = 'oauth2'
-        self.client_type = client_type
+            self.client_type = 'oauth2'
 
     def do_request(
             self,

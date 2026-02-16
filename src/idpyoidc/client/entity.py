@@ -12,6 +12,7 @@ from cryptojwt.jwk.rsa import import_private_rsa_key_from_file
 from cryptojwt.jwk.rsa import RSAKey
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.client import get_base_url
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
@@ -128,17 +129,21 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             # client_id=_id,
         )
 
+        # get base URL
+        base_url = get_base_url(base_url, config)
+
         # Keys used by all contexts
         self.keyjar = init_keyjar(self.config, keyjar, key_conf, issuer_id=self.entity_id, **kwargs)
         self.jwks_uri = jwks_uri or conf_get(self.config, "jwks_uri", '')
         if self.jwks_uri and not self.jwks_uri.startswith("https"):
-            base_url = base_url or conf_get(self.config, "base_url", '') or kwargs.get('base_url', '')
             self.jwks_uri = urljoin(base_url, self.jwks_uri)
+
+        _client_type = getattr(self, "client_type", client_type)
 
         _context_args = {
             "keyjar": None,
             "upstream_get": self.unit_get,
-            "client_type": client_type,
+            "client_type": _client_type,
             "entity_id": self.entity_id,
             "base_url": base_url,
             "services": services

@@ -131,7 +131,7 @@ class TestClient(object):
             "client_secret": "abcdefghijklmnop",
             "grant_type": "refresh_token",
             "refresh_token": "refresh_with_me",
-            'scope': 'openid'
+            # 'scope': 'openid'
         }
 
     def test_error_response(self):

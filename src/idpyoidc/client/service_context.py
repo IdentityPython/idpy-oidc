@@ -37,6 +37,7 @@ from idpyoidc.transform import supported_to_preferred
 from idpyoidc.util import conf_get
 from idpyoidc.util import rndstr
 from .current import Current
+from idpyoidc.client import get_base_url
 from .entity_metadata import EntityMetadata
 from ..impexp import ImpExp
 from ..message import Message
@@ -151,7 +152,9 @@ class ServiceContext(ImpExp):
         self.config = config or {}  # This is entity configuration
         self.upstream_get = upstream_get
 
-        self.client_type = self.config.get("client_type", None) or client_type or "oidc"
+        # Hm, is default oauth2 or oidc ??
+        self.client_type = client_type or conf_get(self.config, "client_type", None) or "oidc"
+
         if self.client_type == "oidc":
             self.claims = OIDC_Specs()
         elif self.client_type == "oauth2":
@@ -178,7 +181,8 @@ class ServiceContext(ImpExp):
         self.kid = {"sig": {}, "enc": {}}
 
         self.allow = conf_get(self.config, "allow", {})
-        self.base_url = base_url or conf_get(self.config, "base_url", self.entity_id)
+        self.base_url = get_base_url(base_url, self.config)
+
         self.provider_info = conf_get(self.config, "provider_info", {})
         self.server_metadata = conf_get(self.config, "server_metadata", EntityMetadata())
 
@@ -630,18 +634,31 @@ class ServiceContext(ImpExp):
 
 
 def create_new_context(template_context, server_entity_id: str):
-    sc = ServiceContext(
-        server_entity_id=server_entity_id,
-        config=template_context.config,
-        upstream_get=template_context.upstream_get,
-        keyjar=template_context.keyjar,
-        client_type=template_context.client_type,
-        entity_id=template_context.entity_id,
-        base_url=template_context.base_url,
-        services=template_context.services_conf,
-        metadata_class=template_context.metadata_class,
-        register2preferred=template_context.register2preferred
-    )
+    if template_context.metadata_class is None:
+        sc = ServiceContext(
+            server_entity_id=server_entity_id,
+            config=template_context.config,
+            upstream_get=template_context.upstream_get,
+            keyjar=template_context.keyjar,
+            client_type=template_context.client_type,
+            entity_id=template_context.entity_id,
+            base_url=template_context.base_url,
+            services=template_context.services_conf,
+            register2preferred=template_context.register2preferred
+        )
+    else:
+        sc = ServiceContext(
+            server_entity_id=server_entity_id,
+            config=template_context.config,
+            upstream_get=template_context.upstream_get,
+            keyjar=template_context.keyjar,
+            client_type=template_context.client_type,
+            entity_id=template_context.entity_id,
+            base_url=template_context.base_url,
+            services=template_context.services_conf,
+            metadata_class=template_context.metadata_class,
+            register2preferred=template_context.register2preferred
+        )
     # remove client_secret
     if template_context.client_id != '':
         if template_context.client_secret:

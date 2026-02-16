@@ -10,3 +10,7 @@ def test_claims_dump():
     assert list(_dump.keys())[0] == 'idpyoidc.claims.Claims'
     assert set(_dump['idpyoidc.claims.Claims'].keys()) == {'callback_path', 'prefer', 'use',
                                                            '_local'}
+
+def test_dump_load():
+    claims = Claims(prefer={}, callback_path={'':"callback"})
+    _dump = claims_dump(claims, [])

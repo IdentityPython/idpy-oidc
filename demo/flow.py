@@ -41,7 +41,8 @@ class Flow(object):
         if msg is None:
             msg = {}
 
-        _client_service = self.client.get_service(service_type)
+        _client_context = self.client.context[self.server.entity_id]
+        _client_service = self.client.get_service(_client_context, service_type)
 
         _additions = msg.get('request_additions')
         if _additions:
@@ -70,7 +71,7 @@ class Flow(object):
                 req_info = _client_service.get_request_parameters(request_args=request_args,
                                                                   **kwargs)
         else:
-            req_info = _client_service.get_request_parameters(request_args=request_args, **kwargs)
+            req_info = _client_service.get_request_parameters(_client_context, request_args=request_args, **kwargs)
 
         areq = req_info.get("request")
         headers = req_info.get("headers")
@@ -131,11 +132,11 @@ class Flow(object):
                             status=200,
                         )
 
-                        _client_service.update_service_context(_resp["response_args"], key=_state)
+                        _client_service.update_service_context(_client_context, _resp["response_args"], key=_state)
                 else:
-                    _client_service.update_service_context(_resp["response_args"], key=_state)
+                    _client_service.update_service_context(_client_context, _resp["response_args"], key=_state)
             else:
-                _client_service.update_service_context(_resp["response_args"], key=_state)
+                _client_service.update_service_context(_client_context, _resp["response_args"], key=_state)
 
         _response = _resp.get('response_args', _resp.get('response', _resp.get('response_msg')))
         result = {'request': areq, 'response': _response, 'headers': headers,
@@ -152,7 +153,7 @@ class Flow(object):
     def authorization_request(self, msg):
         # ***** Authorization Request **********
         _nonce = rndstr(24)
-        _context = self.client.get_service_context()
+        _context = self.client.context[self.server.entity_id]
         # Need a new state for a new authorization request
         _state = _context.cstate.create_state(iss=_context.get("issuer"))
         _context.cstate.bind_key(_nonce, _state)
@@ -178,7 +179,7 @@ class Flow(object):
 
     def accesstoken_request(self, msg):
         # ***** Token Request **********
-        _context = self.client.get_service_context()
+        _context = self.client.context[self.server.entity_id]
 
         auth_resp = msg['authorization']['response']
         req_args = {
@@ -186,14 +187,14 @@ class Flow(object):
             "state": auth_resp["state"],
             "redirect_uri": msg['authorization']['request']["redirect_uri"],
             "grant_type": "authorization_code",
-            "client_id": self.client.get_client_id(),
+            "client_id": self.client.get_client_id(_context),
             "client_secret": _context.get_usage("client_secret"),
         }
 
         return req_args
 
     def introspection_request(self, msg):
-        _context = self.client.get_context()
+        _context = self.client.context[self.server.entity_id]
         auth_resp = msg['authorization']['response']
         _state = _context.cstate.get(auth_resp["state"])
 
@@ -203,7 +204,7 @@ class Flow(object):
         }
 
     def token_revocation_request(self, msg):
-        _context = self.client.get_context()
+        _context = self.client.context[self.server.entity_id]
         auth_resp = msg['authorization']['response']
         _state = _context.cstate.get(auth_resp["state"])
 
@@ -244,10 +245,10 @@ class Flow(object):
     def resource_owner_password_credentials_request(self, msg):
         return {}
 
-    def __call__(self, request_responses: list[list], **kwargs):
+    def __call__(self, request_endpoints: list[list], **kwargs):
         msg = kwargs
-        for request, response in request_responses:
+        for request, endpoint in request_endpoints:
             func = getattr(self, f"{request}_request")
             req_args = func(msg)
-            msg[request] = self.do_query(request, response, req_args, msg)
+            msg[request] = self.do_query(request, endpoint, req_args, msg)
         return msg

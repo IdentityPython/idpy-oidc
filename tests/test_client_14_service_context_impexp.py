@@ -31,7 +31,7 @@ def test_client_info_init():
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
-    srvcnx = ServiceContext(server_entity_id=config["issuer"], upstream_get=unit_get).load(ci.dump())
+    srvcnx = ServiceContext(server_entity_id=config["issuer"], upstream_get=unit_get, config={}).load(ci.dump())
 
     for attr in config.keys():
         if attr == "client_id":
