@@ -62,7 +62,7 @@ server.context.set_provider_info()
 
 # ==== client - server connection
 
-client.add_new_context(server_entity_id=server.context.entity_id)
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
 
 # ==== And now for the protocol exchange sequence
 
@@ -73,6 +73,7 @@ msg = flow(
         ['authorization', 'authorization'],
         ["accesstoken", 'token'],
     ],
+    context=client_context,
     scope=['foobar'],
     server_jwks=server.context.keyjar.export_jwks(''),
     server_jwks_uri=server.context.get_preference('jwks_uri')

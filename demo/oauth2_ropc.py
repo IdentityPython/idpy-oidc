@@ -87,9 +87,6 @@ CLIENT_CONFIG = {
 
 client = Client(config=CLIENT_CONFIG)
 
-ropc_service = client.get_service('resource_owner_password_credentials')
-ropc_service.endpoint = "https://example.com/token"
-
 # Server side
 
 server = Server(ASConfiguration(conf=SERVER_CONFIG, base_path=BASEDIR), cwd=BASEDIR)
@@ -101,12 +98,19 @@ server.context.cdb["client_1"] = {
     "response_types": ["code", "code id_token", "id_token"],
     "allowed_scopes": ["resourceA"],
 }
+# ==== client - server connection
+
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
+
+ropc_service = client.get_service(client_context, 'resource_owner_password_credentials')
+ropc_service.endpoint = "https://example.com/token"
 
 flow = Flow(client, server)
 msg = flow(
     [
         ["resource_owner_password_credentials", 'token']
     ],
+    context=client_context,
     request_additions={
         'resource_owner_password_credentials': {'username': 'diana', 'password': 'krall'}
     }

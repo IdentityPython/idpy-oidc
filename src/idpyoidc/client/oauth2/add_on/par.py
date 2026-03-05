@@ -45,7 +45,7 @@ def push_authorization(context, request_args: Message, service: Service, **kwarg
             _args["iss"] = context.issuer
 
         _headers = service.get_headers(
-            request_args, http_method=HTTP_METHOD, authn_method=authn_method, **_args
+            context, request_args, http_method=HTTP_METHOD, authn_method=authn_method, **_args
         )
         _headers["Content-Type"] = "application/x-www-form-urlencoded"
 

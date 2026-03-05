@@ -60,6 +60,10 @@ server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_
 
 server.context.set_provider_info()
 
+# ==== client - server connection
+
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
+
 # ==== And now for the protocol exchange sequence
 
 flow = Flow(client, server)
@@ -70,8 +74,9 @@ msg = flow(
         ["accesstoken", 'token'],
         ['token_exchange', 'token']
     ],
+    context=client_context,
     scope=['foobar'],
-    server_jwks=server.keyjar.export_jwks(''),
+    server_jwks=server.context.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri'],
     request_additions={
         'authorization': {'scope': 'foobar'}

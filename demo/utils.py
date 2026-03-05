@@ -16,4 +16,4 @@ class EmulatePARCall():
         _endp = self.server.endpoint['pushed_authorization']
         _request = _endp.parse_request(data, http_info={'headers': headers})
         _resp = _endp.process_request(request=_request)
-        return DummyResponse(text=json.dumps(_resp['http_response']), status_code=200)
+        return DummyResponse(text=json.dumps(_resp['response_args']), status_code=200)

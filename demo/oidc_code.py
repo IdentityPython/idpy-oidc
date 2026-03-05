@@ -4,7 +4,7 @@ import os
 from common import BASEDIR
 from common import KEYDEFS
 from flow import Flow
-from idpyoidc.client.oidc import RP
+from idpyoidc.client.oidc.rp import RP
 from idpyoidc.key_import import import_jwks
 from idpyoidc.server import OPConfiguration
 from idpyoidc.server import Server
@@ -44,6 +44,10 @@ server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_
 
 server.context.set_provider_info()
 
+# ==== client - server connection
+
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
+
 flow = Flow(client, server)
 msg = flow(
     [
@@ -52,7 +56,8 @@ msg = flow(
         ["accesstoken", 'token'],
         ['userinfo', 'userinfo']
     ],
+    context=client_context,
     scope=['foobar', 'offline_access', 'email'],
-    server_jwks=server.keyjar.export_jwks(''),
-    server_jwks_uri=server.context.provider_info['jwks_uri']
+    server_jwks=server.context.keyjar.export_jwks(''),
+    # server_jwks_uri=server.context.provider_info['jwks_uri']
 )

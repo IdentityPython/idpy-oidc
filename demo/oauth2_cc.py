@@ -73,8 +73,6 @@ CLIENT_CONFIG = {
 
 client = Client(config=CLIENT_CONFIG)
 
-client_credentials_service = client.get_service('client_credentials')
-client_credentials_service.endpoint = "https://example.com/token"
 
 # Server side
 
@@ -83,10 +81,16 @@ server.context.cdb["client_1"] = {
     "client_secret": CLIENT_CONFIG['client_secret'],
     "allowed_scopes": ["resourceA"],
 }
+# ==== client - server connection
+
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
+client_credentials_service = client.get_service(client_context,'client_credentials')
+client_credentials_service.endpoint = "https://example.com/token"
 
 flow = Flow(client, server)
 msg = flow(
     [
         ["client_credentials", 'token']
-    ]
+    ],
+    context=client_context
 )

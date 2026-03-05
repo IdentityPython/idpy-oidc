@@ -103,7 +103,9 @@ server.context.keyjar = import_jwks(server.context.keyjar, client.keyjar.export_
 
 server.context.set_provider_info()
 
-# ------- tell the server about the client ----------------
+# ==== client - server connection
+
+client_context = client.add_new_context(server_entity_id=server.context.entity_id)
 
 flow = Flow(client, server)
 msg = flow(
@@ -115,7 +117,8 @@ msg = flow(
         ['token_revocation', 'token_revocation'],
         ['introspection', 'introspection'],
     ],
+    context=client_context,
     scope=['foobar'],
-    server_jwks=server.keyjar.export_jwks(''),
+    server_jwks=server.context.keyjar.export_jwks(''),
     server_jwks_uri=server.context.provider_info['jwks_uri']
 )
