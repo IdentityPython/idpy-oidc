@@ -16,6 +16,7 @@ from idpyoidc.client import get_base_url
 from idpyoidc.client.client_auth import client_auth_setup
 from idpyoidc.client.client_auth import method_to_item
 from idpyoidc.client.configure import Configuration
+from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.exception import ConfigurationError
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.service_context import create_new_context
@@ -23,7 +24,6 @@ from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.message import Message
 from idpyoidc.node import Unit
 from idpyoidc.server.util import init_keyjar
-from idpyoidc.util import conf_get
 from idpyoidc.util import keyjar_combination
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def response_types_to_grant_types(response_types):
 
 
 def _set_jwks(service_context, config: Configuration, keyjar: Optional[KeyJar]):
-    _key_conf = conf_get(config, "key_conf")
+    _key_conf = config.conf_get("key_conf")
 
     if _key_conf:
         keys_args = {k: v for k, v in _key_conf.items() if k != "uri_path"}
@@ -110,13 +110,10 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             base_url: Optional[str] = None,
             **kwargs
     ):
-        if config is None:
-            config = {}
-
-        self.config = config
+        self.config = get_configuration(config)
 
         # Client ID is set through configuration or at registration
-        self.set_entity_id(config=config, entity_id=entity_id)
+        self.set_entity_id(config=self.config, entity_id=entity_id)
 
         Unit.__init__(
             self,
@@ -124,17 +121,17 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             keyjar=keyjar,
             httpc=httpc,
             httpc_params=httpc_params,
-            config=config,
+            config=self.config,
             key_conf=key_conf,
             # client_id=_id,
         )
 
         # get base URL
-        base_url = get_base_url(base_url, config)
+        base_url = get_base_url(base_url, self.config)
 
         # Keys used by all contexts
         self.keyjar = init_keyjar(self.config, keyjar, key_conf, issuer_id=self.entity_id, **kwargs)
-        self.jwks_uri = jwks_uri or conf_get(self.config, "jwks_uri", '')
+        self.jwks_uri = jwks_uri or self.config.conf_get("jwks_uri", '')
         if self.jwks_uri and not self.jwks_uri.startswith("https"):
             self.jwks_uri = urljoin(base_url, self.jwks_uri)
 
@@ -162,7 +159,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
         if context:
             self.context = context
         else:
-            _client_configs = client_configs or conf_get(config, "client_configs", {})
+            _client_configs = client_configs or self.config.conf_get("client_configs", {})
             if _client_configs:
                 self.context = {}
                 for server_id, conf in _client_configs.items():
@@ -176,7 +173,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
                 self.context = {
                     "": ServiceContext(
                         server_entity_id='',
-                        config=config,
+                        config=self.config,
                         **_context_args
                     )
                 }
@@ -187,7 +184,7 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
 
         self.default_context = self.context['']
 
-        self.setup_client_authn_methods(config, self.default_context)
+        self.setup_client_authn_methods(self.config, self.default_context)
         self.upstream_get = upstream_get
 
     def set_entity_id(self, config=None, entity_id=''):
@@ -221,12 +218,15 @@ class Entity(Unit):  # This is a Client. What type is undefined here.
             return context.claims.get_preference("client_id")
 
     def setup_client_authn_methods(self, config, context):
-        if config and "client_authn_methods" in config:
-            _methods = config.get("client_authn_methods")
-            context.client_authn_methods = client_auth_setup(method_to_item(_methods))
-            for k, v in context.client_authn_methods.items():
-                v.context = context
-                v.upstream_get = self.unit_get
+        if config:
+            _methods = config.conf_get("client_authn_methods")
+            if _methods:
+                context.client_authn_methods = client_auth_setup(method_to_item(_methods))
+                for k, v in context.client_authn_methods.items():
+                    v.context = context
+                    v.upstream_get = self.unit_get
+            else:
+                context.client_authn_methods = {}
         else:
             context.client_authn_methods = {}
 

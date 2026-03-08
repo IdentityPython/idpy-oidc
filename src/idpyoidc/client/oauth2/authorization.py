@@ -13,7 +13,6 @@ from idpyoidc.exception import MissingParameter
 from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import ResponseMessage
 from idpyoidc.time_util import time_sans_frac
-from idpyoidc.util import conf_get
 
 LOGGER = logging.getLogger(__name__)
 
@@ -105,7 +104,7 @@ class Authorization(Service):
         elif flow_type == "form_post":
             rm = context.get_preference("response_modes_supported")
             if rm and "form_post" in rm:
-                if conf_get(context.config, "separate_form_post_cb", True):
+                if context.config.conf_get("separate_form_post_cb", True):
                     return "form_post"
                 else:
                     return "query"

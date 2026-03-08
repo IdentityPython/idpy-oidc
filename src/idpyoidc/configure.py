@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 from typing import Dict
@@ -61,10 +62,11 @@ def add_base_path(conf: dict, base_path: str, attributes: List[str], attribute_t
     return conf
 
 
-def _conv(val, domain, port):
+def _map_domain_port(val, domain, port):
     if isinstance(val, str) and ("{domain}" in val or "{port}" in val):
         return val.format(domain=domain, port=port)
-
+    elif isinstance(val, dict):
+        val = {k:_map_domain_port(v, domain, port) for k, v in val.items()}
     return val
 
 
@@ -75,11 +77,11 @@ def set_domain_and_port(conf: dict, domain: str, port: int):
             continue
 
         if isinstance(val, list):
-            _new = [_conv(v, domain=domain, port=port) for v in val]
+            _new = [_map_domain_port(v, domain=domain, port=port) for v in val]
         elif isinstance(val, dict):
             _new = set_domain_and_port(val, domain, port)
         else:
-            _new = _conv(val, domain=domain, port=port)
+            _new = _map_domain_port(val, domain=domain, port=port)
 
         if _new != val:
             update[key] = _new
@@ -87,6 +89,7 @@ def set_domain_and_port(conf: dict, domain: str, port: int):
         conf.update(update)
     return conf
 
+BASE_ATTRIBUTES = ['domain', 'port', 'file_attributes', 'dir_attributes', 'base_path']
 
 class Base(dict):
     """Configuration base class"""
@@ -119,7 +122,27 @@ class Base(dict):
         self.domain = domain or conf.get("domain", "127.0.0.1")
         self.port = port or conf.get("port", 80)
 
-        self.conf = set_domain_and_port(conf, self.domain, self.port)
+        for key in self.parameter.keys():
+            _val = conf.get(key)
+            if not _val:
+                if key in self.default_config:
+                    _val = self.format(
+                        copy.deepcopy(self.default_config[key]),
+                        base_path=base_path,
+                        file_attributes=file_attributes,
+                        domain=domain,
+                        port=port,
+                        dir_attributes=dir_attributes,
+                    )
+                else:
+                    continue
+            else:
+                self.args[key] = _val
+
+        self.args = {}
+        for key,val in conf.items():
+            if key not in self.parameter and key not in BASE_ATTRIBUTES:
+                self.args[key] = _map_domain_port(val, domain=self.domain, port=self.port)
 
     def __getattr__(self, item, default=None):
         if item in self:
@@ -139,6 +162,22 @@ class Base(dict):
 
     def get(self, item, default=None):
         return self.__getattr__(item, default)
+
+    def conf_get(self, attr, default=None):
+        return self.getargs(attr, default)
+
+    def getargs(self, attr, default=None):
+        _res = self.get(attr, None)
+        if _res is None:
+            _args = getattr(self, "args", None)
+            if _args:
+                _res = _args.get(attr, None)
+                if _res:
+                    return _res
+
+            return default
+        else:
+            return _res
 
     def items(self):
         for key in self.keys():
@@ -205,8 +244,8 @@ class Base(dict):
     ) -> Union[Dict, str]:
         """
         Formats parts of the configuration. That includes replacing the strings {domain} and {port}
-        with the used domain and port and making references to files and directories absolute
-        rather then relative. The formatting is done in place.
+        with the defined domain and port and making references to files and directories absolute
+        rather than relative. The formatting is done in place.
 
         :param dir_attributes:
         :param conf: The configuration part
@@ -223,9 +262,9 @@ class Base(dict):
             if isinstance(conf, dict):
                 conf = set_domain_and_port(conf, domain=domain, port=port)
         elif isinstance(conf, list):
-            conf = [_conv(v, domain=domain, port=port) for v in conf]
+            conf = [_map_domain_port(v, domain=domain, port=port) for v in conf]
         elif isinstance(conf, str):
-            conf = _conv(conf, domain, port)
+            conf = _map_domain_port(conf, domain, port)
 
         return conf
 

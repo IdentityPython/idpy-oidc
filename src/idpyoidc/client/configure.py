@@ -7,7 +7,6 @@ from typing import Union
 
 from idpyoidc.configure import Base
 from idpyoidc.logging import configure_logging
-
 from .util import lower_or_upper
 
 try:
@@ -25,80 +24,18 @@ URIS = [
 ]
 
 
-# class RPHConfiguration(Base):
-#     def __init__(
-#         self,
-#         conf: Dict,
-#         base_path: Optional[str] = "",
-#         entity_conf: Optional[List[dict]] = None,
-#         domain: Optional[str] = "127.0.0.1",
-#         port: Optional[int] = 80,
-#         file_attributes: Optional[List[str]] = None,
-#         dir_attributes: Optional[List[str]] = None,
-#     ):
-#
-#         Base.__init__(
-#             self,
-#             conf,
-#             base_path=base_path,
-#             domain=domain,
-#             port=port,
-#             file_attributes=file_attributes,
-#             dir_attributes=dir_attributes,
-#         )
-#
-#         for _attr in ["key_conf", "rp_keys", "oidc_keys"]:
-#             _val = lower_or_upper(conf, _attr)
-#             if _val:
-#                 self.key_conf = _val
-#                 break
-#
-#         hash_seed = lower_or_upper(conf, "hash_seed")
-#         if not hash_seed:
-#             hash_seed = rnd_token(32)
-#         self.hash_seed = hash_seed
-#
-#         self.base_url = lower_or_upper(conf, "base_url")
-#         self.httpc_params = lower_or_upper(conf, "httpc_params", {"verify": True})
-#
-#         self.default = lower_or_upper(conf, "default", {})
-#
-#         for param in ["services", "claims", "add_ons", "usage"]:
-#             _val = lower_or_upper(conf, param, {})
-#             if _val and param not in self.default:
-#                 self.default[param] = _val
-#
-#         self.clients = lower_or_upper(conf, "clients")
-#         if self.clients:
-#             for id, client in self.clients.items():
-#                 for param in ["services", "usage", "add_ons", "claims"]:
-#                     if param not in client:
-#                         if param in self.default:
-#                             client[param] = self.default[param]
-#
-#         if entity_conf:
-#             self.extend(
-#                 entity_conf=entity_conf,
-#                 conf=conf,
-#                 base_path=base_path,
-#                 file_attributes=file_attributes,
-#                 domain=domain,
-#                 port=port,
-#             )
-
-
 class Configuration(Base):
     """Configuration for a single RP"""
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: str = "",
-        entity_conf: Optional[List[dict]] = None,
-        file_attributes: Optional[List[str]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: str = "",
+            entity_conf: Optional[List[dict]] = None,
+            file_attributes: Optional[List[str]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            dir_attributes: Optional[List[str]] = None,
     ):
         Base.__init__(
             self,
@@ -106,16 +43,19 @@ class Configuration(Base):
             base_path=base_path,
             file_attributes=file_attributes,
             dir_attributes=dir_attributes,
+            domain=domain,
+            port=port,
         )
 
+        # move kwargs upstairs
         _del_key = []
-        for attr, val in self.conf.items():
+        for attr, val in self.args.items():
             if attr in ["issuer", "key_conf"]:
                 setattr(self, attr, val)
-                # _del_key.append(attr)
+                _del_key.append(attr)
 
         for _key in _del_key:
-            del self.conf[_key]
+            del self.args[_key]
 
         log_conf = conf.get("logging")
         if log_conf:
@@ -134,14 +74,15 @@ class Configuration(Base):
                 dir_attributes=dir_attributes,
             )
 
-
-def get_configuration(config: Optional[Union[dict, Configuration]] = None):
+def get_configuration(config: Optional[Union[dict, Base]] = None,
+                      config_class: Optional[type(Base)] = Configuration) -> Base:
     if config is None:
-        config = Configuration({})
+        config = config_class({})
     elif isinstance(config, dict):
         if not isinstance(config, Base):
-            config = Configuration(copy.deepcopy(config))
-    else:  # not None and not a dict ??
+            _c = copy.deepcopy(config)
+            config = config_class(**_c)
+    else:  # not None and not a dict or a Configure instance ??
         raise ValueError("Configuration in a format I don't support")
 
     return config

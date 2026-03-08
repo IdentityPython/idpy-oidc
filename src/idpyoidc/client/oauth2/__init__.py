@@ -7,6 +7,7 @@ from typing import Union
 from cryptojwt.key_jar import KeyJar
 from requests import request
 
+from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
@@ -68,8 +69,7 @@ class Client(Entity):
         :return: Client instance
         """
 
-        if config is None:
-            config = {}
+        config = get_configuration(config)
 
         _entity_type = getattr(self, "entity_type", None)
         if _entity_type is not None:

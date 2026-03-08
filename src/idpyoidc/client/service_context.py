@@ -3,7 +3,6 @@ Implements a service context. A Service context is used to keep information that
 common between all the services that are used by OAuth2 client or OpenID Connect Relying Party.
 """
 import base64
-import hashlib
 import logging
 import os
 from typing import Callable
@@ -22,6 +21,7 @@ from cryptojwt.utils import as_bytes
 from idpyoidc.claims import Claims
 from idpyoidc.claims import claims_dump
 from idpyoidc.claims import claims_load
+from idpyoidc.client import get_base_url
 from idpyoidc.client.claims.oauth2 import Claims as OAUTH2_Specs
 from idpyoidc.client.claims.oauth2resource import Claims as OAUTH2RESOURCE_Specs
 from idpyoidc.client.claims.oidc import Claims as OIDC_Specs
@@ -34,10 +34,9 @@ from idpyoidc.key_import import add_kb
 from idpyoidc.key_import import import_jwks_from_file
 from idpyoidc.transform import preferred_to_registered
 from idpyoidc.transform import supported_to_preferred
-from idpyoidc.util import conf_get
 from idpyoidc.util import rndstr
+from .configure import get_configuration
 from .current import Current
-from idpyoidc.client import get_base_url
 from .entity_metadata import EntityMetadata
 from ..impexp import ImpExp
 from ..message import Message
@@ -149,11 +148,11 @@ class ServiceContext(ImpExp):
     ):
         ImpExp.__init__(self)
         # config = get_configuration(config)
-        self.config = config or {}  # This is entity configuration
+        self.config = get_configuration(config)  # This is entity configuration
         self.upstream_get = upstream_get
 
         # Hm, is default oauth2 or oidc ??
-        self.client_type = client_type or conf_get(self.config, "client_type", None) or "oidc"
+        self.client_type = client_type or self.config.conf_get("client_type", None) or "oidc"
 
         if self.client_type == "oidc":
             self.claims = OIDC_Specs()
@@ -172,22 +171,22 @@ class ServiceContext(ImpExp):
 
         self.entity_id = entity_id or kwargs.get("client_id", "")
         if not self.entity_id:
-            self.entity_id = conf_get(self.config, "entity_id", conf_get(self.config, "client_id"))
+            self.entity_id = self.config.conf_get("entity_id", self.config.conf_get("client_id"))
 
-        self.client_id = kwargs.get("client_id", "") or conf_get(self.config, "client_id", '')
+        self.client_id = kwargs.get("client_id", "") or self.config.conf_get("client_id", '')
 
         self.cstate = cstate or Current()
 
         self.kid = {"sig": {}, "enc": {}}
 
-        self.allow = conf_get(self.config, "allow", {})
+        self.allow = self.config.conf_get("allow", {})
         self.base_url = get_base_url(base_url, self.config)
 
-        self.provider_info = conf_get(self.config, "provider_info", {})
-        self.server_metadata = conf_get(self.config, "server_metadata", EntityMetadata())
+        self.provider_info = self.config.conf_get("provider_info", {})
+        self.server_metadata = self.config.conf_get("server_metadata", EntityMetadata())
 
         self.issuer = self.server_entity_id = server_entity_id
-        self.client_secret = conf_get(self.config, "client_secret", "")
+        self.client_secret = self.config.conf_get("client_secret", "")
 
         # Below so my IDE won't complain
         self.args = {}
@@ -210,7 +209,7 @@ class ServiceContext(ImpExp):
         if _seed:
             if _seed.startswith("BYTES"):
                 _seed.lstrip("BYTES:")
-        _seed = self.config.get("hash_seed", rndstr(32))
+        _seed = self.config.conf_get("hash_seed", rndstr(32))
         self.hash_seed = as_bytes(_seed)
 
         for key, val in kwargs.items():
@@ -220,8 +219,8 @@ class ServiceContext(ImpExp):
                 if val is None:
                     self.keyjar = KeyJar()
                     # client secret key
-                    _client_secret = conf_get(self.config, "client_secret", None)
-                    _client_id = conf_get(self.config, "client_id", None)
+                    _client_secret = self.config.conf_get("client_secret", None)
+                    _client_id = self.config.conf_get("client_id", None)
                     if _client_id and _client_secret:
                         self.keyjar.add_symmetric(issuer_id=_client_id, key=_client_secret, usage=['sig'])
                         self.keyjar.add_symmetric(issuer_id='', key=_client_secret, usage=['sig'])
@@ -242,7 +241,7 @@ class ServiceContext(ImpExp):
         if services:
             _srvs = services
         elif self.config:
-            _srvs = self.config.get("services")
+            _srvs = self.config.conf_get("services")
         else:
             _srvs = None
 
@@ -266,7 +265,7 @@ class ServiceContext(ImpExp):
             self.claims = Claims(prefer=_claims["prefer"])
             self.claims.use = _claims['use']
         else:
-            self.claims.load_conf(self.config, supports=self.supports(),
+            self.claims.load_conf(self.config.conf, supports=self.supports(),
                                   entity_id=self.entity_id,
                                   metadata_class=kwargs.get("metadata_class", None))
 
@@ -288,7 +287,7 @@ class ServiceContext(ImpExp):
 
             self.map_preferred_to_registered(**args)
 
-        _add_ons = conf_get(self.config, "add_ons")
+        _add_ons = self.config.conf_get("add_ons")
 
         if _add_ons:
             do_add_ons(self, _add_ons, self.service)
@@ -615,11 +614,11 @@ class ServiceContext(ImpExp):
                     raise ValueError("Unknown provider JWKS type: {}".format(typ))
 
     def prefer_jwks_uri_or_jwks(self, base_url, **kwargs):
-        _ju = kwargs.get('jwks_uri', '') or conf_get(self.config, "jwks_uri", '')
+        _ju = kwargs.get('jwks_uri', '') or self.config.conf_get("jwks_uri", '')
         if _ju:
             self.claims.set_preference('jwks_uri', _ju)
         else:
-            kc = kwargs.get("key_conf", conf_get(self.config, "key_conf", {}))
+            kc = kwargs.get("key_conf", self.config.conf_get("key_conf", {}))
             if kc:
                 _jwks_uri = kc.get("jwks_uri")
                 if _jwks_uri:

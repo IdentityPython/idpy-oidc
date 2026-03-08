@@ -172,18 +172,18 @@ def qualified_name(cls):
         return cls.__module__ + "." + cls.__name__
 
 
-def conf_get(config, attr, default=None):
-    _res = config.get(attr, None)
-    if _res is None:
-        _conf = getattr(config, "conf", None)
-        if _conf:
-            _res = _conf.get(attr, None)
-            if _res:
-                return _res
-
-        return default
-    else:
-        return _res
+# def conf_get(config, attr, default=None):
+#     _res = config.get(attr, None)
+#     if _res is None:
+#         _conf = getattr(config, "conf", None)
+#         if _conf:
+#             _res = _conf.get(attr, None)
+#             if _res:
+#                 return _res
+#
+#         return default
+#     else:
+#         return _res
 
 
 def get_keyjar_chain(item) -> list:

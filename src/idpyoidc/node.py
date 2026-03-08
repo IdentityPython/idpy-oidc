@@ -5,6 +5,7 @@ from typing import Union
 from cryptojwt import KeyJar
 from cryptojwt.key_jar import init_key_jar
 
+from idpyoidc.client.configure import get_configuration
 from idpyoidc.configure import Configuration
 from idpyoidc.impexp import ImpExp
 from idpyoidc.key_import import import_jwks
@@ -139,8 +140,7 @@ class Unit(ImpExp):
         self.upstream_get = upstream_get
         self.httpc = httpc
 
-        if config is None:
-            config = {}
+        config = get_configuration(config)
 
         self.httpc_params = httpc_params or config.get("httpc_params", {})
 

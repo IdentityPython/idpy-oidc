@@ -51,26 +51,3 @@ class Claims(claims.Claims):
             self._add_key_if_missing(keyjar, id, _secret)
             self._add_key_if_missing(keyjar, "", _secret)
         return keyjar
-
-    def get_jwks(self, keyjar):
-        if keyjar is None:
-            return None
-
-        _jwks = None
-        try:
-            _own_keys = keyjar.get_issuer_keys("")
-        except IssuerNotFound:
-            pass
-        else:
-            # if only one key under the id == "", that key being a SYMKey I assume it's
-            # and I have a client_secret then don't publish a JWKS
-            if (
-                    len(_own_keys) == 1
-                    and isinstance(_own_keys[0], SYMKey)
-                    and self.prefer.get("client_secret", None)
-            ):
-                pass
-            else:
-                _jwks = keyjar.export_jwks()
-
-        return _jwks

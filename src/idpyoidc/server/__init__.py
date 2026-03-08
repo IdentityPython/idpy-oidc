@@ -8,7 +8,7 @@ from typing import Union
 from cryptojwt import KeyJar
 from cryptojwt.utils import importer
 
-from idpyoidc.util import conf_get
+from idpyoidc.client.configure import get_configuration
 from idpyoidc.util import use_default_keys
 
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def do_endpoints(conf, upstream_get):
-    _endpoints = conf.get("endpoint")
+    _endpoints = conf.conf_get("endpoint")
     if _endpoints:
         return build_endpoints(_endpoints, upstream_get=upstream_get, issuer=conf["issuer"])
     else:
@@ -50,23 +50,23 @@ class Server(Unit):
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None,
     ):
-        self.entity_id = entity_id or conf.get("entity_id", None)
+        self.conf = get_configuration(conf, OPConfiguration)
+
+        self.entity_id = entity_id or self.conf.conf_get("entity_id", None)
         if not self.entity_id:
-            _conf = conf.get("conf", None)
-            if _conf:
-                self.entity_id = _conf.get("entity_id", "")
-        self.issuer = conf.get("issuer", self.entity_id)
+            self.entity_id = self.conf.conf_get("entity_id", "")
+        self.issuer = self.conf.conf_get("issuer", self.entity_id)
         if not self.entity_id and self.issuer:
             self.entity_id = self.issuer
 
         self.persistence = None
 
-        if use_default_keys(keyjar, key_conf, conf):
+        if use_default_keys(keyjar, key_conf, self.conf):
             key_conf = {"key_defs": DEFAULT_KEY_DEFS}
 
         Unit.__init__(
             self,
-            config=conf,
+            config=self.conf,
             keyjar=None,
             httpc=httpc,
             upstream_get=upstream_get,
@@ -75,10 +75,10 @@ class Server(Unit):
             issuer_id=self.issuer,
         )
         self.keyjar = None
-        if isinstance(conf, OPConfiguration) or isinstance(conf, ASConfiguration):
-            self.conf = conf
-        else:
-            self.conf = OPConfiguration(conf)
+        # if isinstance(self.conf, OPConfiguration) or isinstance(self.conf, ASConfiguration):
+        #     self.conf = conf
+        # else:
+        #     self.conf = OPConfiguration(conf)
 
         self.endpoint = do_endpoints(self.conf, self.unit_get)
 
@@ -101,7 +101,7 @@ class Server(Unit):
 
         _token_endp = self.endpoint.get("token")
 
-        metadata_schema = conf_get(self.conf, "metadata_schema", None)
+        metadata_schema = self.conf.conf_get("metadata_schema", None)
 
         if metadata_schema:
             metadata_schema = importer(metadata_schema)

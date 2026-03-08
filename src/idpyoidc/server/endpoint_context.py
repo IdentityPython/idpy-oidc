@@ -26,7 +26,6 @@ from idpyoidc.server.template_handler import Jinja2TemplateHandler
 from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.server.util import init_keyjar
-from idpyoidc.util import conf_get
 from idpyoidc.util import importer
 from idpyoidc.util import rndstr
 
@@ -250,7 +249,7 @@ class EndpointContext(OidcContext):
         _supports = self.supports()
         self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
 
-        jwks_uri = conf_get(self.conf, 'jwks_uri', '')
+        jwks_uri = self.conf.conf_get('jwks_uri', '')
         if jwks_uri:
             self.claims.prefer["jwks_uri"] = urljoin(self.claims.get_base_url(conf), jwks_uri)
 
