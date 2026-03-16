@@ -25,7 +25,7 @@ from idpyoidc.util import importer
 from .client_auth import client_auth_setup
 from .client_auth import method_to_item
 from .client_auth import single_authn_setup
-from .configure import Configuration
+from .configure import RPConfiguration
 from .exception import ResponseError
 from .util import get_http_body
 from .util import get_http_url
@@ -84,7 +84,7 @@ class Service(ImpExp):
     _callback_path = {}
 
     def __init__(
-            self, upstream_get: Callable, conf: Optional[Union[dict, Configuration]] = None,
+            self, upstream_get: Callable, conf: Optional[Union[dict, RPConfiguration]] = None,
             **kwargs
     ):
         ImpExp.__init__(self)

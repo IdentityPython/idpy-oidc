@@ -34,10 +34,13 @@ class TestEntity:
         if use_default_keys(None, key_conf, {}):
             key_conf = {"key_defs": KEYDEFS}
 
+        config = {
+            "client_configs": MINI_CONFIG.copy(),
+            "key_conf": key_conf
+        }
         self.entity = Entity(
-            client_configs=MINI_CONFIG.copy(),
+            config=config,
             services={"xyz": {"class": "idpyoidc.client.service.Service"}},
-            key_conf=key_conf
         )
 
         self.context = self.entity.context[ISS]
@@ -226,7 +229,8 @@ def test_context_duplication():
     context_1 = entity.add_new_context(server_1_id)
     assert context_1
 
-    assert set(context_1.client_authn_methods.keys()) == {'client_secret_post', 'client_secret_basic'}
+    assert set(context_1.client_authn_methods.keys()) == {'client_secret_post',
+                                                          'client_secret_basic'}
 
     assert set(entity.context[""].client_authn_methods.keys()) == {
         "client_secret_basic",

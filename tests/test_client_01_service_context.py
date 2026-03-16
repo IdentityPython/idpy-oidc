@@ -1,5 +1,5 @@
-import pytest
 from cryptojwt.key_jar import build_keyjar
+import pytest
 
 from idpyoidc.client.service_context import ServiceContext
 from idpyoidc.node import Unit
@@ -12,10 +12,10 @@ KEYDEFS = [
 KEYJAR = build_keyjar(KEYDEFS)
 
 MINI_CONFIG = {
-    "base_url": "https://example.com/cli",
     "key_conf": {"key_defs": KEYDEFS},
     "issuer": "https://op.example.com",
     "preference": {"response_types": ["code"]},
+    'base_url': "https://example.com/cli"
 }
 
 
@@ -25,8 +25,8 @@ class TestServiceContext:
     def setup(self):
         self.unit = Unit()
         self.service_context = ServiceContext(
-            server_entity_id='https://example.org', config=MINI_CONFIG, upstream_get=self.unit.unit_get,
-            base_url="https://example.com/cli"
+            server_entity_id='https://example.org', config=MINI_CONFIG,
+            upstream_get=self.unit.unit_get,
         )
 
     def test_init(self):

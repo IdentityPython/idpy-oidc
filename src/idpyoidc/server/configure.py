@@ -237,6 +237,7 @@ class EntityConfiguration(Base):
         file_attributes: Optional[List[str]] = None,
         dir_attributes: Optional[List[str]] = None,
         upstream_get: Optional[Callable] = None,
+        **kwargs
     ):
 
         conf = copy.deepcopy(conf)
@@ -248,12 +249,13 @@ class EntityConfiguration(Base):
             dir_attributes=dir_attributes,
             domain=domain,
             port=port,
+            **kwargs
         )
 
         self.key_conf = conf.get("key_conf", conf.get("keys"))
 
         for key in self.parameter.keys():
-            _val = conf.get(key)
+            _val = self.getarg(key)
             if not _val:
                 if key in self.default_config:
                     _val = self.format(
@@ -308,6 +310,7 @@ class OPConfiguration(EntityConfiguration):
         port: Optional[int] = 0,
         file_attributes: Optional[List[str]] = None,
         dir_attributes: Optional[List[str]] = None,
+        **kwargs
     ):
         super().__init__(
             conf=conf,
@@ -317,6 +320,7 @@ class OPConfiguration(EntityConfiguration):
             port=port,
             file_attributes=file_attributes,
             dir_attributes=dir_attributes,
+            **kwargs
         )
 
 

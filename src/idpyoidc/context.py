@@ -2,6 +2,8 @@ import copy
 from urllib.parse import quote_plus
 
 from idpyoidc.impexp import ImpExp
+from idpyoidc.util import keyjar_dump
+from idpyoidc.util import keyjar_load
 
 
 def add_issuer(conf, issuer):
@@ -18,6 +20,10 @@ def add_issuer(conf, issuer):
 
 class OidcContext(ImpExp):
     parameter = {"entity_id": None}
+
+    special_load_dump = {
+        "keyjar": {"load": keyjar_load, 'dump': keyjar_dump}
+    }
 
     def __init__(self, config=None, entity_id=""):
         ImpExp.__init__(self)

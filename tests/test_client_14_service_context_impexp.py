@@ -31,7 +31,9 @@ def test_client_info_init():
     ci.map_supported_to_preferred()
     ci.map_preferred_to_registered()
 
-    srvcnx = ServiceContext(server_entity_id=config["issuer"], upstream_get=unit_get, config={}).load(ci.dump())
+    srvcnx = ServiceContext(server_entity_id=config["issuer"],
+                            upstream_get=unit_get,
+                            config={}).load(ci.dump())
 
     for attr in config.keys():
         if attr == "client_id":
@@ -292,7 +294,7 @@ class TestClientInfo(object):
             _o_state, init_args={"upstream_get": self.service_context.upstream_get}
         )
 
-        # Now there should be 2, the second a RSA key for signing
+        # Now there should be 2, the second an RSA key for signing
         assert len(srvcntx.keyjar.get_issuer_keys("")) == 2
 
     def test_import_keys_url(self):

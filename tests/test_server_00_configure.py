@@ -110,7 +110,7 @@ def test_server_configure():
         base_path=BASEDIR,
     )
     assert configuration
-    assert "logger" in configuration
+    assert "_logger" in configuration
     assert "op" in configuration
     op_conf = configuration["op"]
     assert "key_conf" in op_conf

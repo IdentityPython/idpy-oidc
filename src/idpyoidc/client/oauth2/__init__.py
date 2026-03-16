@@ -7,7 +7,6 @@ from typing import Union
 from cryptojwt.key_jar import KeyJar
 from requests import request
 
-from idpyoidc.client.configure import get_configuration
 from idpyoidc.client.entity import Entity
 from idpyoidc.client.exception import OidcServiceError
 from idpyoidc.client.exception import ParseError
@@ -17,7 +16,9 @@ from idpyoidc.client.service import SUCCESSFUL
 from idpyoidc.client.service import Service
 from idpyoidc.client.util import get_content_type
 from idpyoidc.client.util import get_deserialization_method
+from idpyoidc.configure import Base
 from idpyoidc.configure import Configuration
+from idpyoidc.configure import get_configuration
 from idpyoidc.context import OidcContext
 from idpyoidc.exception import FormatError
 from idpyoidc.message import Message
@@ -69,7 +70,8 @@ class Client(Entity):
         :return: Client instance
         """
 
-        config = get_configuration(config)
+        if not isinstance(config, Base):
+            config = get_configuration({'conf': config})
 
         _entity_type = getattr(self, "entity_type", None)
         if _entity_type is not None:
@@ -104,7 +106,8 @@ class Client(Entity):
 
         self.httpc = httpc or request
 
-    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None, **kwargs) -> None:
+    def set_type(self, client_type='', config: Optional[Union[dict, Configuration]] = None,
+                 **kwargs) -> None:
         """
         Default client type is OAuth2
 

@@ -14,7 +14,7 @@ from idpyoidc.message.oidc import Link
 
 __author__ = "Roland Hedberg"
 
-ENTITY = Entity(config={"base_url": "https://example.com"})
+ENTITY = Entity(config={'conf': {"base_url": "https://example.com"}})
 
 
 def test_query():

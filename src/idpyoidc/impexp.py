@@ -8,12 +8,14 @@ from typing import Optional
 from cryptojwt.utils import importer
 from cryptojwt.utils import qualified_name
 
+from idpyoidc import init_args_from_source
 # from idpyoidc.item import DLDict
 from idpyoidc.message import Message
 from idpyoidc.storage import DictType
 
 VERBOSE = False
 logger = logging.getLogger(__name__)
+
 
 def fully_qualified_name(cls):
     return cls.__module__ + "." + cls.__class__.__name__
@@ -34,6 +36,10 @@ def type2cls(v):
         return []
     else:
         return None
+
+
+def ignore_item(**kwargs):
+    return None
 
 
 class ImpExp:
@@ -86,7 +92,8 @@ class ImpExp:
             if len(cls) != 0:
                 val = [self.dump_attr(cls[0], v, exclude_attributes) for v in item]
             else:
-#                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v in item]
+                #                val = [self.dump_attr(type2cls(v), v, exclude_attributes) for v
+                #                in item]
                 val = []
                 for v in item:
                     _type = type2cls(v)
@@ -117,7 +124,9 @@ class ImpExp:
                     elif isinstance(class_instance, dict):
                         key_val = {qualified_name(type(class_instance)): class_instance}
                     else:
-                        logger.error(f"Can't dump {class_instance} as {qualified_name(type(class_instance))}")
+                        logger.error(
+                            f"Can't dump {class_instance} as "
+                            f"{qualified_name(type(class_instance))}")
                         key_val = None
                 val[key] = {qualified_name(type(class_instance)): key_val}
         else:
@@ -209,7 +218,7 @@ class ImpExp:
             val = [_cls(**_args).load(v, **_kwargs) for v in item]
         elif isinstance(cls, dict):
             val = {}
-            for key,value in item.items():
+            for key, value in item.items():
                 # value is a dict
                 for _cls_name, claims in value.items():
                     val[key] = importer(_cls_name)(**claims)
@@ -227,11 +236,35 @@ class ImpExp:
             else:
                 _args = {}
 
-            if item:
-                val = cls(**_args).load(item, **_kwargs)
+            if issubclass(cls, ImpExp):
+                if item:
+                    val = cls(**_args)
+                    val.load(item, **_kwargs)
+                else:
+                    val = cls(**_args)
             else:
-                val = cls(**_args)
+                if len(item.keys()) == 1:
+                    # should be the same as cls
+                    _cls_name = list(item.keys())[0]
+                    try:
+                        _cls = importer(_cls_name)
+                    except Exception as err:
+                        logger.error(f"Could not import {item}: {err}")
+                        raise
+                    info = item[_cls_name]
+                else:
+                    info = item
 
+                params, has_kwargs = init_args_from_source(cls)
+                init_args = {k: v for k, v in info.items() if k in params}
+                if has_kwargs:
+                    kwargs = {k: v for k, v in info.items() if k not in params}
+                    init_args.update(kwargs)
+
+                val = cls(**init_args)
+                # Ugly fix
+                if qualified_name(cls) == 'cryptojwt.key_jar.KeyJar':
+                    val.issuers = item["issuers"]
         return val
 
     def load(self, state: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None):

@@ -104,7 +104,7 @@ class Authorization(Service):
         elif flow_type == "form_post":
             rm = context.get_preference("response_modes_supported")
             if rm and "form_post" in rm:
-                if context.config.conf_get("separate_form_post_cb", True):
+                if context.config.getarg("separate_form_post_cb", True):
                     return "form_post"
                 else:
                     return "query"

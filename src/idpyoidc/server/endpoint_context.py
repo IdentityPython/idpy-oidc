@@ -27,12 +27,14 @@ from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import get_http_params
 from idpyoidc.server.util import init_keyjar
 from idpyoidc.util import importer
+from idpyoidc.util import keyjar_dump
+from idpyoidc.util import keyjar_load
 from idpyoidc.util import rndstr
 
 logger = logging.getLogger(__name__)
 
 
-def init_user_info(conf, cwd: str, upstream_get: Optional[Callable] = None):
+def init_user_info(conf: dict, cwd: str, upstream_get: Optional[Callable] = None):
     kwargs = conf.get("kwargs", {})
     if upstream_get:
         kwargs["upstream_get"] = upstream_get
@@ -43,7 +45,7 @@ def init_user_info(conf, cwd: str, upstream_get: Optional[Callable] = None):
     return conf["class"](**kwargs)
 
 
-def init_service(conf, upstream_get=None, **kwargs):
+def init_service(conf: dict, upstream_get=None, **kwargs):
     kwargs.update(conf.get("kwargs", {}))
 
     if upstream_get:
@@ -90,7 +92,7 @@ class EndpointContext(OidcContext):
         "issuer": "",
         "jti_db": {},
         "jwks_uri": "",
-        "keyjar": KeyJar,
+        # "keyjar": KeyJar,
         "login_hint_lookup": None,
         "login_hint2acrs": None,
         "par_db": {},
@@ -104,6 +106,10 @@ class EndpointContext(OidcContext):
         "token_args_methods": [],
         # "userinfo": UserInfo,
         "client_authn_method": {},
+    }
+
+    special_load_dump = {
+        "keyjar": {"load": keyjar_load, 'dump': keyjar_dump}
     }
 
     init_args = ["upstream_get", "conf"]
@@ -123,7 +129,7 @@ class EndpointContext(OidcContext):
             key_conf: Optional[dict] = None,
             **kwargs
     ):
-        _id = entity_id or conf.get("issuer", "")
+        _id = entity_id or conf.getarg("issuer", "")
         OidcContext.__init__(self, conf, entity_id=_id)
         self.conf = conf
         self.upstream_get = upstream_get
@@ -138,7 +144,7 @@ class EndpointContext(OidcContext):
             else:
                 raise ValueError(f"Unknown server type: {server_type}")
 
-        _client_db = conf.get("client_db")
+        _client_db = conf.getarg("client_db")
         if _client_db:
             logger.debug(f"Loading client db using: {_client_db}")
             self.cdb = importer(_client_db["class"])(**_client_db["kwargs"])
@@ -171,7 +177,7 @@ class EndpointContext(OidcContext):
         self.par_db = {}
         self.provider_info = {}
         self.remove_token = None
-        self.scope2claims = conf.get("scopes_to_claims", SCOPE2CLAIMS)
+        self.scope2claims = conf.getarg("scopes_to_claims", SCOPE2CLAIMS)
         self.session_manager = None
         self.sso_ttl = 14400  # 4h
         self.symkey = rndstr(24)
@@ -197,14 +203,14 @@ class EndpointContext(OidcContext):
         self._sub_func = {}
         self.do_sub_func()
 
-        _handler = conf.get("template_handler")
+        _handler = conf.getarg("template_handler")
         if _handler:
             self.template_handler = _handler
         else:
-            _loader = conf.get("template_loader")
+            _loader = conf.getarg("template_loader")
 
             if _loader is None:
-                _template_dir = conf.get("template_dir")
+                _template_dir = conf.getarg("template_dir")
                 if _template_dir:
                     _loader = Environment(loader=FileSystemLoader(_template_dir), autoescape=True)
 
@@ -229,15 +235,15 @@ class EndpointContext(OidcContext):
         self.jwx_def = {}
 
         # The HTTP clients request arguments
-        _cnf = conf.get("httpc_params")
+        _cnf = conf.getarg("httpc_params")
         if _cnf:
             self.httpc_params = get_http_params(_cnf)
         else:  # Backward compatibility
-            self.httpc_params = {"verify": conf.get("verify_ssl", True)}
+            self.httpc_params = {"verify": conf.getarg("verify_ssl", True)}
 
         self.set_scopes_handler()
         self.dev_auth_db = None
-        _interface = conf.get("claims_interface")
+        _interface = conf.getarg("claims_interface")
         if _interface:
             self.claims_interface = init_service(_interface, self.unit_get)
             self.claims_interface.context = self
@@ -245,7 +251,7 @@ class EndpointContext(OidcContext):
         self.keyjar = init_keyjar(self.conf, keyjar=keyjar, key_config=key_conf, issuer_id=self.entity_id, **kwargs)
 
         if isinstance(conf, OPConfiguration):
-            conf = conf.conf
+            conf = conf.args
         _supports = self.supports()
         self.claims.load_conf(conf, supports=_supports, keyjar=keyjar, metadata_class=metadata_class)
 
@@ -260,7 +266,7 @@ class EndpointContext(OidcContext):
         self.setup_authentication()
 
         # default is to have session management
-        if self.conf.get("session_management", self.conf["conf"].get("session_management", True)):
+        if self.conf.conf_get("session_management", True):
             self.token_handler_args = get_token_handler_args(self.conf)
 
             self.session_manager = SessionManager(
@@ -288,7 +294,7 @@ class EndpointContext(OidcContext):
         return _metadata
 
     def setup_authz(self):
-        authz_spec = self.conf.get("authz")
+        authz_spec = self.conf.getarg("authz")
         if authz_spec:
             serv = init_service(authz_spec, self.unit_get)
             serv.context = self
@@ -297,13 +303,13 @@ class EndpointContext(OidcContext):
             return authz.Implicit(self.unit_get, self)
 
     def setup_client_authn_methods(self):
-        self.client_authn_methods = client_auth_setup(self, self.unit_get, self.conf.get("client_authn_methods"))
+        self.client_authn_methods = client_auth_setup(self, self.unit_get, self.conf.getarg("client_authn_methods"))
 
     def setup_login_hint_lookup(self):
-        _conf = self.conf.get("login_hint_lookup")
-        if _conf:
+        _login_hint_lookup_conf = self.conf.getarg("login_hint_lookup")
+        if _login_hint_lookup_conf:
             _userinfo = None
-            _kwargs = _conf.get("kwargs")
+            _kwargs = _login_hint_lookup_conf.get("kwargs")
             if _kwargs:
                 _userinfo_conf = _kwargs.get("userinfo")
                 if _userinfo_conf:
@@ -312,7 +318,7 @@ class EndpointContext(OidcContext):
             if _userinfo is None:
                 _userinfo = self.userinfo
 
-            self.login_hint_lookup = init_service(_conf)
+            self.login_hint_lookup = init_service(_login_hint_lookup_conf)
             self.login_hint_lookup.userinfo = _userinfo
 
     def new_cookie(self, name: str, max_age: Optional[int] = 0, **kwargs):
@@ -322,7 +328,7 @@ class EndpointContext(OidcContext):
         return cookie_cont
 
     def set_scopes_handler(self):
-        _spec = self.conf.get("scopes_handler")
+        _spec = self.conf.getarg("scopes_handler")
         if _spec:
             _kwargs = _spec.get("kwargs", {})
             _cls = importer(_spec["class"])
@@ -330,14 +336,14 @@ class EndpointContext(OidcContext):
         else:
             self.scopes_handler = Scopes(
                 self.unit_get,
-                allowed_scopes=self.conf.get("allowed_scopes"),
-                scopes_to_claims=self.conf.get("scopes_to_claims"),
+                allowed_scopes=self.conf.getarg("allowed_scopes"),
+                scopes_to_claims=self.conf.getarg("scopes_to_claims"),
             )
 
     def do_add_on(self, endpoints):
-        _add_on_conf = self.conf.get("add_ons", self.conf.get("add_on"))
+        _add_on_conf = self.conf.getarg("add_ons", self.conf.getarg("add_on"))
         if not _add_on_conf:
-            _add_on_conf = self.conf.conf.get("add_ons")
+            _add_on_conf = self.conf.conf_get("add_ons")
 
         if _add_on_conf:
             for spec in _add_on_conf.values():
@@ -348,7 +354,7 @@ class EndpointContext(OidcContext):
                 _func(self, endpoints, **spec["kwargs"])
 
     def do_login_hint2acrs(self):
-        _conf = self.conf.get("login_hint2acrs")
+        _conf = self.conf.getarg("login_hint2acrs")
 
         if _conf:
             self.login_hint2acrs = init_service(_conf)
@@ -356,7 +362,7 @@ class EndpointContext(OidcContext):
             self.login_hint2acrs = None
 
     def do_userinfo(self):
-        _conf = self.conf.get("userinfo")
+        _conf = self.conf.getarg("userinfo")
         if _conf:
             if self.session_manager:
                 self.userinfo = init_user_info(_conf, self.cwd, upstream_get=self.unit_get)
@@ -365,7 +371,7 @@ class EndpointContext(OidcContext):
                 logger.warning("Cannot init_user_info if no session manager was provided.")
 
     def do_cookie_handler(self):
-        _conf = self.conf.get("cookie_handler")
+        _conf = self.conf.getarg("cookie_handler")
         if _conf:
             if not self.cookie_handler:
                 self.cookie_handler = init_service(_conf)
@@ -376,7 +382,7 @@ class EndpointContext(OidcContext):
 
         :return: string
         """
-        ses_par = self.conf.get("session_params") or {}
+        ses_par = self.conf.getarg("session_params") or {}
         sub_func = ses_par.get("sub_func") or {}
         for key, args in sub_func.items():
             if "class" in args:
@@ -388,7 +394,7 @@ class EndpointContext(OidcContext):
                     self._sub_func[key] = args["function"]
 
     def set_remember_token(self):
-        ses_par = self.conf.get("session_params") or {}
+        ses_par = self.conf.getarg("session_params") or {}
 
         self.session_manager.remove_inactive_token = ses_par.get("remove_inactive_token", False)
 
@@ -403,10 +409,10 @@ class EndpointContext(OidcContext):
                 self.session_manager.remember_token = _rm["function"]
 
     def do_login_hint_lookup(self):
-        _conf = self.conf.get("login_hint_lookup")
+        _conf = self.conf.getarg("login_hint_lookup")
         if _conf:
             _userinfo = None
-            _kwargs = _conf.get("kwargs")
+            _kwargs = _conf.getarg("kwargs")
             if _kwargs:
                 _userinfo_conf = _kwargs.get("userinfo")
                 if _userinfo_conf:
@@ -456,7 +462,7 @@ class EndpointContext(OidcContext):
         return self.claims.set_usage(claim, value)
 
     def setup_authentication(self):
-        _conf = self.conf.get("authentication")
+        _conf = self.conf.getarg("authentication")
         if _conf:
             self.authn_broker = populate_authn_broker(
                 _conf, self.unit_get, self.template_handler

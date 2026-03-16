@@ -14,10 +14,17 @@ from urllib.parse import unquote_plus
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
-import yaml
+from cryptojwt import KeyBundle
 from cryptojwt import KeyJar
+from cryptojwt import as_unicode
 from cryptojwt.jwk.asym import AsymmetricKey
+from cryptojwt.jwk.hmac import SYMKey
+from cryptojwt.key_issuer import KeyIssuer
+from cryptojwt.utils import as_bytes
 from cryptojwt.utils import importer
+import yaml
+
+from idpyoidc import init_args_from_source
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +173,17 @@ def qualified_name(cls):
     :return: fully qualified class name
     """
 
+    _module = cls.__module__
     try:
-        return cls.__module__ + "." + cls.name
+        return _module + "." + cls.name
     except AttributeError:
-        return cls.__module__ + "." + cls.__name__
+        try:
+            return _module + "." + cls.__name__
+        except AttributeError:
+            try:
+                return _module + "." + cls.__qualname__
+            except AttributeError:
+                return _module + "." + cls.__class__.__name__
 
 
 # def conf_get(config, attr, default=None):
@@ -339,8 +353,10 @@ def full_keyjar_join(kj1, kj2, private=False):
     issuers = list(set(issuers))
     _keyjar = KeyJar()
     for issuer_id in issuers:
-        _keyjar.import_jwks(kj1.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
-        _keyjar.import_jwks(kj2.export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+        _keyjar.import_jwks(kj1.export_jwks(issuer_id=issuer_id, private=private),
+                            issuer_id=issuer_id)
+        _keyjar.import_jwks(kj2.export_jwks(issuer_id=issuer_id, private=private),
+                            issuer_id=issuer_id)
     return _keyjar
 
 
@@ -367,7 +383,6 @@ def keyjar_combination(item,
         if kj:
             keyjars.append(kj)
 
-
     if len(keyjars) == 0:
         return None
     elif len(keyjars) == 1:
@@ -379,8 +394,10 @@ def keyjar_combination(item,
         issuers = list(set(issuers))
         _keyjar = KeyJar()
         for issuer_id in issuers:
-            _keyjar.import_jwks(keyjars[0].export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
-            _keyjar.import_jwks(keyjars[1].export_jwks(issuer_id=issuer_id, private=private), issuer_id=issuer_id)
+            _keyjar.import_jwks(keyjars[0].export_jwks(issuer_id=issuer_id, private=private),
+                                issuer_id=issuer_id)
+            _keyjar.import_jwks(keyjars[1].export_jwks(issuer_id=issuer_id, private=private),
+                                issuer_id=issuer_id)
 
     else:  # more than 2 keyjars
         issuers = keyjars[0].owners()
@@ -391,6 +408,122 @@ def keyjar_combination(item,
         _keyjar = KeyJar()
         for iss in issuers:
             for nr in range(1, len(keyjars)):
-                _keyjar.import_jwks(keyjars[nr].export_jwks(issuer_id=iss, private=private), issuer_id=iss)
+                _keyjar.import_jwks(keyjars[nr].export_jwks(issuer_id=iss, private=private),
+                                    issuer_id=iss)
 
     return _keyjar
+
+
+def load_key(info):
+    typ, spec = info.split('::')
+    _key = importer(typ)
+    _dict = json.loads(spec)
+    if typ == 'cryptojwt.jwk.hmac.SYMKey':
+        __key = _key(k=as_bytes(_dict['k']))
+        for k, v in _dict.items():
+            if k in ['k', 'key']:
+                continue
+            setattr(_key, k, v)
+    else:
+        __key = _key(**_dict)
+    # special case
+    _ia = getattr(__key, 'inactive_since', None)
+    if _ia is None:
+        setattr(__key, 'inactive_since', 0)
+
+    return __key
+
+
+def key_bundle_load(info):
+    key_bundle = KeyBundle()
+    for k, v in info.items():
+        if k == '_keys':
+            setattr(key_bundle, '_keys', [load_key(a) for a in v])
+        else:
+            setattr(key_bundle, k, v)
+    return key_bundle
+
+
+def key_issuer_load(info):
+    key_issuer = KeyIssuer()
+    for k, v in info.items():
+        if k == "keybundle_cls":
+            setattr(key_issuer, k, importer(v))
+        elif k == '_bundles':
+            setattr(key_issuer, k, [key_bundle_load(val) for val in v])
+        else:
+            setattr(key_issuer, k, v)
+    return key_issuer
+
+
+def keyjar_load(item: dict, init_args: Optional[dict] = None, load_args: Optional[dict] = None):
+    keyjar = KeyJar()
+    for key, val in item.items():
+        if key == "issuers":
+            for k, v in val.items():
+                iss = key_issuer_load(v)
+                keyjar._issuers[k] = iss
+        else:
+            setattr(keyjar, key, val)
+    return keyjar
+
+
+def keys_dump(key_bundle):
+    _keys = []
+    for k_val in key_bundle._keys:
+        # one key
+        params, has_kwargs = init_args_from_source(k_val)
+        init_args = {k: getattr(k_val, k, None) for k in params}
+        if isinstance(k_val, SYMKey):
+            # 'k' is the base64 encoded version of 'key'. Only need one of them.
+            if 'k' in init_args:
+                init_args['k'] = as_unicode(init_args['k'])
+            if 'key' in init_args:
+                del init_args['key']
+        _keys.append(f'{qualified_name(k_val)}::{json.dumps(init_args)}')
+    return _keys
+
+
+def key_bundle_dump(key_issuer):
+    _bundles = []
+    for key_bundle in key_issuer._bundles:
+        # A key bundle
+        _bundle = {}
+        for b_key in key_bundle.params:
+            val = getattr(key_bundle, b_key, None)
+            if val:
+                _bundle[b_key] = val
+        # bundle keys
+        _bundle['_keys'] = keys_dump(key_bundle)
+        _bundles.append(_bundle)
+    return _bundles
+
+
+def key_issuer_dump(item):
+    issuers = {}
+    # issuers
+    for issuer, key_issuer in item.items():
+        # About a key issuer
+        _iss = {}
+        # issuer parameters
+        for i_key in key_issuer.params:
+            val = getattr(key_issuer, i_key, None)
+            if val:
+                if i_key == "keybundle_cls":
+                    _iss[i_key] = qualified_name(val)
+                else:
+                    _iss[i_key] = val
+        # issuer bundles
+        _iss['_bundles'] = key_bundle_dump(key_issuer)
+        issuers[issuer] = _iss
+    return issuers
+
+
+def keyjar_dump(item, exclude_attributes):
+    res = {}
+    for key in ["httpc_params", "remove_after"]:
+        val = getattr(item, key, None)
+        if val:
+            res[key] = val
+    res['issuers'] = key_issuer_dump(item._issuers)
+    return res

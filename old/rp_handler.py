@@ -48,10 +48,10 @@ class RPHandler(object):
             config = RPHConfiguration(config)
 
         self.base_url = base_url or config.get("base_url", config.get("entity_id", ""))
-        self.entity_id = config.conf_get( "entity_id", self.base_url)
-        self.entity_type = config.conf_get( "entity_type", "")
-        self.client_type = config.conf_get( "client_type", "")
-        self.client_configs = client_configs or config.conf_get( "client_configs")
+        self.entity_id = config.getarg( "entity_id", self.base_url)
+        self.entity_type = config.getarg( "entity_type", "")
+        self.client_type = config.getarg( "client_type", "")
+        self.client_configs = client_configs or config.getarg( "client_configs")
 
         if keyjar:
             self.keyjar = keyjar
@@ -78,7 +78,7 @@ class RPHandler(object):
                 if _jwks_path:
                     self.jwks_uri = add_path(self.base_url, _jwks_path)
 
-            _c_class = config.conf_get( "client_class")
+            _c_class = config.getarg( "client_class")
             if _c_class:
                 if isinstance(_c_class, str):
                     self.client_cls = importer(_c_class)
@@ -115,7 +115,7 @@ class RPHandler(object):
         self.extra = kwargs
 
         if services is None:
-            services = config.conf_get( "services", None)
+            services = config.getarg( "services", None)
 
         if services is None:
             self.services = DEFAULT_OIDC_SERVICES

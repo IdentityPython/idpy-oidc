@@ -8,10 +8,9 @@ from typing import Union
 from cryptojwt import KeyJar
 from cryptojwt.utils import importer
 
-from idpyoidc.client.configure import get_configuration
-from idpyoidc.util import use_default_keys
-
 from idpyoidc.client.defaults import DEFAULT_KEY_DEFS
+from idpyoidc.configure import get_configuration
+from idpyoidc.configure import init_config
 from idpyoidc.node import Unit
 # from idpyoidc.server import authz
 # from idpyoidc.server.client_authn import client_auth_setup
@@ -23,12 +22,13 @@ from idpyoidc.server.endpoint_context import EndpointContext
 # from idpyoidc.server.user_authn.authn_context import populate_authn_broker
 from idpyoidc.server.util import allow_refresh_token
 from idpyoidc.server.util import build_endpoints
+from idpyoidc.util import use_default_keys
 
 logger = logging.getLogger(__name__)
 
 
-def do_endpoints(conf, upstream_get):
-    _endpoints = conf.conf_get("endpoint")
+def do_endpoints(conf: dict, upstream_get):
+    _endpoints = conf.get("endpoint")
     if _endpoints:
         return build_endpoints(_endpoints, upstream_get=upstream_get, issuer=conf["issuer"])
     else:
@@ -50,12 +50,12 @@ class Server(Unit):
             entity_id: Optional[str] = "",
             key_conf: Optional[dict] = None,
     ):
-        self.conf = get_configuration(conf, OPConfiguration)
+        self.conf = init_config(conf, OPConfiguration)
 
-        self.entity_id = entity_id or self.conf.conf_get("entity_id", None)
+        self.entity_id = entity_id or self.conf.getarg("entity_id", None)
         if not self.entity_id:
-            self.entity_id = self.conf.conf_get("entity_id", "")
-        self.issuer = self.conf.conf_get("issuer", self.entity_id)
+            self.entity_id = self.conf.getarg("entity_id", "")
+        self.issuer = self.conf.getarg("issuer", self.entity_id)
         if not self.entity_id and self.issuer:
             self.entity_id = self.issuer
 
@@ -101,7 +101,7 @@ class Server(Unit):
 
         _token_endp = self.endpoint.get("token")
 
-        metadata_schema = self.conf.conf_get("metadata_schema", None)
+        metadata_schema = self.conf.getarg("metadata_schema", None)
 
         if metadata_schema:
             metadata_schema = importer(metadata_schema)

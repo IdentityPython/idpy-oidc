@@ -40,11 +40,11 @@ class EntityConfiguration(Base):
             dir_attributes=dir_attributes,
         )
 
-        self.keys = lower_or_upper(conf, "keys")
+        self.keys = lower_or_upper(self.args, "keys")
 
-        self.hash_seed = lower_or_upper(conf, "hash_seed", rndstr(32))
-        self.base_url = conf.get("base_url")
-        self.httpc_params = conf.get("httpc_params", {"verify": False})
+        self.hash_seed = lower_or_upper(self.args, "hash_seed", rndstr(32))
+        self.base_url = self.getarg("base_url", '')
+        self.httpc_params = self.getarg("httpc_params", {"verify": False})
 
 
 def test_server_config():
@@ -82,12 +82,12 @@ def test_entity_config(filename):
     assert len(ni) == 9
     assert set(ni.keys()) == {
         "base_url",
-        "_dir_attributes",
-        "_file_attributes",
+        "dir_attributes",
+        "file_attributes",
         "hash_seed",
         "httpc_params",
         "keys",
-        "conf",
+        "args",
         "port",
         "domain",
     }

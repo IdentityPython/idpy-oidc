@@ -1,8 +1,8 @@
 import pytest
 
-from idpyoidc.client.configure import Configuration
-from idpyoidc.client.configure import get_configuration
+from idpyoidc.client.configure import RPConfiguration
 from idpyoidc.configure import Base
+from idpyoidc.configure import get_configuration
 
 
 @pytest.mark.parametrize(
@@ -15,15 +15,15 @@ from idpyoidc.configure import Base
                 'bar': 2
             },
         },
-        Configuration({'foo': 1, 'bar': 2}, domain='https://example.com'),
+        RPConfiguration({'foo': 1, 'bar': 2}, domain='https://example.com'),
         Base({'foo': 1, 'bar': 2}, domain='https://example.com'),
     ]
 )
 def test_configure(configuration):
     config = get_configuration(configuration)
     assert isinstance(config, Base)
-    assert config.getargs("foo") == 1
-    assert config.getargs("bar") == 2
+    assert config.getarg("foo") == 1
+    assert config.getarg("bar") == 2
     assert config.domain == "https://example.com"
 
 
@@ -45,11 +45,11 @@ def test_domain_configure():
     assert isinstance(config, Base)
     assert set(config.args.keys()) == {'server_name', 'foo', 'bar', 'base_url', 'xyz'}
 
-    assert config.getargs("foo") == {'entity_id': 'https://127.0.0.1:5000'}
-    assert config.getargs("bar") == "https://127.0.0.1/bar"
-    assert config.getargs("server_name") == "127.0.0.1:5000"
-    assert config.getargs("base_url") == "https://127.0.0.1:5000"
-    assert config.getargs("xyz") == "pool:5000"
+    assert config.getarg("foo") == {'entity_id': 'https://127.0.0.1:5000'}
+    assert config.getarg("bar") == "https://127.0.0.1/bar"
+    assert config.getarg("server_name") == "127.0.0.1:5000"
+    assert config.getarg("base_url") == "https://127.0.0.1:5000"
+    assert config.getarg("xyz") == "pool:5000"
 
     assert config.domain == '127.0.0.1'
     assert config.port == 5000
@@ -59,4 +59,4 @@ def test_attributes():
     config = get_configuration({'conf': {'template_dir': 'templates'}, 'base_path': '/Users/erik'})
     assert isinstance(config, Base)
     assert set(config.args.keys()) == {'template_dir'}
-    assert config.getargs("template_dir") == "/Users/erik/templates"
+    assert config.getarg("template_dir") == "/Users/erik/templates"
