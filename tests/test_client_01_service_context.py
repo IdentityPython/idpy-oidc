@@ -83,3 +83,17 @@ class TestServiceContext:
     def test_set(self):
         self.service_context.set_preference("client_id", "number5")
         assert self.service_context.get_preference("client_id") == "number5"
+
+    def test_server_metadata(self):
+        _sm = self.service_context.server_metadata
+        _sm.set_entity_type_metadata("guise1", {})
+        _sm.set_entity_type_metadata("guise1", {'foo': 'bar'})
+
+        assert 'guise1' in _sm
+        assert _sm["guise1"] == {'foo': 'bar'}
+        assert _sm.get("guise1") == {'foo': 'bar'}
+
+        assert _sm.to_dict() == {'guise1': {'foo': 'bar'}}
+
+        assert _sm.get_claim_by_entity_type(claim='foo', entity_type="guise1") == 'bar'
+        assert _sm.get_claim_by_entity_type(claim='foo') == {'guise1':'bar'}
