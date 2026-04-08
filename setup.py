@@ -70,7 +70,6 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "cryptojwt>=1.8.4",
-        "pyOpenSSL",
         "filelock>=3.0.12",
         'pyyaml>=5.1.2',
         "jinja2>=2.11.3",
