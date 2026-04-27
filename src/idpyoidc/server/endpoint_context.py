@@ -11,6 +11,7 @@ from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from requests import request
 
+from idpyoidc.context import Context
 from idpyoidc.context import OidcContext
 from idpyoidc.message import Message
 from idpyoidc.server import authz

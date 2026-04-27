@@ -228,16 +228,16 @@ class EntityConfiguration(Base):
     }
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
-        upstream_get: Optional[Callable] = None,
-        **kwargs
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
+            upstream_get: Optional[Callable] = None,
+            **kwargs
     ):
 
         conf = copy.deepcopy(conf)
@@ -302,15 +302,15 @@ class OPConfiguration(EntityConfiguration):
     )
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
-        **kwargs
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
+            **kwargs
     ):
         super().__init__(
             conf=conf,
@@ -328,14 +328,14 @@ class ASConfiguration(EntityConfiguration):
     "Authorization server configuration"
 
     def __init__(
-        self,
-        conf: Dict,
-        base_path: Optional[str] = "",
-        entity_conf: Optional[List[dict]] = None,
-        domain: Optional[str] = "",
-        port: Optional[int] = 0,
-        file_attributes: Optional[List[str]] = None,
-        dir_attributes: Optional[List[str]] = None,
+            self,
+            conf: Dict,
+            base_path: Optional[str] = "",
+            entity_conf: Optional[List[dict]] = None,
+            domain: Optional[str] = "",
+            port: Optional[int] = 0,
+            file_attributes: Optional[List[str]] = None,
+            dir_attributes: Optional[List[str]] = None,
     ):
         EntityConfiguration.__init__(
             self,
@@ -641,3 +641,29 @@ DEFAULT_OIDC_ENDPOINTS = {
         "kwargs": {},
     },
 }
+
+
+class OAuthResourceConfiguration(Base):
+
+    def __init__(self,
+                 conf: Dict,
+                 base_path: Optional[str] = "",
+                 domain: Optional[str] = "",
+                 port: Optional[int] = 0,
+                 file_attributes: Optional[List[str]] = None,
+                 dir_attributes: Optional[List[str]] = None,
+                 entity_conf: Optional[List[dict]] = None,
+                 **kwargs
+                 ):
+        conf = copy.deepcopy(conf)
+        Base.__init__(
+            self,
+            conf,
+            base_path,
+            file_attributes=file_attributes,
+            dir_attributes=dir_attributes,
+            domain=domain,
+            port=port,
+            **kwargs
+        )
+        self.claims_interface = {"class": "idpyoidc.server.session.claims.ClaimsInterface", "kwargs": {}}

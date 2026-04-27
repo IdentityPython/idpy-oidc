@@ -13,6 +13,7 @@ from idpyoidc.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import OPTIONAL_LIST_OF_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from idpyoidc.message import REQUIRED_LIST_OF_STRINGS
+from idpyoidc.message import SINGLE_OPTIONAL_BOOLEAN
 from idpyoidc.message import SINGLE_OPTIONAL_INT
 from idpyoidc.message import SINGLE_OPTIONAL_JSON
 from idpyoidc.message import SINGLE_OPTIONAL_STRING
@@ -646,17 +647,22 @@ class OAuthProtectedResourceRequest(Message):
     c_param = {
         "resource": SINGLE_REQUIRED_STRING,
         "authorization_servers": OPTIONAL_LIST_OF_STRINGS,
-        "jwks_uri": SINGLE_OPTIONAL_STRING,
-        "resource_documentation": SINGLE_OPTIONAL_STRING,
-        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "authorization_details_types_supported": SINGLE_OPTIONAL_JSON,
         "bearer_methods_supported": OPTIONAL_LIST_OF_STRINGS,
-        "resource_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "client_registration_types": OPTIONAL_LIST_OF_STRINGS,
+        "dpop_signing_alg_values_supported": SINGLE_OPTIONAL_JSON,
+        "dpop_bound_access_tokens_required": SINGLE_OPTIONAL_BOOLEAN,
+        "jwks_uri": SINGLE_OPTIONAL_STRING,
+        "organization_name": SINGLE_OPTIONAL_STRING,
+        "resource_documentation": SINGLE_OPTIONAL_STRING,
         "resource_encryption_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
         "resource_encryption_enc_values_supported": OPTIONAL_LIST_OF_STRINGS,
-        "client_registration_types": OPTIONAL_LIST_OF_STRINGS,
-        "organization_name": SINGLE_OPTIONAL_STRING,
+        "resource_name": SINGLE_OPTIONAL_STRING,
         "resource_policy_uri": SINGLE_OPTIONAL_STRING,
-        "resource_tos_uri": SINGLE_OPTIONAL_STRING
+        "resource_signing_alg_values_supported": OPTIONAL_LIST_OF_STRINGS,
+        "resource_tos_uri": SINGLE_OPTIONAL_STRING,
+        "scopes_supported": OPTIONAL_LIST_OF_STRINGS,
+        "tls_client_certificate_bound_access_tokens": SINGLE_OPTIONAL_BOOLEAN
     }
 
 def factory(msgtype, **kwargs):
