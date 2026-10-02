@@ -2,12 +2,14 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
 from idpyoidc.message.oidc import TokenErrorResponse
 from idpyoidc.server.constant import DEFAULT_TOKEN_LIFETIME
 from idpyoidc.server.session.grant import Grant
 from idpyoidc.server.session.token import SessionToken
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class TokenEndpointHelper(object):
     def __init__(self, endpoint, config=None):
         self.endpoint = endpoint
-        self.config = config
+        self.config = config or {}
         self.error_cls = self.endpoint.error_cls
 
     def post_parse_request(
@@ -86,15 +88,11 @@ class TokenEndpointHelper(object):
 
 def validate_resource_indicators_policy(request, context, **kwargs):
     if "resource" not in request:
-        return TokenErrorResponse(
-            error="invalid_target",
-            error_description="Missing resource parameter",
-        )
+        return request
 
     client_id = request["client_id"]
 
     resource_servers_per_client = kwargs.get("resource_servers_per_client", [])
-
     if (
         isinstance(resource_servers_per_client, dict)
         and client_id not in resource_servers_per_client
@@ -103,50 +101,64 @@ def validate_resource_indicators_policy(request, context, **kwargs):
             error="invalid_target",
             error_description=f"Resources for client {client_id} not found",
         )
+    # Check if request["resource"] is a string
+    if isinstance(request["resource"], str):
+        # If it's a string, convert it to a list
+        request["resource"] = [request["resource"]]
 
-    if isinstance(resource_servers_per_client, dict):
-        permitted_resources = [res for res in resource_servers_per_client[client_id]]
-    else:
-        permitted_resources = [res for res in resource_servers_per_client]
+    permitted_resources = [res for res in resource_servers_per_client]
+    if client_id not in permitted_resources:
+        permitted_resources.append(client_id)
+    requested_resources = set(request["resource"])
+    # Check if all requested resources are in permitted resources
+    if not requested_resources.issubset(permitted_resources):
+        return TokenErrorResponse(
+            error="invalid_target",
+            error_description=f"One or more invalid resources requested by client {client_id}",
+        )
 
-    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
-    if not common_resources:
+    # Find the common resources between the request and permitted resources
+    common_resources_intersect = list(requested_resources.intersection(permitted_resources))
+
+    # Further filter common resources based on whether they exist in the context's CDB
+    common_resources = [r for r in common_resources_intersect if r in context.cdb.keys()]
+
+    if set(common_resources) != set(common_resources_intersect):
         return TokenErrorResponse(
             error="invalid_target",
             error_description=f"Invalid resource requested by client {client_id}",
         )
 
-    common_resources = [r for r in common_resources if r in context.cdb.keys()]
-    if not common_resources:
-        return TokenErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    if client_id not in common_resources:
+    if client_id not in common_resources and client_id in requested_resources:
         common_resources.append(client_id)
 
     request["resource"] = common_resources
-
-    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
-    permitted_scopes = [r for res in permitted_scopes for r in res]
+    permitted_scopes = []
+    for r in common_resources:
+        try:
+            # Only proceed if r exists in context.cdb and is a dictionary
+            if isinstance(context.cdb.get(r), dict):
+                permitted_scopes.append(context.cdb[r]["allowed_scopes"])
+        except KeyError:
+            # Handle the case where "allowed_scopes" is missing
+            logger.warning(f"'allowed_scopes' missing for resource {r}")
+        except Exception as e:
+            # Handle other unexpected exceptions
+            logger.error(f"Unexpected error for resource {r}: {e}")
+    if permitted_scopes:
+        permitted_scopes = [r for res in permitted_scopes for r in res]
     scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
     request["scope"] = scopes
     return request
 
 
 def validate_token_exchange_policy(request, context, subject_token, **kwargs):
-    if "resource" in request:
-        resource = kwargs.get("resource", [])
-        if not set(request["resource"]).issubset(set(resource)):
-            return TokenErrorResponse(error="invalid_target", error_description="Unknown resource")
-
     if "audience" in request:
         if request["subject_token_type"] == "urn:ietf:params:oauth:token-type:refresh_token":
             return TokenErrorResponse(
                 error="invalid_target", error_description="Refresh token has single owner"
             )
-        audience = kwargs.get("audience", [])
+        audience = kwargs.get("audience") or []
         if audience and not set(request["audience"]).issubset(set(audience)):
             return TokenErrorResponse(error="invalid_target", error_description="Unknown audience")
 
@@ -176,3 +188,45 @@ def validate_token_exchange_policy(request, context, subject_token, **kwargs):
         del request["scope"]
 
     return request
+
+def apply_audience_policies(request, context, client_info, audience, grant, configuration):
+    """
+    request (Message): the request being processed
+    context (dict): context
+    client_id (str): the id of the client making the request
+    client_info (dict): more information about the client
+    audience (list): the intended audience of the token; if the request is ClientCredentials or AuthorizationCode then this is the requested resources through Resource Indicators RFC
+    grant: the associated grant with the token
+    configuration (dict): extra configuration for the policy
+    """
+
+    client_id = request["client_id"]
+    audience_policies_config = configuration.get("enable_audience_policies", None) if configuration else None
+    if audience_policies_config is None:
+        return
+
+    audience_policies = configuration.get("audience_policies") or {}
+    applied_audience_policies = (
+        audience_policies.get(client_id)
+        or audience_policies.get("")
+        or []
+    )
+    for audience_policy in applied_audience_policies:
+        function = audience_policy["function"]
+        kwargs = audience_policy.get("kwargs", {})
+
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} audience function")
+        else:
+            fn = function
+
+        try:
+            fn(request, context, client_id, client_info, audience, grant, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} audience function: {e}")
+            request["error"] = "server_error"
+            request["error_description"] = "Internal server error"
+            return

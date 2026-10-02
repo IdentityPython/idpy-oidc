@@ -235,6 +235,7 @@ class TestEndpoint(object):
         payload = _jwt.jwt.payload()
         assert set(payload.keys()) == {
             "aud",
+            "client_id",
             "sub",
             "auth_time",
             "nonce",
@@ -285,6 +286,7 @@ class TestEndpoint(object):
 
         assert set(payload.keys()) == {
             "aud",
+            "client_id",
             "sub",
             "auth_time",
             "nonce",
@@ -310,6 +312,7 @@ class TestEndpoint(object):
         payload = _jwt.jwt.payload()
         assert set(payload.keys()) == {
             "sub",
+            "client_id",
             "auth_time",
             "aud",
             "exp",
@@ -343,6 +346,7 @@ class TestEndpoint(object):
 
         assert set(payload.keys()) == {
             "sub",
+            "client_id",
             "auth_time",
             "aud",
             "exp",
@@ -378,6 +382,7 @@ class TestEndpoint(object):
         payload = _jwt.jwt.payload()
         assert set(payload.keys()) == {
             "sub",
+            "client_id",
             "auth_time",
             "aud",
             "exp",
@@ -405,6 +410,7 @@ class TestEndpoint(object):
         payload = _jwt.jwt.payload()
         assert set(payload.keys()) == {
             "nonce",
+            "client_id",
             "iat",
             "iss",
             "email",
@@ -441,6 +447,7 @@ class TestEndpoint(object):
         payload = _jwt.jwt.payload()
         assert set(payload.keys()) == {
             "nonce",
+            "client_id",
             "c_hash",
             "at_hash",
             "email",

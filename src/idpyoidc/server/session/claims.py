@@ -69,7 +69,9 @@ class ClaimsInterface:
         secondary_identifier: Optional[str] = "",
     ):
         _cdb = self.upstream_get("attribute", "cdb")
-        add_claims_by_scope = _cdb[client_id].get("add_claims", {}).get("by_scope", {})
+        add_claims = _cdb[client_id].get("add_claims") or {}
+        add_claims_by_scope = add_claims.get("by_scope") or {}
+
         if add_claims_by_scope:
             _claims_by_scope = add_claims_by_scope.get(claims_release_point)
             if _claims_by_scope is None and secondary_identifier:
@@ -80,7 +82,7 @@ class ClaimsInterface:
         else:
             _claims_by_scope = module.kwargs.get("add_claims_by_scope", {})
 
-        add_claims_always = _cdb[client_id].get("add_claims", {}).get("always", {})
+        add_claims_always = add_claims.get("always") or {}
         _always_add = add_claims_always.get(claims_release_point, [])
         if secondary_identifier:
             _always_2 = add_claims_always.get(secondary_identifier, [])

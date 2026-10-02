@@ -2,12 +2,17 @@ import logging
 from typing import Optional
 from typing import Union
 
+from idpyoidc.exception import ImproperlyConfigured
 from idpyoidc.message import Message
+from idpyoidc.message.oauth2 import TokenErrorResponse, AuthorizationErrorResponse
 from idpyoidc.message.oauth2 import CCAccessTokenRequest
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.time_util import utc_time_sans_frac
+from idpyoidc.util import importer
 from idpyoidc.util import sanitize
 
 from . import TokenEndpointHelper
+from . import validate_resource_indicators_policy
 
 logger = logging.getLogger(__name__)
 
@@ -45,25 +50,89 @@ class ClientCredentials(TokenEndpointHelper):
             branch_id = _mngr.add_grant(["client_credentials", client_id])
             _session_info = _mngr.get_session_info(branch_id)
 
+        _cinfo = _context.cdb.get(client_id)
+        resource_indicators_config = None
+        resources = None
+        token_args = None
+
+        # check if enable_resource_indicators is enabled and resource parameter exists
+        if req.get("resource") is not None and self.endpoint.kwargs.get("enable_resource_indicators"):
+            if "resource_indicators" in _cinfo:
+                resource_indicators_config = _cinfo["resource_indicators"]
+            if client_id in req.get("resource"):
+                if resource_indicators_config == None:
+                    resource_indicators_config = {
+                        "policy": {
+                            "function": validate_resource_indicators_policy,
+                            "kwargs": {
+                                "resource_servers_per_client": [
+                                    client_id
+                                ]
+                            }
+                        }
+                    }
+                else:
+                  # Ensure the structure exists
+                  if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                      resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                  else:
+                      # If the structure is somehow not complete, initialize it
+                      resource_indicators_config["policy"] = {
+                          "function": validate_resource_indicators_policy,
+                          "kwargs": {
+                              "resource_servers_per_client": [client_id]
+                          }
+                      }
+
+        if resource_indicators_config is not None:
+            if "policy" not in resource_indicators_config:
+                policy = {"policy": {"function": validate_resource_indicators_policy}}
+                resource_indicators_config.update(policy)
+
+            req = self._enforce_resource_indicators_policy(req, resource_indicators_config)
+
+            if isinstance(req, TokenErrorResponse) or isinstance(req, AuthorizationErrorResponse):
+                return req
+ 
+            resources = req.get("resource", None)
+            if resources:
+                token_args = {"resources": resources}
+
+        apply_audience_policies(req, _context, _cinfo,  req.get("resource", None), _session_info["grant"], self.endpoint.kwargs)
+        if "error" in req:
+            return self.error_cls(error=req["error"], error_description=req["error_description"])
+        resources = req.get("resource", None)
+        if resources:
+            token_args = {"resources": resources}
         _grant = _session_info["grant"]
 
         token_type = "Bearer"
 
-        _allowed = _context.cdb[client_id].get("allowed_scopes", [])
+        scopes_allowed_cfg = _context.cdb[client_id].get("allowed_scopes", [])
+        scopes_req = req.get("scope") or []
+        scopes = [
+            scope
+            for scope in scopes_req
+            if scope in scopes_allowed_cfg
+        ]
+
+        self._apply_client_credentials_filter_policy(req, _grant)
+
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,
             session_id=_session_info["branch_id"],
             client_id=_session_info["client_id"],
             based_on=None,
-            scope=_allowed,
+            scope=scopes,
             token_type=token_type,
+            token_args=token_args,
         )
 
         _resp = {
             "access_token": access_token.value,
             "token_type": access_token.token_class,
-            "scope": _allowed,
+            "scope": scopes,
         }
 
         if access_token.expires_at:
@@ -77,3 +146,43 @@ class ClientCredentials(TokenEndpointHelper):
         request = CCAccessTokenRequest(**request.to_dict())
         logger.debug("%s: %s" % (request.__class__.__name__, sanitize(request)))
         return request
+    
+    def _enforce_resource_indicators_policy(self, request, config):
+        _context = self.endpoint.upstream_get("context")
+
+        policy = config["policy"]
+        function = policy["function"]
+        kwargs = policy.get("kwargs", {})
+
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
+        else:
+            fn = function
+        try:
+            return fn(request, context=_context, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy function: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")
+
+    def _apply_client_credentials_filter_policy(self, request, grant):
+        _context = self.endpoint.upstream_get("context")
+        policy = self.config.get("policy")
+        if not policy:
+            return
+        function = policy[""]["function"]
+        kwargs = policy.get("kwargs", {})
+        if isinstance(function, str):
+            try:
+                fn = importer(function)
+            except Exception:
+                raise ImproperlyConfigured(f"Error importing {function} policy function")
+        else:
+            fn = function
+        try:
+            return fn(request, context=_context, grant= grant, **kwargs)
+        except Exception as e:
+            logger.error(f"Error while executing the {fn} policy function: {e}")
+            return self.error_cls(error="server_error", error_description="Internal server error")

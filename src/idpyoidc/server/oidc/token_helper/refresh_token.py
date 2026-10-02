@@ -10,7 +10,8 @@ from cryptojwt.jwt import utc_time_sans_frac
 from ...exception import InvalidBranchID
 from idpyoidc.exception import MissingRequiredAttribute
 from idpyoidc.message import Message
-from idpyoidc.message.oidc import RefreshAccessTokenRequest
+from idpyoidc.message.oidc import RefreshAccessTokenRequest, AuthorizationResponse
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.oauth2.token_helper import TokenEndpointHelper
 from idpyoidc.server.session.token import AuthorizationCode
 from idpyoidc.server.session.token import MintingNotAllowed
@@ -54,6 +55,12 @@ class RefreshTokenHelper(TokenEndpointHelper):
         scope = _grant.find_scope(token.based_on)
         if "scope" in req:
             scope = req["scope"]
+
+        _cinfo = _context.cdb.get(_session_info["client_id"])
+        apply_audience_policies(req, _context, _cinfo,  _grant.resources, _grant, self.endpoint.kwargs)
+        if "error" in req:
+            return self.error_cls(error=req["error"], error_description=req["error_description"])
+
         access_token = self._mint_token(
             token_class="access_token",
             grant=_grant,

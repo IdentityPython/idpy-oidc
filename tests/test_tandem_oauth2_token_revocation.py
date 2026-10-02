@@ -1,5 +1,4 @@
 import os
-
 import pytest
 from cryptojwt.key_jar import build_keyjar
 
@@ -9,6 +8,7 @@ from idpyoidc.server import ASConfiguration
 from idpyoidc.server import Server
 from idpyoidc.server.authz import AuthzHandling
 from idpyoidc.server.client_authn import verify_client
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.user_authn.authn_context import INTERNETPROTOCOLPASSWORD
 from idpyoidc.server.user_info import UserInfo
 from idpyoidc.util import rndstr
@@ -46,7 +46,9 @@ class TestClient(object):
                 "token": {
                     "path": "token",
                     "class": "idpyoidc.server.oauth2.token.Token",
-                    "kwargs": {},
+                    "kwargs": {
+                        "enable_resource_indicators": True,
+                    },
                 },
                 "token_revocation": {
                     "path": "revocation",
@@ -122,6 +124,12 @@ class TestClient(object):
             "client_secret": "abcdefghijklmnop",
             "issuer": "https://example.com/",
             "response_types_supported": ["code"],
+            "resource_indicators":  {
+                "policy": {
+                    "function": validate_resource_indicators_policy,
+                    "kwargs": {"resource_servers_per_client": ["client_1"]},
+                },
+            },
         }
         services = {
             "server_metadata": {"class": "idpyoidc.client.oauth2.server_metadata.ServerMetadata"},
@@ -205,6 +213,7 @@ class TestClient(object):
             "code": auth_response["code"],
             "state": auth_response["state"],
             "redirect_uri": areq["redirect_uri"],
+            "resource": "client_1",
             # "grant_type": "authorization_code",
             # "client_id": self.client_.get_client_id(),
             # "client_secret": _context.get_usage("client_secret"),

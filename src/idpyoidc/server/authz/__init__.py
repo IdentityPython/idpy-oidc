@@ -76,9 +76,10 @@ class AuthzHandling(object):
             else:
                 setattr(grant, key, val)
 
-        if resources is None:
+        # Grant.resources may already has value
+        if grant.resources is None and resources is None:
             grant.resources = [_client_id]
-        else:
+        elif resources is not None:
             grant.resources = resources
 
         # Scope handling. If allowed scopes are defined for the client filter using that

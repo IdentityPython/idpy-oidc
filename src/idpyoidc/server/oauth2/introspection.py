@@ -5,6 +5,7 @@ from typing import Optional
 from idpyoidc.message import oauth2
 from idpyoidc.server.endpoint import Endpoint
 from idpyoidc.server.exception import ToOld
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.token.exception import WrongTokenClass
 
@@ -34,6 +35,8 @@ class Introspection(Endpoint):
         Endpoint.__init__(self, upstream_get, **kwargs)
         self.offset = kwargs.get("offset", 0)
         self.enforce_aud_restriction = kwargs.get("enforce_audience_restriction", True)
+        self.audience_policies_config = kwargs.get("audience_policies", None)
+        self.enable_audience_policies = kwargs.get("enable_audience_policies", False)
 
     def _introspect(self, token, client_id, grant):
         # Make sure that the token is an access_token or a refresh_token
@@ -117,6 +120,11 @@ class Introspection(Endpoint):
             aud = grant.resources
 
         client_id = request["client_id"]
+
+        apply_audience_policies(request, _context, _context.cdb[client_id], aud, _session_info["grant"], self.kwargs)
+        if "error" in request:
+            return {"response_args": _resp}
+
         try:
             _cinfo = _context.cdb[client_id]
             enforce_aud_restriction = _cinfo.get(
@@ -124,13 +132,13 @@ class Introspection(Endpoint):
             )
         except:
             enforce_aud_restriction = self.enforce_aud_restriction
-        if enforce_aud_restriction:
-            if request["client_id"] not in aud:
-                return {"response_args": _resp}
 
-        _info = self._introspect(_token, _session_info["client_id"], _session_info["grant"])
+        _info = self._introspect(_token, _session_info["client_id"], grant)
         if _info is None:
             return {"response_args": _resp}
+        if enforce_aud_restriction:
+            if request["client_id"] not in aud and request["client_id"] not in _info["client_id"]:
+                return {"response_args": _resp}
 
         if release:
             if "username" in release:
@@ -141,6 +149,10 @@ class Introspection(Endpoint):
 
         _resp.update(_info)
         _resp.weed()
+
+        _custom_attributes = grant.claims.get("custom_attributes")
+        if _custom_attributes:
+            _resp.update(_custom_attributes)
 
         _claims_restriction = _context.claims_interface.get_claims(
             _session_info["branch_id"], scopes=_token.scope, claims_release_point="introspection"

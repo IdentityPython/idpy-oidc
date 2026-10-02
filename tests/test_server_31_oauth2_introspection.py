@@ -338,7 +338,6 @@ class TestEndpoint:
             "exp",
             "iat",
             "scope",
-            "aud",
             "token_type",
         }
         assert _payload["active"] is True
@@ -494,7 +493,8 @@ class TestEndpoint:
 
     def test_wrong_aud(self):
         auth_req = AUTH_REQ.copy()
-        auth_req["client_id"] = "client_2"
+        auth_req["client_id"] = "client_3"
+        auth_req["resource"] = "client_2"
         access_token = self._get_access_token(auth_req)
         _context = self.introspection_endpoint.upstream_get("endpoint_context")
 

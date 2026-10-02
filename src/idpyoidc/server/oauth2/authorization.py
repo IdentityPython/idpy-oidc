@@ -27,7 +27,7 @@ from idpyoidc.message import oauth2
 from idpyoidc.message.oauth2 import AuthorizationRequest
 from idpyoidc.message.oidc import APPLICATION_TYPE_NATIVE
 from idpyoidc.message.oidc import APPLICATION_TYPE_WEB
-from idpyoidc.message.oidc import AuthorizationResponse
+from idpyoidc.message.oidc import AuthorizationResponse, TokenErrorResponse
 from idpyoidc.message.oidc import verified_claim_name
 from idpyoidc.server.authn_event import create_authn_event
 from idpyoidc.server.cookie_handler import compute_session_state
@@ -41,6 +41,8 @@ from idpyoidc.server.exception import TamperAllert
 from idpyoidc.server.exception import ToOld
 from idpyoidc.server.exception import UnAuthorizedClientScope
 from idpyoidc.server.exception import UnknownClient
+from idpyoidc.server.oauth2.token_helper import apply_audience_policies
+from idpyoidc.server.oauth2.token_helper import validate_resource_indicators_policy
 from idpyoidc.server.session import Revoked
 from idpyoidc.server.token.exception import UnknownToken
 from idpyoidc.server.user_authn.authn_context import pick_auth
@@ -103,7 +105,8 @@ def verify_uri(
         request: Union[dict, Message],
         uri_type: str,
         client_id: Optional[str] = None,
-        endpoint_type: Optional[str] = 'oidc'
+        endpoint_type: Optional[str] = 'oidc',
+        schemes_denylist: Optional[list] = None
 ):
     """
     A redirect URI
@@ -175,6 +178,8 @@ def verify_uri(
     # the port should not be taken into account when matching redirect URIs.
     client_type = client_info.get("application_type") or APPLICATION_TYPE_WEB
     if client_type == APPLICATION_TYPE_NATIVE:
+        if not has_uri_allowed_scheme(req_redirect_uri_obj, schemes_denylist or []):
+            raise URIError("Invalid scheme in redirect URI")
         if is_http_uri(req_redirect_uri_obj) and is_localhost_uri(req_redirect_uri_obj):
             req_redirect_uri_obj = remove_port_from_uri(req_redirect_uri_obj)
 
@@ -205,6 +210,9 @@ def is_http_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
     value = uri_obj.scheme == "http"
     return value
 
+def has_uri_allowed_scheme(uri_obj: Union[ParseResult, SplitResult], schemes_denylist) -> bool:
+    value = uri_obj.scheme not in schemes_denylist
+    return value
 
 def is_localhost_uri(uri_obj: Union[ParseResult, SplitResult]) -> bool:
     value = uri_obj.hostname in [
@@ -240,7 +248,8 @@ def join_query(base, query):
 def get_uri(context,
             request: Union[Message, dict],
             uri_type: str,
-            endpoint_type: Optional[str] = "oidc"):
+            endpoint_type: Optional[str] = "oidc",
+            schemes_denylist: Optional[list] = None):
     """verify that the redirect URI is reasonable.
 
     :param context: An EndpointContext instance
@@ -251,7 +260,7 @@ def get_uri(context,
     uri = ""
 
     if uri_type in request:
-        verify_uri(context, request, uri_type, endpoint_type=endpoint_type)
+        verify_uri(context, request, uri_type, endpoint_type=endpoint_type, schemes_denylist=schemes_denylist)
         uri = request[uri_type]
     else:
         uris = f"{uri_type}s"
@@ -331,53 +340,6 @@ def check_unknown_scopes_policy(request_info, client_id, context):
         raise UnAuthorizedClientScope()
 
 
-def validate_resource_indicators_policy(request, context, **kwargs):
-    if "resource" not in request:
-        return request
-
-    resource_servers_per_client = kwargs["resource_servers_per_client"]
-    client_id = request["client_id"]
-
-    if (
-            isinstance(resource_servers_per_client, dict)
-            and client_id not in resource_servers_per_client
-    ):
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Resources for client {client_id} not found",
-        )
-
-    if isinstance(resource_servers_per_client, dict):
-        permitted_resources = [res for res in resource_servers_per_client[client_id]]
-    else:
-        permitted_resources = [res for res in resource_servers_per_client]
-
-    common_resources = list(set(request["resource"]).intersection(set(permitted_resources)))
-    if not common_resources:
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    common_resources = [r for r in common_resources if r in context.cdb.keys()]
-    if not common_resources:
-        return oauth2.AuthorizationErrorResponse(
-            error="invalid_target",
-            error_description=f"Invalid resource requested by client {client_id}",
-        )
-
-    if client_id not in common_resources:
-        common_resources.append(client_id)
-
-    request["resource"] = common_resources
-
-    permitted_scopes = [context.cdb[r]["allowed_scopes"] for r in common_resources]
-    permitted_scopes = [r for res in permitted_scopes for r in res]
-    scopes = list(set(request.get("scope", [])).intersection(set(permitted_scopes)))
-    request["scope"] = scopes
-    return request
-
-
 class Authorization(Endpoint):
     request_cls = oauth2.AuthorizationRequest
     response_cls = oauth2.AuthorizationResponse
@@ -412,6 +374,7 @@ class Authorization(Endpoint):
         self.post_parse_request.append(self._post_parse_request)
         self.allowed_request_algorithms = AllowedAlgorithms(ALG_PARAMS)
         self.resource_indicators_config = kwargs.get("resource_indicators", None)
+        self.schemes_denylist = kwargs.get("schemes_denylist", None)
 
     def filter_request(self, context, req):
         return req
@@ -556,7 +519,7 @@ class Authorization(Endpoint):
 
         # Get a verified redirect URI
         try:
-            redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type)
+            redirect_uri = get_uri(context, request, "redirect_uri", self.endpoint_type, self.schemes_denylist)
         except (RedirectURIError, ParameterError, URIError, UnknownClient) as err:
             return self.authentication_error_response(
                 request,
@@ -566,19 +529,50 @@ class Authorization(Endpoint):
         else:
             request["redirect_uri"] = redirect_uri
 
-        if (
-                "resource_indicators" in _cinfo
-                and "authorization_code" in _cinfo["resource_indicators"]
-        ):
-            resource_indicators_config = _cinfo["resource_indicators"]["authorization_code"]
-        else:
-            resource_indicators_config = self.resource_indicators_config
+        resource_indicators_config = None
+        # check if enable_resource_indicators is enabled and resource parameter exists
+        if request.get("resource") is not None and context.conf.endpoint.get("authorization").get("kwargs").get("enable_resource_indicators"):
+            if "resource_indicators" in _cinfo:
+                resource_indicators_config = _cinfo["resource_indicators"]
+            if client_id in request.get("resource"):
+                if resource_indicators_config == None:
+                    resource_indicators_config = {
+                        "policy": {
+                            "function": validate_resource_indicators_policy,
+                            "kwargs": {
+                                "resource_servers_per_client": [
+                                    client_id
+                                ]
+                            }
+                        }
+                    }
+                else:
+                  # Ensure the structure exists
+                  if "policy" in resource_indicators_config and "kwargs" in resource_indicators_config["policy"]:
+                      resource_indicators_config["policy"]["kwargs"].setdefault("resource_servers_per_client", []).append(client_id)
+                  else:
+                      # If the structure is somehow not complete, initialize it
+                      resource_indicators_config["policy"] = {
+                          "function": validate_resource_indicators_policy,
+                          "kwargs": {
+                              "resource_servers_per_client": [
+                                  client_id
+                              ]
+                          }
+                      }
 
         if resource_indicators_config is not None:
             if "policy" not in resource_indicators_config:
                 policy = {"policy": {"function": validate_resource_indicators_policy}}
                 resource_indicators_config.update(policy)
             request = self._enforce_resource_indicators_policy(request, resource_indicators_config)
+            
+            if "error" in request:
+                return self.authentication_error_response(
+                    request,
+                    error=request["error"],
+                    error_description=request["error_description"],
+                )
 
         return request
 
@@ -588,9 +582,6 @@ class Authorization(Endpoint):
         policy = config["policy"]
         function = policy["function"]
         kwargs = policy.get("kwargs", {})
-
-        if kwargs.get("resource_servers_per_client", None) is None:
-            kwargs["resource_servers_per_client"] = {request["client_id"]: request["client_id"]}
 
         if isinstance(function, str):
             try:
@@ -931,6 +922,15 @@ class Authorization(Endpoint):
             else:
                 _aud_arg = {}
 
+            client_id = request["client_id"]
+            _cinfo = _context.cdb.get(client_id)
+            apply_audience_policies(request, _context, _cinfo, request.get("resource", None), grant, _context.conf.endpoint.get("authorization").get("kwargs"))
+            if "error" in request:
+                return self.authentication_error_response(
+                    request,
+                    error=request["error"],
+                    error_description=request["error_description"],
+                )
             if "code" in rtype:
                 _code = self.mint_token(
                     token_class="authorization_code",
